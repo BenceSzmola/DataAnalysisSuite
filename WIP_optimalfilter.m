@@ -43,12 +43,17 @@ else
     indataFull = rhd.ampdata;
     fprintf(1,'Data from console \n');
 end
-
+assignin('base','indata',indataFull);
 len = size(indataFull,1)-1;
 ivec = 1:len;
 if refch ~= 0
     ivec([1 refch]) = ivec([refch 1]);
 end
+dogged = zeros(size(indataFull,2),len);
+assignin('base','dog',dogged);
+power = zeros(size(indataFull,2),len);
+
+%%% Filters
 for i = ivec
     if fromMES == 0
         t_scale = rhd.tdata;
@@ -58,7 +63,7 @@ for i = ivec
         indata = indata - indataFull(noisech,:);
     end
     %%% Substract mean from lfp 
-    indataMS = indata - mean(indata,2);
+%     indataMS = indata - mean(indata,2);
 
     %%% Apply DoG (from BuzsakiLab)
     GFw1       = makegausslpfir( w1, srate, 6 );
@@ -67,7 +72,7 @@ for i = ivec
     eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
     lfpLow     = lfpLow - eegLo;            % difference of Gaussians
     
-    filtered = lfpLow;
+    dogged(:,i) = lfpLow;
 
     %%%% Apply DoG (from BuzsakiLab) with meansubstract
     %GFw1MS       = makegausslpfir( w1, srate, 6 );
@@ -85,30 +90,62 @@ for i = ivec
     ripPower0  = firfilt( rip, powerWin );
     ripPower0  = max(ripPower0,[],2);
     
-    %%%%%%%%%%%%%%
-    %%% SWR detect
-    %%%%%%%%%%%%%%
+    power(:,i) = ripPower0;
     
+end
+
+%%% Alapzaj meghatározása
+quietiv = zeros(len,2);
+for i = ivec
+    currpow = power(:,i);
+    bigs = find(currpow>2*std(currpow));
+    if bigs(1) ~= 1
+        bigs = cat(1,1,bigs);
+    end
+    ivs = diff(bigs);
+    [bigmax, indx] = max(ivs);
+    quietiv(i,:) = [bigs(indx) bigs(indx)+bigmax];
+end
+assignin('base','intervals',quietiv);
+[~, ind] = max(diff(quietiv,1,2));
+quietiv = quietiv(ind,:);
+assignin('base','bestinterval',quietiv);
+
+%%%%%%%%%%%%%%
+%%% SWR detect
+%%%%%%%%%%%%%%
+for i = ivec
+   
 %     winstepsize = 1000;
 %     eventdist = 1000;
-    peaks = zeros(round(length(ripPower0)/winstepsize),2);
+    currpow = power(:,i);
+    assignin('base',['currpow',num2str(i)],currpow);
+    quiet = currpow(quietiv(1):quietiv(2));
+%     for q = 2:size(quietiv,1)
+%         quiet = cat(1,quiet,(currpow(quietiv(q,1):quietiv(q,2))));
+%     end
+    assignin('base',['quiet',num2str(i)],quiet);
+    peaks = zeros(round(length(currpow)/winstepsize),2);
     peaknum = 2;
-    ripsd = mean(ripPower0) + sdmult*std(ripPower0); %sd + mean treshold
+    ripsd = mean(quiet) + sdmult*std(quiet);
+    if i == refch
+        ripsd = mean(currpow) + sdmult*std(currpow);
+    end
     figure('Name',['Channel',num2str(i)],'NumberTitle','off');
     %theaxe = axes;
     xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(length(indata)-1);
     ax1=subplot(2,1,1);
-    plot(xscala,lfpLow);
+    plot(xscala,dogged(:,i));
     grid on;
     title('DoG');
     ax2=subplot(2,1,2);
-    plot(xscala,ripPower0); hold on;
+    plot(xscala,currpow); hold on;
     title('Instantaneous power');
     grid on;
     linkaxes([ax1 ax2],'x');
     %plot(xscala,ripPower0); hold on;
-    for j = 1:winstepsize:(length(ripPower0)-winstepsize*2)
-        [peak, index] = max(ripPower0(j:j+(winstepsize*2)));
+    for j = 1:winstepsize:(length(currpow)-winstepsize*2)
+        [peak, index] = max(currpow(j:j+(winstepsize*2)));
         index = j+index-1;
         if (peak > ripsd) %&& ((index-peaks(peaknum-1,1)) > 500)
             peaks(peaknum,:) = [index, peak];
@@ -141,18 +178,18 @@ for i = ivec
     nonzind = find(ppeaks(:,2));
     ppeaks = ppeaks(nonzind,:);
 %     assignin('base',['peaks', num2str(i)],ppeaks);
-    assignin('base','rips',ripPower0);
+    assignin('base','rips',currpow);
     %%% Hossz alapján kiszûrés
     widths = zeros(size(ppeaks,1),1);
     for ii = 1:size(ppeaks,1)
         iii = ppeaks(ii,1);
-        while ripPower0(iii) > ripsd
+        while currpow(iii) > ripsd
             iii = iii - 1;
         end
         lowedge = iii;
         assignin('base','lowedge',lowedge);
         iii = ppeaks(ii,1);
-        while ripPower0(iii) > ripsd
+        while currpow(iii) > ripsd
             iii = iii + 1;
         end
         highedge = iii;
@@ -191,7 +228,7 @@ for i = ivec
     end
     assignin('base',['peaks', num2str(i)],ppeaks);
     plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
-    %line(get(theaxe,'XLim'),[ripsd ripsd],'Color','r'); hold off;
+    line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
     
     %%% CSV irás
     if i == ivec(1)
