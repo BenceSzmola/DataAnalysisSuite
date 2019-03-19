@@ -1,0 +1,7 @@
+function filtered = gaussavr_into_FIR(indata,sigma,nFIR,w1,w2)
+
+%%% 2D gauss filering
+gaussed = imgaussfilt(indata,sigma);
+
+%%% Window based FIR
+fird = fir1
