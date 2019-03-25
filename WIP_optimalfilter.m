@@ -46,9 +46,12 @@ end
 assignin('base','indata',indataFull);
 len = size(indataFull,1)-1;
 ivec = 1:len;
+noref = 1:len;
 if refch ~= 0
     ivec([1 refch]) = ivec([refch 1]);
+    noref(noref==refch) = [];
 end
+assignin('base','noref',noref);
 dogged = zeros(size(indataFull,2),len);
 assignin('base','dog',dogged);
 power = zeros(size(indataFull,2),len);
@@ -114,8 +117,8 @@ for i = ivec
     piccolo(1:length(find(currpow < (mean(currpow) + 2*std(currpow)))),i) = find(currpow < (mean(currpow) + 2*std(currpow)));
 end
 assignin('base','piccolo',piccolo);
-sect = intersect(piccolo(:,1),piccolo(:,2));
-for i = 3:len-1
+sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
+for i = noref(3):noref(end)
     sect = intersect(piccolo(:,i),sect);
 end
 assignin('base','runsect',sect);
