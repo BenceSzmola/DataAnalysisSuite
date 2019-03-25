@@ -95,21 +95,45 @@ for i = ivec
 end
 
 %%% Alapzaj meghatározása
-quietiv = zeros(len,2);
+% quietiv = zeros(len,2);
+piccolo = zeros(size(indataFull,2),len);
 for i = ivec
-    currpow = power(:,i);
-    bigs = find(currpow>2*std(currpow));
-    if bigs(1) ~= 1
-        bigs = cat(1,1,bigs);
+    if i == refch
+        continue
     end
-    ivs = diff(bigs);
-    [bigmax, indx] = max(ivs);
-    quietiv(i,:) = [bigs(indx) bigs(indx)+bigmax];
+    currpow = power(:,i);
+%     bigs = find(currpow>(mean(currpow)+2*std(currpow)));
+%     if bigs(1) ~= 1
+%         bigs = cat(1,1,bigs);
+%     end
+%     ivs = diff(bigs);
+%     assignin('base',['ivs',num2str(i)],ivs);
+%     [bigmax, indx] = max(ivs);
+%     quietiv(i,:) = [bigs(indx) bigs(indx)+bigmax];
+    %%% Közös intervallumot keres változat
+    piccolo(1:length(find(currpow < (mean(currpow) + 2*std(currpow)))),i) = find(currpow < (mean(currpow) + 2*std(currpow)));
 end
+assignin('base','piccolo',piccolo);
+sect = intersect(piccolo(:,1),piccolo(:,2));
+for i = 3:len-1
+    sect = intersect(piccolo(:,i),sect);
+end
+assignin('base','runsect',sect);
+qsect = diff(sect);
+louds = qsect(qsect>1);
+assignin('base','runlouds',louds);
+[~, inds] = ismember(qsect,louds);
+goodinds = find(inds~=0);
+if(goodinds(1) ~= 1)
+    goodinds = cat(1,1,goodinds);
+end
+assignin('base','runginds',goodinds);
+[quietivlen, ind] = max(diff(goodinds));
+quietiv = [ind, ind+quietivlen];
 assignin('base','intervals',quietiv);
-[~, ind] = max(diff(quietiv,1,2));
-quietiv = quietiv(ind,:);
-assignin('base','bestinterval',quietiv);
+% [~, ind] = max(diff(quietiv,1,2));
+% quietiv = quietiv(ind,:);
+% assignin('base','bestinterval',quietiv);
 
 %%%%%%%%%%%%%%
 %%% SWR detect
