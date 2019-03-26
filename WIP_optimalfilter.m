@@ -12,8 +12,8 @@ function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 doplot = 0;
 save = 0;
-answer = inputdlg({'Filename (0 for browser):','Samplerate:','W1:','W2:','Noise channel:','Reference channel','Window steps size','Min event distance','sd mult','quiet sd mult'},...
-    'Inputs',[1 20],{'0','20000','150','250','0','0','1000','1000','2','2'});
+answer = inputdlg({'Filename (0 for browser):','Samplerate:','W1:','W2:','Noise channel:','Reference channel','Window steps size','Min event distance','sd mult','quiet sd mult','Event length lower bound','Event length upper bound'},...
+    'Inputs',[1 20],{'0','20000','150','250','0','0','1000','1000','2','2','10','inf'});
 filename = answer(1);
 srate = str2double(answer(2));
 w1 = str2double(answer(3));
@@ -24,7 +24,9 @@ winstepsize = str2double(answer(7));
 eventdist = str2double(answer(8));
 sdmult = str2double(answer(9));
 qsdmult = str2double(answer(10));
-
+widthlower = str2double(answer(11));
+widthupper = str2double(answer(12));
+ 
 if strcmp(filename,'0')
     [filename, path] = uigetfile('.rhd','Select the RHD');
     cd(path);
@@ -115,8 +117,10 @@ for i = ivec
 %     [bigmax, indx] = max(ivs);
 %     quietiv(i,:) = [bigs(indx) bigs(indx)+bigmax];
     %%% Közös intervallumot keres változat
+    quietthresh(i) = (mean(currpow) + qsdmult*std(currpow));
     piccolo(1:length(find(currpow < (mean(currpow) + qsdmult*std(currpow)))),i) = find(currpow < (mean(currpow) + qsdmult*std(currpow)));
 end
+assignin('base','quietthresh',quietthresh);
 assignin('base','piccolo',piccolo);
 sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
 for i = noref(3):noref(end)
@@ -133,8 +137,55 @@ if(goodinds(1) ~= 1)
 end
 assignin('base','runginds',goodinds);
 [quietivlen, ind] = max(diff(goodinds));
-quietiv = [ind, ind+quietivlen];
+quietiv = [sect(goodinds(ind)), sect(goodinds(ind))+quietivlen];
+quietivs = zeros(size(indataFull,2),2,len);
+quietivs(1,:,1) = quietiv;
 assignin('base','intervals',quietiv);
+
+%%% Ha tul rovid az interval akkor csatornankent hozzarakok 
+if (quietiv(2)-quietiv(1)) < 1.5*srate
+    disp('IN');
+    for i = noref
+        extquiets = piccolo(:,i);
+        diffquiets = diff(extquiets);
+        extlouds = diffquiets(diffquiets>1);
+        [~, inds] = ismember(diffquiets,extlouds);
+        extgoodinds = find(inds~=0);
+        if(extgoodinds(1) ~= 1)
+            extgoodinds = cat(1,1,extgoodinds);
+        end
+        goodies = diff(extgoodinds);
+        assignin('base',['goodies',num2str(i)],goodies);
+%         [goodielen, ind] = max(goodies);
+        tempivs = zeros(length(goodies),2);
+        tempivs(1,:) = quietiv;
+%         goodies(ind) = 0;
+        indx = 2;
+        while (sum(tempivs(:,2)-tempivs(:,1))) < (1.5*srate)
+            [goodielen, ind] = max(goodies);
+            tempivs(indx,:) = [sect(goodinds(ind)) , sect(goodinds(ind))+goodielen];
+            goodies(ind) = 0;
+            indx = indx + 1;
+            disp(indx);
+            disp((sum(tempivs(:,2)-tempivs(:,1))));
+        end
+        tempivs = tempivs(any(tempivs,2),:);
+        tempivs2 = tempivs;
+        assignin('base',['tempivs',num2str(i)],tempivs);
+        assignin('base',['extgoodies',num2str(i)],goodies);  
+        for j = 2:size(tempivs,1)
+            overlap = intersect(tempivs(j,1):tempivs(j,2),tempivs(1,1):tempivs(1,2));
+            if length(overlap) > 1
+                tempivs2(j,:) = [];
+                tempivs2 = cat(1,tempivs2,[tempivs(j,1) overlap(1)]);
+                tempivs2 = cat(1,tempivs2,[overlap(end) tempivs(j,2)]);
+            end
+        end
+        quietivs(:,:,i) = tempivs2;
+        assignin('base','quietivs',quietivs);
+        assignin('base',['tempivs2',num2str(i)],tempivs2);
+    end
+end
 % [~, ind] = max(diff(quietiv,1,2));
 % quietiv = quietiv(ind,:);
 % assignin('base','bestinterval',quietiv);
@@ -148,7 +199,8 @@ for i = ivec
 %     eventdist = 1000;
     currpow = power(:,i);
     assignin('base',['currpow',num2str(i)],currpow);
-    quiet = currpow(quietiv(1):quietiv(2));
+    %%% +1 hogy ne 0-tol indexeljen
+    quiet = currpow(quietiv(1)+1:quietiv(2)+1);
 %     for q = 2:size(quietiv,1)
 %         quiet = cat(1,quiet,(currpow(quietiv(q,1):quietiv(q,2))));
 %     end
@@ -229,8 +281,8 @@ for i = ivec
         assignin('base','highedge',highedge);
 %         line([highedge highedge],get(theaxe,'YLim'),'Color','r');
 %         line([lowedge lowedge],get(theaxe,'YLim'),'Color','r');
-        widths(ii) = (highedge - lowedge)/20;
-        if widths(ii) < 20
+        widths(ii) = (highedge - lowedge)/(srate/1000);
+        if (widths(ii) < widthlower) || (widths(ii) > widthupper)
             ppeaks(ii,2) = 0;
         end
         assignin('base','widths',widths);
