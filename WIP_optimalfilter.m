@@ -12,8 +12,8 @@ function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 doplot = 0;
 save = 0;
-answer = inputdlg({'Filename (0 for browser):','Samplerate:','W1:','W2:','Noise channel:','Reference channel','Window steps size','Min event distance','sd mult'},...
-    'Inputs',[1 20],{'0','20000','150','250','0','0','1000','1000','4'});
+answer = inputdlg({'Filename (0 for browser):','Samplerate:','W1:','W2:','Noise channel:','Reference channel','Window steps size','Min event distance','sd mult','quiet sd mult'},...
+    'Inputs',[1 20],{'0','20000','150','250','0','0','1000','1000','2','2'});
 filename = answer(1);
 srate = str2double(answer(2));
 w1 = str2double(answer(3));
@@ -23,6 +23,7 @@ refch = str2double(answer(6));
 winstepsize = str2double(answer(7));
 eventdist = str2double(answer(8));
 sdmult = str2double(answer(9));
+qsdmult = str2double(answer(10));
 
 if strcmp(filename,'0')
     [filename, path] = uigetfile('.rhd','Select the RHD');
@@ -114,7 +115,7 @@ for i = ivec
 %     [bigmax, indx] = max(ivs);
 %     quietiv(i,:) = [bigs(indx) bigs(indx)+bigmax];
     %%% Közös intervallumot keres változat
-    piccolo(1:length(find(currpow < (mean(currpow) + 2*std(currpow)))),i) = find(currpow < (mean(currpow) + 2*std(currpow)));
+    piccolo(1:length(find(currpow < (mean(currpow) + qsdmult*std(currpow)))),i) = find(currpow < (mean(currpow) + qsdmult*std(currpow)));
 end
 assignin('base','piccolo',piccolo);
 sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
@@ -195,11 +196,13 @@ for i = ivec
             ppeaks(k,2) = 0;
         end        
     end
-    if ((peaks(2,1)-peaks(1,1)) < eventdist) && (peaks(1,2) < peaks(2,2))
-        ppeaks(1,2) = 0;
-    end
-    if ((peaks(end,1)-peaks(end-1,1)) < eventdist) && (peaks(end,2) < peaks(end-1,2))
-        ppeaks(end,2) = 0;
+    if size(ppeaks,1)>1
+        if ((peaks(2,1)-peaks(1,1)) < eventdist) && (peaks(1,2) < peaks(2,2))
+            ppeaks(1,2) = 0;
+        end
+        if ((peaks(end,1)-peaks(end-1,1)) < eventdist) && (peaks(end,2) < peaks(end-1,2))
+            ppeaks(end,2) = 0;
+        end
     end
     assignin('base','peaksvol2',ppeaks);
     nonzind = find(ppeaks(:,2));
@@ -211,6 +214,9 @@ for i = ivec
     for ii = 1:size(ppeaks,1)
         iii = ppeaks(ii,1);
         while currpow(iii) > ripsd
+            if (iii-1)<1
+                break
+            end
             iii = iii - 1;
         end
         lowedge = iii;
@@ -251,7 +257,7 @@ for i = ivec
     end
     %%% Átírás idõskálára
     for ii = 1:size(ppeaks,1)
-        ppeaks(ii,1) = (ppeaks(ii,1)/20000)+t_scale(1);
+        ppeaks(ii,1) = ((ppeaks(ii,1)-1)/20000)+t_scale(1);
     end
     assignin('base',['peaks', num2str(i)],ppeaks);
     plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
