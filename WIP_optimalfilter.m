@@ -9,6 +9,12 @@ function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 %       save: kimentse e a fig-eket (ezt is 0-n)
 %       noisech: a zajt tartalmazo csatorna
 %       refch: az eseményt nem tartalmazó csatorna
+%       window step size: peakkeresés ablakának lépése
+%       Min event distance
+%       sd mult: threshold meghatározásához hányszoros sd-t használjon
+%       qsd mult: csendes szakaszokat hányszoros sd alapján határozza meg
+%       Event length lower bound
+%       Event length upper bound
 
 doplot = 0;
 save = 0;
