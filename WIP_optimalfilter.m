@@ -163,7 +163,7 @@ if (quietiv(2)-quietiv(1)) < 1.5*srate
         indx = 2;
         while (sum(tempivs(:,2)-tempivs(:,1))) < (1.5*srate)
             [goodielen, ind] = max(goodies);
-            tempivs(indx,:) = [sect(goodinds(ind)) , sect(goodinds(ind))+goodielen];
+            tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
             goodies(ind) = 0;
             indx = indx + 1;
             disp(indx);
@@ -173,6 +173,7 @@ if (quietiv(2)-quietiv(1)) < 1.5*srate
         tempivs2 = tempivs;
         assignin('base',['tempivs',num2str(i)],tempivs);
         assignin('base',['extgoodies',num2str(i)],goodies);  
+        maxnum = 0;
         for j = 2:size(tempivs,1)
             overlap = intersect(tempivs(j,1):tempivs(j,2),tempivs(1,1):tempivs(1,2));
             if length(overlap) > 1
@@ -181,10 +182,15 @@ if (quietiv(2)-quietiv(1)) < 1.5*srate
                 tempivs2 = cat(1,tempivs2,[overlap(end) tempivs(j,2)]);
             end
         end
-        quietivs(:,:,i) = tempivs2;
+        maxnum = size(tempivs2,1);
+        quietivs(1:size(tempivs2,1),:,i) = tempivs2;
         assignin('base','quietivs',quietivs);
         assignin('base',['tempivs2',num2str(i)],tempivs2);
     end
+    for i = 1:size(quietivs,3)
+        quietivs(maxnum+1:end,:,:) = [];
+    end
+    assignin('base','quietivs',quietivs);
 end
 % [~, ind] = max(diff(quietiv,1,2));
 % quietiv = quietiv(ind,:);
@@ -201,9 +207,9 @@ for i = ivec
     assignin('base',['currpow',num2str(i)],currpow);
     %%% +1 hogy ne 0-tol indexeljen
     quiet = currpow(quietiv(1)+1:quietiv(2)+1);
-%     for q = 2:size(quietiv,1)
-%         quiet = cat(1,quiet,(currpow(quietiv(q,1):quietiv(q,2))));
-%     end
+    for q = 2:size(quietiv,1)
+        quiet = cat(1,quiet,(currpow(quietiv(q,1,i):quietiv(q,2,i))));
+    end
     assignin('base',['quiet',num2str(i)],quiet);
     peaks = zeros(round(length(currpow)/winstepsize),2);
     peaknum = 2;
