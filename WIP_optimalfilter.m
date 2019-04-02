@@ -1,6 +1,6 @@
 function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
-%%% bemenetek:
+% bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
 %       srate: sampling rate Hz-ben
 %       w1: also szuro hatar
@@ -13,25 +13,25 @@ function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 %       Min event distance
 %       sd mult: threshold meghatározásához hányszoros sd-t használjon
 %       qsd mult: csendes szakaszokat hányszoros sd alapján határozza meg
+%       sec : hány sec-es csendesszakasz alapján számoljon
 %       Event length lower bound
 %       Event length upper bound
 
-doplot = 0;
-save = 0;
-answer = inputdlg({'Filename (0 for browser):','Samplerate:','W1:','W2:','Noise channel:','Reference channel','Window steps size','Min event distance','sd mult','quiet sd mult','Event length lower bound','Event length upper bound'},...
-    'Inputs',[1 20],{'0','20000','150','250','0','0','1000','1000','2','2','10','inf'});
+answer = inputdlg({'Filename (0 for browser):','Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
+    'Inputs',[1 20],{'0','20000','150','250','0','0','50','50','2','2','1','10','inf'});
 filename = answer(1);
 srate = str2double(answer(2));
 w1 = str2double(answer(3));
 w2 = str2double(answer(4));
 noisech = str2double(answer(5));
 refch = str2double(answer(6));
-winstepsize = str2double(answer(7));
-eventdist = str2double(answer(8));
+winstepsize = str2double(answer(7))*20;
+eventdist = str2double(answer(8))*20;
 sdmult = str2double(answer(9));
 qsdmult = str2double(answer(10));
-widthlower = str2double(answer(11));
-widthupper = str2double(answer(12));
+sec = str2double(answer(11));
+widthlower = str2double(answer(12));
+widthupper = str2double(answer(13));
  
 if strcmp(filename,'0')
     [filename, path] = uigetfile('.rhd','Select the RHD');
@@ -147,10 +147,12 @@ quietiv = [sect(goodinds(ind)), sect(goodinds(ind))+quietivlen];
 quietivs = zeros(size(indataFull,2),2,len);
 quietivs(1,:,1) = quietiv;
 assignin('base','intervals',quietiv);
+quietivT = (quietiv/srate)+t_scale(1);
+assignin('base','intervalsT',quietivT);
+
 
 %%% Ha tul rovid az interval akkor csatornankent hozzarakok 
-if (quietiv(2)-quietiv(1)) < 1.5*srate
-    disp('IN');
+if (quietiv(2)-quietiv(1)) < sec*srate
     for i = noref
         extquiets = piccolo(:,i);
         diffquiets = diff(extquiets);
@@ -167,13 +169,11 @@ if (quietiv(2)-quietiv(1)) < 1.5*srate
         tempivs(1,:) = quietiv;
 %         goodies(ind) = 0;
         indx = 2;
-        while (sum(tempivs(:,2)-tempivs(:,1))) < (1.5*srate)
+        while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate)
             [goodielen, ind] = max(goodies);
             tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
             goodies(ind) = 0;
             indx = indx + 1;
-            disp(indx);
-            disp((sum(tempivs(:,2)-tempivs(:,1))));
         end
         tempivs = tempivs(any(tempivs,2),:);
         tempivs2 = tempivs;
@@ -188,7 +188,9 @@ if (quietiv(2)-quietiv(1)) < 1.5*srate
                 tempivs2 = cat(1,tempivs2,[overlap(end) tempivs(j,2)]);
             end
         end
-        maxnum = size(tempivs2,1);
+        if size(tempivs2,1) > maxnum
+            maxnum = size(tempivs2,1);
+        end
         quietivs(1:size(tempivs2,1),:,i) = tempivs2;
         assignin('base','quietivs',quietivs);
         assignin('base',['tempivs2',num2str(i)],tempivs2);
@@ -197,11 +199,15 @@ if (quietiv(2)-quietiv(1)) < 1.5*srate
         quietivs(maxnum+1:end,:,:) = [];
     end
     assignin('base','quietivs',quietivs);
+    quietivsT = quietivs;
+    quietivsT(:,:,:) = (quietivsT(:,:,:)/srate)+t_scale(1);
+    assignin('base','quietivsT',quietivsT);
 end
 % [~, ind] = max(diff(quietiv,1,2));
 % quietiv = quietiv(ind,:);
 % assignin('base','bestinterval',quietiv);
-
+allpeaksDP = zeros(size(indataFull,2),2,length(noref));
+assignin('base','INITallpeaksDP',allpeaksDP);
 %%%%%%%%%%%%%%
 %%% SWR detect
 %%%%%%%%%%%%%%
@@ -250,8 +256,8 @@ for i = ivec
 %     peaks = unique(peaks,'first','rows');
 %     peaks=peaks(sort(idx(ij)));
     peaks = unique(peaks,'stable','rows');
-    nonzind = find(peaks(:,2));
-    peaks = peaks(nonzind,:);
+%     nonzind = find(peaks(:,2));
+    peaks = peaks(find(peaks(:,2)),:);
     ppeaks = peaks;
     assignin('base','upeaksvol1',ppeaks);
     for k = 2:size(peaks,1)-1
@@ -269,10 +275,11 @@ for i = ivec
         end
     end
     assignin('base','peaksvol2',ppeaks);
-    nonzind = find(ppeaks(:,2));
-    ppeaks = ppeaks(nonzind,:);
+%     nonzind = find(ppeaks(:,2));
+    ppeaks = ppeaks(find(ppeaks(:,2)),:);
 %     assignin('base',['peaks', num2str(i)],ppeaks);
     assignin('base','rips',currpow);
+    
     %%% Hossz alapján kiszûrés
     widths = zeros(size(ppeaks,1),1);
     for ii = 1:size(ppeaks,1)
@@ -300,14 +307,15 @@ for i = ivec
         assignin('base','widths',widths);
     end
         
-%     widths = widths(widths>=20);
+    widths = widths((widths>=widthlower) & (widths<=widthupper));
 %     nonzind = find(ppeaks(:,2));
-%     ppeaks = ppeaks(nonzind,:);
+    ppeaks = ppeaks(find(ppeaks(:,2)),:);
    
     %%% refcsatorna peakjei
     if i == refch
         refppeaks = ppeaks;
     end
+    
     %%% refchan-hoz hasonlítás
     if i ~= refch && refch ~= 0
         for jj = 1:size(ppeaks,1)
@@ -317,11 +325,25 @@ for i = ivec
                     continue
                 end
             end    
-        end
+        end    
     end
-    %%% Átírás idõskálára
+    ppeaks = ppeaks(find(ppeaks(:,2)),:);
+    
+    %%% all peaks in one except refch
+    if i ~= refch 
+        allpeaksDP(1:size(ppeaks,1),:,i) = ppeaks;
+%         maxsize = 0;
+%         for ii = 1:size(allpeaksDP,3)
+%             if max(find(allpeaksDP(:,1,ii))) > maxsize
+%                 maxsize = max(find(allpeaksDP(:,1,ii)));
+%             end
+%         end
+%         allpeaksDP(maxsize+1:end,:,:) = [];
+%         assignin('base','allpeaksDP',allpeaksDP);
+    end
+    %%% Átírás idõskálára 
     for ii = 1:size(ppeaks,1)
-        ppeaks(ii,1) = ((ppeaks(ii,1)-1)/20000)+t_scale(1);
+        ppeaks(ii,1) = ((ppeaks(ii,1)-1)/srate)+t_scale(1);
     end
     assignin('base',['peaks', num2str(i)],ppeaks);
     plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
@@ -339,35 +361,66 @@ for i = ivec
     if i == ivec(end)
         fclose(fileID);
     end    
-    %%%%%%%%%%%%%%%%%%
-    %%% SWR detect end ----------------------------------------------------
-    %%%%%%%%%%%%%%%%%%
-    
-    %%% Main filter design
-    %[b,a] = butter(n, [w1 w2]/(srate/2));
-    %
-    %%% Apply main filter
-    %filtered = filtfilt(b,a,lfpLow);
-    doplot = 0;
-    if fromMES == 0
-        if doplot
-            %%% Plots
-            xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(length(indata)-1);
-            figure('Name',sprintf('%s CH%d DoG %d-%d clip',filename(1:end-4),i,w1,w2));
-            subplot(2,1,1);
-            plot(xscala,lfpLow);
-            grid on;
-            title('DoG');
-            subplot(2,1,2);
-            plot(xscala,ripPower0);
-            title('Instantaneous power');
-            grid on;
-            if save
-                savefig(strcat(filename(1:end-4),'_CH',num2str(i),'_PB',num2str(w1),'-',num2str(w2),'DoG','clip','.fig'));
-            end
+end
+
+maxsize = 0;
+for ii = 1:size(allpeaksDP,3)
+    if max(find(allpeaksDP(:,1,ii))) > maxsize
+        maxsize = max(find(allpeaksDP(:,1,ii)));
+    end
+end
+allpeaksDP(maxsize+1:end,:,:) = [];
+assignin('base','allpeaksDP',allpeaksDP);
+
+%%% valid channel crosscheck
+consens = zeros(size(allpeaksDP,1),2);
+maxpow = 0;
+leadchan = 0;
+for i = noref
+    if (mean(allpeaksDP(:,2,i)) > maxpow)
+        maxpow = mean(allpeaksDP(:,2,i));
+        leadchan = i;
+    end
+end
+consens = cat(2,allpeaksDP(:,1,leadchan),ones(size(allpeaksDP,1),1));
+consens = cat(2,consens,zeros(size(consens,1),len));
+display(leadchan);
+for i = 1:size(allpeaksDP,3)
+    if i ~= leadchan
+        [lia,locb] = ismembertol(allpeaksDP(:,1,i),allpeaksDP(:,1,leadchan),1000,'DataScale',1);
+        ulocb = unique(locb);
+        ulocb = ulocb(find(ulocb));
+        for j = 1:size(ulocb)
+            consens(ulocb(j),2) = consens(ulocb(j),2) + 1;
+            consens(ulocb(j),2+i) = 1;
         end
     end
 end
+assignin('base','consens',consens);
+consensT = consens;
+consensT(:,1) = (consensT(:,1)/srate)+t_scale(1);
+assignin('base','consensT',consensT);
+allpeaksT = allpeaksDP;
+allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
+assignin('base','allpeaksT',allpeaksT);
+
+figure;
+plot(xscala,power(:,leadchan)); hold on;
+plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
+for i = 1:size(consensT,1)
+    for j = 1:len
+        if consensT(i,j+2) == 1
+            currsel = allpeaksT(:,1,j);
+            thex = find(abs(currsel-consensT(i,1))<0.05);
+            text(consensT(i,1),allpeaksT(thex,2,j),[num2str(j)]);
+        end
+    end
+end
+
+
+%%%%%%%%%%%%%%%%%%
+%%% SWR detect end ----------------------------------------------------
+%%%%%%%%%%%%%%%%%%
 
 %%% Taken from Buzsakilab
 function gwin = makegausslpfir( Fc, Fs, s )
