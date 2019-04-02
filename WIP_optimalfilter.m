@@ -312,7 +312,7 @@ for i = ivec
     if i ~= refch && refch ~= 0
         for jj = 1:size(ppeaks,1)
             for kk = 1:size(refppeaks,1)
-                if abs(refppeaks(kk,1)-ppeaks(jj,1))<eventdist
+                if (abs(refppeaks(kk,1)-ppeaks(jj,1))<eventdist) && (refppeaks(kk,2) ~=0)
                     ppeaks(jj,2) = 0;
                     continue
                 end
