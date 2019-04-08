@@ -153,6 +153,7 @@ assignin('base','intervalsT',quietivT);
 
 %%% Ha tul rovid az interval akkor csatornankent hozzarakok 
 if (quietiv(2)-quietiv(1)) < sec*srate
+    maxnum = 0;
     for i = noref
         extquiets = piccolo(:,i);
         diffquiets = diff(extquiets);
@@ -168,18 +169,20 @@ if (quietiv(2)-quietiv(1)) < sec*srate
         tempivs = zeros(length(goodies),2);
         tempivs(1,:) = quietiv;
 %         goodies(ind) = 0;
-        indx = 2;
-        while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate)
+        indx = 1;
+        while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate+(quietiv(2)-quietiv(1)))
+            indx = indx + 1;
             [goodielen, ind] = max(goodies);
             tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
             goodies(ind) = 0;
-            indx = indx + 1;
+%             indx = indx + 1;
         end
+        assignin('base',['fulltempivs',num2str(i)],tempivs);
         tempivs = tempivs(any(tempivs,2),:);
         tempivs2 = tempivs;
         assignin('base',['tempivs',num2str(i)],tempivs);
         assignin('base',['extgoodies',num2str(i)],goodies);  
-        maxnum = 0;
+%         maxnum = 0;
         for j = 2:size(tempivs,1)
             overlap = intersect(tempivs(j,1):tempivs(j,2),tempivs(1,1):tempivs(1,2));
             if length(overlap) > 1
