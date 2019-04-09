@@ -18,7 +18,10 @@ function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 %       Event length upper bound
 
 answer = inputdlg({'Filename (0 for browser):','Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
-    'Inputs',[1 20],{'0','20000','150','250','0','0','50','50','2','2','1','10','inf'});
+    'Inputs',[1 20],{'0','20000','150','250','0','0','50','50','2','2','1','10','inf'},'on');
+if size(answer)==0
+    return
+end
 filename = answer(1);
 srate = str2double(answer(2));
 w1 = str2double(answer(3));
@@ -32,7 +35,18 @@ qsdmult = str2double(answer(10));
 sec = str2double(answer(11));
 widthlower = str2double(answer(12));
 widthupper = str2double(answer(13));
- 
+
+debug = 0;
+answer2 = questdlg('Run debug?','Debug');
+switch answer2
+    case 'Yes'
+        debug = 1;
+    case 'No'
+        debug = 0;
+    case 'Cancel'
+        return
+end
+
 if strcmp(filename,'0')
     [filename, path] = uigetfile('.rhd','Select the RHD');
     cd(path);
@@ -52,7 +66,9 @@ else
     indataFull = rhd.ampdata;
     fprintf(1,'Data from console \n');
 end
-assignin('base','indata',indataFull);
+if debug 
+    assignin('base','indata',indataFull);
+end
 len = size(indataFull,1)-1;
 ivec = 1:len;
 noref = 1:len;
@@ -60,9 +76,13 @@ if refch ~= 0
     ivec([1 refch]) = ivec([refch 1]);
     noref(noref==refch) = [];
 end
-assignin('base','noref',noref);
+if debug
+    assignin('base','noref',noref);
+end
 dogged = zeros(size(indataFull,2),len);
-assignin('base','dog',dogged);
+if debug
+    assignin('base','dog',dogged);
+end
 power = zeros(size(indataFull,2),len);
 
 %%% Filters
@@ -126,30 +146,41 @@ for i = ivec
     quietthresh(i) = (mean(currpow) + qsdmult*std(currpow));
     piccolo(1:length(find(currpow < (mean(currpow) + qsdmult*std(currpow)))),i) = find(currpow < (mean(currpow) + qsdmult*std(currpow)));
 end
-assignin('base','quietthresh',quietthresh);
-assignin('base','piccolo',piccolo);
+if debug
+    assignin('base','quietthresh',quietthresh);
+    assignin('base','piccolo',piccolo);
+end
 sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
 for i = noref(3):noref(end)
     sect = intersect(piccolo(:,i),sect);
 end
-assignin('base','runsect',sect);
+if debug
+    assignin('base','runsect',sect);
+end
 qsect = diff(sect);
 louds = qsect(qsect>1);
-assignin('base','runlouds',louds);
+if debug
+    assignin('base','runlouds',louds);
+end
 [~, inds] = ismember(qsect,louds);
 goodinds = find(inds~=0);
 if(goodinds(1) ~= 1)
     goodinds = cat(1,1,goodinds);
 end
-assignin('base','runginds',goodinds);
+if debug
+    assignin('base','runginds',goodinds);
+end
 [quietivlen, ind] = max(diff(goodinds));
 quietiv = [sect(goodinds(ind)), sect(goodinds(ind))+quietivlen];
 quietivs = zeros(size(indataFull,2),2,len);
 quietivs(1,:,1) = quietiv;
-assignin('base','intervals',quietiv);
+if debug
+    assignin('base','intervals',quietiv);
+end
 quietivT = (quietiv/srate)+t_scale(1);
-assignin('base','intervalsT',quietivT);
-
+if debug
+    assignin('base','intervalsT',quietivT);
+end
 
 %%% Ha tul rovid az interval akkor csatornankent hozzarakok 
 if (quietiv(2)-quietiv(1)) < sec*srate
@@ -164,7 +195,9 @@ if (quietiv(2)-quietiv(1)) < sec*srate
             extgoodinds = cat(1,1,extgoodinds);
         end
         goodies = diff(extgoodinds);
-        assignin('base',['goodies',num2str(i)],goodies);
+        if debug
+            assignin('base',['goodies',num2str(i)],goodies);
+        end
 %         [goodielen, ind] = max(goodies);
         tempivs = zeros(length(goodies),2);
         tempivs(1,:) = quietiv;
@@ -177,11 +210,15 @@ if (quietiv(2)-quietiv(1)) < sec*srate
             goodies(ind) = 0;
 %             indx = indx + 1;
         end
-        assignin('base',['fulltempivs',num2str(i)],tempivs);
+        if debug
+            assignin('base',['fulltempivs',num2str(i)],tempivs);
+        end
         tempivs = tempivs(any(tempivs,2),:);
         tempivs2 = tempivs;
-        assignin('base',['tempivs',num2str(i)],tempivs);
-        assignin('base',['extgoodies',num2str(i)],goodies);  
+        if debug
+            assignin('base',['tempivs',num2str(i)],tempivs);
+            assignin('base',['extgoodies',num2str(i)],goodies);  
+        end
 %         maxnum = 0;
         for j = 2:size(tempivs,1)
             overlap = intersect(tempivs(j,1):tempivs(j,2),tempivs(1,1):tempivs(1,2));
@@ -195,22 +232,30 @@ if (quietiv(2)-quietiv(1)) < sec*srate
             maxnum = size(tempivs2,1);
         end
         quietivs(1:size(tempivs2,1),:,i) = tempivs2;
-        assignin('base','quietivs',quietivs);
-        assignin('base',['tempivs2',num2str(i)],tempivs2);
+        if debug
+            assignin('base','quietivs',quietivs);
+            assignin('base',['tempivs2',num2str(i)],tempivs2);
+        end
     end
     for i = 1:size(quietivs,3)
         quietivs(maxnum+1:end,:,:) = [];
     end
-    assignin('base','quietivs',quietivs);
+    if debug
+        assignin('base','quietivs',quietivs);
+    end
     quietivsT = quietivs;
     quietivsT(:,:,:) = (quietivsT(:,:,:)/srate)+t_scale(1);
-    assignin('base','quietivsT',quietivsT);
+    if debug
+        assignin('base','quietivsT',quietivsT);
+    end
 end
 % [~, ind] = max(diff(quietiv,1,2));
 % quietiv = quietiv(ind,:);
 % assignin('base','bestinterval',quietiv);
 allpeaksDP = zeros(size(indataFull,2),2,length(noref));
-assignin('base','INITallpeaksDP',allpeaksDP);
+if debug
+    assignin('base','INITallpeaksDP',allpeaksDP);
+end
 %%%%%%%%%%%%%%
 %%% SWR detect
 %%%%%%%%%%%%%%
@@ -219,13 +264,17 @@ for i = ivec
 %     winstepsize = 1000;
 %     eventdist = 1000;
     currpow = power(:,i);
-    assignin('base',['currpow',num2str(i)],currpow);
+    if debug
+        assignin('base',['currpow',num2str(i)],currpow);
+    end
     %%% +1 hogy ne 0-tol indexeljen
     quiet = currpow(quietiv(1)+1:quietiv(2)+1);
     for q = 2:size(quietiv,1)
         quiet = cat(1,quiet,(currpow(quietiv(q,1,i):quietiv(q,2,i))));
     end
-    assignin('base',['quiet',num2str(i)],quiet);
+    if debug
+        assignin('base',['quiet',num2str(i)],quiet);
+    end
     peaks = zeros(round(length(currpow)/winstepsize),2);
     peaknum = 2;
     ripsd = mean(quiet) + sdmult*std(quiet);
@@ -254,7 +303,9 @@ for i = ivec
         peaks(peaknum,1) = index;
         peaknum = peaknum + 1;
     end
-    assignin('base','peaksvol1',peaks);
+    if debug
+        assignin('base','peaksvol1',peaks);
+    end
 %     [As,idx] = sort(peaks);
 %     peaks = unique(peaks,'first','rows');
 %     peaks=peaks(sort(idx(ij)));
@@ -262,7 +313,9 @@ for i = ivec
 %     nonzind = find(peaks(:,2));
     peaks = peaks(find(peaks(:,2)),:);
     ppeaks = peaks;
-    assignin('base','upeaksvol1',ppeaks);
+    if debug
+        assignin('base','upeaksvol1',ppeaks);
+    end
     for k = 2:size(peaks,1)-1
         if (((peaks(k,1) - peaks(k-1,1)) < eventdist) && (peaks(k,2) < peaks(k-1,2))) || ...
                 (((peaks(k+1,1) - peaks(k,1)) < eventdist) && (peaks(k,2) < peaks(k+1,2)))
@@ -277,11 +330,15 @@ for i = ivec
             ppeaks(end,2) = 0;
         end
     end
-    assignin('base','peaksvol2',ppeaks);
+    if debug
+        assignin('base','peaksvol2',ppeaks);
+    end
 %     nonzind = find(ppeaks(:,2));
     ppeaks = ppeaks(find(ppeaks(:,2)),:);
 %     assignin('base',['peaks', num2str(i)],ppeaks);
-    assignin('base','rips',currpow);
+    if debug
+        assignin('base','rips',currpow);
+    end
     
     %%% Hossz alapján kiszûrés
     widths = zeros(size(ppeaks,1),1);
@@ -294,20 +351,26 @@ for i = ivec
             iii = iii - 1;
         end
         lowedge = iii;
-        assignin('base','lowedge',lowedge);
+        if debug
+            assignin('base','lowedge',lowedge);
+        end
         iii = ppeaks(ii,1);
         while currpow(iii) > ripsd
             iii = iii + 1;
         end
         highedge = iii;
-        assignin('base','highedge',highedge);
+        if debug
+            assignin('base','highedge',highedge);
+        end
 %         line([highedge highedge],get(theaxe,'YLim'),'Color','r');
 %         line([lowedge lowedge],get(theaxe,'YLim'),'Color','r');
         widths(ii) = (highedge - lowedge)/(srate/1000);
         if (widths(ii) < widthlower) || (widths(ii) > widthupper)
             ppeaks(ii,2) = 0;
         end
-        assignin('base','widths',widths);
+        if debug
+            assignin('base','widths',widths);
+        end
     end
         
     widths = widths((widths>=widthlower) & (widths<=widthupper));
@@ -348,7 +411,9 @@ for i = ivec
     for ii = 1:size(ppeaks,1)
         ppeaks(ii,1) = ((ppeaks(ii,1)-1)/srate)+t_scale(1);
     end
-    assignin('base',['peaks', num2str(i)],ppeaks);
+    if debug
+        assignin('base',['peaks', num2str(i)],ppeaks);
+    end
     plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
     line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
     
@@ -373,8 +438,9 @@ for ii = 1:size(allpeaksDP,3)
     end
 end
 allpeaksDP(maxsize+1:end,:,:) = [];
-assignin('base','allpeaksDP',allpeaksDP);
-
+if debug
+    assignin('base','allpeaksDP',allpeaksDP);
+end
 %%% valid channel crosscheck
 consens = zeros(size(allpeaksDP,1),2);
 maxpow = 0;
@@ -399,13 +465,19 @@ for i = 1:size(allpeaksDP,3)
         end
     end
 end
-assignin('base','consens',consens);
+if debug
+    assignin('base','consens',consens);
+end
 consensT = consens;
 consensT(:,1) = (consensT(:,1)/srate)+t_scale(1);
-assignin('base','consensT',consensT);
+if debug
+    assignin('base','consensT',consensT);
+end
 allpeaksT = allpeaksDP;
 allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
-assignin('base','allpeaksT',allpeaksT);
+if debug
+    assignin('base','allpeaksT',allpeaksT);
+end
 
 figure;
 plot(xscala,power(:,leadchan)); hold on;
