@@ -60,6 +60,17 @@ switch answer2
         return
 end
 
+filts = 0;
+answer3 = questdlg('Run DoG filter?','Filter');
+switch answer3
+    case 'Yes'
+        filts = 1;
+    case 'No'
+        filts = 0;
+    case 'Cancel'
+        return;
+end
+    
 if strcmp(filename,'0') && (ischar(ingor))
     [filename, path] = uigetfile('.rhd','Select the RHD');
     cd(path);
@@ -86,28 +97,40 @@ if debug
     assignin('base','dog',dogged);
 end
 power = zeros(size(indataFull,2),len);
-
+if ischar(ingor)
+    t_scale = rhd.tdata;
+end
 %%% Filters
+if filts == 1
+    for i = ivec
+    %     if ischar(ingor)
+    %         t_scale = rhd.tdata;
+    %     end
+        indata = indataFull(i,:);
+        if i ~= noisech && noisech ~= 0
+            indata = indata - indataFull(noisech,:);
+        end
+        %%% Substract mean from lfp 
+    %     indataMS = indata - mean(indata,2);
+
+        %%% Apply DoG (from BuzsakiLab)
+        GFw1       = makegausslpfir( w1, srate, 6 );
+        GFw2       = makegausslpfir( w2, srate, 6 );
+        lfpLow     = firfilt( indata, GFw2 );      % lowpass filter
+        eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
+        lfpLow     = lfpLow - eegLo;            % difference of Gaussians
+
+        dogged(:,i) = lfpLow;
+        
+    end
+    assignin('base','postdogged',dogged);
+elseif filts == 0
+    dogged = indataFull(1:5,:);
+    dogged = transpose(dogged);
+    assignin('base','predogged',dogged);
+end
 for i = ivec
-    if ischar(ingor)
-        t_scale = rhd.tdata;
-    end
-    indata = indataFull(i,:);
-    if i ~= noisech && noisech ~= 0
-        indata = indata - indataFull(noisech,:);
-    end
-    %%% Substract mean from lfp 
-%     indataMS = indata - mean(indata,2);
-
-    %%% Apply DoG (from BuzsakiLab)
-    GFw1       = makegausslpfir( w1, srate, 6 );
-    GFw2       = makegausslpfir( w2, srate, 6 );
-    lfpLow     = firfilt( indata, GFw2 );      % lowpass filter
-    eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
-    lfpLow     = lfpLow - eegLo;            % difference of Gaussians
     
-    dogged(:,i) = lfpLow;
-
     %%%% Apply DoG (from BuzsakiLab) with meansubstract
     %GFw1MS       = makegausslpfir( w1, srate, 6 );
     %GFw2MS       = makegausslpfir( w2, srate, 6 );
@@ -119,7 +142,7 @@ for i = ivec
     ripWindow  = pi / mean( [w1 w2] );
     powerWin   = makegausslpfir( 1 / ripWindow, srate, 4 );
 
-    rip        = lfpLow;
+    rip        = dogged(:,i);
     rip        = abs(rip);
     ripPower0  = firfilt( rip, powerWin );
     ripPower0  = max(ripPower0,[],2);
@@ -284,18 +307,22 @@ for i = ivec
         ripsd = mean(currpow) + sdmult*std(currpow);
     end
     figure('Name',['Channel',num2str(i)],'NumberTitle','off');
-    %theaxe = axes;
-    xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(length(indata)-1);
-    ax1=subplot(2,1,1);
-    plot(xscala,dogged(:,i));
-    grid on;
-    title('DoG');
-    ax2=subplot(2,1,2);
-    plot(xscala,currpow); hold on;
-    title('Instantaneous power');
-    grid on;
-    linkaxes([ax1 ax2],'x');
-    %plot(xscala,ripPower0); hold on;
+    xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(size(indataFull,2)-1);
+%     if nargin == 0
+        ax1=subplot(2,1,1);
+        plot(xscala,dogged(:,i));
+        grid on;
+        title('DoG');
+        ax2=subplot(2,1,2);
+        plot(xscala,currpow); hold on;
+        title('Instantaneous power');
+        grid on;
+        linkaxes([ax1 ax2],'x');
+%     elseif nargin == 1
+%         mes_xscale = [xscala, 1/srate]*1000;
+%         outgor(i)=set(outgor(i), 'x', mes_xscale);
+%         outgor(i)=set(outgor(i), 'y', currpow);
+%     end
     for j = 1:winstepsize:(length(currpow)-winstepsize*2)
         [peak, index] = max(currpow(j:j+(winstepsize*2)));
         index = j+index-1;
