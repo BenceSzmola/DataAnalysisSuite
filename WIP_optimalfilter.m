@@ -1,4 +1,4 @@
-function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -16,6 +16,19 @@ function WIP_optimalfilter %(filename,srate,w1,w2,doplot,save,noisech,refch)
 %       sec : hány sec-es csendesszakasz alapján számoljon
 %       Event length lower bound
 %       Event length upper bound
+
+%%% gor fogadása
+if nargin==0
+    ingor = '0';
+elseif nargin == 1
+    t_scale = get(ingor(1),'x')/1000;
+    t_scale(2) = t_scale(1)+t_scale(2);
+    for i = 1:length(ingor)
+        indataFull(i,:) = get(ingor(i), 'extracty');
+        assignin('base','gorindat',indataFull);
+    end
+end
+
 
 answer = inputdlg({'Filename (0 for browser):','Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
     'Inputs',[1 20],{'0','20000','150','250','0','0','50','50','2','2','1','10','inf'},'on');
@@ -47,20 +60,9 @@ switch answer2
         return
 end
 
-if strcmp(filename,'0')
+if strcmp(filename,'0') && (ischar(ingor))
     [filename, path] = uigetfile('.rhd','Select the RHD');
     cd(path);
-end
-
-fromMES = 0;
-if ~ischar(filename)
-    if filename == 0
-    else
-       indataFull = filename;
-       fromMES = 1;
-       fprintf(1,'Data from MES \n');
-    end
-else
     %%% Read RHD
     rhd = read_Intan_RHD2000_file(filename);
     indataFull = rhd.ampdata;
@@ -87,7 +89,7 @@ power = zeros(size(indataFull,2),len);
 
 %%% Filters
 for i = ivec
-    if fromMES == 0
+    if ischar(ingor)
         t_scale = rhd.tdata;
     end
     indata = indataFull(i,:);
@@ -417,18 +419,18 @@ for i = ivec
     plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
     line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
     
-    %%% CSV irás
-    if i == ivec(1)
-        csvname = strcat(filename(1:end-4),'_events.csv');
-        fileID = fopen(csvname,'w');
-        fprintf(fileID,'%5s ; %12s ; %12s ; %12s \n','Chan','Peak index','Value','Width');
-    end
-    for ii = 1: size(ppeaks,1)
-        fprintf(fileID,'%d ; %5.2f ; %5.2f ; %5.2f \n',i,ppeaks(ii,1),ppeaks(ii,2),widths(ii));
-    end
-    if i == ivec(end)
-        fclose(fileID);
-    end    
+%     %%% CSV irás
+%     if i == ivec(1)
+%         csvname = strcat(filename(1:end-4),'_events.csv');
+%         fileID = fopen(csvname,'w');
+%         fprintf(fileID,'%5s ; %12s ; %12s ; %12s \n','Chan','Peak index','Value','Width');
+%     end
+%     for ii = 1: size(ppeaks,1)
+%         fprintf(fileID,'%d ; %5.2f ; %5.2f ; %5.2f \n',i,ppeaks(ii,1),ppeaks(ii,2),widths(ii));
+%     end
+%     if i == ivec(end)
+%         fclose(fileID);
+%     end    
 end
 
 maxsize = 0;
