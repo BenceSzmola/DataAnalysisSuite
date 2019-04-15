@@ -17,17 +17,20 @@ function WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,ref
 %       Event length lower bound
 %       Event length upper bound
 
-%%% gor fogadása
-if nargin==0
-    ingor = '0';
-elseif nargin == 1
-    t_scale = get(ingor(1),'x')/1000;
-    t_scale(2) = t_scale(1)+t_scale(2);
-    for i = 1:length(ingor)
-        indataFull(i,:) = get(ingor(i), 'extracty');
-        assignin('base','gorindat',indataFull);
-    end
-end
+% %%% gor fogadása
+% if nargin==0
+%     ingor = '0';
+% elseif nargin == 1
+%     t_scale = get(ingor(1),'x')/1000;
+%     t_scale(2) = t_scale(1)+t_scale(2);
+%     
+%     for i = 1:length(ingor)
+%         indataFull(i,:) = get(ingor(i), 'extracty');
+%         if debug
+%             assignin('base','gorindat',indataFull);
+%         end
+%     end
+% end
 
 
 answer = inputdlg({'Filename (0 for browser):','Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
@@ -41,8 +44,8 @@ w1 = str2double(answer(3));
 w2 = str2double(answer(4));
 noisech = str2double(answer(5));
 refch = str2double(answer(6));
-winstepsize = str2double(answer(7))*20;
-eventdist = str2double(answer(8))*20;
+winstepsize = round(str2double(answer(7))*(srate/1000));
+eventdist = str2double(answer(8))*(srate/1000);
 sdmult = str2double(answer(9));
 qsdmult = str2double(answer(10));
 sec = str2double(answer(11));
@@ -60,17 +63,37 @@ switch answer2
         return
 end
 
-filts = 0;
-answer3 = questdlg('Run DoG filter?','Filter');
-switch answer3
-    case 'Yes'
-        filts = 1;
-    case 'No'
-        filts = 0;
-    case 'Cancel'
-        return;
+%%% gor fogadása
+if nargin==0
+    ingor = '0';
+elseif nargin == 1
+    t_scale = get(ingor(1),'x')/1000;
+    t_scale(2) = t_scale(1)+t_scale(2);
+    if debug 
+        assignin('base','gor_tscale',t_scale);
+    end
+    for i = 1:length(ingor)
+        indataFull(i,:) = get(ingor(i), 'extracty');
+        if debug
+            assignin('base','gorindat',indataFull);
+        end
+    end
 end
-    
+
+% filts = 0;
+% answer3 = questdlg('Which processing should be applied?','Filters','DoG + InstPow','DoG',');
+% switch answer3
+%     case 'Yes'
+%         filts = 1;
+%     case 'No'
+%         filts = 0;
+%     case 'Cancel'
+%         return;
+% end
+list = {'DoG + InstPow','DoG','InstPow','None'};
+[selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single');
+
+
 if strcmp(filename,'0') && (ischar(ingor))
     [filename, path] = uigetfile('.rhd','Select the RHD');
     cd(path);
@@ -82,7 +105,11 @@ end
 if debug 
     assignin('base','indata',indataFull);
 end
-len = size(indataFull,1)-1;
+if nargin == 0
+    len = size(indataFull,1)-1;
+else
+    len = size(indataFull,1);
+end
 ivec = 1:len;
 noref = 1:len;
 if refch ~= 0
@@ -97,11 +124,17 @@ if debug
     assignin('base','dog',dogged);
 end
 power = zeros(size(indataFull,2),len);
+if nargin == 1 && selected == 4
+    power = transpose(indataFull);
+end
 if ischar(ingor)
     t_scale = rhd.tdata;
+    if debug 
+        assignin('base','t_scale',t_scale);
+    end
 end
 %%% Filters
-if filts == 1
+if selected == 1
     for i = ivec
     %     if ischar(ingor)
     %         t_scale = rhd.tdata;
@@ -124,33 +157,38 @@ if filts == 1
         
     end
     assignin('base','postdogged',dogged);
-elseif filts == 0
+elseif selected == 3
     dogged = indataFull(1:5,:);
     dogged = transpose(dogged);
     assignin('base','predogged',dogged);
 end
-for i = ivec
-    
-    %%%% Apply DoG (from BuzsakiLab) with meansubstract
-    %GFw1MS       = makegausslpfir( w1, srate, 6 );
-    %GFw2MS       = makegausslpfir( w2, srate, 6 );
-    %lfpLowMS     = firfilt( indataMS, GFw2MS );      % lowpass filter
-    %eegLoMS      = firfilt( lfpLowMS, GFw1MS );   % highpass filter
-    %lfpLowMS     = lfpLowMS - eegLoMS;            % difference of Gaussians
-    
-    %%% Instantaneous power (from BuzsakiLab)
-    ripWindow  = pi / mean( [w1 w2] );
-    powerWin   = makegausslpfir( 1 / ripWindow, srate, 4 );
+if selected == 1 || selected == 3
+    for i = ivec
 
-    rip        = dogged(:,i);
-    rip        = abs(rip);
-    ripPower0  = firfilt( rip, powerWin );
-    ripPower0  = max(ripPower0,[],2);
-    
-    power(:,i) = ripPower0;
-    
+        %%%% Apply DoG (from BuzsakiLab) with meansubstract
+        %GFw1MS       = makegausslpfir( w1, srate, 6 );
+        %GFw2MS       = makegausslpfir( w2, srate, 6 );
+        %lfpLowMS     = firfilt( indataMS, GFw2MS );      % lowpass filter
+        %eegLoMS      = firfilt( lfpLowMS, GFw1MS );   % highpass filter
+        %lfpLowMS     = lfpLowMS - eegLoMS;            % difference of Gaussians
+
+        %%% Instantaneous power (from BuzsakiLab)
+        ripWindow  = pi / mean( [w1 w2] );
+        powerWin   = makegausslpfir( 1 / ripWindow, srate, 4 );
+
+        rip        = dogged(:,i);
+        rip        = abs(rip);
+        ripPower0  = firfilt( rip, powerWin );
+        ripPower0  = max(ripPower0,[],2);
+
+        power(:,i) = ripPower0;
+
+    end
 end
 
+if debug
+    assignin('base','POWER',power);
+end
 %%% Alapzaj meghatározása
 % quietiv = zeros(len,2);
 piccolo = zeros(size(indataFull,2),len);
@@ -175,10 +213,24 @@ if debug
     assignin('base','quietthresh',quietthresh);
     assignin('base','piccolo',piccolo);
 end
-sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
-for i = noref(3):noref(end)
-    sect = intersect(piccolo(:,i),sect);
+switch length(noref)
+    case 0
+        warndlg('Not enough channels');
+        return;
+    case 1
+        sect = piccolo;
+    case 2
+        sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
+    otherwise
+        sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
+        for i = noref(3):noref(end)
+            sect = intersect(piccolo(:,i),sect);
+        end
 end
+% sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
+% for i = noref(3):noref(end)
+%     sect = intersect(piccolo(:,i),sect);
+% end
 if debug
     assignin('base','runsect',sect);
 end
@@ -207,8 +259,10 @@ if debug
     assignin('base','intervalsT',quietivT);
 end
 
-%%% Ha tul rovid az interval akkor csatornankent hozzarakok 
-if (quietiv(2)-quietiv(1)) < sec*srate
+extendedivs = 0;
+%%% Ha tul rovid az interval, vagy eleve nincs közös, akkor csatornankent hozzarakok 
+if ((quietiv(2)-quietiv(1)) < sec*srate)
+    extendedivs = 1;
     maxnum = 0;
     for i = noref
         extquiets = piccolo(:,i);
@@ -294,8 +348,10 @@ for i = ivec
     end
     %%% +1 hogy ne 0-tol indexeljen
     quiet = currpow(quietiv(1)+1:quietiv(2)+1);
-    for q = 2:size(quietiv,1)
-        quiet = cat(1,quiet,(currpow(quietiv(q,1,i):quietiv(q,2,i))));
+    if extendedivs == 1
+        for q = 2:size(quietivs,1)
+            quiet = cat(1,quiet,(currpow(quietivs(q,1,i)+1:quietivs(q,2,i)+1)));
+        end
     end
     if debug
         assignin('base',['quiet',num2str(i)],quiet);
@@ -471,56 +527,57 @@ if debug
     assignin('base','allpeaksDP',allpeaksDP);
 end
 %%% valid channel crosscheck
-consens = zeros(size(allpeaksDP,1),2);
-maxpow = 0;
-leadchan = 0;
-for i = noref
-    if (mean(allpeaksDP(:,2,i)) > maxpow)
-        maxpow = mean(allpeaksDP(:,2,i));
-        leadchan = i;
+if size(allpeaksDP,1) > 1
+    consens = zeros(size(allpeaksDP,1),2);
+    maxpow = 0;
+    leadchan = 0;
+    for i = noref
+        if (mean(allpeaksDP(:,2,i)) > maxpow)
+            maxpow = mean(allpeaksDP(:,2,i));
+            leadchan = i;
+        end
     end
-end
-consens = cat(2,allpeaksDP(:,1,leadchan),ones(size(allpeaksDP,1),1));
-consens = cat(2,consens,zeros(size(consens,1),len));
-display(leadchan);
-for i = 1:size(allpeaksDP,3)
-    if i ~= leadchan
-        [lia,locb] = ismembertol(allpeaksDP(:,1,i),allpeaksDP(:,1,leadchan),1000,'DataScale',1);
-        ulocb = unique(locb);
-        ulocb = ulocb(find(ulocb));
-        for j = 1:size(ulocb)
-            consens(ulocb(j),2) = consens(ulocb(j),2) + 1;
-            consens(ulocb(j),2+i) = 1;
+    consens = cat(2,allpeaksDP(:,1,leadchan),ones(size(allpeaksDP,1),1));
+    consens = cat(2,consens,zeros(size(consens,1),len));
+    display(leadchan);
+    for i = 1:size(allpeaksDP,3)
+        if i ~= leadchan
+            [lia,locb] = ismembertol(allpeaksDP(:,1,i),allpeaksDP(:,1,leadchan),1000,'DataScale',1);
+            ulocb = unique(locb);
+            ulocb = ulocb(find(ulocb));
+            for j = 1:size(ulocb)
+                consens(ulocb(j),2) = consens(ulocb(j),2) + 1;
+                consens(ulocb(j),2+i) = 1;
+            end
+        end
+    end
+    if debug
+        assignin('base','consens',consens);
+    end
+    consensT = consens;
+    consensT(:,1) = (consensT(:,1)/srate)+t_scale(1);
+    if debug
+        assignin('base','consensT',consensT);
+    end
+    allpeaksT = allpeaksDP;
+    allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
+    if debug
+        assignin('base','allpeaksT',allpeaksT);
+    end
+
+    figure;
+    plot(xscala,power(:,leadchan)); hold on;
+    plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
+    for i = 1:size(consensT,1)
+        for j = 1:len
+            if consensT(i,j+2) == 1
+                currsel = allpeaksT(:,1,j);
+                thex = find(abs(currsel-consensT(i,1))<0.05);
+                text(consensT(i,1),allpeaksT(thex,2,j),[num2str(j)]);
+            end
         end
     end
 end
-if debug
-    assignin('base','consens',consens);
-end
-consensT = consens;
-consensT(:,1) = (consensT(:,1)/srate)+t_scale(1);
-if debug
-    assignin('base','consensT',consensT);
-end
-allpeaksT = allpeaksDP;
-allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
-if debug
-    assignin('base','allpeaksT',allpeaksT);
-end
-
-figure;
-plot(xscala,power(:,leadchan)); hold on;
-plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
-for i = 1:size(consensT,1)
-    for j = 1:len
-        if consensT(i,j+2) == 1
-            currsel = allpeaksT(:,1,j);
-            thex = find(abs(currsel-consensT(i,1))<0.05);
-            text(consensT(i,1),allpeaksT(thex,2,j),[num2str(j)]);
-        end
-    end
-end
-
 
 %%%%%%%%%%%%%%%%%%
 %%% SWR detect end ----------------------------------------------------
