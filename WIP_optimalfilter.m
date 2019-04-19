@@ -68,6 +68,7 @@ if nargin==0
     ingor = '0';
 elseif nargin == 1
     t_scale = get(ingor(1),'x')/1000;
+    srate = 1/t_scale(2);
     t_scale(2) = t_scale(1)+t_scale(2);
     if debug 
         assignin('base','gor_tscale',t_scale);
@@ -365,15 +366,15 @@ for i = ivec
     figure('Name',['Channel',num2str(i)],'NumberTitle','off');
     xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(size(indataFull,2)-1);
 %     if nargin == 0
-        ax1=subplot(2,1,1);
-        plot(xscala,dogged(:,i));
-        grid on;
-        title('DoG');
-        ax2=subplot(2,1,2);
-        plot(xscala,currpow); hold on;
-        title('Instantaneous power');
-        grid on;
-        linkaxes([ax1 ax2],'x');
+    ax1=subplot(2,1,1);
+    plot(xscala,dogged(:,i));
+    grid on;
+    title('DoG');
+    ax2=subplot(2,1,2);
+    plot(xscala,currpow); hold on;
+    title('Instantaneous power');
+    grid on;
+    linkaxes([ax1 ax2],'x');
 %     elseif nargin == 1
 %         mes_xscale = [xscala, 1/srate]*1000;
 %         outgor(i)=set(outgor(i), 'x', mes_xscale);
@@ -572,8 +573,14 @@ if size(allpeaksDP,1) > 1
         for j = 1:len
             if consensT(i,j+2) == 1
                 currsel = allpeaksT(:,1,j);
+                currsel = currsel(find(currsel));
                 thex = find(abs(currsel-consensT(i,1))<0.05);
-                text(consensT(i,1),allpeaksT(thex,2,j),[num2str(j)]);
+                if size(thex,1) == 0
+                    continue
+                elseif size(thex,1) > 1
+                    thex = thex(1);
+                end
+                text(consensT(i,1),allpeaksT(thex,2,j),num2str(j));
             end
         end
     end
