@@ -17,41 +17,6 @@ function WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,ref
 %       Event length lower bound
 %       Event length upper bound
 
-% %%% gor fogadása
-% if nargin==0
-%     ingor = '0';
-% elseif nargin == 1
-%     t_scale = get(ingor(1),'x')/1000;
-%     t_scale(2) = t_scale(1)+t_scale(2);
-%     
-%     for i = 1:length(ingor)
-%         indataFull(i,:) = get(ingor(i), 'extracty');
-%         if debug
-%             assignin('base','gorindat',indataFull);
-%         end
-%     end
-% end
-
-
-answer = inputdlg({'Filename (0 for browser):','Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
-    'Inputs',[1 20],{'0','20000','150','250','0','0','50','50','2','2','1','10','inf'},'on');
-if size(answer)==0
-    return
-end
-filename = answer(1);
-srate = str2double(answer(2));
-w1 = str2double(answer(3));
-w2 = str2double(answer(4));
-noisech = str2double(answer(5));
-refch = str2double(answer(6));
-winstepsize = round(str2double(answer(7))*(srate/1000));
-eventdist = str2double(answer(8))*(srate/1000);
-sdmult = str2double(answer(9));
-qsdmult = str2double(answer(10));
-sec = str2double(answer(11));
-widthlower = str2double(answer(12));
-widthupper = str2double(answer(13));
-
 debug = 0;
 answer2 = questdlg('Run debug?','Debug');
 switch answer2
@@ -62,51 +27,105 @@ switch answer2
     case 'Cancel'
         return
 end
+if nargin == 1
+    mode = inputdlg({'Ephys & Ca => 1 otherwise => 0','No. of ephys channels','Is ephys data first or second block?'},'Mode selection',...
+        [1 40],{'0','5','1'});
+    mode = str2double(mode);
+end
 
 %%% gor fogadása
 if nargin==0
-    ingor = '0';
-elseif nargin == 1
-    t_scale = get(ingor(1),'x')/1000;
-    srate = 1/t_scale(2);
-    t_scale(2) = t_scale(1)+t_scale(2);
-    if debug 
-        assignin('base','gor_tscale',t_scale);
-    end
-    for i = 1:length(ingor)
-        indataFull(i,:) = get(ingor(i), 'extracty');
-        if debug
-            assignin('base','gorindat',indataFull);
-        end
-    end
-end
-
-% filts = 0;
-% answer3 = questdlg('Which processing should be applied?','Filters','DoG + InstPow','DoG',');
-% switch answer3
-%     case 'Yes'
-%         filts = 1;
-%     case 'No'
-%         filts = 0;
-%     case 'Cancel'
-%         return;
-% end
-list = {'DoG + InstPow','DoG','InstPow','None'};
-[selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single');
-
-
-if strcmp(filename,'0') && (ischar(ingor))
     [filename, path] = uigetfile('.rhd','Select the RHD');
     cd(path);
     %%% Read RHD
     rhd = read_Intan_RHD2000_file(filename);
-    indataFull = rhd.ampdata;
+    data = rhd.ampdata;
+    t_scale = rhd.tdata;
+    if debug 
+        assignin('base','t_scale',t_scale);
+    end
     fprintf(1,'Data from console \n');
+elseif nargin == 1
+    switch mode(1)
+        case 0
+            t_scale = get(ingor(1),'x')/1000;
+            t_scale(2) = t_scale(1)+t_scale(2);
+        case 1
+            if mode(3) == 1
+                ephys_t_scale = get(ingor(1),'x')/1000;
+                ephys_t_scale(2) = ephys_t_scale(1)+ephys_t_scale(2);
+                ca_t_scale = get(ingor(mode(2)+1),'x')/1000;
+                ca_t_scale(2) = ca_t_scale(1)+ca_t_scale(2);
+            elseif mode(3) == 2
+                ephys_t_scale = get(ingor(end-mode(2)+1),'x')/1000;
+                ephys_t_scale(2) = ephys_t_scale(1)+ephys_t_scale(2);
+                ca_t_scale = get(ingor(1),'x')/1000;
+                ca_t_scale(2) = ca_t_scale(1)+ca_t_scale(2);    
+            end
+    end
+    if mode(1) == 0
+        for i = 1:length(ingor)
+            data(i,:) = get(ingor(i), 'extracty');
+            if debug
+                assignin('base','gorindat',data);
+            end
+        end
+        consensT = detettore(data,t_scale,nargin,debug);
+    end
+    if mode(1) == 1
+        if mode(3) == 1
+            for i = 1:mode(2)
+                ephysdata(i,:) = get(ingor(i), 'extracty');
+            end
+            for i = mode(2)+1:length(ingor)
+                cadata(i,:) = get(ingor(i),'extracty');
+            end
+            ephysconsensT = detettore(ephysdata,ephys_t_scale,nargin,debug);
+            caconsensT = detettore(cadata,ca_t_scale,nargin,debug);
+        elseif mode(3) == 2
+            for i = (length(ingor)-mode(2)+1):length(ingor)
+                ephysdata(i,:) = get(ingor(i), 'extracty');
+            end
+            for i = 1:(length(ingor)-mode(2))
+                cadata(i,:) = get(ingor(i),'extracty');
+            end
+            ephysconsensT = detettore(ephysdata,ephys_t_scale,nargin,debug);
+            caconsensT = detettore(cadata,ca_t_scale,nargin,debug);
+        end
+    end
 end
+
+
+function consensT = detettore(indataFull,t_scale,gore,debug)
+
+srate = 1/(t_scale(2)-t_scale(1));
+answer = inputdlg({'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
+    'Inputs',[1 20],{'20000','150','250','0','0','50','50','2','2','1','10','inf'},'on');
+if size(answer)==0
+    return
+end
+if gore ~= 1
+    srate = str2double(answer(1));
+end
+w1 = str2double(answer(2));
+w2 = str2double(answer(3));
+noisech = str2double(answer(4));
+refch = str2double(answer(5));
+winstepsize = round(str2double(answer(6))*(srate/1000));
+eventdist = str2double(answer(7))*(srate/1000);
+sdmult = str2double(answer(8));
+qsdmult = str2double(answer(9));
+sec = str2double(answer(10));
+widthlower = str2double(answer(11));
+widthupper = str2double(answer(12));
+
+list = {'DoG + InstPow','DoG','InstPow','None'};
+[selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single');
+
 if debug 
     assignin('base','indata',indataFull);
 end
-if nargin == 0
+if gore == 0
     len = size(indataFull,1)-1;
 else
     len = size(indataFull,1);
@@ -125,15 +144,15 @@ if debug
     assignin('base','dog',dogged);
 end
 power = zeros(size(indataFull,2),len);
-if nargin == 1 && selected == 4
+if gore == 1 && selected == 4
     power = transpose(indataFull);
 end
-if ischar(ingor)
-    t_scale = rhd.tdata;
-    if debug 
-        assignin('base','t_scale',t_scale);
-    end
-end
+% if ischar(ingor)
+%     t_scale = rhd.tdata;
+%     if debug 
+%         assignin('base','t_scale',t_scale);
+%     end
+% end
 %%% Filters
 if selected == 1
     for i = ivec
@@ -586,6 +605,7 @@ if size(allpeaksDP,1) > 1
     end
 end
 
+return
 %%%%%%%%%%%%%%%%%%
 %%% SWR detect end ----------------------------------------------------
 %%%%%%%%%%%%%%%%%%
