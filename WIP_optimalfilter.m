@@ -44,6 +44,7 @@ if nargin==0
     if debug 
         assignin('base','t_scale',t_scale);
     end
+    [consensT,leadch] = detettore(data,t_scale,nargin,debug,0);
     fprintf(1,'Data from console \n');
 elseif nargin == 1
     switch mode(1)
@@ -70,37 +71,102 @@ elseif nargin == 1
                 assignin('base','gorindat',data);
             end
         end
-        consensT = detettore(data,t_scale,nargin,debug);
+        [consensT,leadch] = detettore(data,t_scale,nargin,debug,0);
     end
     if mode(1) == 1
+        numcach = length(ingor)-mode(2);
         if mode(3) == 1
             for i = 1:mode(2)
                 ephysdata(i,:) = get(ingor(i), 'extracty');
             end
             for i = mode(2)+1:length(ingor)
-                cadata(i,:) = get(ingor(i),'extracty');
+                cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
-            ephysconsensT = detettore(ephysdata,ephys_t_scale,nargin,debug);
-            caconsensT = detettore(cadata,ca_t_scale,nargin,debug);
+            [ephysconsensT,ephysleadch,ephyspower] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [caconsensT,caleadch,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            if debug
+                assignin('base','ephysconsensT',ephysconsensT);
+                assignin('base','caconsensT',caconsensT);                
+            end
         elseif mode(3) == 2
+            numcach = length(ingor)-mode(2);
             for i = (length(ingor)-mode(2)+1):length(ingor)
-                ephysdata(i,:) = get(ingor(i), 'extracty');
+                ephysdata(i-numcach,:) = get(ingor(i), 'extracty');
             end
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
-            ephysconsensT = detettore(ephysdata,ephys_t_scale,nargin,debug);
-            caconsensT = detettore(cadata,ca_t_scale,nargin,debug);
+            [caconsensT,caleadch,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            if debug
+                assignin('base','ephysconsensT',ephysconsensT);
+                assignin('base','caconsensT',caconsensT);                
+            end
         end
-    end
+        %%% ca & ephys comparison
+        ephyscons_onlyT = ephysconsensT(:,1);
+        cacons_onlyT = caconsensT(:,1);
+        ephyvsca_tolerance = 1;
+        ephysca = [];
+        wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
+        for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
+            if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
+                ephysca = [ephysca ; cacons_onlyT(find(abs(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
+            elseif size(ephyscons_onlyT,1) < size(cacons_onlyT,1)
+                ephysca = [ephysca ; ephyscons_onlyT(find(abs(cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance))];
+            else
+                ephysca = [ephysca ; cacons_onlyT(find(abs(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
+            end
+            waitbar(i/max(size(ephyscons_onlyT,1),size(cacons_onlyT,1)));
+        end
+        close(wb);
+        ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
+        caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
+        figure('Name','Ca vs Ephys','NumberTitle','off')
+        sp1 = subplot(2,1,1);
+        plot(ephysxscala,ephyspower(:,ephysleadch),'r'); hold on;
+        title('Ephys instpow');
+        for i = 1:size(ephysca,1)
+            line([ephysca(i) ephysca(i)],[min(ephyspower(:,ephysleadch)) max(ephyspower(:,ephysleadch))],'Color','g'); hold on;            
+        end
+        hold off;
+        sp2 = subplot(2,1,2);
+        plot(caxscala,cadata(caleadch,:),'b'); hold on;
+        title('Calcium signal');
+        for i = 1:size(ephysca,1)
+            line([ephysca(i) ephysca(i)],[min(cadata(:,caleadch)) max(cadata(:,caleadch))],'Color','g'); hold on;            
+        end
+        hold off;
+        linkaxes([sp1 sp2],'x');
+        if debug
+            assignin('base','ephysca',ephysca);
+        end
+    end 
 end
 
 
-function consensT = detettore(indataFull,t_scale,gore,debug)
+function [consensT,leadchan,power] = detettore(indataFull,t_scale,gore,debug,caorephys)
 
+switch caorephys
+    case 0
+        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf'};
+        title1 = 'Inputs';
+        procinitval = 1;
+        listtitle = 'Processing';
+    case 1
+        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf'};
+        title1 = 'Ephys inputs';
+        procinitval = 1;
+        listtitle = 'Ephys processing';
+    case 2
+        defaults1 = {'3000','150','250','0','0','50','50','4','2','0','50','inf'};
+        title1 = 'Ca inputs';
+        procinitval = 4;
+        listtitle = 'Ca processing';
+end
 srate = 1/(t_scale(2)-t_scale(1));
 answer = inputdlg({'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
-    'Inputs',[1 20],{'20000','150','250','0','0','50','50','2','2','1','10','inf'},'on');
+    title1,[1 20],defaults1,'on');
 if size(answer)==0
     return
 end
@@ -120,7 +186,7 @@ widthlower = str2double(answer(11));
 widthupper = str2double(answer(12));
 
 list = {'DoG + InstPow','DoG','InstPow','None'};
-[selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single');
+[selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single','InitialValue',procinitval,'Name',listtitle);
 
 if debug 
     assignin('base','indata',indataFull);
@@ -305,9 +371,14 @@ if ((quietiv(2)-quietiv(1)) < sec*srate)
         while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate+(quietiv(2)-quietiv(1)))
             indx = indx + 1;
             [goodielen, ind] = max(goodies);
+            if goodielen == 0
+                warn = warndlg('Couldnt reach specified quietlenght');
+                pause(1);
+                close(warn);
+                break                
+            end
             tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
             goodies(ind) = 0;
-%             indx = indx + 1;
         end
         if debug
             assignin('base',['fulltempivs',num2str(i)],tempivs);
@@ -382,18 +453,30 @@ for i = ivec
     if i == refch
         ripsd = mean(currpow) + sdmult*std(currpow);
     end
-    figure('Name',['Channel',num2str(i)],'NumberTitle','off');
+    if caorephys == 0
+        figure('Name',['Channel',num2str(i)],'NumberTitle','off');
+    elseif caorephys == 1
+        figure('Name',['Ephys_Channel',num2str(i)],'NumberTitle','off');
+    elseif caorephys == 2
+        figure('Name',['Ca_Channel',num2str(i)],'NumberTitle','off');
+    end
     xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(size(indataFull,2)-1);
 %     if nargin == 0
-    ax1=subplot(2,1,1);
-    plot(xscala,dogged(:,i));
-    grid on;
-    title('DoG');
-    ax2=subplot(2,1,2);
-    plot(xscala,currpow); hold on;
-    title('Instantaneous power');
-    grid on;
-    linkaxes([ax1 ax2],'x');
+    if (caorephys == 0) || (caorephys == 1)
+        ax1=subplot(2,1,1);
+        plot(xscala,dogged(:,i));
+        grid on;
+        title('DoG');
+        ax2=subplot(2,1,2);
+        plot(xscala,currpow); hold on;
+        title('Instantaneous power');
+        grid on;
+        linkaxes([ax1 ax2],'x');
+    elseif caorephys == 2
+        plot(xscala,currpow); hold on;
+        title('Calcium signal');
+        grid on;
+    end
 %     elseif nargin == 1
 %         mes_xscale = [xscala, 1/srate]*1000;
 %         outgor(i)=set(outgor(i), 'x', mes_xscale);
@@ -584,8 +667,16 @@ if size(allpeaksDP,1) > 1
     if debug
         assignin('base','allpeaksT',allpeaksT);
     end
-
-    figure;
+    
+    switch caorephys
+        case 0
+            figtitle = 'Consenus peaks';
+        case 1
+            figtitle = 'Ephys consensus peaks';
+        case 2
+            figtitle = 'Ca consensus peaks';
+    end
+    figure('Name',figtitle,'NumberTitle','off');
     plot(xscala,power(:,leadchan)); hold on;
     plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
     for i = 1:size(consensT,1)
