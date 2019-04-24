@@ -44,7 +44,14 @@ if nargin==0
     if debug 
         assignin('base','t_scale',t_scale);
     end
-    [consensT,leadch] = detettore(data,t_scale,nargin,debug,0);
+    datatype = questdlg('Ca or Ephys?','Datatype','Ca','Ephys','Ca');
+    switch datatype
+        case 'Ca'
+            caorephys = 2;
+        case 'Ephys'
+            caorephys = 1;
+    end
+    detettore(data,t_scale,nargin,debug,caorephys);
     fprintf(1,'Data from console \n');
 elseif nargin == 1
     switch mode(1)
@@ -71,7 +78,14 @@ elseif nargin == 1
                 assignin('base','gorindat',data);
             end
         end
-        [consensT,leadch] = detettore(data,t_scale,nargin,debug,0);
+        datatype = questdlg('Ca or Ephys?','Datatype','Ca','Ephys','Ca');
+        switch datatype
+            case 'Ca'
+                caorephys = 2;
+            case 'Ephys'
+                caorephys = 1;
+        end
+        detettore(data,t_scale,nargin,debug,caorephys);
     end
     if mode(1) == 1
         numcach = length(ingor)-mode(2);
@@ -82,11 +96,11 @@ elseif nargin == 1
             for i = mode(2)+1:length(ingor)
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
-            [ephysconsensT,ephysleadch,ephyspower] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
-            [caconsensT,caleadch,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [~,~,~,ca_allpeaksT] = detettore(cadata,ca_t_scale,nargin,debug,2);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
-                assignin('base','caconsensT',caconsensT);                
+                assignin('base','ca_allpeaksT',ca_allpeaksT);                
             end
         elseif mode(3) == 2
             numcach = length(ingor)-mode(2);
@@ -96,17 +110,28 @@ elseif nargin == 1
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
-            [caconsensT,caleadch,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
-            [ephysconsensT,ephysleadch,ephyspower] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [~,~,~,ca_allpeaksT] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
-                assignin('base','caconsensT',caconsensT);                
+                assignin('base','ca_allpeaksT',ca_allpeaksT);                
             end
         end
         %%% ca & ephys comparison
+        caavg = cadata(1,:);
+        if size(cadata,2) > 1
+            for i = 2:size(cadata,1)
+                caavg = cat(3,caavg,cadata(i,:));
+            end
+        end
+        caavg = mean(caavg,3);
+        if debug
+            assignin('base','caavg',caavg);
+        end
         ephyscons_onlyT = ephysconsensT(:,1);
-        cacons_onlyT = caconsensT(:,1);
-        ephyvsca_tolerance = 1;
+        cacons_onlyT = ca_allpeaksT(:,1,:);
+        cacons_onlyT = cacons_onlyT(:);
+        ephyvsca_tolerance = 0.2;
         ephysca = [];
         wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
         for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
@@ -131,10 +156,10 @@ elseif nargin == 1
         end
         hold off;
         sp2 = subplot(2,1,2);
-        plot(caxscala,cadata(caleadch,:),'b'); hold on;
+        plot(caxscala,caavg,'b'); hold on;
         title('Calcium signal');
         for i = 1:size(ephysca,1)
-            line([ephysca(i) ephysca(i)],[min(cadata(:,caleadch)) max(cadata(:,caleadch))],'Color','g'); hold on;            
+            line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
         end
         hold off;
         linkaxes([sp1 sp2],'x');
@@ -145,7 +170,7 @@ elseif nargin == 1
 end
 
 
-function [consensT,leadchan,power] = detettore(indataFull,t_scale,gore,debug,caorephys)
+function [consensT,leadchan,power,allpeaksT] = detettore(indataFull,t_scale,gore,debug,caorephys)
 
 switch caorephys
     case 0
@@ -543,7 +568,7 @@ for i = ivec
             assignin('base','lowedge',lowedge);
         end
         iii = ppeaks(ii,1);
-        while currpow(iii) > ripsd
+        while (currpow(iii) > ripsd) && (iii < size(currpow,1))
             iii = iii + 1;
         end
         highedge = iii;
@@ -630,7 +655,7 @@ if debug
     assignin('base','allpeaksDP',allpeaksDP);
 end
 %%% valid channel crosscheck
-if size(allpeaksDP,1) > 1
+if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
     consens = zeros(size(allpeaksDP,1),2);
     maxpow = 0;
     leadchan = 0;
@@ -694,6 +719,12 @@ if size(allpeaksDP,1) > 1
             end
         end
     end
+else 
+    %%% Hogy ne akadjon ki amikor ezek nem kellenek
+    consensT = 0;
+    leadchan = 0;
+    allpeaksT = allpeaksDP;
+    allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
 end
 
 return
