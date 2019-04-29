@@ -96,8 +96,8 @@ elseif nargin == 1
             for i = mode(2)+1:length(ingor)
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
-            [ephysconsensT,ephysleadch,ephyspower,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
-            [~,~,~,ca_allpeaksT] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [~,~,~,ca_allpeaksT,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -110,13 +110,18 @@ elseif nargin == 1
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
-            [~,~,~,ca_allpeaksT] = detettore(cadata,ca_t_scale,nargin,debug,2);
-            [ephysconsensT,ephysleadch,ephyspower,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [~,~,~,ca_allpeaksT,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
             end
         end
+        
+        if offsetcorr
+            ephys_t_scale = ephys_t_scale +1;
+        end
+        
         %%% ca & ephys comparison
         caavg = cadata(1,:);
         if size(cadata,2) > 1
@@ -129,6 +134,8 @@ elseif nargin == 1
             assignin('base','caavg',caavg);
         end
         ephyscons_onlyT = ephysconsensT(:,1);
+        ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
+        ca_allpeaksT(ca_allpeaksT==[0 0]) = nan;
         cacons_onlyT = ca_allpeaksT(:,1,:);
         cacons_onlyT = cacons_onlyT(:);
         ephyvsca_tolerance = 0.2;
@@ -136,15 +143,15 @@ elseif nargin == 1
         wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
         for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
             if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
-                ephysca = [ephysca ; cacons_onlyT(find(abs(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
+                ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
             elseif size(ephyscons_onlyT,1) < size(cacons_onlyT,1)
-                ephysca = [ephysca ; ephyscons_onlyT(find(abs(cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance))];
+                ephysca = [ephysca ; ephyscons_onlyT(((cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance))];
             else
-                ephysca = [ephysca ; cacons_onlyT(find(abs(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
+                ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
             end
             waitbar(i/max(size(ephyscons_onlyT,1),size(cacons_onlyT,1)));
         end
-        close(wb);
+        ephysca = unique(ephysca);
         ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
         figure('Name','Ca vs Ephys','NumberTitle','off')
@@ -162,6 +169,7 @@ elseif nargin == 1
             line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
         end
         hold off;
+        close(wb);
         linkaxes([sp1 sp2],'x');
         if debug
             assignin('base','ephysca',ephysca);
@@ -170,28 +178,38 @@ elseif nargin == 1
 end
 
 
-function [consensT,leadchan,power,allpeaksT] = detettore(indataFull,t_scale,gore,debug,caorephys)
+function [consensT,leadchan,power,allpeaksT,offsetcorr] = detettore(indataFull,t_scale,gore,debug,caorephys)
 
 switch caorephys
     case 0
-        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf'};
+        prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+            'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
+            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
+            'Is the ephys offset corrected? 0-no,1-yes'};
+        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf','0'};
         title1 = 'Inputs';
         procinitval = 1;
         listtitle = 'Processing';
     case 1
-        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf'};
+        prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+            'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
+            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
+            'Is the ephys offset corrected? 0-no,1-yes'};
+        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf','0'};
         title1 = 'Ephys inputs';
         procinitval = 1;
         listtitle = 'Ephys processing';
     case 2
+        prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+            'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
+            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'};
         defaults1 = {'3000','150','250','0','0','50','50','4','2','0','50','inf'};
         title1 = 'Ca inputs';
         procinitval = 4;
         listtitle = 'Ca processing';
 end
 srate = 1/(t_scale(2)-t_scale(1));
-answer = inputdlg({'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel','Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult','quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'},...
-    title1,[1 20],defaults1,'on');
+answer = inputdlg(prompts,title1,[1 20],defaults1,'on');
 if size(answer)==0
     return
 end
@@ -209,9 +227,18 @@ qsdmult = str2double(answer(9));
 sec = str2double(answer(10));
 widthlower = str2double(answer(11));
 widthupper = str2double(answer(12));
+if size(answer,1) > 12
+    offsetcorr = str2double(answer(13));
+elseif size(answer,1) == 12
+    offsetcorr = 0;
+end
 
 list = {'DoG + InstPow','DoG','InstPow','None'};
 [selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single','InitialValue',procinitval,'Name',listtitle);
+
+if offsetcorr
+    t_scale = t_scale+1;
+end
 
 if debug 
     assignin('base','indata',indataFull);
@@ -684,9 +711,11 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
     end
     consensT = consens;
     consensT(:,1) = (consensT(:,1)/srate)+t_scale(1);
+    
     if debug
         assignin('base','consensT',consensT);
     end
+    
     allpeaksT = allpeaksDP;
     allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
     if debug
