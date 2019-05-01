@@ -167,6 +167,14 @@ elseif nargin == 1
         title('Calcium signal');
         for i = 1:size(ephysca,1)
             line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
+            cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
+            [num,type,roi] = ind2sub(size(ca_allpeaksT),cainds);
+            loc = [num,type,roi];
+            for j = 1:size(loc,1)
+                if loc(j,2)==1
+                    text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
+                end
+            end
         end
         hold off;
         close(wb);
