@@ -1,4 +1,4 @@
-function WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function detected = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -85,7 +85,13 @@ elseif nargin == 1
             case 'Ephys'
                 caorephys = 1;
         end
-        detettore(data,t_scale,nargin,debug,caorephys);
+        [consensT,~,~,allpeaksT,~] = detettore(data,t_scale,nargin,debug,caorephys);
+        switch datatype
+            case 'Ca'
+                detected = allpeaksT(:,1,:);
+            case 'Ephys'
+                detected = consensT(:,1);
+        end
     end
     if mode(1) == 1
         numcach = length(ingor)-mode(2);
@@ -152,6 +158,19 @@ elseif nargin == 1
             waitbar(i/max(size(ephyscons_onlyT,1),size(cacons_onlyT,1)));
         end
         ephysca = unique(ephysca);
+        detected = ephysca;
+        
+        %%% CSV irás
+        for i = 1:length(ephysca)
+            if i == 1
+                csvname = 'SimultanEvents.csv';
+                fileID = fopen(csvname,'w');
+                fprintf(fileID,'%10s \n','Time(s)');
+            end
+            fprintf(fileID,'%5.2f \n',ephysca(i));
+        end
+        fclose(fileID);
+
         ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
         figure('Name','Ca vs Ephys','NumberTitle','off')
