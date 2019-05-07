@@ -1,4 +1,4 @@
-function detected = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function [detected,doggor,norm_ca_gors,roi_det_gors] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -85,13 +85,17 @@ elseif nargin == 1
             case 'Ephys'
                 caorephys = 1;
         end
-        [consensT,~,~,allpeaksT,~] = detettore(data,t_scale,nargin,debug,caorephys);
+        [consensT,ephysleadch,~,allpeaksT,~,dogged,norm_ca_gors] = detettore(data,t_scale,nargin,debug,caorephys);
         switch datatype
             case 'Ca'
                 detected = allpeaksT(:,1,:);
             case 'Ephys'
                 detected = consensT(:,1);
-        end
+                doggor = [];
+                doggor.name=['Consens channel DoG'];
+                doggor.Color='r';
+                doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
+        end  
     end
     if mode(1) == 1
         numcach = length(ingor)-mode(2);
@@ -102,8 +106,8 @@ elseif nargin == 1
             for i = mode(2)+1:length(ingor)
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
-            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
-            [~,~,~,ca_allpeaksT,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [~,~,~,ca_allpeaksT,~,norm_ca_gors] = detettore(cadata,ca_t_scale,nargin,debug,2);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -116,8 +120,8 @@ elseif nargin == 1
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
-            [~,~,~,ca_allpeaksT,~] = detettore(cadata,ca_t_scale,nargin,debug,2);
-            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [~,~,~,ca_allpeaksT,~,~,norm_ca_gors] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -159,6 +163,10 @@ elseif nargin == 1
         end
         ephysca = unique(ephysca);
         detected = ephysca;
+        doggor = [];
+        doggor.name=['Consens channel DoG'];
+        doggor.Color='r';
+        doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
         
         %%% CSV irás
         for i = 1:length(ephysca)
@@ -184,6 +192,7 @@ elseif nargin == 1
         sp2 = subplot(2,1,2);
         plot(caxscala,caavg,'b'); hold on;
         title('Calcium signal');
+        per_roi_det = zeros(1,size(ephysca,1),size(cadata,1));
         for i = 1:size(ephysca,1)
             line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
             cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
@@ -192,6 +201,9 @@ elseif nargin == 1
             for j = 1:size(loc,1)
                 if loc(j,2)==1
                     text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
+                    %%% ki akarom adni hogy melyik roinak hol van
+                    %%% detekcioja
+%                     per_roi_det(:,:,loc(j,3)) = cat(1,per_roi_det(:,:,loc(j,3)),ephysca(i));
                 end
             end
         end
@@ -200,12 +212,14 @@ elseif nargin == 1
         linkaxes([sp1 sp2],'x');
         if debug
             assignin('base','ephysca',ephysca);
+            assignin('base','locMat',loc);
+            assignin('base','per_roi_det',per_roi_det);
         end
     end 
 end
 
 
-function [consensT,leadchan,power,allpeaksT,offsetcorr] = detettore(indataFull,t_scale,gore,debug,caorephys)
+function [consensT,leadchan,power,allpeaksT,offsetcorr,dogged,norm_ca_gors] = detettore(indataFull,t_scale,gore,debug,caorephys)
 
 switch caorephys
     case 0
@@ -213,7 +227,7 @@ switch caorephys
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
             'Is the ephys offset corrected? 0-no,1-yes'};
-        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf','0'};
+        defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0'};
         title1 = 'Inputs';
         procinitval = 1;
         listtitle = 'Processing';
@@ -222,7 +236,7 @@ switch caorephys
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
             'Is the ephys offset corrected? 0-no,1-yes'};
-        defaults1 = {'20000','150','250','0','0','50','50','4','2','1','10','inf','0'};
+        defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0'};
         title1 = 'Ephys inputs';
         procinitval = 1;
         listtitle = 'Ephys processing';
@@ -230,7 +244,7 @@ switch caorephys
         prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'};
-        defaults1 = {'3000','150','250','0','0','50','50','4','2','0','50','inf'};
+        defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf'};
         title1 = 'Ca inputs';
         procinitval = 4;
         listtitle = 'Ca processing';
@@ -426,6 +440,9 @@ end
 
 extendedivs = 0;
 %%% Ha tul rovid az interval, vagy eleve nincs közös, akkor csatornankent hozzarakok 
+if caorephys == 2
+    sec = srate;
+end
 if ((quietiv(2)-quietiv(1)) < sec*srate)
     extendedivs = 1;
     maxnum = 0;
@@ -498,9 +515,32 @@ if ((quietiv(2)-quietiv(1)) < sec*srate)
         assignin('base','quietivsT',quietivsT);
     end
 end
-% [~, ind] = max(diff(quietiv,1,2));
-% quietiv = quietiv(ind,:);
-% assignin('base','bestinterval',quietiv);
+
+%%% Ca adatok normálása, baselineolása
+norm_ca_gors = [];
+if caorephys == 2
+    
+    for i = 1:size(indataFull,1)
+        quiet = indataFull(i,quietiv(1)+1:quietiv(2)+1);
+        for q = 2:size(quietivs,1)
+            quiet = cat(2,quiet,indataFull(i,quietivs(q,1,i)+1:quietivs(q,2,i)+1));
+        end
+        avg = mean(quiet);
+        indataFull(i,:) = indataFull(i,:)/avg;
+        quiet = indataFull(i,quietiv(1)+1:quietiv(2)+1);
+        for q = 2:size(quietivs,1)
+            quiet = cat(2,quiet,indataFull(i,quietivs(q,1,i)+1:quietivs(q,2,i)+1));
+        end
+        avg = mean(quiet);
+        indataFull(i,:) = indataFull(i,:)-avg;
+        newgor = [];
+        newgor.name = ['Normed_Ca_Roi_',num2str(i)];
+        newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)],'double',indataFull(i,:),newgor);
+        norm_ca_gors = [norm_ca_gors ; newgor];
+    end
+    power = transpose(indataFull);
+end
+
 allpeaksDP = zeros(size(indataFull,2),2,length(noref));
 if debug
     assignin('base','INITallpeaksDP',allpeaksDP);
