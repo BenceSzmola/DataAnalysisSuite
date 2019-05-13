@@ -1,4 +1,4 @@
-function [detected,doggor,norm_ca_gors,roi_det_gors] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function [detected,doggor,norm_ca_gors] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -107,7 +107,7 @@ elseif nargin == 1
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
             [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
-            [~,~,~,ca_allpeaksT,~,norm_ca_gors] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [~,~,~,ca_allpeaksT,~,~,norm_ca_gors] = detettore(cadata,ca_t_scale,nargin,debug,2);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -535,7 +535,7 @@ if caorephys == 2
         indataFull(i,:) = indataFull(i,:)-avg;
         newgor = [];
         newgor.name = ['Normed_Ca_Roi_',num2str(i)];
-        newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)],'double',indataFull(i,:),newgor);
+        newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',indataFull(i,:),newgor);
         norm_ca_gors = [norm_ca_gors ; newgor];
     end
     power = transpose(indataFull);
@@ -572,6 +572,8 @@ for i = ivec
     if i == refch
         ripsd = mean(currpow) + sdmult*std(currpow);
     end
+    display(caorephys)
+    display(ripsd)
     if caorephys == 0
         figure('Name',['Channel',num2str(i)],'NumberTitle','off');
     elseif caorephys == 1
