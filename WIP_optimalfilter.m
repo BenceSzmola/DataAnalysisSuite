@@ -145,21 +145,32 @@ elseif nargin == 1
         end
         ephyscons_onlyT = ephysconsensT(:,1);
         ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
+        if debug
+            assignin('base','ephyscons_onlyT',ephyscons_onlyT)
+        end
         ca_allpeaksT(ca_allpeaksT==[0 0]) = nan;
         cacons_onlyT = ca_allpeaksT(:,1,:);
         cacons_onlyT = cacons_onlyT(:);
+        if debug 
+            assignin('base','cacons_onlyT',cacons_onlyT)
+        end
         ephyvsca_tolerance = 0.2;
         ephysca = [];
         wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
         for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
             if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
-                ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
+                ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance) & ...
+                    ((ephyscons_onlyT(i,1)-cacons_onlyT)>0))];
             elseif size(ephyscons_onlyT,1) < size(cacons_onlyT,1)
-                ephysca = [ephysca ; ephyscons_onlyT(((cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance))];
-            else
-                ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
+                ephysca = [ephysca ; ephyscons_onlyT(((cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance) & ...
+                    ((cacons_onlyT(i,1)-ephyscons_onlyT)>0))];
+%             else
+%                 ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance))];
             end
             waitbar(i/max(size(ephyscons_onlyT,1),size(cacons_onlyT,1)));
+        end
+        if debug
+            assignin('base','freshlybakedephysca',ephysca)
         end
         ephysca = unique(ephysca);
         detected = ephysca;
@@ -198,6 +209,9 @@ elseif nargin == 1
             cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
             [num,type,roi] = ind2sub(size(ca_allpeaksT),cainds);
             loc = [num,type,roi];
+            if debug
+                display(loc);
+            end
             for j = 1:size(loc,1)
                 if loc(j,2)==1
                     text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
@@ -212,7 +226,6 @@ elseif nargin == 1
         linkaxes([sp1 sp2],'x');
         if debug
             assignin('base','ephysca',ephysca);
-            assignin('base','locMat',loc);
             assignin('base','per_roi_det',per_roi_det);
         end
     end 
