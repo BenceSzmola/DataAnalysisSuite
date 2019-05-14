@@ -1,4 +1,4 @@
-function [detected,doggor,norm_ca_gors] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function [detected,doggor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -203,7 +203,7 @@ elseif nargin == 1
         sp2 = subplot(2,1,2);
         plot(caxscala,caavg,'b'); hold on;
         title('Calcium signal');
-        per_roi_det = zeros(1,size(ephysca,1),size(cadata,1));
+        per_roi_det = zeros(size(ephysca,1),1,size(cadata,1));
         for i = 1:size(ephysca,1)
             line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
             cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
@@ -217,7 +217,11 @@ elseif nargin == 1
                     text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
                     %%% ki akarom adni hogy melyik roinak hol van
                     %%% detekcioja
-%                     per_roi_det(:,:,loc(j,3)) = cat(1,per_roi_det(:,:,loc(j,3)),ephysca(i));
+                    jj = j;
+                    while per_roi_det(jj,1,loc(j,3)) ~= 0
+                        jj = jj + 1;
+                    end
+                    per_roi_det(jj,1,loc(j,3)) = ephysca(i);
                 end
             end
         end
@@ -228,6 +232,20 @@ elseif nargin == 1
             assignin('base','ephysca',ephysca);
             assignin('base','per_roi_det',per_roi_det);
         end
+        %%% Roionként detection gor
+        roi_det_gor = [];
+        for i = 1:size(per_roi_det,3)
+            newgor = [];
+            temp = unique(per_roi_det(:,:,i));
+            temp(temp==0) = [];
+            newgor.name=['Detections for roi ',num2str(i)];
+            newgor.Marker='*';
+            newgor.MarkerSize=12;
+            newgor.Color='g';
+            newgor.LineStyle='none';
+            newgor=gorobj('double', temp*1000, 'double', zeros(size(temp)), newgor);
+            roi_det_gor = [roi_det_gor ; newgor];
+        end     
     end 
 end
 
