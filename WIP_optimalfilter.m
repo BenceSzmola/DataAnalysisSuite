@@ -178,17 +178,6 @@ elseif nargin == 1
         doggor.name=['Consens channel DoG'];
         doggor.Color='r';
         doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
-        
-        %%% CSV irás
-        for i = 1:length(ephysca)
-            if i == 1
-                csvname = 'SimultanEvents.csv';
-                fileID = fopen(csvname,'w');
-                fprintf(fileID,'%10s \n','Time(s)');
-            end
-            fprintf(fileID,'%5.2f \n',ephysca(i));
-        end
-        fclose(fileID);
 
         ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
@@ -218,7 +207,7 @@ elseif nargin == 1
                     %%% ki akarom adni hogy melyik roinak hol van
                     %%% detekcioja
                     jj = j;
-                    while per_roi_det(jj,1,loc(j,3)) ~= 0
+                    while (per_roi_det(jj,1,loc(j,3)) ~= 0) && (jj < size(per_roi_det,1))
                         jj = jj + 1;
                     end
                     per_roi_det(jj,1,loc(j,3)) = ephysca(i);
@@ -245,7 +234,36 @@ elseif nargin == 1
             newgor.LineStyle='none';
             newgor=gorobj('double', temp*1000, 'double', zeros(size(temp)), newgor);
             roi_det_gor = [roi_det_gor ; newgor];
-        end     
+        end 
+        
+        %%% CSV irás
+        for i = 1:length(ephysca)
+            if i == 1
+                csvname = 'SimultanEvents.csv';
+                fileID = fopen(csvname,'w');
+                fprintf(fileID,'%10s \n','Events (s)');
+            elseif i == length(ephysca)
+                fprintf(fileID,'%5.2f \n',ephysca(i));
+            else
+                fprintf(fileID,'%5.2f ; ',ephysca(i));            
+            end
+        end
+        fprintf(fileID,'%10s \n','Grouped by ROI');
+        for i = 1:size(per_roi_det,3)
+            fprintf(fileID,'%d ; ',i);
+            temp = per_roi_det(:,:,i);
+            temp = unique(temp);
+            temp(temp==0) = [];
+            if isempty(temp)
+                continue
+            end
+            for j = 1:size(temp,1)
+                fprintf(fileID,'%5.2f ; ',temp(j));
+            end
+            fprintf(fileID,'\n');
+        end
+        fclose(fileID);
+        
     end 
 end
 
@@ -274,8 +292,8 @@ switch caorephys
     case 2
         prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
-            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)'};
-        defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf'};
+            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)','dF/F threshold (overwrites sd mult if non-zero)'};
+        defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1'};
         title1 = 'Ca inputs';
         procinitval = 4;
         listtitle = 'Ca processing';
@@ -299,10 +317,11 @@ qsdmult = str2double(answer(9));
 sec = str2double(answer(10));
 widthlower = str2double(answer(11));
 widthupper = str2double(answer(12));
-if size(answer,1) > 12
+if caorephys == 1
     offsetcorr = str2double(answer(13));
-elseif size(answer,1) == 12
+elseif caorephys == 2
     offsetcorr = 0;
+    dFF_thresh = str2double(answer(13));
 end
 
 list = {'DoG + InstPow','DoG','InstPow','None'};
@@ -602,6 +621,9 @@ for i = ivec
     ripsd = mean(quiet) + sdmult*std(quiet);
     if i == refch
         ripsd = mean(currpow) + sdmult*std(currpow);
+    end
+    if (caorephys == 2) && (dFF_thresh ~= 0)
+        ripsd = dFF_thresh;
     end
     display(caorephys)
     display(ripsd)
