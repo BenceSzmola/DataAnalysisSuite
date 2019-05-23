@@ -18,7 +18,7 @@ function [detected,doggor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter(ingor) %
 %       Event length upper bound
 
 debug = 0;
-answer2 = questdlg('Run debug?','Debug');
+answer2 = questdlg('Run debug?','Debug','No');
 switch answer2
     case 'Yes'
         debug = 1;
@@ -27,6 +27,18 @@ switch answer2
     case 'Cancel'
         return
 end
+
+plots = 0;
+plotornot = questdlg('Display Matlab figures?','Plots','No');
+switch plotornot
+    case 'Yes'
+        plots = 1;
+    case 'No'
+        plots = 0;
+    case 'Cancel'
+        return
+end
+
 if nargin == 1
     mode = inputdlg({'Ephys & Ca => 1 otherwise => 0','No. of ephys channels','Is ephys data first or second block?'},'Mode selection',...
         [1 40],{'0','5','1'});
@@ -51,7 +63,7 @@ if nargin==0
         case 'Ephys'
             caorephys = 1;
     end
-    detettore(data,t_scale,nargin,debug,caorephys);
+    detettore(data,t_scale,nargin,debug,caorephys,plots);
     fprintf(1,'Data from console \n');
 elseif nargin == 1
     switch mode(1)
@@ -71,6 +83,10 @@ elseif nargin == 1
                 ca_t_scale(2) = ca_t_scale(1)+ca_t_scale(2);    
             end
     end
+    if debug
+        assignin('base','ephys_t_scale',ephys_t_scale);
+        assignin('base','ca_t_scale',ca_t_scale);
+    end
     if mode(1) == 0
         for i = 1:length(ingor)
             data(i,:) = get(ingor(i), 'extracty');
@@ -85,7 +101,7 @@ elseif nargin == 1
             case 'Ephys'
                 caorephys = 1;
         end
-        [consensT,ephysleadch,~,allpeaksT,~,dogged,norm_ca_gors] = detettore(data,t_scale,nargin,debug,caorephys);
+        [~,~,consensT,ephysleadch,~,allpeaksT,~,dogged,norm_ca_gors,~,~] = detettore(data,t_scale,nargin,debug,caorephys,plots);
         switch datatype
             case 'Ca'
                 detected = allpeaksT(:,1,:);
@@ -106,8 +122,8 @@ elseif nargin == 1
             for i = mode(2)+1:length(ingor)
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
-            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
-            [~,~,~,ca_allpeaksT,~,~,norm_ca_gors] = detettore(cadata,ca_t_scale,nargin,debug,2);
+            [~,~,ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~,ephys_param_prompts,ephys_param] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots);
+            [cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,~,norm_ca_gors,ca_param_prompts,ca_param] = detettore(cadata,ca_t_scale,nargin,debug,2,plots);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -120,8 +136,8 @@ elseif nargin == 1
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
-            [~,~,~,ca_allpeaksT,~,~,norm_ca_gors] = detettore(cadata,ca_t_scale,nargin,debug,2);
-            [ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~] = detettore(ephysdata,ephys_t_scale,nargin,debug,1);
+            [cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,~,norm_ca_gors,ca_param_prompts,ca_param] = detettore(cadata,ca_t_scale,nargin,debug,2,plots);
+            [~,~,ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~,ephys_param_prompts,ephys_param] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -203,7 +219,7 @@ elseif nargin == 1
             end
             for j = 1:size(loc,1)
                 if loc(j,2)==1
-                    text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
+%                     text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
                     %%% ki akarom adni hogy melyik roinak hol van
                     %%% detekcioja
                     jj = j;
@@ -224,43 +240,98 @@ elseif nargin == 1
         %%% Roionként detection gor
         roi_det_gor = [];
         for i = 1:size(per_roi_det,3)
-            newgor = [];
-            temp = unique(per_roi_det(:,:,i));
-            temp(temp==0) = [];
-            newgor.name=['Detections for roi ',num2str(i)];
-            newgor.Marker='*';
-            newgor.MarkerSize=12;
-            newgor.Color='g';
-            newgor.LineStyle='none';
-            newgor=gorobj('double', temp*1000, 'double', zeros(size(temp)), newgor);
-            roi_det_gor = [roi_det_gor ; newgor];
+            if sum(per_roi_det(:,:,i)) ~= 0
+                newgor = [];
+                temp = unique(per_roi_det(:,:,i));
+                temp(temp==0) = [];
+                newgor.name=['Detections for roi ',num2str(i)];
+                newgor.Marker='*';
+                newgor.MarkerSize=12;
+                newgor.Color='g';
+                newgor.LineStyle='none';
+                newgor=gorobj('double', temp*1000, 'double', zeros(size(temp)), newgor);
+                roi_det_gor = [roi_det_gor ; newgor];
+            end
         end 
         
         %%% CSV irás
-        for i = 1:length(ephysca)
-            if i == 1
-                csvname = 'SimultanEvents.csv';
-                fileID = fopen(csvname,'w');
-                fprintf(fileID,'%10s \n','Events (s)');
-            elseif i == length(ephysca)
-                fprintf(fileID,'%5.2f \n',ephysca(i));
+        csvname = inputdlg('Name of CSV','Name input',[1 50],{'.csv'});
+        path = uigetdir;
+        cd(path);
+        fileID = fopen(string(csvname),'w');
+        fprintf(fileID,'%s \n','Ephys parameters');
+%         pos = ftell(fileID);
+        for i = 1:length(ephys_param_prompts)
+            fprintf(fileID,'%s ; %d \n',string(ephys_param_prompts(i)),str2double(ephys_param(i)));
+        end
+%         fseek(fileID,pos,'bof');
+        fprintf(fileID,'\n %s \n','Ca parameters');
+        for i = 1:length(ca_param_prompts)
+            fprintf(fileID,'%s ; %d \n',string(ca_param_prompts(i)),str2double(ca_param(i)));
+        end
+        fprintf(fileID,'%s %d \n','Simultan events (s) num=',length(ephysca));
+        for i = 1:length(ephysca)  
+            if i == length(ephysca)
+                fprintf(fileID,'%5.4f \n',ephysca(i));
             else
-                fprintf(fileID,'%5.2f ; ',ephysca(i));            
+                fprintf(fileID,'%5.4f ; ',ephysca(i));            
             end
         end
-        fprintf(fileID,'%10s \n','Grouped by ROI');
+        fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
+            fprintf(fileID,'%d ; ',i);
+            for j = 1:size(ca_allpeaksT(:,:,i),1)
+                if ~isnan(ca_allpeaksT(j,1,i))
+                    fprintf(fileID,'%5.4f ; ',ca_allpeaksT(j,1,i));
+                end
+            end
+            fprintf(fileID,'\n');
             fprintf(fileID,'%d ; ',i);
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
             if isempty(temp)
+                fprintf(fileID,'\n');
                 continue
             end
             for j = 1:size(temp,1)
-                fprintf(fileID,'%5.2f ; ',temp(j));
+                fprintf(fileID,'%5.4f ; ',temp(j));
             end
-            fprintf(fileID,'\n');
+            if ~isempty(temp)
+                fprintf(fileID,'\n');
+            end
+        end
+        fprintf(fileID,'%s \n','Num of Detected/Simultan Ca events grouped by roi');
+        for i = 1:size(ca_allpeaksT,3)
+            fprintf(fileID,'%d ;',i);
+        end
+        fprintf(fileID,'\n');
+        for i = 1:size(ca_allpeaksT,3)
+            all = 0;
+            for j = 1:size(ca_allpeaksT(:,:,i),1)
+                if ~isnan(ca_allpeaksT(j,1,i))
+                    all = all + 1;
+                end
+            end
+            temp = per_roi_det(:,:,i);
+            temp = unique(temp);
+            temp(temp==0) = [];
+            det = length(temp);
+            fprintf(fileID,'%d//%d ;',all,det);
+        end
+        fprintf(fileID,'\n %s %d','Ephys events not associated with Ca (s) num =');
+        temp = [];
+        num = 0;
+        for i = 1:size(ephyscons_onlyT,1)
+            if (~ismembertol(ephyscons_onlyT(i),ephysca,ephyvsca_tolerance,'DataScale',1)) && (~isnan(ephyscons_onlyT(i)))
+%                 fprintf(fileID,'%5.4f ; ',ephyscons_onlyT(i));
+                temp = [temp; ephyscons_onlyT(i)];
+                num = num + 1;
+            end
+        end
+        fprintf(fileID,'%d \n',num);
+        for i = 1:length(temp)
+            fprintf(fileID,'%5.4f ; ',ephyscons_onlyT(i));
         end
         fclose(fileID);
         
@@ -268,64 +339,68 @@ elseif nargin == 1
 end
 
 
-function [consensT,leadchan,power,allpeaksT,offsetcorr,dogged,norm_ca_gors] = detettore(indataFull,t_scale,gore,debug,caorephys)
+function [indataFull,t_scale,consensT,leadchan,power,allpeaksT,offsetcorr,dogged,norm_ca_gors,param_prompts,param_answer] = detettore(indataFull,t_scale,gore,debug,caorephys,plots)
 
 switch caorephys
     case 0
-        prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
-            'Is the ephys offset corrected? 0-no,1-yes'};
+            'Should ephys be shifted by 1s? 0-no,1-yes'};
         defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0'};
         title1 = 'Inputs';
         procinitval = 1;
         listtitle = 'Processing';
+        proc_list = {'DoG + InstPow','DoG','InstPow','None'};
     case 1
-        prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
-            'Is the ephys offset corrected? 0-no,1-yes'};
+            'Should ephys be shifted by 1s? 0-no,1-yes'};
         defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0'};
         title1 = 'Ephys inputs';
         procinitval = 1;
         listtitle = 'Ephys processing';
+        proc_list = {'DoG + InstPow','DoG','InstPow','None'};
     case 2
-        prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)','dF/F threshold (overwrites sd mult if non-zero)'};
         defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1'};
         title1 = 'Ca inputs';
-        procinitval = 4;
+        procinitval = 1;
         listtitle = 'Ca processing';
+        proc_list = {'Gauss avg (1.2) then 10x upsample','None'};
 end
 srate = 1/(t_scale(2)-t_scale(1));
-answer = inputdlg(prompts,title1,[1 20],defaults1,'on');
-if size(answer)==0
+param_answer = inputdlg(param_prompts,title1,[1 20],defaults1,'on');
+if size(param_answer)==0
     return
 end
 if gore ~= 1
-    srate = str2double(answer(1));
+    srate = str2double(param_answer(1));
 end
-w1 = str2double(answer(2));
-w2 = str2double(answer(3));
-noisech = str2double(answer(4));
-refch = str2double(answer(5));
-winstepsize = round(str2double(answer(6))*(srate/1000));
-eventdist = str2double(answer(7))*(srate/1000);
-sdmult = str2double(answer(8));
-qsdmult = str2double(answer(9));
-sec = str2double(answer(10));
-widthlower = str2double(answer(11));
-widthupper = str2double(answer(12));
+w1 = str2double(param_answer(2));
+w2 = str2double(param_answer(3));
+noisech = str2double(param_answer(4));
+refch = str2double(param_answer(5));
+winstepsize = round(str2double(param_answer(6))*(srate/1000));
+eventdist = str2double(param_answer(7))*(srate/1000);
+sdmult = str2double(param_answer(8));
+qsdmult = str2double(param_answer(9));
+sec = str2double(param_answer(10));
+widthlower = str2double(param_answer(11));
+widthupper = str2double(param_answer(12));
 if caorephys == 1
-    offsetcorr = str2double(answer(13));
+    offsetcorr = str2double(param_answer(13));
 elseif caorephys == 2
     offsetcorr = 0;
-    dFF_thresh = str2double(answer(13));
+    dFF_thresh = str2double(param_answer(13));
 end
 
-list = {'DoG + InstPow','DoG','InstPow','None'};
-[selected,~] = listdlg('ListString',list,'PromptString','Select data processing!','SelectionMode','single','InitialValue',procinitval,'Name',listtitle);
+param_answer{1} = num2str(srate);
+% proc_list = {'DoG + InstPow','DoG','InstPow','None'};
+[selected,~] = listdlg('ListString',proc_list,'PromptString','Select data processing!','SelectionMode','single','InitialValue',procinitval,'Name',listtitle);
 
 if offsetcorr
     t_scale = t_scale+1;
@@ -353,9 +428,38 @@ if debug
     assignin('base','dog',dogged);
 end
 power = zeros(size(indataFull,2),len);
-if gore == 1 && selected == 4
+
+%%% Ca kezelés
+if gore == 1 && caorephys == 2 && selected == 2 
     power = transpose(indataFull);
+elseif gore == 1 && caorephys == 2 && selected == 1
+    for i = 1:len
+        cagor = [];
+        cagor = gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', indataFull(i,:), cagor);
+        filter.type = 'gaavr';
+        filter.W1 = 1/1.2/2/((t_scale(2)-t_scale(1))*1000);
+        filter.ends = 1;
+        smoothedCa = FilterUse(cagor,filter);
+%         tempca(:,i) = get(smoothedCa,'extracty');
+        filter2.type = 'resample';
+        filter2.W1 = 1/0.1/2/((t_scale(2)-t_scale(1))*1000);
+        upsampCa = FilterUse(smoothedCa,filter2);
+        tempca(:,i) = get(upsampCa,'extracty');  
+    end
+    t_scale = (get(upsampCa,'x'))/1000;
+    srate = 1/t_scale(2);
+    param_answer{1} = num2str(srate);
+    t_scale(2) = t_scale(1)+t_scale(2);
+    winstepsize = round(str2double(param_answer(6))*(srate/1000));
+    eventdist = str2double(param_answer(7))*(srate/1000);
+    power = tempca;
+    indataFull = transpose(tempca);
 end
+if debug && caorephys == 2
+    assignin('base','processedCAinput',power);
+    assignin('base','altered_ca_t_scale',t_scale);
+end
+
 % if ischar(ingor)
 %     t_scale = rhd.tdata;
 %     if debug 
@@ -363,7 +467,7 @@ end
 %     end
 % end
 %%% Filters
-if selected == 1
+if selected == 1 && caorephys == 1
     for i = ivec
     %     if ischar(ingor)
     %         t_scale = rhd.tdata;
@@ -385,13 +489,17 @@ if selected == 1
         dogged(:,i) = lfpLow;
         
     end
-    assignin('base','postdogged',dogged);
-elseif selected == 3
+    if debug
+        assignin('base','postdogged',dogged);
+    end
+elseif selected == 3 && caorephys == 1
     dogged = indataFull(1:5,:);
     dogged = transpose(dogged);
-    assignin('base','predogged',dogged);
+    if debug
+        assignin('base','predogged',dogged);
+    end
 end
-if selected == 1 || selected == 3
+if (selected == 1 || selected == 3) && caorephys == 1
     for i = ivec
 
         %%%% Apply DoG (from BuzsakiLab) with meansubstract
@@ -491,7 +599,7 @@ end
 extendedivs = 0;
 %%% Ha tul rovid az interval, vagy eleve nincs közös, akkor csatornankent hozzarakok 
 if caorephys == 2
-    sec = srate;
+    sec = inf;
 end
 if ((quietiv(2)-quietiv(1)) < sec*srate)
     extendedivs = 1;
@@ -517,11 +625,13 @@ if ((quietiv(2)-quietiv(1)) < sec*srate)
         while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate+(quietiv(2)-quietiv(1)))
             indx = indx + 1;
             [goodielen, ind] = max(goodies);
-            if goodielen == 0
+            if goodielen == 0 && caorephys == 1
                 warn = warndlg('Couldnt reach specified quietlenght');
-                pause(1);
+                pause(0.25);
                 close(warn);
-                break                
+                break
+            elseif goodielen == 0 && caorephys == 2
+                break
             end
             tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
             goodies(ind) = 0;
@@ -625,31 +735,37 @@ for i = ivec
     if (caorephys == 2) && (dFF_thresh ~= 0)
         ripsd = dFF_thresh;
     end
-    display(caorephys)
-    display(ripsd)
-    if caorephys == 0
-        figure('Name',['Channel',num2str(i)],'NumberTitle','off');
-    elseif caorephys == 1
-        figure('Name',['Ephys_Channel',num2str(i)],'NumberTitle','off');
-    elseif caorephys == 2
-        figure('Name',['Ca_Channel',num2str(i)],'NumberTitle','off');
+    if debug
+        display(caorephys)
+        display(ripsd)
+    end
+    if plots
+        if caorephys == 0
+            figure('Name',['Channel',num2str(i)],'NumberTitle','off');
+        elseif caorephys == 1
+            figure('Name',['Ephys_Channel',num2str(i)],'NumberTitle','off');
+        elseif caorephys == 2
+            figure('Name',['Ca_Channel',num2str(i)],'NumberTitle','off');
+        end
     end
     xscala = t_scale(1):(t_scale(2)-t_scale(1)):t_scale(1)+(t_scale(2)-t_scale(1))*(size(indataFull,2)-1);
 %     if nargin == 0
-    if (caorephys == 0) || (caorephys == 1)
-        ax1=subplot(2,1,1);
-        plot(xscala,dogged(:,i));
-        grid on;
-        title('DoG');
-        ax2=subplot(2,1,2);
-        plot(xscala,currpow); hold on;
-        title('Instantaneous power');
-        grid on;
-        linkaxes([ax1 ax2],'x');
-    elseif caorephys == 2
-        plot(xscala,currpow); hold on;
-        title('Calcium signal');
-        grid on;
+    if plots
+        if (caorephys == 0) || (caorephys == 1)
+            ax1=subplot(2,1,1);
+            plot(xscala,dogged(:,i));
+            grid on;
+            title('DoG');
+            ax2=subplot(2,1,2);
+            plot(xscala,currpow); hold on;
+            title('Instantaneous power');
+            grid on;
+            linkaxes([ax1 ax2],'x');
+        elseif caorephys == 2
+            plot(xscala,currpow); hold on;
+            title('Calcium signal');
+            grid on;
+        end
     end
 %     elseif nargin == 1
 %         mes_xscale = [xscala, 1/srate]*1000;
@@ -776,9 +892,10 @@ for i = ivec
     if debug
         assignin('base',['peaks', num2str(i)],ppeaks);
     end
-    plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
-    line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
-    
+    if plots
+        plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
+        line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
+    end
 %     %%% CSV irás
 %     if i == ivec(1)
 %         csvname = strcat(filename(1:end-4),'_events.csv');
@@ -816,7 +933,9 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
     end
     consens = cat(2,allpeaksDP(:,1,leadchan),ones(size(allpeaksDP,1),1));
     consens = cat(2,consens,zeros(size(consens,1),len));
-    display(leadchan);
+    if debug
+        display(leadchan);
+    end
     for i = 1:size(allpeaksDP,3)
         if i ~= leadchan
             [lia,locb] = ismembertol(allpeaksDP(:,1,i),allpeaksDP(:,1,leadchan),1000,'DataScale',1);
@@ -843,30 +962,31 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
     if debug
         assignin('base','allpeaksT',allpeaksT);
     end
-    
-    switch caorephys
-        case 0
-            figtitle = 'Consenus peaks';
-        case 1
-            figtitle = 'Ephys consensus peaks';
-        case 2
-            figtitle = 'Ca consensus peaks';
-    end
-    figure('Name',figtitle,'NumberTitle','off');
-    plot(xscala,power(:,leadchan)); hold on;
-    plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
-    for i = 1:size(consensT,1)
-        for j = 1:len
-            if consensT(i,j+2) == 1
-                currsel = allpeaksT(:,1,j);
-                currsel = currsel(find(currsel));
-                thex = find(abs(currsel-consensT(i,1))<0.05);
-                if size(thex,1) == 0
-                    continue
-                elseif size(thex,1) > 1
-                    thex = thex(1);
+    if plots
+        switch caorephys
+            case 0
+                figtitle = 'Consenus peaks';
+            case 1
+                figtitle = 'Ephys consensus peaks';
+            case 2
+                figtitle = 'Ca consensus peaks';
+        end
+        figure('Name',figtitle,'NumberTitle','off');
+        plot(xscala,power(:,leadchan)); hold on;
+        plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
+        for i = 1:size(consensT,1)
+            for j = 1:len
+                if consensT(i,j+2) == 1
+                    currsel = allpeaksT(:,1,j);
+                    currsel = currsel(find(currsel));
+                    thex = find(abs(currsel-consensT(i,1))<0.05);
+                    if size(thex,1) == 0
+                        continue
+                    elseif size(thex,1) > 1
+                        thex = thex(1);
+                    end
+    %                 text(consensT(i,1),allpeaksT(thex,2,j),num2str(j));
                 end
-                text(consensT(i,1),allpeaksT(thex,2,j),num2str(j));
             end
         end
     end
