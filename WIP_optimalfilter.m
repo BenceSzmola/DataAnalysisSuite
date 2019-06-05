@@ -430,7 +430,7 @@ function [indataFull,t_scale,consensT,leadchan,power,allpeaksT,offsetcorr,dogged
 
 switch caorephys
     case 0
-        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Run denoising? (0-no, 1-yes)','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
             'Should ephys be shifted by 1s? 0-no,1-yes'};
@@ -440,7 +440,7 @@ switch caorephys
         listtitle = 'Processing';
         proc_list = {'DoG + InstPow','DoG','InstPow','None'};
     case 1
-        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Run denoising? (0-no, 1-yes)','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
             'Should ephys be shifted by 1s? 0-no,1-yes','Ca2+ delay vs ephys'};
@@ -450,7 +450,7 @@ switch caorephys
         listtitle = 'Ephys processing';
         proc_list = {'DoG + InstPow','DoG','InstPow','None'};
     case 2
-        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
+        param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Run denoising? (0-no,1-yes)','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)','dF/F threshold (overwrites sd mult if non-zero)','Ca2+ delay vs ephys'};
         defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1','0.3'};
@@ -469,7 +469,7 @@ if gore ~= 1
 end
 w1 = str2double(param_answer(2));
 w2 = str2double(param_answer(3));
-noisech = str2double(param_answer(4));
+denoise = str2double(param_answer(4));
 refch = str2double(param_answer(5));
 winstepsize = round(str2double(param_answer(6))*(srate/1000));
 eventdist = str2double(param_answer(7))*(srate/1000);
@@ -562,8 +562,8 @@ if selected == 1 && caorephys == 1
     %         t_scale = rhd.tdata;
     %     end
         indata = indataFull(i,:);
-        if i ~= noisech && noisech ~= 0
-            indata = indata - indataFull(noisech,:);
+        if i ~= refch && denoise == 1
+            indata = indata - indataFull(refch,:);
         end
         %%% Substract mean from lfp 
     %     indataMS = indata - mean(indata,2);
