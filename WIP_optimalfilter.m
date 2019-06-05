@@ -1,4 +1,4 @@
-function [detected,doggor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -104,12 +104,17 @@ elseif nargin == 1
         [~,~,consensT,ephysleadch,~,allpeaksT,~,dogged,norm_ca_gors,~,~] = detettore(data,t_scale,nargin,debug,caorephys,plots);
         switch datatype
             case 'Ca'
-                detected = allpeaksT(:,1,:);
+%                 detected = allpeaksT(:,1,:);
             case 'Ephys'
-                detected = consensT(:,1);
+%                 detected = consensT(:,1);
                 doggor = [];
-                doggor.name=['Consens channel DoG'];
+                doggor.name=['Consens channel (Ch',num2str(ephysleadch),') DoG'];
                 doggor.Color='r';
+                doggor.xname='Time';
+                doggor.yname='Voltage';
+                doggor.xunit='ms';
+                doggor.yunit='\muV';
+                doggor.axis=2;
                 doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
         end  
     end
@@ -170,14 +175,17 @@ elseif nargin == 1
         if debug 
             assignin('base','cacons_onlyT',cacons_onlyT)
         end
-        ephyvsca_tolerance = 0.2;
+        ephyvsca_tolerance = str2double(ephys_param(14));
         ephysca = [];
+        supreme = 0;
         wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
         for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
             if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
+                supreme = 1;
                 ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance) & ...
                     ((ephyscons_onlyT(i,1)-cacons_onlyT)>0))];
             elseif size(ephyscons_onlyT,1) < size(cacons_onlyT,1)
+                supreme = 2;
                 ephysca = [ephysca ; ephyscons_onlyT(((cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance) & ...
                     ((cacons_onlyT(i,1)-ephyscons_onlyT)>0))];
 %             else
@@ -189,12 +197,59 @@ elseif nargin == 1
             assignin('base','freshlybakedephysca',ephysca)
         end
         ephysca = unique(ephysca);
-        detected = ephysca;
+%         detected = ephysca;
+
+        sim_det_gor = [];
+        sim_det_gor.name=['Detected simultan events'];
+        sim_det_gor.xname='Time';
+        sim_det_gor.yname='';
+        sim_det_gor.xunit='ms';
+        sim_det_gor.Marker='*';
+        sim_det_gor.MarkerSize=12;
+        sim_det_gor.Color='g';
+        sim_det_gor.LineStyle='none';
+        sim_det_gor=gorobj('double',ephysca*1000,'double',zeros(size(ephysca)),sim_det_gor);
+        
         doggor = [];
-        doggor.name=['Consens channel DoG'];
+        doggor.name=['Consens channel (Ch',num2str(ephysleadch),') DoG'];
         doggor.Color='r';
+        doggor.xname='Time';
+        doggor.yname='Voltage';
+        doggor.xunit='ms';
+        doggor.yunit='\muV';
+        doggor.axis=2;
         doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
 
+        ephys_det_gor = [];
+        ephys_det_gor.name=['Detected ripples consens channel (',num2str(ephysleadch),')'];
+        ephys_det_gor.xname='Time';
+        ephys_det_gor.yname='';
+        ephys_det_gor.xunit='ms';
+        ephys_det_gor.Marker='*';
+        ephys_det_gor.MarkerSize=12;
+        ephys_det_gor.Color='g';
+        ephys_det_gor.LineStyle='none';
+        ephys_det_gor=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor);
+        
+        %%% delay values
+        delays = [];
+        for i = 1:length(ephysca)
+            switch supreme
+                case 1
+                    tempdelays = ephyscons_onlyT((-1*(ephyscons_onlyT-ephysca(i))<ephyvsca_tolerance) & ...
+                        (-1*(ephyscons_onlyT-ephysca(i))>0));
+                case 2 
+                    tempdelays = cacons_onlyT(((cacons_onlyT-ephysca(i))<ephyvsca_tolerance) & ...
+                        ((cacons_onlyT-ephysca(i))>0));
+            end
+            delays = [delays; tempdelays];
+        end
+        delays = abs(ephysca-delays);
+        avgdelays = mean(delays);
+        if debug 
+            assignin('base','delays',delays);
+        end
+        
         ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
         figure('Name','Ca vs Ephys','NumberTitle','off')
@@ -249,6 +304,9 @@ elseif nargin == 1
                 newgor.MarkerSize=12;
                 newgor.Color='g';
                 newgor.LineStyle='none';
+                newgor.xname = 'Time';
+                newgor.yname = '';
+                newgor.xunit = 'ms';
                 newgor=gorobj('double', temp*1000, 'double', zeros(size(temp)), newgor);
                 roi_det_gor = [roi_det_gor ; newgor];
             end
@@ -277,6 +335,13 @@ elseif nargin == 1
                 fprintf(fileID,'%5.4f ; ',ephysca(i));            
             end
         end
+        
+        fprintf(fileID,'Delays between ephys and Ca (s) \n');
+        for i = 1:length(delays)
+            fprintf(fileID,'%5.4f ; ',delays(i));
+        end
+        fprintf(fileID,'\n Avg delay = %5.4f \n',avgdelays);
+        
         fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
             fprintf(fileID,'%d ; ',i);
@@ -290,14 +355,19 @@ elseif nargin == 1
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
-            if isempty(temp)
+            temp2 = ca_allpeaksT(:,1,i);
+            temp2 = unique(temp2);
+            temp2(temp2==0) = [];
+            temp2(isnan(temp2)) = [];
+            temp3 = temp2(ismembertol(temp2,temp,ephyvsca_tolerance,'DataScale',1));
+            if isempty(temp3)
                 fprintf(fileID,'\n');
                 continue
             end
-            for j = 1:size(temp,1)
-                fprintf(fileID,'%5.4f ; ',temp(j));
+            for j = 1:size(temp3,1)
+                fprintf(fileID,'%5.4f ; ',temp3(j));
             end
-            if ~isempty(temp)
+            if ~isempty(temp3)
                 fprintf(fileID,'\n');
             end
         end
@@ -316,7 +386,12 @@ elseif nargin == 1
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
-            det = length(temp);
+            temp2 = ca_allpeaksT(:,1,i);
+            temp2 = unique(temp2);
+            temp2(temp2==0) = [];
+            temp2(isnan(temp2)) = [];
+            temp3 = temp2(ismembertol(temp2,temp,ephyvsca_tolerance,'DataScale',1));
+            det = length(temp3);
             fprintf(fileID,'%d//%d ;',all,det);
         end
         fprintf(fileID,'\n %s %d','Ephys events not associated with Ca (s) num =');
@@ -331,11 +406,23 @@ elseif nargin == 1
         end
         fprintf(fileID,'%d \n',num);
         for i = 1:length(temp)
-            fprintf(fileID,'%5.4f ; ',ephyscons_onlyT(i));
+            fprintf(fileID,'%5.4f ; ',temp(i));
         end
-        fclose(fileID);
+%         fprintf(fileID,'\n');
+%         fprintf(fileID,'Delays between ephys and Ca (s) \n');
+%         for i = 1:length(delays)
+%             fprintf(fileID,'%5.4f ; ',delays(i));
+%         end
+%         fprintf(fileID,'\n Avg delay = %5.4f \n',avgdelays);
         
+        fclose(fileID);
+        %%% end of CSV write
     end 
+    finitodlg = warndlg('Event detection is finished!','Finished');
+    pause(0.5);
+    if ishandle(finitodlg)
+        close(finitodlg);
+    end
 end
 
 
@@ -356,8 +443,8 @@ switch caorephys
         param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
-            'Should ephys be shifted by 1s? 0-no,1-yes'};
-        defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0'};
+            'Should ephys be shifted by 1s? 0-no,1-yes','Ca2+ delay vs ephys'};
+        defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0','0.3'};
         title1 = 'Ephys inputs';
         procinitval = 1;
         listtitle = 'Ephys processing';
@@ -365,8 +452,8 @@ switch caorephys
     case 2
         param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Noise channel:','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
-            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)','dF/F threshold (overwrites sd mult if non-zero)'};
-        defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1'};
+            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)','dF/F threshold (overwrites sd mult if non-zero)','Ca2+ delay vs ephys'};
+        defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1','0.3'};
         title1 = 'Ca inputs';
         procinitval = 1;
         listtitle = 'Ca processing';
@@ -397,7 +484,9 @@ elseif caorephys == 2
     offsetcorr = 0;
     dFF_thresh = str2double(param_answer(13));
 end
-
+if (caorephys==1) || (caorephys==2)
+    ca_lag = str2double(param_answer(14));
+end
 param_answer{1} = num2str(srate);
 % proc_list = {'DoG + InstPow','DoG','InstPow','None'};
 [selected,~] = listdlg('ListString',proc_list,'PromptString','Select data processing!','SelectionMode','single','InitialValue',procinitval,'Name',listtitle);
@@ -695,6 +784,9 @@ if caorephys == 2
         indataFull(i,:) = indataFull(i,:)-avg;
         newgor = [];
         newgor.name = ['Normed_Ca_Roi_',num2str(i)];
+        newgor.xname = 'Time';
+        newgor.yname = 'dF/F';
+        newgor.xunit = 's';
         newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',indataFull(i,:),newgor);
         norm_ca_gors = [norm_ca_gors ; newgor];
     end
