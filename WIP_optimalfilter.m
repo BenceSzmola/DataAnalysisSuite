@@ -181,11 +181,11 @@ elseif nargin == 1
         wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
         for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
             if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
-                supreme = 1;
+                supreme = 2;
                 ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance) & ...
                     ((ephyscons_onlyT(i,1)-cacons_onlyT)>0))];
             elseif size(ephyscons_onlyT,1) < size(cacons_onlyT,1)
-                supreme = 2;
+                supreme = 1;
                 ephysca = [ephysca ; ephyscons_onlyT(((cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance) & ...
                     ((cacons_onlyT(i,1)-ephyscons_onlyT)>0))];
 %             else
@@ -235,14 +235,14 @@ elseif nargin == 1
         delays = [];
         for i = 1:length(ephysca)
             switch supreme
-                case 1
+                case 2
                     tempdelays = ephyscons_onlyT((-1*(ephyscons_onlyT-ephysca(i))<ephyvsca_tolerance) & ...
                         (-1*(ephyscons_onlyT-ephysca(i))>0));
-                case 2 
+                case 1 
                     tempdelays = cacons_onlyT(((cacons_onlyT-ephysca(i))<ephyvsca_tolerance) & ...
                         ((cacons_onlyT-ephysca(i))>0));
             end
-            delays = [delays; tempdelays];
+            delays = [delays; tempdelays(1)];
         end
         delays = abs(ephysca-delays);
         avgdelays = mean(delays);
@@ -340,7 +340,7 @@ elseif nargin == 1
         for i = 1:length(delays)
             fprintf(fileID,'%5.4f ; ',delays(i));
         end
-        fprintf(fileID,'\n Avg delay = %5.4f \n',avgdelays);
+        fprintf(fileID,'\n Avg delay (s) = %5.4f \n',avgdelays);
         
         fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
@@ -443,7 +443,7 @@ switch caorephys
         param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Run denoising? (0-no, 1-yes)','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ...
-            'Should ephys be shifted by 1s? 0-no,1-yes','Ca2+ delay vs ephys'};
+            'Should ephys be shifted by 1s? 0-no,1-yes','Ca2+ delay vs ephys (s)'};
         defaults1 = {'20000','150','250','0','0','50','50','4','1','1','10','inf','0','0.3'};
         title1 = 'Ephys inputs';
         procinitval = 1;
@@ -452,7 +452,8 @@ switch caorephys
     case 2
         param_prompts = {'Samplerate: (Hz)','W1: (Hz)','W2: (Hz)','Run denoising? (0-no,1-yes)','Reference channel', ...
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
-            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)','dF/F threshold (overwrites sd mult if non-zero)','Ca2+ delay vs ephys'};
+            'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ... 
+            'dF/F threshold (overwrites sd mult if non-zero)','Ca2+ delay vs ephys (s)'};
         defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1','0.3'};
         title1 = 'Ca inputs';
         procinitval = 1;
@@ -460,7 +461,7 @@ switch caorephys
         proc_list = {'Gauss avg (1.2) then 10x upsample','None'};
 end
 srate = 1/(t_scale(2)-t_scale(1));
-param_answer = inputdlg(param_prompts,title1,[1 20],defaults1,'on');
+param_answer = inputdlg(param_prompts,title1,[1 30],defaults1,'on');
 if size(param_answer)==0
     return
 end
