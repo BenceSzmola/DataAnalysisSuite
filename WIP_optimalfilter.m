@@ -249,8 +249,14 @@ elseif nargin == 1
         end
 %         display(delays)
 %         display(supreme)
-        delays = abs(ephysca-delays);
-        avgdelays = mean(delays);
+        if ~isempty(delays)
+            delays = abs(ephysca-delays);
+            avgdelays = mean(delays);
+        else
+            delays = [];
+            avgdelays = [];
+        end
+        
 %         display(delays)
 %         display(avgdelays)
         if debug 
