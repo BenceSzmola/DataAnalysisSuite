@@ -183,7 +183,7 @@ elseif nargin == 1
             if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
                 supreme = 2;
                 ephysca = [ephysca ; cacons_onlyT((-1*(ephyscons_onlyT(i,1)-cacons_onlyT)<ephyvsca_tolerance) & ...
-                    ((ephyscons_onlyT(i,1)-cacons_onlyT)>0))];
+                    (-1*(ephyscons_onlyT(i,1)-cacons_onlyT)>0))];
             elseif size(ephyscons_onlyT,1) < size(cacons_onlyT,1)
                 supreme = 1;
                 ephysca = [ephysca ; ephyscons_onlyT(((cacons_onlyT(i,1)-ephyscons_onlyT)<ephyvsca_tolerance) & ...
@@ -242,10 +242,17 @@ elseif nargin == 1
                     tempdelays = cacons_onlyT(((cacons_onlyT-ephysca(i))<ephyvsca_tolerance) & ...
                         ((cacons_onlyT-ephysca(i))>0));
             end
-            delays = [delays; tempdelays(1)];
+%             display(tempdelays)
+            if ~isempty(tempdelays)
+                delays = [delays; tempdelays(1)];
+            end
         end
+%         display(delays)
+%         display(supreme)
         delays = abs(ephysca-delays);
         avgdelays = mean(delays);
+%         display(delays)
+%         display(avgdelays)
         if debug 
             assignin('base','delays',delays);
         end
