@@ -82,11 +82,12 @@ elseif nargin == 1
                 ca_t_scale = get(ingor(1),'x')/1000;
                 ca_t_scale(2) = ca_t_scale(1)+ca_t_scale(2);    
             end
+            if debug
+                assignin('base','ephys_t_scale',ephys_t_scale);
+                assignin('base','ca_t_scale',ca_t_scale);
+            end
     end
-    if debug
-        assignin('base','ephys_t_scale',ephys_t_scale);
-        assignin('base','ca_t_scale',ca_t_scale);
-    end
+    
     if mode(1) == 0
         for i = 1:length(ingor)
             data(i,:) = get(ingor(i), 'extracty');
@@ -101,7 +102,7 @@ elseif nargin == 1
             case 'Ephys'
                 caorephys = 1;
         end
-        [~,~,consensT,ephysleadch,~,allpeaksT,~,dogged,norm_ca_gors,~,~] = detettore(data,t_scale,nargin,debug,caorephys,plots);
+        [det_thresh,~,~,consensT,ephysleadch,~,allpeaksT,~,dogged,norm_ca_gors,~,~] = detettore(data,t_scale,nargin,debug,caorephys,plots);
         switch datatype
             case 'Ca'
 %                 detected = allpeaksT(:,1,:);
@@ -127,8 +128,8 @@ elseif nargin == 1
             for i = mode(2)+1:length(ingor)
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
-            [~,~,ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~,ephys_param_prompts,ephys_param] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots);
-            [cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,~,norm_ca_gors,ca_param_prompts,ca_param] = detettore(cadata,ca_t_scale,nargin,debug,2,plots);
+            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~,ephys_param_prompts,ephys_param] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,~,norm_ca_gors,ca_param_prompts,ca_param] = detettore(cadata,ca_t_scale,nargin,debug,2,plots);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -141,8 +142,8 @@ elseif nargin == 1
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
-            [cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,~,norm_ca_gors,ca_param_prompts,ca_param] = detettore(cadata,ca_t_scale,nargin,debug,2,plots);
-            [~,~,ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~,ephys_param_prompts,ephys_param] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,~,norm_ca_gors,ca_param_prompts,ca_param] = detettore(cadata,ca_t_scale,nargin,debug,2,plots);
+            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,~,offsetcorr,dogged,~,ephys_param_prompts,ephys_param] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots);
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -220,6 +221,18 @@ elseif nargin == 1
         doggor.axis=2;
         doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
 
+        powgor = [];
+        powgor.name=['Consens channel (Ch',num2str(ephysleadch),') InstPow'];
+        powgor.Color='r';
+        powgor.xname='Time';
+        powgor.yname='Power';
+        powgor.xunit='ms';
+        powgor.yunit='\muV^2';
+        powgor.axis=2;
+        powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
+
+        doggor = [doggor ; powgor];
+        
         ephys_det_gor = [];
         ephys_det_gor.name=['Detected ripples consens channel (',num2str(ephysleadch),')'];
         ephys_det_gor.xname='Time';
@@ -247,6 +260,7 @@ elseif nargin == 1
                 delays = [delays; tempdelays(1)];
             end
         end
+        ephysca_other = delays;
 %         display(delays)
 %         display(supreme)
         if ~isempty(delays)
@@ -340,7 +354,37 @@ elseif nargin == 1
         for i = 1:length(ca_param_prompts)
             fprintf(fileID,'%s ; %d \n',string(ca_param_prompts(i)),str2double(ca_param(i)));
         end
-        fprintf(fileID,'%s %d \n','Simultan events (s) num=',length(ephysca));
+        
+        fprintf(fileID,'\n');
+        
+        fprintf(fileID,'Ca detection thresholds per roi \n');
+        for i = 1:size(ca_det_thresh,1)
+            fprintf(fileID,'%d;',i);
+        end
+        fprintf(fileID,'\n');
+        for i = 1:size(ca_det_thresh,1)
+            fprintf(fileID,'%5.4f;',ca_det_thresh(i,2));
+        end
+        fprintf(fileID,'\n');
+        fprintf(fileID,'Ephys detection thresholds per channel \n');
+        for i = 1:size(ephys_det_thresh,1)
+            fprintf(fileID,'%d;',i);
+        end
+        fprintf(fileID,'\n');
+        for i = 1:size(ephys_det_thresh,1)
+            fprintf(fileID,'%5.4f;',ephys_det_thresh(i,2));
+        end
+        fprintf(fileID,'\n');
+        
+        fprintf(fileID,'\n');
+        
+        switch supreme
+            case 1
+                fprintf(fileID,'%s %d \n','Ephys simultan events (s) num=',length(ephysca));
+            case 2
+                fprintf(fileID,'%s %d \n','Ca simultan events (s) num=',length(ephysca));
+        end
+%         fprintf(fileID,'%s %d \n','Simultan events (s) num=',length(ephysca));
         for i = 1:length(ephysca)  
             if i == length(ephysca)
                 fprintf(fileID,'%5.4f \n',ephysca(i));
@@ -348,12 +392,29 @@ elseif nargin == 1
                 fprintf(fileID,'%5.4f ; ',ephysca(i));            
             end
         end
+        switch supreme
+            case 2
+                fprintf(fileID,'%s %d \n','Ephys simultan events (s) num=',length(ephysca));
+            case 1
+                fprintf(fileID,'%s %d \n','Ca simultan events (s) num=',length(ephysca));
+        end
+        for i = 1:length(ephysca_other)  
+            if i == length(ephysca_other)
+                fprintf(fileID,'%5.4f \n',ephysca_other(i));
+            else
+                fprintf(fileID,'%5.4f ; ',ephysca_other(i));            
+            end
+        end
+        
+        fprintf(fileID,'\n');
         
         fprintf(fileID,'Delays between ephys and Ca (s) \n');
         for i = 1:length(delays)
             fprintf(fileID,'%5.4f ; ',delays(i));
         end
         fprintf(fileID,'\n Avg delay (s) = %5.4f \n',avgdelays);
+        
+        fprintf(fileID,'\n');
         
         fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
@@ -389,6 +450,7 @@ elseif nargin == 1
             fprintf(fileID,'%d ;',i);
         end
         fprintf(fileID,'\n');
+        allperdet = zeros(size(ca_allpeaksT,3),2);
         for i = 1:size(ca_allpeaksT,3)
             all = 0;
             for j = 1:size(ca_allpeaksT(:,:,i),1)
@@ -405,8 +467,19 @@ elseif nargin == 1
             temp2(isnan(temp2)) = [];
             temp3 = temp2(ismembertol(temp2,temp,ephyvsca_tolerance,'DataScale',1));
             det = length(temp3);
-            fprintf(fileID,'%d//%d ;',all,det);
+            allperdet(i,:) = [all,det];
+%             fprintf(fileID,'%d//%d ;',all,det);
         end
+        for i = 1:size(ca_allpeaksT,3)
+            fprintf(fileID,'%d;',allperdet(i,1));
+        end
+        fprintf(fileID,'\n');
+        for i = 1:size(ca_allpeaksT,3)
+            fprintf(fileID,'%d;',allperdet(i,2));
+        end
+        
+        fprintf(fileID,'\n');
+        
         fprintf(fileID,'\n %s %d','Ephys events not associated with Ca (s) num =');
         temp = [];
         num = 0;
@@ -439,7 +512,7 @@ elseif nargin == 1
 end
 
 
-function [indataFull,t_scale,consensT,leadchan,power,allpeaksT,offsetcorr,dogged,norm_ca_gors,param_prompts,param_answer] = detettore(indataFull,t_scale,gore,debug,caorephys,plots)
+function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,offsetcorr,dogged,norm_ca_gors,param_prompts,param_answer] = detettore(indataFull,t_scale,gore,debug,caorephys,plots)
 
 switch caorephys
     case 0
@@ -681,6 +754,7 @@ if debug
 end
 [~, inds] = ismember(qsect,louds);
 goodinds = find(inds~=0);
+goodinds = goodinds + 1;
 if(goodinds(1) ~= 1)
     goodinds = cat(1,1,goodinds);
 end
@@ -814,6 +888,7 @@ end
 %%%%%%%%%%%%%%
 %%% SWR detect
 %%%%%%%%%%%%%%
+det_thresh = zeros(length(ivec),2);
 for i = ivec
    
 %     winstepsize = 1000;
@@ -838,6 +913,7 @@ for i = ivec
     if i == refch
         ripsd = mean(currpow) + sdmult*std(currpow);
     end
+    det_thresh(i,:) = [i,ripsd];
     if (caorephys == 2) && (dFF_thresh ~= 0)
         ripsd = dFF_thresh;
     end
