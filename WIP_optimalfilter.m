@@ -304,11 +304,16 @@ elseif nargin == 1
 %                     text(ephysca(i),min(caavg)+0.3*j,num2str(loc(j,3)),'FontSize',8);
                     %%% ki akarom adni hogy melyik roinak hol van
                     %%% detekcioja
-                    jj = j;
-                    while (per_roi_det(jj,1,loc(j,3)) ~= 0) && (jj < size(per_roi_det,1))
-                        jj = jj + 1;
-                    end
-                    per_roi_det(jj,1,loc(j,3)) = ephysca(i);
+%                     jj = j;
+%                     while (per_roi_det(jj,1,loc(j,3)) ~= 0) && (jj < size(per_roi_det,1))
+%                         if jj+1 > size(per_roi_det,1)
+%                             break
+%                         else
+%                             jj = jj + 1;
+%                         end
+%                     end
+                    per_roi_det(i,1,loc(j,3)) = ephysca(i);
+                    break
                 end
             end
         end
@@ -359,7 +364,7 @@ elseif nargin == 1
         
         fprintf(fileID,'Ca detection thresholds per roi \n');
         for i = 1:size(ca_det_thresh,1)
-            fprintf(fileID,'%d;',i);
+            fprintf(fileID,'%d# ;',i);
         end
         fprintf(fileID,'\n');
         for i = 1:size(ca_det_thresh,1)
@@ -368,7 +373,7 @@ elseif nargin == 1
         fprintf(fileID,'\n');
         fprintf(fileID,'Ephys detection thresholds per channel \n');
         for i = 1:size(ephys_det_thresh,1)
-            fprintf(fileID,'%d;',i);
+            fprintf(fileID,'%d# ;',i);
         end
         fprintf(fileID,'\n');
         for i = 1:size(ephys_det_thresh,1)
@@ -418,14 +423,14 @@ elseif nargin == 1
         
         fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
-            fprintf(fileID,'%d ; ',i);
+            fprintf(fileID,'%d# ; ',i);
             for j = 1:size(ca_allpeaksT(:,:,i),1)
                 if ~isnan(ca_allpeaksT(j,1,i))
                     fprintf(fileID,'%5.4f ; ',ca_allpeaksT(j,1,i));
                 end
             end
             fprintf(fileID,'\n');
-            fprintf(fileID,'%d ; ',i);
+            fprintf(fileID,'%d# ; ',i);
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
@@ -434,6 +439,7 @@ elseif nargin == 1
             temp2(temp2==0) = [];
             temp2(isnan(temp2)) = [];
             temp3 = temp2(ismembertol(temp2,temp,ephyvsca_tolerance,'DataScale',1));
+            temp3 = temp3(temp3-temp >=0);
             if isempty(temp3)
                 fprintf(fileID,'\n');
                 continue
@@ -447,7 +453,7 @@ elseif nargin == 1
         end
         fprintf(fileID,'%s \n','Num of Detected/Simultan Ca events grouped by roi');
         for i = 1:size(ca_allpeaksT,3)
-            fprintf(fileID,'%d ;',i);
+            fprintf(fileID,'%d# ;',i);
         end
         fprintf(fileID,'\n');
         allperdet = zeros(size(ca_allpeaksT,3),2);
@@ -473,10 +479,11 @@ elseif nargin == 1
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,1));
         end
-        fprintf(fileID,'\n');
+        fprintf(fileID,'\n sum Ca: ; %d \n',sum(allperdet(:,1)));
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,2));
         end
+        fprintf(fileID,'\n sum simultan: ; %d \n',sum(allperdet(:,2))); 
         
         fprintf(fileID,'\n');
         
@@ -540,7 +547,7 @@ switch caorephys
             'Window steps size (ms)','Min event distance (ms)','sd mult','quiet sd mult', ... 
             'quietinterval lenght (s)','Event length lower bound (ms)','Event length upper bound (ms)', ... 
             'dF/F threshold (overwrites sd mult if non-zero)','Ca2+ delay vs ephys (s)'};
-        defaults1 = {'3000','150','250','0','0','50','50','4','1','0','50','inf','1','0.3'};
+        defaults1 = {'3000','150','250','0','0','30','30','4','1','0','10','inf','0','0.3'};
         title1 = 'Ca inputs';
         procinitval = 1;
         listtitle = 'Ca processing';
@@ -874,7 +881,7 @@ if caorephys == 2
         newgor.name = ['Normed_Ca_Roi_',num2str(i)];
         newgor.xname = 'Time';
         newgor.yname = 'dF/F';
-        newgor.xunit = 's';
+        newgor.xunit = 'ms';
         newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',indataFull(i,:),newgor);
         norm_ca_gors = [norm_ca_gors ; newgor];
     end
