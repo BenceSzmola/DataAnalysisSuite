@@ -22,7 +22,7 @@ function varargout = eventdetGUI(varargin)
 
 % Edit the above text to modify the response to help eventdetGUI
 
-% Last Modified by GUIDE v2.5 27-Jun-2019 18:57:07
+% Last Modified by GUIDE v2.5 28-Jun-2019 16:46:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,7 +59,7 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 % UIWAIT makes eventdetGUI wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -70,7 +70,55 @@ function varargout = eventdetGUI_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{1} = handles.output;
+varargout{8} = handles.output;
+varargout{1} = get(handles.debug_check,'Value');
+varargout{2} = get(handles.figs_check,'Value');
+mode = zeros(1,3);
+mode(1) = get(handles.simultan_check,'Value');
+mode(2) = str2double(get(handles.numchans,'String'));
+mode(3) = str2double(get(handles.ephys_block,'String'));
+varargout{3} = mode;
+datatype = get(handles.type_ephys,'Value');
+if datatype
+    caorephys = 1;
+elseif ~datatype
+    caorephys = 2;
+end
+varargout{4} = caorephys;
+ca_param = zeros(1,9);
+ca_param(1) = str2double(get(handles.ca_srate,'String'));
+ca_param(2) = str2double(get(handles.ca_stepsize,'String'));
+ca_param(3) = str2double(get(handles.ca_mindist,'String'));
+ca_param(4) = str2double(get(handles.ca_minlen,'String'));
+ca_param(5) = str2double(get(handles.ca_maxlen,'String'));
+ca_param(6) = str2double(get(handles.dF_thresh,'String'));
+ca_param(7) = str2double(get(handles.ca_sd,'String'));
+ca_param(8) = str2double(get(handles.ca_qsd,'String'));
+ca_param(9) = get(handles.ca_proc,'Value');
+thresh_type = get(handles.sd_toggle,'Value');
+if thresh_type
+    ca_param(6) = 0;
+elseif ~thresh_type
+    
+end
+varargout{5} = ca_param;
+ephys_param = zeros(1,14);
+ephys_param(1) = str2double(get(handles.ephys_srate,'String'));
+ephys_param(2) = str2double(get(handles.w1,'String'));
+ephys_param(3) = str2double(get(handles.w2,'String'));
+ephys_param(4) = str2double(get(handles.ephys_stepsize,'String'));
+ephys_param(5) = str2double(get(handles.ephys_mindist,'String'));
+ephys_param(6) = str2double(get(handles.ephys_minlen,'String'));
+ephys_param(7) = str2double(get(handles.ephys_maxlen,'String'));
+ephys_param(8) = str2double(get(handles.ephys_sd,'String'));
+ephys_param(9) = str2double(get(handles.ephys_qsd,'String'));
+ephys_param(10) = str2double(get(handles.qint_len,'String'));
+ephys_param(11) = get(handles.denoise_check,'Value');
+ephys_param(12) = str2double(get(handles.ephys_refchan,'String'));
+ephys_param(13) = get(handles.shift_check,'Value');
+ephys_param(14) = get(handles.ephys_proc,'Value');
+varargout{6} = ephys_param;
+varargout{7} = str2double(get(handles.ca_delay,'String'));
 
 
 % --- Executes on button press in simultan_check.
@@ -746,18 +794,18 @@ end
 
 
 
-function dF_Callback(hObject, eventdata, handles)
-% hObject    handle to dF (see GCBO)
+function dF_thresh_Callback(hObject, eventdata, handles)
+% hObject    handle to dF_thresh (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of dF as text
-%        str2double(get(hObject,'String')) returns contents of dF as a double
+% Hints: get(hObject,'String') returns contents of dF_thresh as text
+%        str2double(get(hObject,'String')) returns contents of dF_thresh as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function dF_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dF (see GCBO)
+function dF_thresh_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to dF_thresh (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -777,7 +825,7 @@ function sd_toggle_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of sd_toggle
 state = get(hObject,'Value');
 if state
-    set(handles.dF_thresh,'Visible','off');
+    set(handles.dF_panel,'Visible','off');
     set(handles.sd_thresh,'Visible','on');
 end
 
@@ -791,7 +839,7 @@ function dF_toggle_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of dF_toggle
 state = get(hObject,'Value');
 if state
-    set(handles.dF_thresh,'Visible','on');
+    set(handles.dF_panel,'Visible','on');
     set(handles.sd_thresh,'Visible','off');
 end
 
@@ -852,4 +900,36 @@ if state
     set(handles.ephys_panel,'Visible','off');
     set(handles.ephys_proc,'Visible','off');
     set(handles.ephys_proc_txt,'Visible','off');
+end
+
+
+% --- Executes on button press in startbut.
+function startbut_Callback(hObject, eventdata, handles)
+% hObject    handle to startbut (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+uiresume(handles.figure1);
+
+
+
+function qint_len_Callback(hObject, eventdata, handles)
+% hObject    handle to qint_len (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of qint_len as text
+%        str2double(get(hObject,'String')) returns contents of qint_len as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function qint_len_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to qint_len (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
