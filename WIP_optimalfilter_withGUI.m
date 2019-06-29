@@ -302,8 +302,9 @@ elseif nargin == 1
         ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
             'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult'};
         %%% CSV irás
-        csvname = inputdlg('Name of CSV','Name input',[1 50],{'.csv'});
-        path = uigetdir;
+%         csvname = inputdlg('Name of CSV','Name input',[1 50],{'.csv'});
+%         path = uigetdir;
+        [csvname,path] = uiputfile('*.csv','Name CSV!');
         cd(path);
         fileID = fopen(string(csvname),'w');
         fprintf(fileID,'%s \n','Ephys parameters');
@@ -393,8 +394,21 @@ elseif nargin == 1
             temp2 = unique(temp2);
             temp2(temp2==0) = [];
             temp2(isnan(temp2)) = [];
-            temp3 = temp2(ismembertol(temp2,temp,ephyvsca_tolerance,'DataScale',1));
-            temp3 = temp3(temp3-temp >=0);
+            temp3 = [];
+            for j = 1:length(temp2)
+                for k = 1:length(temp)
+                    if ((temp2(j)-temp(k)) >= 0) && ((temp2(j)-temp(k)) < ephyvsca_tolerance)
+                        temp3 = [temp3 ; temp2(j)];
+                    end
+                end
+            end
+            if debug
+                assignin('base','temp',temp);
+                assignin('base','temp2',temp2);
+                assignin('base','temp3',temp3);
+            end
+%             temp3 = temp2(ismembertol(temp2,temp,ephyvsca_tolerance,'DataScale',1));
+%             temp3 = temp3(temp3-temp >=0);
             if isempty(temp3)
                 fprintf(fileID,'\n');
                 continue
@@ -441,7 +455,7 @@ elseif nargin == 1
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'\n %s %d','Ephys events not associated with Ca (s) num =');
+        fprintf(fileID,'%s %d','Ephys events not associated with Ca (s) num =');
         temp = [];
         num = 0;
         for i = 1:size(ephyscons_onlyT,1)
