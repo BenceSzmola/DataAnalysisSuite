@@ -1,4 +1,4 @@
-function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
+function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter_withGUI(ingor) %(filename,srate,w1,w2,doplot,save,noisech,refch)
 
 % bemenetek:
 %       filename: vagy fajlnev vagy 0 ha felugro ablakban akarsz valasztani
@@ -71,8 +71,35 @@ elseif nargin == 1
                 assignin('base','gorindat',data);
             end
         end
+        switch caorephys
+            case 1 
+                param = ephys_param;
+            case 2 
+                param = ca_param;
+        end
+        if caorephys == 2
+            names = [];
+            for i = 1:length(ingor)
+                names = cellstr([names ; get(ingor(i),'name')]);
+            end
+            if debug 
+                assignin('base','gornevek',names);
+            end
+            ca_order = zeros(length(ingor),1);
+            for i = 1:size(names,1)
+                for j = 1:length(names{i})
+                    if ~isnan(str2double(names{i}(j))) && isreal(str2double(names{i}(j)))
+                        ca_order(i) = str2double(names{i}(j));
+                        break
+                    end
+                end
+            end
+            if debug 
+                assignin('base','ca_order',ca_order);
+            end
+        end
 
-        [det_thresh,~,~,consensT,ephysleadch,~,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots);
+        [det_thresh,~,~,consensT,ephysleadch,~,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param);
         switch caorephys
             case 2
             case 1
@@ -96,6 +123,32 @@ elseif nargin == 1
             for i = mode(2)+1:length(ingor)
                 cadata(i-mode(2),:) = get(ingor(i),'extracty');
             end
+            
+            names = [];
+            for i = mode(2)+1:length(ingor)
+                names = cellstr([names ; get(ingor(i),'name')]);
+            end
+            if debug 
+                assignin('base','gornevek',names);
+            end
+            ca_order = zeros(numcach,1);
+            for i = 1:size(names,1)
+                for j = 1:length(names{i})
+                    if ~isnan(str2double(names{i}(j))) && isreal(str2double(names{i}(j)))
+                        ca_order(i) = str2double(names{i}(j));
+                        break
+                    end
+                end
+            end
+            if debug 
+                assignin('base','ca_order',ca_order);
+            end
+            
+            ca_order = ca_order+1;
+            for i = 1:length(ca_order)
+                cadata([i ca_order(i)],:) = cadata([ca_order(i) i],:);
+            end
+            
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,~,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param);
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param);
             ca_param(1) = ca_true_srate;
@@ -112,6 +165,32 @@ elseif nargin == 1
             for i = 1:(length(ingor)-mode(2))
                 cadata(i,:) = get(ingor(i),'extracty');
             end
+            
+            names = [];
+            for i = 1:(length(ingor)-mode(2))
+                names = cellstr([names ; get(ingor(i),'name')]);
+            end
+            if debug 
+                assignin('base','gornevek',names);
+            end
+            ca_order = zeros(numcach,1);
+            for i = 1:size(names,1)
+                for j = 1:length(names{i})
+                    if ~isnan(str2double(names{i}(j))) && isreal(str2double(names{i}(j)))
+                        ca_order(i) = str2double(names{i}(j));
+                        break
+                    end
+                end
+            end
+            if debug 
+                assignin('base','ca_order',ca_order);
+            end
+            
+            ca_order = ca_order+1;
+            for i = 1:length(ca_order)
+                cadata([i ca_order(i)],:) = cadata([ca_order(i) i],:);
+            end
+            
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param);
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,~,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param);
             ca_param(1) = ca_true_srate;
@@ -283,7 +362,7 @@ elseif nargin == 1
                 newgor = [];
                 temp = unique(per_roi_det(:,:,i));
                 temp(temp==0) = [];
-                newgor.name=['Detections for roi ',num2str(i)];
+                newgor.name=['Detections for roi ',num2str(i-1)];
                 newgor.Marker='*';
                 newgor.MarkerSize=12;
                 newgor.Color='g';
@@ -320,7 +399,7 @@ elseif nargin == 1
         
         fprintf(fileID,'Ca detection thresholds per roi \n');
         for i = 1:size(ca_det_thresh,1)
-            fprintf(fileID,'%d# ;',i);
+            fprintf(fileID,'%d# ;',i-1);
         end
         fprintf(fileID,'\n');
         for i = 1:size(ca_det_thresh,1)
@@ -379,14 +458,14 @@ elseif nargin == 1
         
         fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
-            fprintf(fileID,'%d# ; ',i);
+            fprintf(fileID,'%d# ; ',i-1);
             for j = 1:size(ca_allpeaksT(:,:,i),1)
                 if ~isnan(ca_allpeaksT(j,1,i))
                     fprintf(fileID,'%5.4f ; ',ca_allpeaksT(j,1,i));
                 end
             end
             fprintf(fileID,'\n');
-            fprintf(fileID,'%d# ; ',i);
+            fprintf(fileID,'%d# ; ',i-1);
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
@@ -422,7 +501,7 @@ elseif nargin == 1
         end
         fprintf(fileID,'%s \n','Num of Detected/Simultan Ca events grouped by roi');
         for i = 1:size(ca_allpeaksT,3)
-            fprintf(fileID,'%d# ;',i);
+            fprintf(fileID,'%d# ;',i-1);
         end
         fprintf(fileID,'\n');
         allperdet = zeros(size(ca_allpeaksT,3),2);
