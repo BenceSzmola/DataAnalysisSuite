@@ -22,7 +22,7 @@ function varargout = eventdetGUI(varargin)
 
 % Edit the above text to modify the response to help eventdetGUI
 
-% Last Modified by GUIDE v2.5 28-Jun-2019 16:46:02
+% Last Modified by GUIDE v2.5 02-Jul-2019 11:29:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -94,7 +94,9 @@ ca_param(5) = str2double(get(handles.ca_maxlen,'String'));
 ca_param(6) = str2double(get(handles.dF_thresh,'String'));
 ca_param(7) = str2double(get(handles.ca_sd,'String'));
 ca_param(8) = str2double(get(handles.ca_qsd,'String'));
-ca_param(9) = get(handles.ca_proc,'Value');
+% ca_param(9) = get(handles.ca_proc,'Value');
+ca_param(9) = str2double(get(handles.gauss_avg_num,'String'));
+ca_param(10) = get(handles.ca_proc,'Value');
 thresh_type = get(handles.sd_toggle,'Value');
 if thresh_type
     ca_param(6) = 0;
@@ -216,7 +218,7 @@ function ca_proc_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-list = {'Gauss avg (1.2) then 10x upsample','None'};
+list = {'Gauss avg then 10x upsample','None'};
 set(hObject,'string',list);
 
 
@@ -933,3 +935,35 @@ function qint_len_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+
+function gauss_avg_num_Callback(hObject, eventdata, handles)
+% hObject    handle to gauss_avg_num (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of gauss_avg_num as text
+%        str2double(get(hObject,'String')) returns contents of gauss_avg_num as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function gauss_avg_num_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to gauss_avg_num (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in refchan_crosscheck.
+function refchan_crosscheck_Callback(hObject, eventdata, handles)
+% hObject    handle to refchan_crosscheck (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of refchan_crosscheck
