@@ -46,7 +46,8 @@ if nargin==0
             caorephys = 1;
             param = ephys_param;
     end
-    detettore(data,t_scale,nargin,debug,caorephys,plots,param);
+    ca_order = []; %%%placeholder
+    detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
     fprintf(1,'Data from console \n');
 elseif nargin == 1
     switch mode(1)
@@ -125,10 +126,12 @@ elseif nargin == 1
             if debug 
                 assignin('base','ca_after',cadata_ordered);
             end
+            ca_order = min(ca_order):(min(ca_order)+length(ca_order)-1);
             data = cadata_ordered;
+            data( ~any(data,2), : ) = [];
         end
 
-        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param);
+        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
         if debug
             assignin('base','t_scale',t_scale);
         end
@@ -141,7 +144,7 @@ elseif nargin == 1
                         newgor = [];
                         temp = unique(allpeaksT(:,1,i));
                         temp(temp==0) = [];
-                        newgor.name=['Detections for roi ',num2str(i-1)];
+                        newgor.name=['Detections for roi ',num2str(ca_order(i)-1)];
                         newgor.Marker='*';
                         newgor.MarkerSize=12;
                         newgor.Color='g';
@@ -175,25 +178,29 @@ elseif nargin == 1
                 powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
 
                 ref_doggor = [];
-                ref_doggor.name=['Reference channel (Ch',num2str(param(12)),') DoG'];
-                ref_doggor.Color='r';
-                ref_doggor.xname='Time';
-                ref_doggor.yname='Voltage';
-                ref_doggor.xunit='ms';
-                ref_doggor.yunit='\muV';
-                ref_doggor.axis=2;
-                ref_doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,param(12)), ref_doggor);
-
+                if ephys_param(11)~=0 || ephys_param(14)~=0
+                    ref_doggor.name=['Reference channel (Ch',num2str(param(12)),') DoG'];
+                    ref_doggor.Color='r';
+                    ref_doggor.xname='Time';
+                    ref_doggor.yname='Voltage';
+                    ref_doggor.xunit='ms';
+                    ref_doggor.yunit='\muV';
+                    ref_doggor.axis=2;
+                    ref_doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,param(12)), ref_doggor);
+                end
+                
                 ref_powgor = [];
-                ref_powgor.name=['Reference channel (Ch',num2str(param(12)),') InstPow'];
-                ref_powgor.Color='r';
-                ref_powgor.xname='Time';
-                ref_powgor.yname='Power';
-                ref_powgor.xunit='ms';
-                ref_powgor.yunit='\muV^2';
-                ref_powgor.axis=2;
-                ref_powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,param(12)), ref_powgor);
-        
+                if ephys_param(11)~=0 || ephys_param(14)~=0
+                    ref_powgor.name=['Reference channel (Ch',num2str(param(12)),') InstPow'];
+                    ref_powgor.Color='r';
+                    ref_powgor.xname='Time';
+                    ref_powgor.yname='Power';
+                    ref_powgor.xunit='ms';
+                    ref_powgor.yunit='\muV^2';
+                    ref_powgor.axis=2;
+                    ref_powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,param(12)), ref_powgor);
+                end
+                
                 doggor = [doggor ; powgor; ref_doggor; ref_powgor];
                 
                 ephyscons_onlyT = consensT(:,1);
@@ -214,15 +221,17 @@ elseif nargin == 1
                 ephys_det_gor=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor);
                 
                 refchan_det_gor = [];
-                refchan_det_gor.name=['Detections reference channel (',num2str(ephysleadch),')'];
-                refchan_det_gor.xname='Time';
-                refchan_det_gor.yname='';
-                refchan_det_gor.xunit='ms';
-                refchan_det_gor.Marker='*';
-                refchan_det_gor.MarkerSize=12;
-                refchan_det_gor.Color='g';
-                refchan_det_gor.LineStyle='none';
-                refchan_det_gor=gorobj('double',allpeaksT(:,1,param(12))*1000,'double',zeros(size(allpeaksT(:,1,param(12)))),refchan_det_gor);
+                if ephys_param(11)~=0 || ephys_param(14)~=0
+                    refchan_det_gor.name=['Detections reference channel (',num2str(ephysleadch),')'];
+                    refchan_det_gor.xname='Time';
+                    refchan_det_gor.yname='';
+                    refchan_det_gor.xunit='ms';
+                    refchan_det_gor.Marker='*';
+                    refchan_det_gor.MarkerSize=12;
+                    refchan_det_gor.Color='g';
+                    refchan_det_gor.LineStyle='none';
+                    refchan_det_gor=gorobj('double',allpeaksT(:,1,param(12))*1000,'double',zeros(size(allpeaksT(:,1,param(12)))),refchan_det_gor);
+                end
                 
                 ephys_det_gor = [ephys_det_gor ; refchan_det_gor];
         end 
@@ -282,7 +291,7 @@ elseif nargin == 1
                 
                 fprintf(fileID,'Detection thresholds per ROI \n');
                 for i = 1:length(ingor)
-                    fprintf(fileID,'#%d ; %5.4f \n',i,det_thresh(i,2));
+                    fprintf(fileID,'#%d ; %5.4f \n',ca_order(i)-1,det_thresh(i,2));
                 end
                 
                 fprintf(fileID,'\n');
@@ -290,7 +299,7 @@ elseif nargin == 1
                 
                 fprintf(fileID,'Events grouped by ROI(s) \n');
                 for i = 1:size(allpeaksT,3)
-                    fprintf(fileID,'#%d;',i);
+                    fprintf(fileID,'#%d;',ca_order(i)-1);
                     for j = 1:length(allpeaksT(:,1,i))
                         if allpeaksT(j,1,i) ~= t_scale(1)
                             fprintf(fileID,'%5.4f;',allpeaksT(j,1,i));
@@ -302,7 +311,7 @@ elseif nargin == 1
                 for i = 1:size(allpeaksT,3)
                     temp = allpeaksT(:,1,i);
                     temp = temp(temp ~= t_scale(1));
-                    fprintf(fileID,'#%d; %d \n',i,length(temp));
+                    fprintf(fileID,'#%d; %d \n',ca_order(i)-1,length(temp));
                 end
         end
         fclose(fileID);
@@ -350,10 +359,12 @@ elseif nargin == 1
             if debug 
                 assignin('base','ca_after',cadata_ordered);
             end
+            ca_order = min(ca_order):(min(ca_order)+length(ca_order)-1);
             cadata = cadata_ordered;
+            cadata( ~any(cadata,2), : ) = [];
             
-            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param);
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param);
+            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             if debug
@@ -393,6 +404,7 @@ elseif nargin == 1
             end
             if debug 
                 assignin('base','ca_order',ca_order);
+                assignin('base','ca_before',cadata);
             end
             
             cadata_ordered = zeros(size(cadata));
@@ -400,13 +412,16 @@ elseif nargin == 1
             for i = 1:length(ca_order)
                 cadata_ordered(ca_order(i),:) = cadata(i,:);
             end
-            if debug 
-                assignin('base','ca_after',cadata_ordered);
-            end
+            ca_order = min(ca_order):(min(ca_order)+length(ca_order)-1);
             cadata = cadata_ordered;
+            cadata( ~any(cadata,2), : ) = [];
+            if debug 
+                assignin('base','ca_after',cadata);
+                assignin('base','ca_order_ordered',ca_order);
+            end
             
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param);
-            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             if debug
@@ -493,24 +508,28 @@ elseif nargin == 1
         powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
         
         ref_doggor = [];
-        ref_doggor.name=['Reference channel (Ch',num2str(ephys_param(12)),') DoG'];
-        ref_doggor.Color='r';
-        ref_doggor.xname='Time';
-        ref_doggor.yname='Voltage';
-        ref_doggor.xunit='ms';
-        ref_doggor.yunit='\muV';
-        ref_doggor.axis=2;
-        ref_doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephys_param(12)), ref_doggor);
-
+        if ephys_param(11)~=0 || ephys_param(14)~=0 
+            ref_doggor.name=['Reference channel (Ch',num2str(ephys_param(12)),') DoG'];
+            ref_doggor.Color='r';
+            ref_doggor.xname='Time';
+            ref_doggor.yname='Voltage';
+            ref_doggor.xunit='ms';
+            ref_doggor.yunit='\muV';
+            ref_doggor.axis=2;
+            ref_doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephys_param(12)), ref_doggor);
+        end
+        
         ref_powgor = [];
-        ref_powgor.name=['Reference channel (Ch',num2str(ephys_param(12)),') InstPow'];
-        ref_powgor.Color='r';
-        ref_powgor.xname='Time';
-        ref_powgor.yname='Power';
-        ref_powgor.xunit='ms';
-        ref_powgor.yunit='\muV^2';
-        ref_powgor.axis=2;
-        ref_powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephys_param(12)), ref_powgor);
+        if ephys_param(11)~=0 || ephys_param(14)~=0
+            ref_powgor.name=['Reference channel (Ch',num2str(ephys_param(12)),') InstPow'];
+            ref_powgor.Color='r';
+            ref_powgor.xname='Time';
+            ref_powgor.yname='Power';
+            ref_powgor.xunit='ms';
+            ref_powgor.yunit='\muV^2';
+            ref_powgor.axis=2;
+            ref_powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephys_param(12)), ref_powgor);
+        end
         
         doggor = [doggor ; powgor; ref_doggor; ref_powgor];
         
@@ -526,16 +545,18 @@ elseif nargin == 1
         ephys_det_gor=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor);
         
         refchan_det_gor = [];
-        refchan_det_gor.name=['Detections reference channel (',num2str(ephysleadch),')'];
-        refchan_det_gor.xname='Time';
-        refchan_det_gor.yname='';
-        refchan_det_gor.xunit='ms';
-        refchan_det_gor.Marker='*';
-        refchan_det_gor.MarkerSize=12;
-        refchan_det_gor.Color='g';
-        refchan_det_gor.LineStyle='none';
-        refchan_det_gor=gorobj('double',ephys_allpeaksT(:,1,ephys_param(12))*1000,'double',zeros(size(ephys_allpeaksT(:,1,ephys_param(12)))),refchan_det_gor);
-
+        if ephys_param(11)~=0 || ephys_param(14)~=0
+            refchan_det_gor.name=['Detections reference channel (',num2str(ephysleadch),')'];
+            refchan_det_gor.xname='Time';
+            refchan_det_gor.yname='';
+            refchan_det_gor.xunit='ms';
+            refchan_det_gor.Marker='*';
+            refchan_det_gor.MarkerSize=12;
+            refchan_det_gor.Color='g';
+            refchan_det_gor.LineStyle='none';
+            refchan_det_gor=gorobj('double',ephys_allpeaksT(:,1,ephys_param(12))*1000,'double',zeros(size(ephys_allpeaksT(:,1,ephys_param(12)))),refchan_det_gor);
+        end
+        
         ephys_det_gor = [ephys_det_gor ; refchan_det_gor];
         
         %%% delay values
@@ -609,7 +630,7 @@ elseif nargin == 1
                 newgor = [];
                 temp = unique(per_roi_det(:,:,i));
                 temp(temp==0) = [];
-                newgor.name=['Simultan detections for roi ',num2str(i-1)];
+                newgor.name=['Simultan detections for roi ',num2str(ca_order(i)-1)];
                 newgor.Marker='*';
                 newgor.MarkerSize=12;
                 newgor.Color='g';
@@ -646,7 +667,7 @@ elseif nargin == 1
         
         fprintf(fileID,'Ca detection thresholds per roi \n');
         for i = 1:size(ca_det_thresh,1)
-            fprintf(fileID,'%d# ;',i-1);
+            fprintf(fileID,'%d# ;',ca_order(i)-1);
         end
         fprintf(fileID,'\n');
         for i = 1:size(ca_det_thresh,1)
@@ -665,15 +686,17 @@ elseif nargin == 1
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'Reference channel detections: (s) \n');
-        for i =1:length(ephys_allpeaksT(:,1,ephys_param(12)))
-            if ephys_allpeaksT(i,1,ephys_param(12)) ~= ephys_t_scale(1)
-                fprintf(fileID,'%5.4f ;',ephys_allpeaksT(i,1,ephys_param(12)));
+        if ephys_param(11)~=0 || ephys_param(14)~=0
+            fprintf(fileID,'Reference channel detections: (s) \n');
+            for i =1:length(ephys_allpeaksT(:,1,ephys_param(12)))
+                if ephys_allpeaksT(i,1,ephys_param(12)) ~= ephys_t_scale(1)
+                    fprintf(fileID,'%5.4f ;',ephys_allpeaksT(i,1,ephys_param(12)));
+                end
             end
+            fprintf(fileID,'\n');
+
+            fprintf(fileID,'\n');
         end
-        fprintf(fileID,'\n');
-        
-        fprintf(fileID,'\n');
         
         switch supreme
             case 1
@@ -715,14 +738,14 @@ elseif nargin == 1
         
         fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
         for i = 1:size(per_roi_det,3)
-            fprintf(fileID,'%d# ; ',i-1);
+            fprintf(fileID,'%d# ; ',ca_order(i)-1);
             for j = 1:size(ca_allpeaksT(:,:,i),1)
                 if ~isnan(ca_allpeaksT(j,1,i))
                     fprintf(fileID,'%5.4f ; ',ca_allpeaksT(j,1,i));
                 end
             end
             fprintf(fileID,'\n');
-            fprintf(fileID,'%d# ; ',i-1);
+            fprintf(fileID,'%d# ; ',ca_order(i)-1);
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
@@ -758,7 +781,7 @@ elseif nargin == 1
         end
         fprintf(fileID,'%s \n','Num of Detected/Simultan Ca events grouped by roi');
         for i = 1:size(ca_allpeaksT,3)
-            fprintf(fileID,'%d# ;',i-1);
+            fprintf(fileID,'%d# ;',ca_order(i)-1);
         end
         fprintf(fileID,'\n');
         allperdet = zeros(size(ca_allpeaksT,3),2);
@@ -817,7 +840,7 @@ end
 
 close(GUI);
 
-function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param)
+function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
 
 srate = 1/(t_scale(2)-t_scale(1));
 if gore ~= 1
@@ -839,6 +862,9 @@ switch caorephys
         selected = param(15);
         offsetcorr = param(13);
         refchan_crosscheck = param(14);
+        if denoise==0 && refchan_crosscheck==0
+            refch = 0;
+        end
     case 2
         offsetcorr = 0;
         refch = 0;
@@ -983,17 +1009,17 @@ if debug
     assignin('base','quietthresh',quietthresh);
     assignin('base','piccolo',piccolo);
 end
-switch length(noref)
+switch length(ivec)
     case 0
         warndlg('Not enough channels');
         return;
     case 1
         sect = piccolo;
     case 2
-        sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
+        sect = intersect(piccolo(:,ivec(1)),piccolo(:,ivec(2)));
     otherwise
-        sect = intersect(piccolo(:,noref(1)),piccolo(:,noref(2)));
-        for i = noref(3):noref(end)
+        sect = intersect(piccolo(:,ivec(1)),piccolo(:,ivec(2)));
+        for i = ivec(3):ivec(end)
             sect = intersect(piccolo(:,i),sect);
         end
 end
@@ -1035,7 +1061,7 @@ end
 if ((quietiv(2)-quietiv(1)) < sec*srate)
     extendedivs = 1;
     maxnum = 0;
-    for i = noref
+    for i = ivec
         extquiets = piccolo(:,i);
         diffquiets = diff(extquiets);
         extlouds = diffquiets(diffquiets>1);
@@ -1121,7 +1147,7 @@ if caorephys == 2
         avg = mean(quiet);
         indataFull(i,:) = indataFull(i,:)-avg;
         newgor = [];
-        newgor.name = ['Normed_Ca_Roi_',num2str(i-1)];
+        newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
         newgor.xname = 'Time';
         newgor.yname = 'dF/F';
         newgor.xunit = 'ms';
