@@ -18,6 +18,13 @@ function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor] = WIP_optim
 %       Event length upper bound
 
 [debug,plots,mode,caorephys,ca_param,ephys_param,ephyvsca_tolerance,GUI] = eventdetGUI;
+ephys_param_prompts = {'Sample rate (Hz)','W1 (Hz)','W2 (Hz)','Step size (ms)','Min event distance (ms)',...
+            'Event length min (ms)','Event length max (ms)','sd mult','qsd mult','Quietint length (s)', ...
+            'Denoise','Reference chan.','1s shift'};
+ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
+            'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult','gauss_avg_num'};
+ephys_proclist = {'DoG + InstPow','DoG','InstPow','None'};
+ca_proclist = {'Gauss avg then 10x upsample','None'};
 
 %%% gor fogadása
 if nargin==0
@@ -65,6 +72,7 @@ elseif nargin == 1
     end
     
     if mode(1) == 0
+        sim_det_gor = [];
         for i = 1:length(ingor)
             data(i,:) = get(ingor(i), 'extracty');
             if debug
@@ -74,8 +82,11 @@ elseif nargin == 1
         switch caorephys
             case 1 
                 param = ephys_param;
+                roi_det_gor = [];
             case 2 
                 param = ca_param;
+                doggor = [];
+                ephys_det_gor = [];
         end
         if caorephys == 2
             names = [];
@@ -87,9 +98,15 @@ elseif nargin == 1
             end
             ca_order = zeros(length(ingor),1);
             for i = 1:size(names,1)
+                thenum = [];
                 for j = 1:length(names{i})
                     if ~isnan(str2double(names{i}(j))) && isreal(str2double(names{i}(j)))
-                        ca_order(i) = str2double(names{i}(j));
+                        while ~isnan(str2double(names{i}(j)))
+                            thenum = [thenum,names{i}(j)];
+                            j = j+1;
+                        end
+%                         ca_order(i) = str2double(names{i}(j));
+                        ca_order(i) = str2double(thenum);
                         break
                     end
                 end
@@ -97,11 +114,45 @@ elseif nargin == 1
             if debug 
                 assignin('base','ca_order',ca_order);
             end
+            if debug
+                assignin('base','ca_before',data);
+            end
+            cadata_ordered = zeros(size(data));
+            ca_order = ca_order+1;
+            for i = 1:length(ca_order)
+                cadata_ordered(ca_order(i),:) = data(i,:);
+            end
+            if debug 
+                assignin('base','ca_after',cadata_ordered);
+            end
+            data = cadata_ordered;
         end
 
-        [det_thresh,~,~,consensT,ephysleadch,~,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param);
+        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param);
+        if debug
+            assignin('base','t_scale',t_scale);
+        end
+        param(1) = true_srate;
         switch caorephys
             case 2
+                roi_det_gor = [];
+                for i = 1:size(allpeaksT,3)
+                    if sum(allpeaksT(:,1,i)) ~= 0
+                        newgor = [];
+                        temp = unique(allpeaksT(:,1,i));
+                        temp(temp==0) = [];
+                        newgor.name=['Detections for roi ',num2str(i-1)];
+                        newgor.Marker='*';
+                        newgor.MarkerSize=12;
+                        newgor.Color='g';
+                        newgor.LineStyle='none';
+                        newgor.xname = 'Time';
+                        newgor.yname = '';
+                        newgor.xunit = 'ms';
+                        newgor=gorobj('double', temp*1000, 'double', zeros(size(temp)), newgor);
+                        roi_det_gor = [roi_det_gor ; newgor];
+                    end
+                end 
             case 1
                 doggor = [];
                 doggor.name=['Consens channel (Ch',num2str(ephysleadch),') DoG'];
@@ -112,7 +163,117 @@ elseif nargin == 1
                 doggor.yunit='\muV';
                 doggor.axis=2;
                 doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
-        end  
+                
+                powgor = [];
+                powgor.name=['Consens channel (Ch',num2str(ephysleadch),') InstPow'];
+                powgor.Color='r';
+                powgor.xname='Time';
+                powgor.yname='Power';
+                powgor.xunit='ms';
+                powgor.yunit='\muV^2';
+                powgor.axis=2;
+                powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
+
+                doggor = [doggor ; powgor];
+                
+                ephyscons_onlyT = consensT(:,1);
+                ephyscons_onlyT(ephyscons_onlyT==t_scale(1)) = nan;
+                if debug
+                    assignin('base','ephyscons_onlyT',ephyscons_onlyT)
+                end
+                
+                ephys_det_gor = [];
+                ephys_det_gor.name=['Detected ripples consens channel (',num2str(ephysleadch),')'];
+                ephys_det_gor.xname='Time';
+                ephys_det_gor.yname='';
+                ephys_det_gor.xunit='ms';
+                ephys_det_gor.Marker='*';
+                ephys_det_gor.MarkerSize=12;
+                ephys_det_gor.Color='g';
+                ephys_det_gor.LineStyle='none';
+                ephys_det_gor=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor);
+        end 
+        
+        %%% CSV irás
+        [csvname,path] = uiputfile('*.csv','Name CSV!');
+        cd(path);
+        fileID = fopen(string(csvname),'w');
+        switch caorephys
+            case 1 
+                fprintf(fileID,'Ephys parameters \n');
+                for i = 1:length(ephys_param_prompts)
+                    fprintf(fileID,'%s ; %d \n',string(ephys_param_prompts(i)),param(i));
+                end
+                
+                fprintf(fileID,'Selected processing: %s \n',ephys_proclist{param(14)});
+                
+                fprintf(fileID,'\n');
+               
+                fprintf(fileID,'Lead Channel: %d \n',ephysleadch);
+                
+                fprintf(fileID,'\n');
+                
+                fprintf(fileID,'Detection thresholds per channel \n');
+                for i = 1:length(ingor)
+                    fprintf(fileID,'#%d ; %5.4f \n',i,det_thresh(i,2));
+                end
+                
+                fprintf(fileID,'\n');
+                
+                fprintf(fileID,'Events grouped by channel (s) \n');
+                for i = 1:size(allpeaksT,3)
+                    fprintf(fileID,'#%d;',i);
+                    for j = 1:length(allpeaksT(:,1,i))
+                        if allpeaksT(j,1,i) ~= t_scale(1)
+                            fprintf(fileID,'%5.4f;',allpeaksT(j,1,i));
+                        end
+                    end
+                    fprintf(fileID,'\n');
+                end
+                fprintf(fileID,'Num of events per channel \n');
+                for i = 1:size(allpeaksT,3)
+                    temp = allpeaksT(:,1,i);
+                    temp = temp(temp ~= t_scale(1));
+                    fprintf(fileID,'#%d; %d \n',i,length(temp));
+                end
+                                
+            case 2
+                fprintf(fileID,'Ca parameters \n');
+                for i = 1:length(ca_param_prompts)
+                    fprintf(fileID,'%s ; %d \n',string(ca_param_prompts(i)),param(i));
+                end
+                
+                fprintf(fileID,'Selected processing: %s \n',ca_proclist{param(10)});
+                                               
+                fprintf(fileID,'\n');
+                
+                fprintf(fileID,'Detection thresholds per ROI \n');
+                for i = 1:length(ingor)
+                    fprintf(fileID,'#%d ; %5.4f \n',i,det_thresh(i,2));
+                end
+                
+                fprintf(fileID,'\n');
+                
+                
+                fprintf(fileID,'Events grouped by ROI(s) \n');
+                for i = 1:size(allpeaksT,3)
+                    fprintf(fileID,'#%d;',i);
+                    for j = 1:length(allpeaksT(:,1,i))
+                        if allpeaksT(j,1,i) ~= t_scale(1)
+                            fprintf(fileID,'%5.4f;',allpeaksT(j,1,i));
+                        end
+                    end
+                    fprintf(fileID,'\n');
+                end
+                fprintf(fileID,'Num of events per ROI \n');
+                for i = 1:size(allpeaksT,3)
+                    temp = allpeaksT(:,1,i);
+                    temp = temp(temp ~= t_scale(1));
+                    fprintf(fileID,'#%d; %d \n',i,length(temp));
+                end
+        end
+        fclose(fileID);
+        
     end
     if mode(1) == 1
         numcach = length(ingor)-mode(2);
@@ -133,21 +294,30 @@ elseif nargin == 1
             end
             ca_order = zeros(numcach,1);
             for i = 1:size(names,1)
+                thenum = [];
                 for j = 1:length(names{i})
-                    if ~isnan(str2double(names{i}(j))) && isreal(str2double(names{i}(j)))
-                        ca_order(i) = str2double(names{i}(j));
-                        break
+                    while ~isnan(str2double(names{i}(j)))
+                        thenum = [thenum,names{i}(j)];
+                        j = j+1;
                     end
+%                         ca_order(i) = str2double(names{i}(j));
+                    ca_order(i) = str2double(thenum);
+                    break
                 end
             end
             if debug 
                 assignin('base','ca_order',ca_order);
             end
             
+            cadata_ordered = zeros(size(cadata));
             ca_order = ca_order+1;
             for i = 1:length(ca_order)
-                cadata([i ca_order(i)],:) = cadata([ca_order(i) i],:);
+                cadata_ordered(ca_order(i),:) = data(i,:);
             end
+            if debug 
+                assignin('base','ca_after',cadata_ordered);
+            end
+            cadata = cadata_ordered;
             
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,~,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param);
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param);
@@ -175,9 +345,15 @@ elseif nargin == 1
             end
             ca_order = zeros(numcach,1);
             for i = 1:size(names,1)
+                thenum = [];
                 for j = 1:length(names{i})
                     if ~isnan(str2double(names{i}(j))) && isreal(str2double(names{i}(j)))
-                        ca_order(i) = str2double(names{i}(j));
+                        while ~isnan(str2double(names{i}(j)))
+                            thenum = [thenum,names{i}(j)];
+                            j = j+1;
+                        end
+%                         ca_order(i) = str2double(names{i}(j));
+                        ca_order(i) = str2double(thenum);
                         break
                     end
                 end
@@ -186,10 +362,15 @@ elseif nargin == 1
                 assignin('base','ca_order',ca_order);
             end
             
+            cadata_ordered = zeros(size(cadata));
             ca_order = ca_order+1;
             for i = 1:length(ca_order)
-                cadata([i ca_order(i)],:) = cadata([ca_order(i) i],:);
+                cadata_ordered(ca_order(i),:) = data(i,:);
             end
+            if debug 
+                assignin('base','ca_after',cadata_ordered);
+            end
+            cadata = cadata_ordered;
             
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param);
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,~,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param);
@@ -362,7 +543,7 @@ elseif nargin == 1
                 newgor = [];
                 temp = unique(per_roi_det(:,:,i));
                 temp(temp==0) = [];
-                newgor.name=['Detections for roi ',num2str(i-1)];
+                newgor.name=['Simultan detections for roi ',num2str(i-1)];
                 newgor.Marker='*';
                 newgor.MarkerSize=12;
                 newgor.Color='g';
@@ -375,14 +556,12 @@ elseif nargin == 1
             end
         end 
         
-        ephys_param_prompts = {'Sample rate (Hz)','W1 (Hz)','W2 (Hz)','Step size (ms)','Min event distance (ms)',...
-            'Event length min (ms)','Event length max (ms)','sd mult','qsd mult','Quietint length (s)', ...
-            'Denoise','Reference chan.','1s shift'};
-        ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
-            'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult'};
+%         ephys_param_prompts = {'Sample rate (Hz)','W1 (Hz)','W2 (Hz)','Step size (ms)','Min event distance (ms)',...
+%             'Event length min (ms)','Event length max (ms)','sd mult','qsd mult','Quietint length (s)', ...
+%             'Denoise','Reference chan.','1s shift'};
+%         ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
+%             'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult'};
         %%% CSV irás
-%         csvname = inputdlg('Name of CSV','Name input',[1 50],{'.csv'});
-%         path = uigetdir;
         [csvname,path] = uiputfile('*.csv','Name CSV!');
         cd(path);
         fileID = fopen(string(csvname),'w');
@@ -390,10 +569,12 @@ elseif nargin == 1
         for i = 1:length(ephys_param_prompts)
             fprintf(fileID,'%s ; %d \n',string(ephys_param_prompts(i)),ephys_param(i));
         end
+        fprintf(fileID,'Ephys processing: %s \n',ephys_proclist{ephys_param(14)});
         fprintf(fileID,'\n %s \n','Ca parameters');
         for i = 1:length(ca_param_prompts)
             fprintf(fileID,'%s ; %d \n',string(ca_param_prompts(i)),ca_param(i));
         end
+        fprintf(fileID,'Ca processing: %s \n',ca_proclist{ca_param(10)});
         
         fprintf(fileID,'\n');
         
@@ -592,7 +773,8 @@ switch caorephys
         dFF_thresh = param(6);
         sdmult = param(7);
         qsdmult = param(8);
-        selected = param(9);
+        selected = param(10);
+        gauss_avg_num = param(9);
 end
 
 true_srate = srate;
@@ -632,7 +814,7 @@ elseif gore == 1 && caorephys == 2 && selected == 1
         cagor = [];
         cagor = gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', indataFull(i,:), cagor);
         filter.type = 'gaavr';
-        filter.W1 = 1/1.2/2/((t_scale(2)-t_scale(1))*1000);
+        filter.W1 = 1/gauss_avg_num/2/((t_scale(2)-t_scale(1))*1000);
         filter.ends = 1;
         smoothedCa = FilterUse(cagor,filter);
         filter2.type = 'resample';
@@ -850,7 +1032,6 @@ end
 %%% Ca adatok normálása, baselineolása
 norm_ca_gors = [];
 if caorephys == 2
-    
     for i = 1:size(indataFull,1)
         quiet = indataFull(i,quietiv(1)+1:quietiv(2)+1);
         for q = 2:size(quietivs,1)
@@ -865,7 +1046,7 @@ if caorephys == 2
         avg = mean(quiet);
         indataFull(i,:) = indataFull(i,:)-avg;
         newgor = [];
-        newgor.name = ['Normed_Ca_Roi_',num2str(i)];
+        newgor.name = ['Normed_Ca_Roi_',num2str(i-1)];
         newgor.xname = 'Time';
         newgor.yname = 'dF/F';
         newgor.xunit = 'ms';
@@ -1135,6 +1316,9 @@ else
     leadchan = 0;
     allpeaksT = allpeaksDP;
     allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
+    if debug
+        assignin('base','allpeaksT',allpeaksT)
+    end
 end
 
 return
