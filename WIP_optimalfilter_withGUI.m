@@ -84,6 +84,7 @@ elseif nargin == 1
             case 1 
                 param = ephys_param;
                 roi_det_gor = [];
+                ca_order = [];
             case 2 
                 param = ca_param;
                 doggor = [];
@@ -191,7 +192,7 @@ elseif nargin == 1
                 
                 ref_powgor = [];
                 if ephys_param(11)~=0 || ephys_param(14)~=0
-                    ref_powgor.name=['Reference channel (Ch',num2str(param(12)),') InstPow'];
+                    ref_powgor.name=['Reference channel (Ch',num2str(ephys_param(12)),') InstPow'];
                     ref_powgor.Color='r';
                     ref_powgor.xname='Time';
                     ref_powgor.yname='Power';
@@ -210,7 +211,7 @@ elseif nargin == 1
                 end
                 
                 ephys_det_gor = [];
-                ephys_det_gor.name=['Detections consens channel (',num2str(ephysleadch),')'];
+                ephys_det_gor.name=['Detections consens channel (Ch',num2str(ephysleadch),')'];
                 ephys_det_gor.xname='Time';
                 ephys_det_gor.yname='';
                 ephys_det_gor.xunit='ms';
@@ -222,7 +223,7 @@ elseif nargin == 1
                 
                 refchan_det_gor = [];
                 if ephys_param(11)~=0 || ephys_param(14)~=0
-                    refchan_det_gor.name=['Detections reference channel (',num2str(ephysleadch),')'];
+                    refchan_det_gor.name=['Detections reference channel (Ch',num2str(ephys_param(12)),')'];
                     refchan_det_gor.xname='Time';
                     refchan_det_gor.yname='';
                     refchan_det_gor.xunit='ms';
@@ -534,7 +535,7 @@ elseif nargin == 1
         doggor = [doggor ; powgor; ref_doggor; ref_powgor];
         
         ephys_det_gor = [];
-        ephys_det_gor.name=['Detections consens channel (',num2str(ephysleadch),')'];
+        ephys_det_gor.name=['Detections consens channel (Ch',num2str(ephysleadch),')'];
         ephys_det_gor.xname='Time';
         ephys_det_gor.yname='';
         ephys_det_gor.xunit='ms';
@@ -546,7 +547,7 @@ elseif nargin == 1
         
         refchan_det_gor = [];
         if ephys_param(11)~=0 || ephys_param(14)~=0
-            refchan_det_gor.name=['Detections reference channel (',num2str(ephysleadch),')'];
+            refchan_det_gor.name=['Detections reference channel (Ch',num2str(ephys_param(12)),')'];
             refchan_det_gor.xname='Time';
             refchan_det_gor.yname='';
             refchan_det_gor.xunit='ms';
