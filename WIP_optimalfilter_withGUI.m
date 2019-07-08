@@ -172,29 +172,52 @@ elseif nargin == 1
                     norm_ca_gors = [norm_ca_gors ; newgor];
                 end
             case 1
+                doggor_norm = [];
+                doggor_norm.name=['Normed Consens channel (Ch',num2str(ephysleadch(1)),') DoG'];
+                doggor_norm.Color='r';
+                doggor_norm.xname='Time';
+                doggor_norm.yname='Voltage';
+                doggor_norm.xunit='ms';
+                doggor_norm.yunit='\muV';
+                doggor_norm.axis=2;
+                doggor_norm=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,ephysleadch(1)), doggor_norm);
+                
                 doggor = [];
-                doggor.name=['Consens channel (Ch',num2str(ephysleadch),') DoG'];
+                doggor.name=['Consens channel (Ch',num2str(ephysleadch(2)),') DoG'];
                 doggor.Color='r';
                 doggor.xname='Time';
                 doggor.yname='Voltage';
                 doggor.xunit='ms';
                 doggor.yunit='\muV';
                 doggor.axis=2;
-                doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
+                doggor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', dogged(:,ephysleadch(2)), doggor);
                 
                 powgor = [];
-                powgor.name=['Consens channel (Ch',num2str(ephysleadch),') InstPow'];
+                powgor.name=['Consens channel (Ch',num2str(ephysleadch(2)),') InstPow'];
                 powgor.Color='r';
                 powgor.xname='Time';
                 powgor.yname='Power';
                 powgor.xunit='ms';
                 powgor.yunit='\muV^2';
                 powgor.axis=2;
-                powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
-                powgor=set(powgor,'vars',1,det_thresh(ephysleadch,2));
+                powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch(2)), powgor);
+                powgor=set(powgor,'vars',1,det_thresh(ephysleadch(2),2));
                 powgor=set(powgor,'varnames',1,'Threshold');
                 
+                powgor_norm = [];
+                powgor_norm.name=['Normed Consens channel (Ch',num2str(ephysleadch(1)),') InstPow'];
+                powgor_norm.Color='r';
+                powgor_norm.xname='Time';
+                powgor_norm.yname='Power';
+                powgor_norm.xunit='ms';
+                powgor_norm.yunit='\muV^2';
+                powgor_norm.axis=2;
+                powgor_norm=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch(1)), powgor_norm);
+                powgor_norm=set(powgor_norm,'vars',1,det_thresh(ephysleadch(1),2));
+                powgor_norm=set(powgor_norm,'varnames',1,'Threshold');
+                
                 ref_doggor = [];
+                ref_doggor_norm = [];
                 if ephys_param(11)~=0 || ephys_param(14)~=0
                     ref_doggor.name=['Reference channel (Ch',num2str(param(12)),') DoG'];
                     ref_doggor.Color='r';
@@ -207,6 +230,7 @@ elseif nargin == 1
                 end
                 
                 ref_powgor = [];
+                ref_powgor_norm = [];
                 if ephys_param(11)~=0 || ephys_param(14)~=0
                     ref_powgor.name=['Reference channel (Ch',num2str(ephys_param(12)),') InstPow'];
                     ref_powgor.Color='r';
@@ -220,7 +244,7 @@ elseif nargin == 1
                     ref_powgor=set(ref_powgor,'varnames',1,'Threshold');
                 end
                 
-                doggor = [doggor ; powgor; ref_doggor; ref_powgor];
+                doggor = [doggor_norm; doggor; powgor_norm; powgor; ref_doggor; ref_powgor];
                 
                 ephyscons_onlyT = consensT(:,1);
                 ephyscons_onlyT(ephyscons_onlyT==t_scale(1)) = nan;
@@ -229,7 +253,7 @@ elseif nargin == 1
                 end
                 
                 ephys_det_gor = [];
-                ephys_det_gor.name=['Detections consens channel (Ch',num2str(ephysleadch),')'];
+                ephys_det_gor.name=['Detections consens channel (Ch',num2str(ephysleadch(2)),')'];
                 ephys_det_gor.xname='Time';
                 ephys_det_gor.yname='';
                 ephys_det_gor.xunit='ms';
@@ -237,8 +261,19 @@ elseif nargin == 1
                 ephys_det_gor.MarkerSize=12;
                 ephys_det_gor.Color='g';
                 ephys_det_gor.LineStyle='none';
-                ephys_det_gor=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor);
+                ephys_det_gor=gorobj('double',allpeaksT(:,1,ephysleadch(2))*1000,'double',zeros(size(allpeaksT(:,1,ephysleadch(2)))),ephys_det_gor);
                 
+                ephys_det_gor_norm = [];
+                ephys_det_gor_norm.name=['Detections normed consens channel (Ch',num2str(ephysleadch(1)),')'];
+                ephys_det_gor_norm.xname='Time';
+                ephys_det_gor_norm.yname='';
+                ephys_det_gor_norm.xunit='ms';
+                ephys_det_gor_norm.Marker='*';
+                ephys_det_gor_norm.MarkerSize=12;
+                ephys_det_gor_norm.Color='g';
+                ephys_det_gor_norm.LineStyle='none';
+                ephys_det_gor_norm=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor_norm);
+               
                 refchan_det_gor = [];
                 if ephys_param(11)~=0 || ephys_param(14)~=0
                     refchan_det_gor.name=['Detections reference channel (Ch',num2str(ephys_param(12)),')'];
@@ -252,7 +287,7 @@ elseif nargin == 1
                     refchan_det_gor=gorobj('double',allpeaksT(:,1,param(12))*1000,'double',zeros(size(allpeaksT(:,1,param(12)))),refchan_det_gor);
                 end
                 
-                ephys_det_gor = [ephys_det_gor ; refchan_det_gor];
+                ephys_det_gor = [ephys_det_gor_norm; ephys_det_gor ; refchan_det_gor];
         end 
         
         %%% CSV irás
@@ -270,7 +305,8 @@ elseif nargin == 1
                 
                 fprintf(fileID,'\n');
                
-                fprintf(fileID,'Lead Channel: %d \n',ephysleadch);
+                fprintf(fileID,'Normed Lead Channel: %d \n',ephysleadch(1));
+                fprintf(fileID,'Lead Channel: %d \n',ephysleadch(2));             
                 
                 fprintf(fileID,'\n');
                 
@@ -519,26 +555,48 @@ elseif nargin == 1
         sim_det_gor.LineStyle='none';
         sim_det_gor=gorobj('double',ephysca*1000,'double',zeros(size(ephysca)),sim_det_gor);
         
+        doggor_norm = [];
+        doggor_norm.name=['Normed Consens channel (Ch',num2str(ephysleadch(1)),') DoG'];
+        doggor_norm.Color='r';
+        doggor_norm.xname='Time';
+        doggor_norm.yname='Voltage';
+        doggor_norm.xunit='ms';
+        doggor_norm.yunit='\muV';
+        doggor_norm.axis=2;
+        doggor_norm=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch(1)), doggor_norm);
+        
         doggor = [];
-        doggor.name=['Consens channel (Ch',num2str(ephysleadch),') DoG'];
+        doggor.name=['Consens channel (Ch',num2str(ephysleadch(2)),') DoG'];
         doggor.Color='r';
         doggor.xname='Time';
         doggor.yname='Voltage';
         doggor.xunit='ms';
         doggor.yunit='\muV';
         doggor.axis=2;
-        doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch), doggor);
-
+        doggor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', dogged(:,ephysleadch(2)), doggor);
+        
+        powgor_norm = [];
+        powgor_norm.name=['Normed Consens channel (Ch',num2str(ephysleadch(1)),') InstPow'];
+        powgor_norm.Color='r';
+        powgor_norm.xname='Time';
+        powgor_norm.yname='Power';
+        powgor_norm.xunit='ms';
+        powgor_norm.yunit='\muV^2';
+        powgor_norm.axis=2;
+        powgor_norm=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch(1)), powgor_norm);
+        powgor_norm=set(powgor_norm,'vars',1,ephys_det_thresh(ephysleadch(1),2));
+        powgor_norm=set(powgor_norm,'varnames',1,'Threshold');
+        
         powgor = [];
-        powgor.name=['Consens channel (Ch',num2str(ephysleadch),') InstPow'];
+        powgor.name=['Consens channel (Ch',num2str(ephysleadch(2)),') InstPow'];
         powgor.Color='r';
         powgor.xname='Time';
         powgor.yname='Power';
         powgor.xunit='ms';
         powgor.yunit='\muV^2';
         powgor.axis=2;
-        powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
-        powgor=set(powgor,'vars',1,ephys_det_thresh(ephysleadch,2));
+        powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch(2)), powgor);
+        powgor=set(powgor,'vars',1,ephys_det_thresh(ephysleadch(2),2));
         powgor=set(powgor,'varnames',1,'Threshold');
         
         ref_doggor = [];
@@ -567,10 +625,21 @@ elseif nargin == 1
             ref_powgor=set(ref_powgor,'varnames',1,'Threshold');
         end
         
-        doggor = [doggor ; powgor; ref_doggor; ref_powgor];
+        doggor = [doggor_norm; doggor; powgor_norm; powgor; ref_doggor; ref_powgor];
+        
+        ephys_det_gor_norm = [];
+        ephys_det_gor_norm.name=['Detections normed consens channel (Ch',num2str(ephysleadch(1)),')'];
+        ephys_det_gor_norm.xname='Time';
+        ephys_det_gor_norm.yname='';
+        ephys_det_gor_norm.xunit='ms';
+        ephys_det_gor_norm.Marker='*';
+        ephys_det_gor_norm.MarkerSize=12;
+        ephys_det_gor_norm.Color='g';
+        ephys_det_gor_norm.LineStyle='none';
+        ephys_det_gor_norm=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor_norm);
         
         ephys_det_gor = [];
-        ephys_det_gor.name=['Detections consens channel (Ch',num2str(ephysleadch),')'];
+        ephys_det_gor.name=['Detections consens channel (Ch',num2str(ephysleadch(2)),')'];
         ephys_det_gor.xname='Time';
         ephys_det_gor.yname='';
         ephys_det_gor.xunit='ms';
@@ -578,7 +647,7 @@ elseif nargin == 1
         ephys_det_gor.MarkerSize=12;
         ephys_det_gor.Color='g';
         ephys_det_gor.LineStyle='none';
-        ephys_det_gor=gorobj('double',ephyscons_onlyT*1000,'double',zeros(size(ephyscons_onlyT)),ephys_det_gor);
+        ephys_det_gor=gorobj('double',ephys_allpeaksT(:,1,ephysleadch(2))*1000,'double',zeros(size(ephys_allpeaksT(:,1,ephysleadch(2)))),ephys_det_gor);
         
         refchan_det_gor = [];
         if ephys_param(11)~=0 || ephys_param(14)~=0
@@ -593,7 +662,7 @@ elseif nargin == 1
             refchan_det_gor=gorobj('double',ephys_allpeaksT(:,1,ephys_param(12))*1000,'double',zeros(size(ephys_allpeaksT(:,1,ephys_param(12)))),refchan_det_gor);
         end
         
-        ephys_det_gor = [ephys_det_gor ; refchan_det_gor];
+        ephys_det_gor = [ephys_det_gor_norm; ephys_det_gor; refchan_det_gor];
         
         %%% delay values
         delays = [];
@@ -627,10 +696,10 @@ elseif nargin == 1
         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
         figure('Name','Ca vs Ephys','NumberTitle','off')
         sp1 = subplot(2,1,1);
-        plot(ephysxscala,ephyspower(:,ephysleadch),'r'); hold on;
+        plot(ephysxscala,ephyspower(:,ephysleadch(1)),'r'); hold on;
         title('Ephys instpow');
         for i = 1:size(ephysca,1)
-            line([ephysca(i) ephysca(i)],[min(ephyspower(:,ephysleadch)) max(ephyspower(:,ephysleadch))],'Color','g'); hold on;            
+            line([ephysca(i) ephysca(i)],[min(ephyspower(:,ephysleadch(1))) max(ephyspower(:,ephysleadch(1)))],'Color','g'); hold on;            
         end
         hold off;
         sp2 = subplot(2,1,2);
@@ -1384,22 +1453,27 @@ end
 %%% valid channel crosscheck
 if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
     consens = zeros(size(allpeaksDP,1),2);
+    maxpownorm = 0;
     maxpow = 0;
-    leadchan = 0;
+    leadchan = zeros(1,2);
     for i = noref
-        if (mean(allpeaksDP(:,2,i)) > maxpow)
+        if ((mean(allpeaksDP(:,2,i))/length(find(allpeaksDP(:,2,i)))) > maxpownorm)
+            maxpownorm = mean(allpeaksDP(:,2,i))/length(find(allpeaksDP(:,2,i)));
+            leadchan(1) = i;
+        end
+        if ((mean(allpeaksDP(:,2,i))) > maxpow)
             maxpow = mean(allpeaksDP(:,2,i));
-            leadchan = i;
+            leadchan(2) = i;
         end
     end
-    consens = cat(2,allpeaksDP(:,1,leadchan),ones(size(allpeaksDP,1),1));
+    consens = cat(2,allpeaksDP(:,1,leadchan(1)),ones(size(allpeaksDP,1),1));
     consens = cat(2,consens,zeros(size(consens,1),len));
     if debug
         display(leadchan);
     end
     for i = 1:size(allpeaksDP,3)
-        if i ~= leadchan
-            [lia,locb] = ismembertol(allpeaksDP(:,1,i),allpeaksDP(:,1,leadchan),1000,'DataScale',1);
+        if i ~= leadchan(1)
+            [lia,locb] = ismembertol(allpeaksDP(:,1,i),allpeaksDP(:,1,leadchan(1)),1000,'DataScale',1);
             ulocb = unique(locb);
             ulocb = ulocb(find(ulocb));
             for j = 1:size(ulocb)
@@ -1433,8 +1507,8 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
                 figtitle = 'Ca consensus peaks';
         end
         figure('Name',figtitle,'NumberTitle','off');
-        plot(xscala,power(:,leadchan)); hold on;
-        plot(allpeaksT(:,1,leadchan),allpeaksT(:,2,leadchan),'or');
+        plot(xscala,power(:,leadchan(1))); hold on;
+        plot(allpeaksT(:,1,leadchan(1)),allpeaksT(:,2,leadchan(1)),'or');
         for i = 1:size(consensT,1)
             for j = 1:len
                 if consensT(i,j+2) == 1
@@ -1453,7 +1527,7 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
 else 
     %%% Hogy ne akadjon ki amikor ezek nem kellenek
     consensT = 0;
-    leadchan = 0;
+    leadchan = zeros(1,2);
     allpeaksT = allpeaksDP;
     allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
     if debug
