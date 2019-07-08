@@ -132,11 +132,12 @@ elseif nargin == 1
             data( ~any(data,2), : ) = [];
         end
 
-        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
+        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
         if debug
             assignin('base','t_scale',t_scale);
         end
         param(1) = true_srate;
+        norm_ca_gors = [];
         switch caorephys
             case 2
                 roi_det_gor = [];
@@ -157,6 +158,19 @@ elseif nargin == 1
                         roi_det_gor = [roi_det_gor ; newgor];
                     end
                 end 
+                
+                norm_ca_gors = [];
+                for i = 1:size(normed_ca,1)
+                    newgor = [];
+                    newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
+                    newgor.xname = 'Time';
+                    newgor.yname = 'dF/F';
+                    newgor.xunit = 'ms';
+                    newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',normed_ca(i,:),newgor);
+                    newgor = set(newgor,'vars',1,det_thresh(i,2));
+                    newgor = set(newgor,'varnames',1,'Threshold');
+                    norm_ca_gors = [norm_ca_gors ; newgor];
+                end
             case 1
                 doggor = [];
                 doggor.name=['Consens channel (Ch',num2str(ephysleadch),') DoG'];
@@ -177,7 +191,9 @@ elseif nargin == 1
                 powgor.yunit='\muV^2';
                 powgor.axis=2;
                 powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
-
+                powgor=set(powgor,'vars',1,det_thresh(ephysleadch,2));
+                powgor=set(powgor,'varnames',1,'Threshold');
+                
                 ref_doggor = [];
                 if ephys_param(11)~=0 || ephys_param(14)~=0
                     ref_doggor.name=['Reference channel (Ch',num2str(param(12)),') DoG'];
@@ -200,6 +216,8 @@ elseif nargin == 1
                     ref_powgor.yunit='\muV^2';
                     ref_powgor.axis=2;
                     ref_powgor=gorobj('eqsamp', [t_scale(1) t_scale(2)-t_scale(1)]*1000, 'double', ephyspower(:,param(12)), ref_powgor);
+                    ref_powgor=set(ref_powgor,'vars',1,det_thresh(param(12),2));
+                    ref_powgor=set(ref_powgor,'varnames',1,'Threshold');
                 end
                 
                 doggor = [doggor ; powgor; ref_doggor; ref_powgor];
@@ -365,7 +383,7 @@ elseif nargin == 1
             cadata( ~any(cadata,2), : ) = [];
             
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             if debug
@@ -421,7 +439,7 @@ elseif nargin == 1
                 assignin('base','ca_order_ordered',ca_order);
             end
             
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,norm_ca_gors,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
@@ -476,6 +494,19 @@ elseif nargin == 1
             assignin('base','freshlybakedephysca',ephysca)
         end
         ephysca = unique(ephysca);
+        
+        norm_ca_gors = [];
+        for i = 1:size(normed_ca,1)
+            newgor = [];
+            newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
+            newgor.xname = 'Time';
+            newgor.yname = 'dF/F';
+            newgor.xunit = 'ms';
+            newgor = gorobj('eqsamp',[ca_t_scale(1) ca_t_scale(2)-ca_t_scale(1)]*1000,'double',normed_ca(i,:),newgor);
+            newgor = set(newgor,'vars',1,ca_det_thresh(i,2));
+            newgor = set(newgor,'varnames',1,'Threshold');
+            norm_ca_gors = [norm_ca_gors ; newgor];
+        end
 
         sim_det_gor = [];
         sim_det_gor.name=['Detected simultan events'];
@@ -507,6 +538,8 @@ elseif nargin == 1
         powgor.yunit='\muV^2';
         powgor.axis=2;
         powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephysleadch), powgor);
+        powgor=set(powgor,'vars',1,ephys_det_thresh(ephysleadch,2));
+        powgor=set(powgor,'varnames',1,'Threshold');
         
         ref_doggor = [];
         if ephys_param(11)~=0 || ephys_param(14)~=0 
@@ -530,6 +563,8 @@ elseif nargin == 1
             ref_powgor.yunit='\muV^2';
             ref_powgor.axis=2;
             ref_powgor=gorobj('eqsamp', [ephys_t_scale(1) ephys_t_scale(2)-ephys_t_scale(1)]*1000, 'double', ephyspower(:,ephys_param(12)), ref_powgor);
+            ref_powgor=set(ref_powgor,'vars',1,ephys_det_thresh(ephys_param(12),2));
+            ref_powgor=set(ref_powgor,'varnames',1,'Threshold');
         end
         
         doggor = [doggor ; powgor; ref_doggor; ref_powgor];
@@ -841,7 +876,7 @@ end
 
 close(GUI);
 
-function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,norm_ca_gors,true_srate] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
+function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,normed_ca,true_srate] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
 
 srate = 1/(t_scale(2)-t_scale(1));
 if gore ~= 1
@@ -1132,7 +1167,8 @@ if ((quietiv(2)-quietiv(1)) < sec*srate)
 end
 
 %%% Ca adatok normálása, baselineolása
-norm_ca_gors = [];
+% norm_ca_gors = [];
+normed_ca = [];
 if caorephys == 2
     for i = 1:size(indataFull,1)
         quiet = indataFull(i,quietiv(1)+1:quietiv(2)+1);
@@ -1147,14 +1183,16 @@ if caorephys == 2
         end
         avg = mean(quiet);
         indataFull(i,:) = indataFull(i,:)-avg;
-        newgor = [];
-        newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
-        newgor.xname = 'Time';
-        newgor.yname = 'dF/F';
-        newgor.xunit = 'ms';
-        newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',indataFull(i,:),newgor);
-        norm_ca_gors = [norm_ca_gors ; newgor];
+%         newgor = [];
+%         newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
+%         newgor.xname = 'Time';
+%         newgor.yname = 'dF/F';
+%         newgor.xunit = 'ms';
+%         newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',indataFull(i,:),newgor);
+%         newgor = set(newgor,'vars',1,det_thresh(i));
+%         norm_ca_gors = [norm_ca_gors ; newgor];
     end
+    normed_ca = indataFull;
     power = transpose(indataFull);
 end
 
