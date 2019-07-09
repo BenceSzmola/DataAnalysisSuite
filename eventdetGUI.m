@@ -120,6 +120,12 @@ ephys_param(12) = str2double(get(handles.ephys_refchan,'String'));
 ephys_param(13) = get(handles.shift_check,'Value');
 ephys_param(14) = get(handles.refchan_crosscheck,'Value');
 ephys_param(15) = get(handles.ephys_proc,'Value');
+switch get(handles.norm_tgle,'Value')
+    case 1
+        ephys_param(16) = 1;
+    case 0
+        ephys_param(16) = 2;
+end
 varargout{6} = ephys_param;
 varargout{7} = str2double(get(handles.ca_delay,'String'));
 

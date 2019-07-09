@@ -50,6 +50,10 @@ if nargin==0
     detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
     fprintf(1,'Data from console \n');
 elseif nargin == 1
+    if mode(1)==1 && mode(2)>=length(ingor)
+        warndlg('It seems you only provided one type of data!');
+        return
+    end
     switch mode(1)
         case 0
             t_scale = get(ingor(1),'x')/1000;
@@ -306,7 +310,7 @@ elseif nargin == 1
                 fprintf(fileID,'\n');
                
                 fprintf(fileID,'Normed Lead Channel: %d \n',ephysleadch(1));
-                fprintf(fileID,'Lead Channel: %d \n',ephysleadch(2));             
+                fprintf(fileID,'Non-normed Lead Channel: %d \n',ephysleadch(2));             
                 
                 fprintf(fileID,'\n');
                 
@@ -350,7 +354,6 @@ elseif nargin == 1
                 end
                 
                 fprintf(fileID,'\n');
-                
                 
                 fprintf(fileID,'Events grouped by ROI(s) \n');
                 for i = 1:size(allpeaksT,3)
@@ -500,8 +503,16 @@ elseif nargin == 1
         if debug
             assignin('base','caavg',caavg);
         end
-        ephyscons_onlyT = ephysconsensT(:,1);
-        ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
+        switch ephys_param(16)
+            case 2
+                ephyscons_onlyT = ephys_allpeaksT(:,1,ephysleadch(2));
+                ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
+            case 1
+                ephyscons_onlyT = ephysconsensT(:,1);
+                ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
+        end
+%         ephyscons_onlyT = ephysconsensT(:,1);
+%         ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
         if debug
             assignin('base','ephyscons_onlyT',ephyscons_onlyT)
         end
@@ -767,6 +778,17 @@ elseif nargin == 1
             fprintf(fileID,'%s: %d \n',string(ca_param_prompts(i)),ca_param(i));
         end
         fprintf(fileID,'Ca processing: %s \n',ca_proclist{ca_param(10)});
+        
+        fprintf(fileID,'\n');
+        
+        fprintf(fileID,'Ephys normed leadchannel: %d \n',ephysleadch(1));
+        fprintf(fileID,'Ephys non-normed leadchannel: %d \n',ephysleadch(2));
+        switch ephys_param(16)
+            case 1
+                fprintf(fileID,'Selected for simultan detection: %d \n',ephysleadch(1));
+            case 2
+                fprintf(fileID,'Selected for simultan detection: %d \n',ephysleadch(2));                
+        end
         
         fprintf(fileID,'\n');
         
