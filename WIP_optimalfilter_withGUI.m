@@ -50,6 +50,9 @@ if nargin==0
     detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
     fprintf(1,'Data from console \n');
 elseif nargin == 1
+    GUIstuff = guidata(GUI);
+    set(GUIstuff.progress_tag,'String','Reading GORs');
+    guidata(GUI,GUIstuff);
     if mode(1)==1 && mode(2)>=length(ingor)
         warndlg('It seems you only provided one type of data!');
         return
@@ -135,12 +138,21 @@ elseif nargin == 1
             data = cadata_ordered;
             data( ~any(data,2), : ) = [];
         end
-
+        
+        GUIstuff = guidata(GUI);
+        set(GUIstuff.progress_tag,'String','Running detection');
+        guidata(GUI,GUIstuff);
+        
         [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
         if debug
             assignin('base','t_scale',t_scale);
         end
         param(1) = true_srate;
+
+        GUIstuff = guidata(GUI);
+        set(GUIstuff.progress_tag,'String','Creating GORs');
+        guidata(GUI,GUIstuff);
+
         norm_ca_gors = [];
         switch caorephys
             case 2
@@ -292,8 +304,12 @@ elseif nargin == 1
                 end
                 
                 ephys_det_gor = [ephys_det_gor_norm; ephys_det_gor ; refchan_det_gor];
-        end 
+        end
         
+        GUIstuff = guidata(GUI);
+        set(GUIstuff.progress_tag,'String','Writing CSV');
+        guidata(GUI,GUIstuff);
+
         %%% CSV irás
         [csvname,path] = uiputfile('*.csv','Name CSV!');
         cd(path);
@@ -420,7 +436,11 @@ elseif nargin == 1
             ca_order = min(ca_order):(min(ca_order)+length(ca_order)-1);
             cadata = cadata_ordered;
             cadata( ~any(cadata,2), : ) = [];
-            
+
+            GUIstuff = guidata(GUI);
+            set(GUIstuff.progress_tag,'String','Running detection');
+            guidata(GUI,GUIstuff);
+
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             ca_param(1) = ca_true_srate;
@@ -478,6 +498,10 @@ elseif nargin == 1
                 assignin('base','ca_order_ordered',ca_order);
             end
             
+            GUIstuff = guidata(GUI);
+            set(GUIstuff.progress_tag,'String','Running detection');
+            guidata(GUI,GUIstuff);
+
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
@@ -493,6 +517,11 @@ elseif nargin == 1
         end
         
         %%% ca & ephys comparison
+
+        GUIstuff = guidata(GUI);
+        set(GUIstuff.progress_tag,'String','Running simultan detection');
+        guidata(GUI,GUIstuff);
+
         caavg = cadata(1,:);
         if size(cadata,2) > 1
             for i = 2:size(cadata,1)
@@ -542,6 +571,10 @@ elseif nargin == 1
         end
         ephysca = unique(ephysca);
         
+        GUIstuff = guidata(GUI);
+        set(GUIstuff.progress_tag,'String','Creating GORs');
+        guidata(GUI,GUIstuff);
+
         norm_ca_gors = [];
         for i = 1:size(normed_ca,1)
             newgor = [];
@@ -765,6 +798,10 @@ elseif nargin == 1
 %         ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
 %             'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult'};
         %%% CSV irás
+        GUIstuff = guidata(GUI);
+        set(GUIstuff.progress_tag,'String','Writing CSV');
+        guidata(GUI,GUIstuff);
+
         [csvname,path] = uiputfile('*.csv','Name CSV!');
         cd(path);
         fileID = fopen(string(csvname),'w');

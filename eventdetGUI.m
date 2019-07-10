@@ -22,7 +22,7 @@ function varargout = eventdetGUI(varargin)
 
 % Edit the above text to modify the response to help eventdetGUI
 
-% Last Modified by GUIDE v2.5 02-Jul-2019 11:29:59
+% Last Modified by GUIDE v2.5 10-Jul-2019 16:37:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -70,7 +70,9 @@ function varargout = eventdetGUI_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
-varargout{8} = handles.output;
+% varargout{8} = handles.output;
+varargout{8} = hObject;
+% varargout{9} = handles;
 varargout{1} = get(handles.debug_check,'Value');
 varargout{2} = get(handles.figs_check,'Value');
 mode = zeros(1,3);
@@ -225,7 +227,7 @@ function ca_proc_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-list = {'Gauss avg then 10x upsample','None'};
+list = {'Gauss avg then 10x upsample'};
 set(hObject,'string',list);
 
 
@@ -250,7 +252,7 @@ function ephys_proc_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-list = {'DoG + InstPow','DoG','InstPow','None'};
+list = {'DoG + InstPow'};
 set(hObject,'string',list);
 
 
@@ -919,6 +921,7 @@ function startbut_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 uiresume(handles.figure1);
+set(handles.progress_tag,'Visible','on');
 
 
 
@@ -974,3 +977,11 @@ function refchan_crosscheck_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of refchan_crosscheck
+
+
+% --------------------------------------------------------------------
+function helpmenu_Callback(hObject, eventdata, handles)
+% hObject    handle to helpmenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+open EventDetectorHelp.pdf;
