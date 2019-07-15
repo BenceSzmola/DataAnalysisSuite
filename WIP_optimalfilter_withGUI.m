@@ -325,7 +325,7 @@ elseif nargin == 1
         cd(path);
         fileID = fopen(string(csvname),'w');
         if fileID == -1
-            warndlg('This csv is already opened, please close it!');
+            warndlg('This csv is already opened! Please close it and then press OK!');
             waitforbuttonpress;
             fileID = fopen(string(csvname),'w');
         end
@@ -830,7 +830,7 @@ elseif nargin == 1
         cd(path);
         fileID = fopen(string(csvname),'w');
         if fileID == -1
-            warndlg('This csv is already opened, please close it!');
+            warndlg('This csv is already opened! Please close it and then press OK!');
             waitforbuttonpress;
             fileID = fopen(string(csvname),'w');
         end
