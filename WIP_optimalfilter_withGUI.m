@@ -751,22 +751,22 @@ elseif nargin == 1
             assignin('base','delays',delays);
         end
         
-        ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
-        caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
-        figure('Name','Ca vs Ephys','NumberTitle','off')
-        sp1 = subplot(2,1,1);
-        plot(ephysxscala,ephyspower(:,ephysleadch(1)),'r'); hold on;
-        title('Ephys instpow');
-        for i = 1:size(ephysca,1)
-            line([ephysca(i) ephysca(i)],[min(ephyspower(:,ephysleadch(1))) max(ephyspower(:,ephysleadch(1)))],'Color','g'); hold on;            
-        end
-        hold off;
-        sp2 = subplot(2,1,2);
-        plot(caxscala,caavg,'b'); hold on;
-        title('Calcium signal');
+%         ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
+%         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
+%         figure('Name','Ca vs Ephys','NumberTitle','off')
+%         sp1 = subplot(2,1,1);
+%         plot(ephysxscala,ephyspower(:,ephysleadch(1)),'r'); hold on;
+%         title('Ephys instpow');
+%         for i = 1:size(ephysca,1)
+%             line([ephysca(i) ephysca(i)],[min(ephyspower(:,ephysleadch(1))) max(ephyspower(:,ephysleadch(1)))],'Color','g'); hold on;            
+%         end
+%         hold off;
+%         sp2 = subplot(2,1,2);
+%         plot(caxscala,caavg,'b'); hold on;
+%         title('Calcium signal');
         per_roi_det = zeros(size(ephysca,1),1,size(cadata,1));
         for i = 1:size(ephysca,1)
-            line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
+%             line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
             cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
             [num,type,roi] = ind2sub(size(ca_allpeaksT),cainds);
             loc = [num,type,roi];
@@ -780,9 +780,9 @@ elseif nargin == 1
                 end
             end
         end
-        hold off;
+%         hold off;
         close(wb);
-        linkaxes([sp1 sp2],'x');
+%         linkaxes([sp1 sp2],'x');
         if debug
             assignin('base','ephysca',ephysca);
             assignin('base','per_roi_det',per_roi_det);
@@ -844,6 +844,10 @@ elseif nargin == 1
             fprintf(fileID,'%s: %d \n',string(ca_param_prompts(i)),ca_param(i));
         end
         fprintf(fileID,'Ca processing: %s \n',ca_proclist{ca_param(10)});
+        
+        fprintf(fileID,'\n');
+        
+        fprintf(fileID,'Ca delay vs ephys (s): %5.4f \n',ephyvsca_tolerance);
         
         fprintf(fileID,'\n');
         
@@ -929,7 +933,7 @@ elseif nargin == 1
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan events(s)');
+        fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan Ca events(s)');
         for i = 1:size(per_roi_det,3)
             fprintf(fileID,'%d# ; ',ca_order(i)-1);
             for j = 1:size(ca_allpeaksT(:,:,i),1)
@@ -938,7 +942,7 @@ elseif nargin == 1
                 end
             end
             fprintf(fileID,'\n');
-            fprintf(fileID,'%d# ; ',ca_order(i)-1);
+            fprintf(fileID,'%d# simult ; ',ca_order(i)-1);
             temp = per_roi_det(:,:,i);
             temp = unique(temp);
             temp(temp==0) = [];
@@ -999,11 +1003,11 @@ elseif nargin == 1
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,1));
         end
-        fprintf(fileID,'\n sum Ca: ; %d \n',sum(allperdet(:,1)));
+        fprintf(fileID,'\n sum Ca: %d \n',sum(allperdet(:,1)));
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,2));
         end
-        fprintf(fileID,'\n sum simultan: ; %d \n',sum(allperdet(:,2))); 
+        fprintf(fileID,'\n sum simultan Ca: %d \n',sum(allperdet(:,2))); 
         
         fprintf(fileID,'\n');
         

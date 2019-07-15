@@ -22,7 +22,7 @@ function varargout = eventdetGUI(varargin)
 
 % Edit the above text to modify the response to help eventdetGUI
 
-% Last Modified by GUIDE v2.5 10-Jul-2019 16:37:58
+% Last Modified by GUIDE v2.5 15-Jul-2019 15:10:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -985,3 +985,21 @@ function helpmenu_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 open EventDetectorHelp.pdf;
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+uiresume(handles.figure1);
+delete(hObject);
+
+
+% --- Executes during object deletion, before destroying properties.
+function figure1_DeleteFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
