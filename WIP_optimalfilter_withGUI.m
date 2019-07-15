@@ -54,7 +54,8 @@ elseif nargin == 1
     set(GUIstuff.progress_tag,'String','Reading GORs');
     guidata(GUI,GUIstuff);
     if mode(1)==1 && mode(2)>=length(ingor)
-        warndlg('It seems you only provided one type of data!');
+        errordlg('It seems you only provided one type of data!');
+        close(GUI);
         return
     end
     switch mode(1)
@@ -312,8 +313,22 @@ elseif nargin == 1
 
         %%% CSV irás
         [csvname,path] = uiputfile('*.csv','Name CSV!');
+        if csvname == 0
+            finitodlg = warndlg('Event detection is finished!','Finished');
+            pause(0.5);
+            if ishandle(finitodlg)
+                close(finitodlg);
+            end
+            close(GUI);
+            return
+        end
         cd(path);
         fileID = fopen(string(csvname),'w');
+        if fileID == -1
+            warndlg('This csv is already opened, please close it!');
+            waitforbuttonpress;
+            fileID = fopen(string(csvname),'w');
+        end
         switch caorephys
             case 1 
                 fprintf(fileID,'Ephys parameters \n');
@@ -803,8 +818,22 @@ elseif nargin == 1
         guidata(GUI,GUIstuff);
 
         [csvname,path] = uiputfile('*.csv','Name CSV!');
+        if csvname == 0
+            finitodlg = warndlg('Event detection is finished!','Finished');
+            pause(0.5);
+            if ishandle(finitodlg)
+                close(finitodlg);
+            end
+            close(GUI);
+            return
+        end
         cd(path);
         fileID = fopen(string(csvname),'w');
+        if fileID == -1
+            warndlg('This csv is already opened, please close it!');
+            waitforbuttonpress;
+            fileID = fopen(string(csvname),'w');
+        end
         fprintf(fileID,'%s \n','Ephys parameters');
         for i = 1:length(ephys_param_prompts)
             fprintf(fileID,'%s: %d \n',string(ephys_param_prompts(i)),ephys_param(i));
