@@ -37,9 +37,9 @@ if nargin==0
     if debug 
         assignin('base','t_scale',t_scale);
     end
-    datatype = questdlg('Ca or Ephys?','Datatype','Ca','Ephys','Ca');
+    datatype = questdlg('Ca2+ or Ephys?','Datatype','Ca2+','Ephys','Ca2+');
     switch datatype
-        case 'Ca'
+        case 'Ca2+'
             caorephys = 2;
             param = ca_param;
         case 'Ephys'
@@ -163,7 +163,7 @@ elseif nargin == 1
                         newgor = [];
                         temp = unique(allpeaksT(:,1,i));
                         temp(temp==0) = [];
-                        newgor.name=['Detections for roi ',num2str(ca_order(i)-1)];
+                        newgor.name=['Detections for ROI ',num2str(ca_order(i)-1)];
                         newgor.Marker='*';
                         newgor.MarkerSize=12;
                         newgor.Color='g';
@@ -179,7 +179,7 @@ elseif nargin == 1
                 norm_ca_gors = [];
                 for i = 1:size(normed_ca,1)
                     newgor = [];
-                    newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
+                    newgor.name = ['Normed Ca2+ ROI ',num2str(ca_order(i)-1)];
                     newgor.xname = 'Time';
                     newgor.yname = 'dF/F';
                     newgor.xunit = 'ms';
@@ -325,7 +325,7 @@ elseif nargin == 1
         cd(path);
         fileID = fopen(string(csvname),'w');
         if fileID == -1
-            warndlg('This csv is already opened! Please close it and then press OK!');
+            warndlg('This CSV is already opened! Please close it and then press OK!');
             waitforbuttonpress;
             fileID = fopen(string(csvname),'w');
         end
@@ -370,7 +370,7 @@ elseif nargin == 1
                 end
                                 
             case 2
-                fprintf(fileID,'Ca parameters \n');
+                fprintf(fileID,'Ca2+ parameters \n');
                 for i = 1:length(ca_param_prompts)
                     fprintf(fileID,'%s: %d \n',string(ca_param_prompts(i)),param(i));
                 end
@@ -568,7 +568,7 @@ elseif nargin == 1
         end
         ephysca = [];
         supreme = 0;
-        wb = waitbar(0,'Cross-checking Ca and Ephys','Name','Ca vs Ephys');
+        wb = waitbar(0,'Cross-checking Ca2+ and Ephys','Name','Ca2+ vs Ephys');
         for i = 1:max(size(ephyscons_onlyT,1),size(cacons_onlyT,1))
             if size(ephyscons_onlyT,1) > size(cacons_onlyT,1)
                 supreme = 2;
@@ -593,7 +593,7 @@ elseif nargin == 1
         norm_ca_gors = [];
         for i = 1:size(normed_ca,1)
             newgor = [];
-            newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
+            newgor.name = ['Normed Ca2+ ROI ',num2str(ca_order(i)-1)];
             newgor.xname = 'Time';
             newgor.yname = 'dF/F';
             newgor.xunit = 'ms';
@@ -794,7 +794,7 @@ elseif nargin == 1
                 newgor = [];
                 temp = unique(per_roi_det(:,:,i));
                 temp(temp==0) = [];
-                newgor.name=['Simultan detections for roi ',num2str(ca_order(i)-1)];
+                newgor.name=['Simultan detections for ROI ',num2str(ca_order(i)-1)];
                 newgor.Marker='*';
                 newgor.MarkerSize=12;
                 newgor.Color='g';
@@ -839,15 +839,15 @@ elseif nargin == 1
             fprintf(fileID,'%s: %d \n',string(ephys_param_prompts(i)),ephys_param(i));
         end
         fprintf(fileID,'Ephys processing: %s \n',ephys_proclist{ephys_param(15)});
-        fprintf(fileID,'\n %s \n','Ca parameters');
+        fprintf(fileID,'\n %s \n','Ca2+ parameters');
         for i = 1:length(ca_param_prompts)
             fprintf(fileID,'%s: %d \n',string(ca_param_prompts(i)),ca_param(i));
         end
-        fprintf(fileID,'Ca processing: %s \n',ca_proclist{ca_param(10)});
+        fprintf(fileID,'Ca2+ processing: %s \n',ca_proclist{ca_param(10)});
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'Ca delay vs ephys (s): %5.4f \n',ephyvsca_tolerance);
+        fprintf(fileID,'Ca2+ delay vs Ephys (s): %5.4f \n',ephyvsca_tolerance);
         
         fprintf(fileID,'\n');
         
@@ -862,7 +862,7 @@ elseif nargin == 1
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'Ca detection thresholds per roi \n');
+        fprintf(fileID,'Ca2+ detection thresholds per ROI \n');
         for i = 1:size(ca_det_thresh,1)
             fprintf(fileID,'%d# ;',ca_order(i)-1);
         end
@@ -899,7 +899,7 @@ elseif nargin == 1
             case 1
                 fprintf(fileID,'%s %d \n','Ephys simultan events (s) num=',length(ephysca));
             case 2
-                fprintf(fileID,'%s %d \n','Ca simultan events (s) num=',length(ephysca));
+                fprintf(fileID,'%s %d \n','Ca2+ simultan events (s) num=',length(ephysca));
         end
 %         fprintf(fileID,'%s %d \n','Simultan events (s) num=',length(ephysca));
         for i = 1:length(ephysca)  
@@ -913,7 +913,7 @@ elseif nargin == 1
             case 2
                 fprintf(fileID,'%s %d \n','Ephys simultan events (s) num=',length(ephysca));
             case 1
-                fprintf(fileID,'%s %d \n','Ca simultan events (s) num=',length(ephysca));
+                fprintf(fileID,'%s %d \n','Ca2+ simultan events (s) num=',length(ephysca));
         end
         for i = 1:length(ephysca_other)  
             if i == length(ephysca_other)
@@ -925,7 +925,7 @@ elseif nargin == 1
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'Delays between ephys and Ca (s) \n');
+        fprintf(fileID,'Delays between Ephys and Ca2+ (s) \n');
         for i = 1:length(delays)
             fprintf(fileID,'%5.4f ; ',delays(i));
         end
@@ -933,7 +933,7 @@ elseif nargin == 1
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'%s \n','All Ca events grouped by ROI + simultan Ca events(s)');
+        fprintf(fileID,'%s \n','All Ca2+ events grouped by ROI + simultan Ca2+ events(s)');
         for i = 1:size(per_roi_det,3)
             fprintf(fileID,'%d# ; ',ca_order(i)-1);
             for j = 1:size(ca_allpeaksT(:,:,i),1)
@@ -976,7 +976,7 @@ elseif nargin == 1
                 fprintf(fileID,'\n');
             end
         end
-        fprintf(fileID,'%s \n','Num of Detected/Simultan Ca events grouped by roi');
+        fprintf(fileID,'%s \n','Num of Detected/Simultan Ca2+ events grouped by ROI');
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d# ;',ca_order(i)-1);
         end
@@ -1003,15 +1003,15 @@ elseif nargin == 1
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,1));
         end
-        fprintf(fileID,'\n sum Ca: %d \n',sum(allperdet(:,1)));
+        fprintf(fileID,'\n sum Ca2+: %d \n',sum(allperdet(:,1)));
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,2));
         end
-        fprintf(fileID,'\n sum simultan Ca: %d \n',sum(allperdet(:,2))); 
+        fprintf(fileID,'\n sum simultan Ca2+: %d \n',sum(allperdet(:,2))); 
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'%s %d','Ephys events not associated with Ca (s) num =');
+        fprintf(fileID,'%s %d','Ephys events not associated with Ca2+ (s) num =');
         temp = [];
         num = 0;
         for i = 1:size(ephyscons_onlyT,1)
@@ -1596,7 +1596,7 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
             case 1
                 figtitle = 'Ephys consensus peaks';
             case 2
-                figtitle = 'Ca consensus peaks';
+                figtitle = 'Ca2+ consensus peaks';
         end
         figure('Name',figtitle,'NumberTitle','off');
         plot(xscala,power(:,leadchan(1))); hold on;
