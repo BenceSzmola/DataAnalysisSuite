@@ -55,6 +55,29 @@ function waveletBrowser_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for waveletBrowser
 handles.output = hObject;
 
+%%% initial plotting
+handles.evdet_hdls = varargin{1};
+eventdet_handles = varargin{1};
+handles.wavenum = 1;
+
+dog = eventdet_handles.dog;
+instpow = eventdet_handles.instpow;
+normed_ca = eventdet_handles.normed_ca;
+ephys_t_scale = eventdet_handles.ephys_t_scale;
+ca_t_scale = eventdet_handles.ca_t_scale;
+ephysca = eventdet_handles.ephysca;
+
+assignin('base','thein',varargin);
+ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
+caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
+assignin('base','xscala',ephysxscala);
+assignin('base','dog',dog);
+linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
+plot(handles.dogaxes,ephysxscala*1000,dog(:,1));
+plot(handles.caaxes,caxscala*1000,normed_ca(1,:));
+plot(handles.instpowaxes,ephysxscala*1000,instpow(:,1));
+
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -78,6 +101,24 @@ function nextwave_Callback(hObject, eventdata, handles)
 % hObject    handle to nextwave (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+eventdet_handles = handles.evdet_hdls;
+
+dog = eventdet_handles.dog;
+instpow = eventdet_handles.instpow;
+normed_ca = eventdet_handles.normed_ca;
+ephys_t_scale = eventdet_handles.ephys_t_scale;
+ca_t_scale = eventdet_handles.ca_t_scale;
+ephysca = eventdet_handles.ephysca;
+
+ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
+caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
+assignin('base','xscala',ephysxscala);
+assignin('base','dog',dog);
+linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
+plot(handles.dogaxes,ephysxscala*1000,dog(:,1));
+plot(handles.caaxes,caxscala*1000,normed_ca(1,:));
+plot(handles.instpowaxes,ephysxscala*1000,instpow(:,1));
 
 
 % --- Executes on button press in prevwave.

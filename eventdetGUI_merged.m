@@ -73,7 +73,7 @@ function varargout = eventdetGUI_merged_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 ingor = handles.vargin;
-[sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter_withGUI(ingor,hObject,handles);
+[sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles] = WIP_optimalfilter_withGUI(ingor,hObject,handles);
 varargout = {sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor};
 set(handles.progress_tag,'String','Finished! For new detection launch Event Detector again!');
 guidata(hObject,handles);
@@ -952,10 +952,10 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 %%% Event detector code
-function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor] = WIP_optimalfilter_withGUI(ingor,hObject,handles) 
+function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles] = WIP_optimalfilter_withGUI(ingor,hObject,handles) 
 
 ingor = ingor{1};
-GUI = hObject;
+% GUI = hObject;
 % varargout{9} = handles;
 debug = get(handles.debug_check,'Value');
 plots = get(handles.figs_check,'Value');
@@ -1043,12 +1043,12 @@ if nargin==0
     detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
     fprintf(1,'Data from console \n');
 elseif nargin == 3
-    GUIstuff = guidata(GUI); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    set(GUIstuff.progress_tag,'String','Reading GORs');
-    guidata(GUI,GUIstuff);
+%     handles = guidata(hObject); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    set(handles.progress_tag,'String','Reading GORs');
+    guidata(hObject,handles);
     if mode(1)==1 && mode(2)>=length(ingor)
         errordlg('It seems you only provided one type of data!');
-        close(GUI);
+        close(hObject);
         return
     end
     switch mode(1)
@@ -1133,9 +1133,9 @@ elseif nargin == 3
             data( ~any(data,2), : ) = [];
         end
         
-        GUIstuff = guidata(GUI);
-        set(GUIstuff.progress_tag,'String','Running detection');
-        guidata(GUI,GUIstuff);
+%         handles = guidata(hObject);
+        set(handles.progress_tag,'String','Running detection');
+        guidata(hObject,handles);
         
         [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
         if debug
@@ -1143,9 +1143,9 @@ elseif nargin == 3
         end
         param(1) = true_srate;
 
-        GUIstuff = guidata(GUI);
-        set(GUIstuff.progress_tag,'String','Creating GORs');
-        guidata(GUI,GUIstuff);
+%         handles = guidata(hObject);
+        set(handles.progress_tag,'String','Creating GORs');
+        guidata(hObject,handles);
 
         norm_ca_gors = [];
         switch caorephys
@@ -1300,9 +1300,9 @@ elseif nargin == 3
                 ephys_det_gor = [ephys_det_gor_norm; ephys_det_gor ; refchan_det_gor];
         end
         
-        GUIstuff = guidata(GUI);
-        set(GUIstuff.progress_tag,'String','Writing CSV');
-        guidata(GUI,GUIstuff);
+%         handles = guidata(hObject);
+        set(handles.progress_tag,'String','Writing CSV');
+        guidata(hObject,handles);
 
         %%% CSV irás
         [csvname,path] = uiputfile('*.csv','Name CSV!');
@@ -1312,7 +1312,7 @@ elseif nargin == 3
             if ishandle(finitodlg)
                 close(finitodlg);
             end
-%             close(GUI);
+%             close(hObject);
             return
         end
         cd(path);
@@ -1445,20 +1445,23 @@ elseif nargin == 3
             cadata = cadata_ordered;
             cadata( ~any(cadata,2), : ) = [];
 
-            GUIstuff = guidata(GUI);
-            set(GUIstuff.progress_tag,'String','Running detection');
-            guidata(GUI,GUIstuff);
+%             handles = guidata(hObject);
+            set(handles.progress_tag,'String','Running detection');
+            guidata(hObject,handles);
 
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             
-            GUIstuff = guidata(GUI);
-            GUIstuff.cadata = cadata;
-            GUIstuff.dog = dogged;
-            GUIstuff.instpow = ephyspower;
-            guidata(GUI,GUIstuff);
+%             handles = guidata(hObject);
+%             handles.normed_ca = normed_ca;
+%             handles.dog = dogged;
+%             handles.instpow = ephyspower;
+%             handles.ca_t_scale = ca_t_scale;
+%             handles.ephys_t_scale = ephys_t_scale;
+%             guidata(hObject,handles);
+%             assignin('base','guistuff',handles);
             
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
@@ -1513,14 +1516,24 @@ elseif nargin == 3
                 assignin('base','ca_order_ordered',ca_order);
             end
             
-            GUIstuff = guidata(GUI);
-            set(GUIstuff.progress_tag,'String','Running detection');
-            guidata(GUI,GUIstuff);
+%             handles = guidata(hObject);
+            set(handles.progress_tag,'String','Running detection');
+            guidata(hObject,handles);
 
             [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
+            
+%             handles = guidata(hObject);
+%             handles.normed_ca = normed_ca;
+%             handles.dog = dogged;
+%             handles.instpow = ephyspower;
+%             handles.ca_t_scale = ca_t_scale;
+%             handles.ephys_t_scale = ephys_t_scale;
+%             guidata(hObject,handles);
+%             assignin('base','guistuff',handles);
+            
             if debug
                 assignin('base','ephysconsensT',ephysconsensT);
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
@@ -1531,11 +1544,19 @@ elseif nargin == 3
             ephys_t_scale = ephys_t_scale +1;
         end
         
+        handles.normed_ca = normed_ca;
+        handles.dog = dogged;
+        handles.instpow = ephyspower;
+        handles.ca_t_scale = ca_t_scale;
+        handles.ephys_t_scale = ephys_t_scale;
+        guidata(hObject,handles);
+        assignin('base','guistuff',handles);
+
         %%% ca & ephys comparison
 
-        GUIstuff = guidata(GUI);
-        set(GUIstuff.progress_tag,'String','Running simultan detection');
-        guidata(GUI,GUIstuff);
+%         handles = guidata(hObject);
+        set(handles.progress_tag,'String','Running simultan detection');
+        guidata(hObject,handles);
 
         caavg = cadata(1,:);
         if size(cadata,2) > 1
@@ -1586,9 +1607,10 @@ elseif nargin == 3
         end
         ephysca = unique(ephysca);
         
-        GUIstuff = guidata(GUI);
-        set(GUIstuff.progress_tag,'String','Creating GORs');
-        guidata(GUI,GUIstuff);
+%         handles = guidata(hObject);
+        set(handles.progress_tag,'String','Creating GORs');
+        handles.ephysca = ephysca;
+        guidata(hObject,handles);
 
         norm_ca_gors = [];
         for i = 1:size(normed_ca,1)
@@ -1813,9 +1835,9 @@ elseif nargin == 3
 %         ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
 %             'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult'};
         %%% CSV irás
-        GUIstuff = guidata(GUI);
-        set(GUIstuff.progress_tag,'String','Writing CSV');
-        guidata(GUI,GUIstuff);
+%         handles = guidata(hObject);
+        set(handles.progress_tag,'String','Writing CSV');
+        guidata(hObject,handles);
 
         [csvname,path] = uiputfile('*.csv','Name CSV!');
         if csvname == 0
@@ -1824,7 +1846,7 @@ elseif nargin == 3
             if ishandle(finitodlg)
                 close(finitodlg);
             end
-%             close(GUI);
+%             close(hObject);
             return
         end
         cd(path);
@@ -2035,7 +2057,7 @@ elseif nargin == 3
     end
 end
 
-% close(GUI);
+% close(hObject);
 
 function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,normed_ca,true_srate] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
 
@@ -2679,3 +2701,6 @@ function wavebrowse_Callback(hObject, eventdata, handles)
 % hObject    handle to wavebrowse (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+assignin('base','theout',handles);
+waveletBrowser(handles);
