@@ -1544,11 +1544,19 @@ elseif nargin == 3
             ephys_t_scale = ephys_t_scale +1;
         end
         
+        handles.ephyssrate = ephys_true_srate;
+        handles.casrate = ca_true_srate;
         handles.normed_ca = normed_ca;
         handles.dog = dogged;
         handles.instpow = ephyspower;
         handles.ca_t_scale = ca_t_scale;
         handles.ephys_t_scale = ephys_t_scale;
+        switch ephys_param(16)
+            case 1
+                handles.ephysleadch = ephysleadch(1);
+            case 2
+                handles.ephysleadch = ephysleadch(2);
+        end
         guidata(hObject,handles);
         assignin('base','guistuff',handles);
 
