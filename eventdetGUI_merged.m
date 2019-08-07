@@ -1137,7 +1137,7 @@ elseif nargin == 3
         set(handles.progress_tag,'String','Running detection');
         guidata(hObject,handles);
         
-        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
+        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate,allwidths] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
         if debug
             assignin('base','t_scale',t_scale);
         end
@@ -1449,8 +1449,8 @@ elseif nargin == 3
             set(handles.progress_tag,'String','Running detection');
             guidata(hObject,handles);
 
-            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             
@@ -1520,8 +1520,8 @@ elseif nargin == 3
             set(handles.progress_tag,'String','Running detection');
             guidata(hObject,handles);
 
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
-            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
+            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             
@@ -1584,8 +1584,6 @@ elseif nargin == 3
                 ephyscons_onlyT = ephysconsensT(:,1);
                 ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
         end
-%         ephyscons_onlyT = ephysconsensT(:,1);
-%         ephyscons_onlyT(ephyscons_onlyT==ephys_t_scale(1)) = nan;
         if debug
             assignin('base','ephyscons_onlyT',ephyscons_onlyT)
         end
@@ -1618,8 +1616,9 @@ elseif nargin == 3
 %         handles = guidata(hObject);
         set(handles.progress_tag,'String','Creating GORs');
         handles.ephysca = ephysca;
+        handles.cadelay = ephyvsca_tolerance;
         guidata(hObject,handles);
-
+        
         norm_ca_gors = [];
         for i = 1:size(normed_ca,1)
             newgor = [];
@@ -1781,22 +1780,8 @@ elseif nargin == 3
             assignin('base','delays',delays);
         end
         
-%         ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(ephysdata,2)-1)+ephys_t_scale(1);
-%         caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(cadata,2)-1);
-%         figure('Name','Ca vs Ephys','NumberTitle','off')
-%         sp1 = subplot(2,1,1);
-%         plot(ephysxscala,ephyspower(:,ephysleadch(1)),'r'); hold on;
-%         title('Ephys instpow');
-%         for i = 1:size(ephysca,1)
-%             line([ephysca(i) ephysca(i)],[min(ephyspower(:,ephysleadch(1))) max(ephyspower(:,ephysleadch(1)))],'Color','g'); hold on;            
-%         end
-%         hold off;
-%         sp2 = subplot(2,1,2);
-%         plot(caxscala,caavg,'b'); hold on;
-%         title('Calcium signal');
         per_roi_det = zeros(size(ephysca,1),1,size(cadata,1));
         for i = 1:size(ephysca,1)
-%             line([ephysca(i) ephysca(i)],[min(caavg) max(caavg)],'Color','g'); hold on;            
             cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
             [num,type,roi] = ind2sub(size(ca_allpeaksT),cainds);
             loc = [num,type,roi];
@@ -1810,9 +1795,7 @@ elseif nargin == 3
                 end
             end
         end
-%         hold off;
         close(wb);
-%         linkaxes([sp1 sp2],'x');
         if debug
             assignin('base','ephysca',ephysca);
             assignin('base','per_roi_det',per_roi_det);
@@ -1837,11 +1820,6 @@ elseif nargin == 3
             end
         end 
         
-%         ephys_param_prompts = {'Sample rate (Hz)','W1 (Hz)','W2 (Hz)','Step size (ms)','Min event distance (ms)',...
-%             'Event length min (ms)','Event length max (ms)','sd mult','qsd mult','Quietint length (s)', ...
-%             'Denoise','Reference chan.','1s shift'};
-%         ca_param_prompts = {'Sample rate (Hz)','Step size (ms)','Min event distance (ms)',...
-%             'Event length min (ms)','Event length max (ms)','dF/F threshold','sd mult','qsd mult'};
         %%% CSV irás
 %         handles = guidata(hObject);
         set(handles.progress_tag,'String','Writing CSV');
@@ -2067,7 +2045,7 @@ end
 
 % close(hObject);
 
-function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,normed_ca,true_srate] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
+function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,normed_ca,true_srate,allwidths] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
 
 srate = 1/(t_scale(2)-t_scale(1));
 if gore ~= 3
@@ -2395,6 +2373,7 @@ end
 %%% SWR detect
 %%%%%%%%%%%%%%
 det_thresh = zeros(length(ivec),2);
+allwidths = zeros(size(indataFull,2),length(ivec));
 for i = ivec
     currpow = power(:,i);
     if debug
@@ -2524,6 +2503,7 @@ for i = ivec
     end
         
     widths = widths((widths>=widthlower) & (widths<=widthupper));
+    allwidths(1:length(widths),i) = widths;
     ppeaks = ppeaks(find(ppeaks(:,2)),:);
    
     %%% refcsatorna peakjei
@@ -2560,6 +2540,10 @@ for i = ivec
         line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
     end
   
+end
+
+if debug
+    assignin('base','allwidths',allwidths);
 end
 
 maxsize = 0;

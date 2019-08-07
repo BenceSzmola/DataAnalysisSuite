@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 07-Aug-2019 14:03:18
+% Last Modified by GUIDE v2.5 07-Aug-2019 15:16:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -61,6 +61,8 @@ eventdet_handles = varargin{1};
 handles.wavenum = 0;
 handles.canum = 1;
 
+set(handles.cadelay,'String',num2str(eventdet_handles.cadelay*1000));
+
 dog = eventdet_handles.dog;
 instpow = eventdet_handles.instpow;
 normed_ca = eventdet_handles.normed_ca;
@@ -88,6 +90,9 @@ ylabel(handles.caaxes,'dF/F');
 title(handles.dogaxes,'Difference of Gaussians');
 title(handles.instpowaxes,'Instantaneous Power');
 title(handles.caaxes,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
+axis(handles.dogaxes,[-inf inf -inf inf]);
+axis(handles.instpowaxes,[-inf inf -inf inf]);
+axis(handles.caaxes,[-inf inf -inf inf]);
 
 % Update handles structure
 guidata(hObject, handles);
@@ -216,8 +221,8 @@ caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale
 if wavenum ~= 0
     ephyscurrev_pos = find(abs(ephysxscala-ephysca(wavenum))<=(1/ephyssrate));
     cacurrev_pos = find(abs(caxscala-ephysca(wavenum))<=(1/casrate));
-    ephyssurround = round(0.25*ephyssrate);
-    casurround = round(0.25*casrate);
+    ephyssurround = round(0.5*ephyssrate);
+    casurround = round(0.5*casrate);
 
     leaddog = leaddog(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
     leadinstpow = leadinstpow(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
@@ -249,6 +254,9 @@ ylabel(handles.caaxes,'dF/F');
 title(handles.dogaxes,'Difference of Gaussians');
 title(handles.instpowaxes,'Instantaneous Power');
 title(handles.caaxes,['Normed Ca2+ ROI #',num2str(canum-1)]);
+axis(handles.dogaxes,[-inf inf -inf inf]);
+axis(handles.instpowaxes,[-inf inf -inf inf]);
+axis(handles.caaxes,[-inf inf -inf inf]);
 
 
 % --- Executes on key press with focus on figure1 and none of its controls.
@@ -270,4 +278,3 @@ switch eventdata.Key
     case 'd'
         nextwave_Callback(hObject,eventdata,handles);
 end
-
