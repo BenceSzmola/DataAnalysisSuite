@@ -1551,6 +1551,8 @@ elseif nargin == 3
         handles.instpow = ephyspower;
         handles.ca_t_scale = ca_t_scale;
         handles.ephys_t_scale = ephys_t_scale;
+        handles.ca_allwidths = ca_allwidths;
+        handles.ephys_allwidths = ephys_allwidths;
         switch ephys_param(16)
             case 1
                 handles.ephysleadch = ephysleadch(1);
@@ -2373,7 +2375,7 @@ end
 %%% SWR detect
 %%%%%%%%%%%%%%
 det_thresh = zeros(length(ivec),2);
-allwidths = zeros(size(indataFull,2),length(ivec));
+allwidths = zeros(size(indataFull,2),2,length(ivec));
 for i = ivec
     currpow = power(:,i);
     if debug
@@ -2494,8 +2496,13 @@ for i = ivec
             assignin('base','highedge',highedge);
         end
         widths(ii) = (highedge - lowedge)/(srate/1000);
+%         allwidths(ii,1,i) = ppeaks(ii,1);
+%         allwidths(ii,2,i) = widths(ii);
         if (widths(ii) < widthlower) || (widths(ii) > widthupper)
             ppeaks(ii,2) = 0;
+        else 
+            preallwidths(ii,1) = ppeaks(ii,1);
+            preallwidths(ii,2) = widths(ii);
         end
         if debug
             assignin('base','widths',widths);
@@ -2503,9 +2510,11 @@ for i = ivec
     end
         
     widths = widths((widths>=widthlower) & (widths<=widthupper));
-    allwidths(1:length(widths),i) = widths;
     ppeaks = ppeaks(find(ppeaks(:,2)),:);
-   
+    
+    leng = length(preallwidths(find(preallwidths(:,2))));
+    allwidths(1:leng,:,i) = preallwidths(find(preallwidths(:,2)),:);
+    
     %%% refcsatorna peakjei
     if i == refch
         refppeaks = ppeaks;
@@ -2532,6 +2541,9 @@ for i = ivec
     for ii = 1:size(ppeaks,1)
         ppeaks(ii,1) = ((ppeaks(ii,1)-1)/srate)+t_scale(1);
     end
+    for ii = 1:size(allwidths,1)
+        allwidths(ii,1,i) = ((allwidths(ii,1,i)-1)/srate)+t_scale(1);
+    end
     if debug
         assignin('base',['peaks', num2str(i)],ppeaks);
     end
@@ -2542,8 +2554,18 @@ for i = ivec
   
 end
 
-if debug
-    assignin('base','allwidths',allwidths);
+maxlen = 0;
+for i = 1:size(allwidths,3)
+    if length(nonzeros(allwidths(:,2,i))) > maxlen
+        maxlen = length(nonzeros(allwidths(:,2,i)));
+    end
+end
+allwidths(maxlen+1:end,:,:) = [];
+
+if debug && caorephys == 1
+    assignin('base','ephysallwidths',allwidths);
+elseif debug && caorephys == 2
+    assignin('base','caallwidths',allwidths);
 end
 
 maxsize = 0;

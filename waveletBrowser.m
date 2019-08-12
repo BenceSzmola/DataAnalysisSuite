@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 07-Aug-2019 15:16:11
+% Last Modified by GUIDE v2.5 12-Aug-2019 17:09:05
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -193,7 +193,7 @@ guidata(hObject,handles);
 showave(hObject,handles);
 
 
-%%% ---------------- wavelet plotter
+%%% --------------- wavelet plotter
 function showave(hObject,handles)
 
 eventdet_handles = handles.evdet_hdls;
@@ -207,6 +207,8 @@ ephysca = eventdet_handles.ephysca;
 ephysleadch = eventdet_handles.ephysleadch;
 ephyssrate = eventdet_handles.ephyssrate;
 casrate = eventdet_handles.casrate;
+ephysaw = eventdet_handles.ephys_allwidths;
+caaw = eventdet_handles.ca_allwidths;
 
 wavenum = handles.wavenum;
 canum = handles.canum;
@@ -230,17 +232,28 @@ if wavenum ~= 0
 
     ephysxscala = ephysxscala(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
     caxscala = caxscala(cacurrev_pos-casurround:cacurrev_pos+casurround);
+    
+    set(handles.evtstamp,'String',num2str(ephysca(wavenum)*1000));
+    
+    ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
+    capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < 0.3) & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
+    if ~isempty(capos)
+        capos = capos(1);
+    end
+    set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
+    set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
 end
 
 linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
-plot(handles.dogaxes,ephysxscala*1000,leaddog);
-plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
-plot(handles.caaxes,caxscala*1000,currca);
+dogplot = plot(handles.dogaxes,ephysxscala*1000,leaddog);
+instpowplot = plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
+caplot = plot(handles.caaxes,caxscala*1000,currca);
 if wavenum ~= 0
     line(handles.dogaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(leaddog) max(leaddog)],'Color','r');
     line(handles.instpowaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(leadinstpow) max(leadinstpow)],'Color','r');
     try
-        line(handles.caaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(currca) max(currca)],'Color','r');
+%         line(handles.caaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(currca) max(currca)],'Color','r');
+        line(handles.caaxes,[caaw(capos,1,canum)*1000 caaw(capos,1,canum)*1000],[min(currca) max(currca)],'Color','r');
     catch
 
     end
@@ -257,6 +270,12 @@ title(handles.caaxes,['Normed Ca2+ ROI #',num2str(canum-1)]);
 axis(handles.dogaxes,[-inf inf -inf inf]);
 axis(handles.instpowaxes,[-inf inf -inf inf]);
 axis(handles.caaxes,[-inf inf -inf inf]);
+
+handles.dogplot = dogplot;
+handles.instpowplot = instpowplot;
+handles.caplot = caplot;
+
+guidata(hObject,handles);
 
 
 % --- Executes on key press with focus on figure1 and none of its controls.
@@ -278,3 +297,52 @@ switch eventdata.Key
     case 'd'
         nextwave_Callback(hObject,eventdata,handles);
 end
+
+
+% --------------------------------------------------------------------
+function restoreview_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to restoreview (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+showave(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function annowin_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to annowin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% annowin = figure('Name','Annotation Window','NumberTitle','off');
+% annowin.ToolBar = 'none';
+% 
+% dogsub = subplot(3,1,1);
+% dogx = get(handles.dogplot,'XData');
+% dogy = get(handles.dogplot,'YData');
+% plot(dogx,dogy);
+% instpowsub = subplot(3,1,2);
+% instpowx = get(handles.instpowplot,'XData');
+% instpowy = get(handles.instpowplot,'YData');
+% plot(instpowx,instpowy);
+% casub = subplot(3,1,3);
+% cax = get(handles.caplot,'XData');
+% cay = get(handles.caplot,'YData');
+% plot(cax,cay);
+% 
+% xlabel(dogsub,'Time(ms)');
+% ylabel(dogsub,'Voltage(\muV)');
+% xlabel(instpowsub,'Time(ms)');
+% ylabel(instpowsub,'Power(\muV^2)');
+% xlabel(casub,'Time(ms)');
+% ylabel(casub,'dF/F');
+% title(dogsub,'Difference of Gaussians');
+% title(instpowsub,'Instantaneous Power');
+% title(casub,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
+% axis(dogsub,[-inf inf -inf inf]);
+% axis(instpowsub,[-inf inf -inf inf]);
+% axis(casub,[-inf inf -inf inf]);
+% 
+% dogsub.Toolbar.Visible = 'off';
+% instpowsub.Toolbar.Visible = 'off';
+% casub.Toolbar.Visible = 'off';
