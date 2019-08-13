@@ -195,7 +195,7 @@ guidata(hObject,handles);
 showave(hObject,handles);
 
 
-%%% --------------- wavelet plotter
+% % % --------------- wavelet plotter
 function showave(hObject,handles)
 
 eventdet_handles = handles.evdet_hdls;
@@ -353,20 +353,23 @@ dogx = get(handles.dogplot,'XData');
 dogy = get(handles.dogplot,'YData');
 annot_dog = plot(dogx,dogy);
 line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
+drawscalebar(dogsub,dogx,dogy);
 
 instpowsub = subplot(3,1,2);
 instpowx = get(handles.instpowplot,'XData');
 instpowy = get(handles.instpowplot,'YData');
 annot_instpow = plot(instpowx,instpowy);
 line(instpowsub,handles.instpowline.XData,handles.instpowline.YData,'Color','r');
-casub = subplot(3,1,3);
+drawscalebar(instpowsub,instpowx,instpowy);
 
+casub = subplot(3,1,3);
 cax = get(handles.caplot,'XData');
 cay = get(handles.caplot,'YData');
 annot_ca = plot(cax,cay);
 if handles.caline ~= 0
     line(casub,handles.caline.XData,handles.caline.YData,'Color','r');
 end
+drawscalebar(casub,cax,cay);
 
 xlabel(dogsub,'Time(ms)');
 ylabel(dogsub,'Voltage(\muV)');
@@ -384,3 +387,21 @@ axis(casub,[-inf inf -inf inf]);
 dogsub.Toolbar.Visible = 'off';
 instpowsub.Toolbar.Visible = 'off';
 casub.Toolbar.Visible = 'off';
+
+
+% % % -------------- Scalebar maker
+function drawscalebar(axes,xdata,ydata)
+
+xlen = xdata(end) - xdata(1);
+ylen = max(ydata) - min(ydata);
+
+hbar_orig = xdata(1) + xlen*0.85;
+hbar_end = hbar_orig + xlen*0.05;
+
+vbar_orig = min(ydata) + ylen*0.15;
+vbar_end = vbar_orig + ylen*0.25;
+
+line(axes,[hbar_orig hbar_end],[vbar_orig vbar_orig],'Color','k','LineWidth',1.5);
+line(axes,[hbar_end hbar_end],[vbar_orig vbar_end],'Color','k','LineWidth',1.5);
+text(hbar_orig,vbar_orig-ylen*0.1,[num2str(hbar_end-hbar_orig),' ms'],'FontSize',8);
+text(hbar_end+10,vbar_orig+(vbar_end-vbar_orig)*0.5,[num2str(vbar_end-vbar_orig),'\muV'],'FontSize',8);
