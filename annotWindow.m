@@ -55,6 +55,16 @@ function annotWindow_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for annotWindow
 handles.output = hObject;
 
+wavelet_hndls = varargin{1};
+
+% copyobj(wavelet_hndls.dogplot,handles.dogaxes);
+handles.dogaxes = copyobj(wavelet_hndls.dogaxes,handles.figure1);
+handles.instpowaxes = copyobj(wavelet_hndls.instpowaxes,handles.figure1);
+handles.caaxes = copyobj(wavelet_hndls.caaxes,handles.figure1);
+set(handles.dogaxes,'Position',[0.1 0.75 0.8 0.2]);
+set(handles.instpowaxes,'Position',[0.1 0.425 0.8 0.2]);
+set(handles.caaxes,'Position',[0.1 0.1 0.8 0.2]);
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -79,4 +89,4 @@ function copyfig_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-print('-clipboard','-dbitmap');
+print('-clipboard','-dmeta');

@@ -74,8 +74,10 @@ ephysleadch = eventdet_handles.ephysleadch;
 leaddog = dog(:,ephysleadch);
 leadinstpow = instpow(:,ephysleadch);
 
-ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
-caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
+ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):...
+    (ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
+caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):...
+    (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
 
 linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
 plot(handles.dogaxes,ephysxscala*1000,leaddog);
@@ -217,8 +219,10 @@ leaddog = dog(:,ephysleadch);
 leadinstpow = instpow(:,ephysleadch);
 currca = normed_ca(canum,:);
 
-ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):(ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
-caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):(ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
+ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):...
+    (ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
+caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):...
+    (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
 
 if wavenum ~= 0
     ephyscurrev_pos = find(abs(ephysxscala-ephysca(wavenum))<=(1/ephyssrate));
@@ -249,13 +253,15 @@ dogplot = plot(handles.dogaxes,ephysxscala*1000,leaddog);
 instpowplot = plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
 caplot = plot(handles.caaxes,caxscala*1000,currca);
 if wavenum ~= 0
-    line(handles.dogaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(leaddog) max(leaddog)],'Color','r');
-    line(handles.instpowaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(leadinstpow) max(leadinstpow)],'Color','r');
+    dogline = line(handles.dogaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],...
+        [min(leaddog) max(leaddog)],'Color','r');
+    instpowline = line(handles.instpowaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],...
+        [min(leadinstpow) max(leadinstpow)],'Color','r');
     try
-%         line(handles.caaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],[min(currca) max(currca)],'Color','r');
-        line(handles.caaxes,[caaw(capos,1,canum)*1000 caaw(capos,1,canum)*1000],[min(currca) max(currca)],'Color','r');
+        caline = line(handles.caaxes,[caaw(capos,1,canum)*1000 caaw(capos,1,canum)*1000],...
+            [min(currca) max(currca)],'Color','r');
     catch
-
+        caline = 0;
     end
 end
 xlabel(handles.dogaxes,'Time(ms)');
@@ -272,8 +278,11 @@ axis(handles.instpowaxes,[-inf inf -inf inf]);
 axis(handles.caaxes,[-inf inf -inf inf]);
 
 handles.dogplot = dogplot;
+handles.dogline = dogline;
 handles.instpowplot = instpowplot;
+handles.instpowline = instpowline;
 handles.caplot = caplot;
+handles.caline = caline;
 
 guidata(hObject,handles);
 
@@ -314,35 +323,64 @@ function annowin_ClickedCallback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% annowin = figure('Name','Annotation Window','NumberTitle','off');
-% annowin.ToolBar = 'none';
-% 
-% dogsub = subplot(3,1,1);
-% dogx = get(handles.dogplot,'XData');
-% dogy = get(handles.dogplot,'YData');
-% plot(dogx,dogy);
-% instpowsub = subplot(3,1,2);
-% instpowx = get(handles.instpowplot,'XData');
-% instpowy = get(handles.instpowplot,'YData');
-% plot(instpowx,instpowy);
-% casub = subplot(3,1,3);
-% cax = get(handles.caplot,'XData');
-% cay = get(handles.caplot,'YData');
-% plot(cax,cay);
-% 
-% xlabel(dogsub,'Time(ms)');
-% ylabel(dogsub,'Voltage(\muV)');
-% xlabel(instpowsub,'Time(ms)');
-% ylabel(instpowsub,'Power(\muV^2)');
-% xlabel(casub,'Time(ms)');
-% ylabel(casub,'dF/F');
-% title(dogsub,'Difference of Gaussians');
-% title(instpowsub,'Instantaneous Power');
-% title(casub,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
-% axis(dogsub,[-inf inf -inf inf]);
-% axis(instpowsub,[-inf inf -inf inf]);
-% axis(casub,[-inf inf -inf inf]);
-% 
-% dogsub.Toolbar.Visible = 'off';
-% instpowsub.Toolbar.Visible = 'off';
-% casub.Toolbar.Visible = 'off';
+% annotWindow(handles);
+
+annowin = figure('Name','Annotation Window','NumberTitle','off');
+annowin.ToolBar = 'figure';
+annowin.Units = 'normalized';
+
+tb = findall(annowin,'Type','uitoolbar');
+
+copy_button = uipushtool(tb,'TooltipString','Copy figure',...
+                 'ClickedCallback','print(''-clipboard'',''-dmeta'')',...
+                 'Separator','on');
+             
+[img,map] = imread(fullfile(matlabroot,...
+'toolbox','matlab','icons','pagesicon.gif'));
+icon = ind2rgb(img,map);
+
+copy_button.CData = icon;
+
+% annot_dogaxes = copyobj(handles.dogaxes,annowin);
+% annot_instpowaxes = copyobj(handles.instpowaxes,annowin);
+% annot_caaxes = copyobj(handles.caaxes,annowin);
+% set(annot_dogaxes,'Position',[0.1 0.75 0.8 0.2]);
+% set(annot_instpowaxes,'Position',[0.1 0.425 0.8 0.2]);
+% set(annot_caaxes,'Position',[0.1 0.1 0.8 0.2]);
+
+dogsub = subplot(3,1,1);
+dogx = get(handles.dogplot,'XData');
+dogy = get(handles.dogplot,'YData');
+annot_dog = plot(dogx,dogy);
+line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
+
+instpowsub = subplot(3,1,2);
+instpowx = get(handles.instpowplot,'XData');
+instpowy = get(handles.instpowplot,'YData');
+annot_instpow = plot(instpowx,instpowy);
+line(instpowsub,handles.instpowline.XData,handles.instpowline.YData,'Color','r');
+casub = subplot(3,1,3);
+
+cax = get(handles.caplot,'XData');
+cay = get(handles.caplot,'YData');
+annot_ca = plot(cax,cay);
+if handles.caline ~= 0
+    line(casub,handles.caline.XData,handles.caline.YData,'Color','r');
+end
+
+xlabel(dogsub,'Time(ms)');
+ylabel(dogsub,'Voltage(\muV)');
+xlabel(instpowsub,'Time(ms)');
+ylabel(instpowsub,'Power(\muV^2)');
+xlabel(casub,'Time(ms)');
+ylabel(casub,'dF/F');
+title(dogsub,'Difference of Gaussians');
+title(instpowsub,'Instantaneous Power');
+title(casub,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
+axis(dogsub,[-inf inf -inf inf]);
+axis(instpowsub,[-inf inf -inf inf]);
+axis(casub,[-inf inf -inf inf]);
+
+dogsub.Toolbar.Visible = 'off';
+instpowsub.Toolbar.Visible = 'off';
+casub.Toolbar.Visible = 'off';
