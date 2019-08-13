@@ -325,6 +325,10 @@ function annowin_ClickedCallback(hObject, eventdata, handles)
 
 % annotWindow(handles);
 
+opts.Interpreter = 'tex';
+scalebarspecs = inputdlg({'Time bar size(ms)','DoG bar size(\muV)','Instpow bar size(\muV^2)',...
+    'Ca2+ bar size(dF/F)'},'Scalebar settings',[1 15],{'50','10','2','0.1'},opts);
+
 annowin = figure('Name','Annotation Window','NumberTitle','off');
 annowin.ToolBar = 'figure';
 annowin.Units = 'normalized';
@@ -353,14 +357,14 @@ dogx = get(handles.dogplot,'XData');
 dogy = get(handles.dogplot,'YData');
 annot_dog = plot(dogx,dogy);
 line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
-drawscalebar(dogsub,dogx,dogy);
+drawscalebar(dogsub,dogx,dogy,1,scalebarspecs);
 
 instpowsub = subplot(3,1,2);
 instpowx = get(handles.instpowplot,'XData');
 instpowy = get(handles.instpowplot,'YData');
 annot_instpow = plot(instpowx,instpowy);
 line(instpowsub,handles.instpowline.XData,handles.instpowline.YData,'Color','r');
-drawscalebar(instpowsub,instpowx,instpowy);
+drawscalebar(instpowsub,instpowx,instpowy,2,scalebarspecs);
 
 casub = subplot(3,1,3);
 cax = get(handles.caplot,'XData');
@@ -369,7 +373,7 @@ annot_ca = plot(cax,cay);
 if handles.caline ~= 0
     line(casub,handles.caline.XData,handles.caline.YData,'Color','r');
 end
-drawscalebar(casub,cax,cay);
+drawscalebar(casub,cax,cay,3,scalebarspecs);
 
 xlabel(dogsub,'Time(ms)');
 ylabel(dogsub,'Voltage(\muV)');
@@ -390,18 +394,29 @@ casub.Toolbar.Visible = 'off';
 
 
 % % % -------------- Scalebar maker
-function drawscalebar(axes,xdata,ydata)
+function drawscalebar(axes,xdata,ydata,datatype,scalebarspecs)
 
 xlen = xdata(end) - xdata(1);
 ylen = max(ydata) - min(ydata);
 
 hbar_orig = xdata(1) + xlen*0.85;
-hbar_end = hbar_orig + xlen*0.05;
+hbar_end = hbar_orig + str2double(scalebarspecs{1});
 
 vbar_orig = min(ydata) + ylen*0.15;
-vbar_end = vbar_orig + ylen*0.25;
+
+switch datatype
+    case 1
+        vbar_end = vbar_orig + str2double(scalebarspecs{2});
+        yunit = ' \muV';
+    case 2
+        yunit = ' \muV^2';
+        vbar_end = vbar_orig + str2double(scalebarspecs{3});
+    case 3
+        yunit = ' dF/F';
+        vbar_end = vbar_orig + str2double(scalebarspecs{4});
+end
 
 line(axes,[hbar_orig hbar_end],[vbar_orig vbar_orig],'Color','k','LineWidth',1.5);
 line(axes,[hbar_end hbar_end],[vbar_orig vbar_end],'Color','k','LineWidth',1.5);
-text(hbar_orig,vbar_orig-ylen*0.1,[num2str(hbar_end-hbar_orig),' ms'],'FontSize',8);
-text(hbar_end+10,vbar_orig+(vbar_end-vbar_orig)*0.5,[num2str(vbar_end-vbar_orig),'\muV'],'FontSize',8);
+text(hbar_orig,vbar_orig-ylen*0.1,[scalebarspecs{1},' ms'],'FontSize',8);
+text(hbar_end+10,vbar_orig+(vbar_end-vbar_orig)*0.5,[scalebarspecs{datatype+1},yunit],'FontSize',8);
