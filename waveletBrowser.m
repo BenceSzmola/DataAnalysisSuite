@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 12-Aug-2019 17:09:05
+% Last Modified by GUIDE v2.5 13-Aug-2019 17:23:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -240,7 +240,12 @@ if wavenum ~= 0
     set(handles.evtstamp,'String',num2str(ephysca(wavenum)*1000));
     
     ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
+    display(ephyspos)
+    if ~isempty(ephyspos)
+        ephyspos = ephyspos(1);
+    end
     capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < 0.3) & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
+    display(capos)
     if ~isempty(capos)
         capos = capos(1);
     end
@@ -277,12 +282,14 @@ axis(handles.dogaxes,[-inf inf -inf inf]);
 axis(handles.instpowaxes,[-inf inf -inf inf]);
 axis(handles.caaxes,[-inf inf -inf inf]);
 
-handles.dogplot = dogplot;
-handles.dogline = dogline;
-handles.instpowplot = instpowplot;
-handles.instpowline = instpowline;
-handles.caplot = caplot;
-handles.caline = caline;
+if wavenum ~= 0
+    handles.dogplot = dogplot;
+    handles.dogline = dogline;
+    handles.instpowplot = instpowplot;
+    handles.instpowline = instpowline;
+    handles.caplot = caplot;
+    handles.caline = caline;
+end
 
 guidata(hObject,handles);
 

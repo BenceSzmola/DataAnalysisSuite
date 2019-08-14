@@ -2475,6 +2475,7 @@ for i = ivec
     
     %%% Hossz alapján kiszûrés
     widths = zeros(size(ppeaks,1),1);
+    preallwidths = [];
     for ii = 1:size(ppeaks,1)
         iii = ppeaks(ii,1);
         while currpow(iii) > ripsd
@@ -2501,8 +2502,9 @@ for i = ivec
         if (widths(ii) < widthlower) || (widths(ii) > widthupper)
             ppeaks(ii,2) = 0;
         else 
-            preallwidths(ii,1) = ppeaks(ii,1);
-            preallwidths(ii,2) = widths(ii);
+%             preallwidths(ii,1) = ppeaks(ii,1);
+%             preallwidths(ii,2) = widths(ii);
+            preallwidths = cat(1,preallwidths,[ppeaks(ii,1),widths(ii)]);
         end
         if debug
             assignin('base','widths',widths);
