@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 13-Aug-2019 17:23:46
+% Last Modified by GUIDE v2.5 14-Aug-2019 11:02:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,7 +55,7 @@ function waveletBrowser_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for waveletBrowser
 handles.output = hObject;
 
-%%% initial plotting
+% % % initial plotting
 handles.evdet_hdls = varargin{1};
 eventdet_handles = varargin{1};
 handles.wavenum = 0;
@@ -68,7 +68,6 @@ instpow = eventdet_handles.instpow;
 normed_ca = eventdet_handles.normed_ca;
 ephys_t_scale = eventdet_handles.ephys_t_scale;
 ca_t_scale = eventdet_handles.ca_t_scale;
-ephysca = eventdet_handles.ephysca;
 ephysleadch = eventdet_handles.ephysleadch;
 
 leaddog = dog(:,ephysleadch);
@@ -164,12 +163,42 @@ function prevca_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 normed_ca = handles.evdet_hdls.normed_ca;
+per_roi_det = handles.evdet_hdls.per_roi_det;
+supreme = handles.evdet_hdls.supreme;
+cadelay = handles.evdet_hdls.cadelay;
+ephysca = handles.evdet_hdls.ephysca;
+wavenum = handles.wavenum;
+canum = handles.canum;
 
-if handles.canum-1 >= 1
-    handles.canum = handles.canum-1;
-else
-    handles.canum = size(normed_ca,1);
+onlysim = get(handles.onlysim_but,'Value');
+
+switch onlysim
+    case 1
+        switch supreme
+            case 1
+                validcanums = ceil(find(((per_roi_det-ephysca(wavenum)) < cadelay) ...
+                & ((per_roi_det-ephysca(wavenum)) >= 0))/size(per_roi_det,1));
+            case 2
+                validcanums = ceil(find(abs(per_roi_det-ephysca(wavenum)) < 0.01)...
+                    /size(per_roi_det,1));
+        end
+    case 0
+        validcanums = 1:size(normed_ca,1);
 end
+
+validpos = find(validcanums==canum);
+
+if ismember(canum-1,validcanums)
+    canum = canum-1;
+elseif onlysim == 0
+    canum = size(normed_ca,1);
+elseif onlysim == 1 && (validpos-1 > 0)
+    canum = validcanums(validpos-1);
+elseif onlysim == 1 && (validpos-1 <= 0)
+    canum = validcanums(end);
+end
+
+handles.canum = canum;
 
 guidata(hObject,handles);
 
@@ -182,13 +211,55 @@ function nextca_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-normed_ca = handles.evdet_hdls.normed_ca;
+% normed_ca = handles.evdet_hdls.normed_ca;
+% 
+% if handles.canum+1 <= size(normed_ca,1)
+%     handles.canum = handles.canum+1;
+% else
+%     handles.canum = 1;
+% end
+% 
+% guidata(hObject,handles);
+% 
+% showave(hObject,handles);
 
-if handles.canum+1 <= size(normed_ca,1)
-    handles.canum = handles.canum+1;
-else
-    handles.canum = 1;
+normed_ca = handles.evdet_hdls.normed_ca;
+per_roi_det = handles.evdet_hdls.per_roi_det;
+supreme = handles.evdet_hdls.supreme;
+cadelay = handles.evdet_hdls.cadelay;
+ephysca = handles.evdet_hdls.ephysca;
+wavenum = handles.wavenum;
+canum = handles.canum;
+
+onlysim = get(handles.onlysim_but,'Value');
+
+switch onlysim
+    case 1
+        switch supreme
+            case 1
+                validcanums = ceil(find(((per_roi_det-ephysca(wavenum)) < cadelay) ...
+                & ((per_roi_det-ephysca(wavenum)) >= 0))/size(per_roi_det,1));
+            case 2
+                validcanums = ceil(find(abs(per_roi_det-ephysca(wavenum)) < 0.01)...
+                    /size(per_roi_det,1));
+        end
+    case 0
+        validcanums = 1:size(normed_ca,1);
 end
+
+validpos = find(validcanums==canum);
+
+if ismember(canum+1,validcanums)
+    canum = canum+1;
+elseif onlysim == 0
+    canum = validcanums(1);
+elseif onlysim == 1 && (validpos+1 <= length(validcanums))
+    canum = validcanums(validpos+1);
+elseif onlysim == 1 && (validpos+1 > length(validcanums))
+    canum = validcanums(1);
+end
+
+handles.canum = canum;
 
 guidata(hObject,handles);
 
@@ -211,6 +282,8 @@ ephyssrate = eventdet_handles.ephyssrate;
 casrate = eventdet_handles.casrate;
 ephysaw = eventdet_handles.ephys_allwidths;
 caaw = eventdet_handles.ca_allwidths;
+supreme = eventdet_handles.supreme;
+cadelay = eventdet_handles.cadelay;
 
 wavenum = handles.wavenum;
 canum = handles.canum;
@@ -239,16 +312,29 @@ if wavenum ~= 0
     
     set(handles.evtstamp,'String',num2str(ephysca(wavenum)*1000));
     
-    ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
-    display(ephyspos)
-    if ~isempty(ephyspos)
-        ephyspos = ephyspos(1);
+    switch supreme
+        case 1
+            ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
+            if ~isempty(ephyspos)
+                ephyspos = ephyspos(1);
+            end
+            capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < cadelay) ...
+                & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
+            if ~isempty(capos)
+                capos = capos(1);
+            end
+        case 2
+            ephyspos = find(((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) >= -cadelay) ...
+                & ((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) <= 0 ));
+            if ~isempty(ephyspos)
+                ephyspos = ephyspos(1);
+            end
+            capos = find(abs(caaw(:,1,canum)-ephysca(wavenum)) < 0.01);
+            if ~isempty(capos)
+                capos = capos(1);
+            end
     end
-    capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < 0.3) & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
-    display(capos)
-    if ~isempty(capos)
-        capos = capos(1);
-    end
+
     set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
     set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
 end
@@ -427,3 +513,36 @@ line(axes,[hbar_orig hbar_end],[vbar_orig vbar_orig],'Color','k','LineWidth',1.5
 line(axes,[hbar_end hbar_end],[vbar_orig vbar_end],'Color','k','LineWidth',1.5);
 text(hbar_orig,vbar_orig-ylen*0.1,[scalebarspecs{1},' ms'],'FontSize',8);
 text(hbar_end+10,vbar_orig+(vbar_end-vbar_orig)*0.5,[scalebarspecs{datatype+1},yunit],'FontSize',8);
+
+
+% --- Executes on button press in onlysim_but.
+function onlysim_but_Callback(hObject, eventdata, handles)
+% hObject    handle to onlysim_but (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of onlysim_but
+
+state = get(hObject,'Value');
+
+wavenum = handles.wavenum;
+per_roi_det = handles.evdet_hdls.per_roi_det;
+cadelay = handles.evdet_hdls.cadelay;
+ephysca = handles.evdet_hdls.ephysca;
+supreme = handles.evdet_hdls.supreme;
+
+if state
+    switch supreme
+        case 1
+            validcanums = ceil(find(((per_roi_det-ephysca(wavenum)) < cadelay) ...
+            & ((per_roi_det-ephysca(wavenum)) >= 0))/size(per_roi_det,1));
+        case 2
+            validcanums = ceil(find(abs(per_roi_det-ephysca(wavenum)) < 0.01)...
+                /size(per_roi_det,1));
+    end
+
+    handles.canum = validcanums(1);
+    guidata(hObject,handles);
+
+    showave(hObject,handles);
+end

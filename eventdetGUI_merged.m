@@ -1619,6 +1619,7 @@ elseif nargin == 3
         set(handles.progress_tag,'String','Creating GORs');
         handles.ephysca = ephysca;
         handles.cadelay = ephyvsca_tolerance;
+        handles.supreme = supreme;
         guidata(hObject,handles);
         
         norm_ca_gors = [];
@@ -1784,7 +1785,13 @@ elseif nargin == 3
         
         per_roi_det = zeros(size(ephysca,1),1,size(cadata,1));
         for i = 1:size(ephysca,1)
-            cainds = find(abs(ca_allpeaksT-ephysca(i))<ephyvsca_tolerance);
+            switch supreme
+                case 1
+                    cainds = find(((ca_allpeaksT-ephysca(i))<=ephyvsca_tolerance)...
+                        & ((ca_allpeaksT-ephysca(i)) >= 0));
+                case 2
+                    cainds = find(abs(ca_allpeaksT-ephysca(i))<0.01);                    
+            end
             [num,type,roi] = ind2sub(size(ca_allpeaksT),cainds);
             loc = [num,type,roi];
             if debug
@@ -1792,16 +1799,22 @@ elseif nargin == 3
             end
             for j = 1:size(loc,1)
                 if loc(j,2)==1
-                    per_roi_det(i,1,loc(j,3)) = ephysca(i);
-                    break
+                    ii = length(nonzeros(per_roi_det(:,1,loc(j,3))))+1;
+                    per_roi_det(ii,1,loc(j,3)) = ephysca(i);
                 end
             end
         end
+        
+        handles.per_roi_det = per_roi_det;
+        guidata(hObject,handles);
+        
         close(wb);
+        
         if debug
             assignin('base','ephysca',ephysca);
             assignin('base','per_roi_det',per_roi_det);
         end
+        
         %%% Roionként detection gor
         roi_det_gor = [];
         for i = 1:size(per_roi_det,3)
@@ -2511,7 +2524,7 @@ for i = ivec
         end
     end
         
-    widths = widths((widths>=widthlower) & (widths<=widthupper));
+%     widths = widths((widths>=widthlower) & (widths<=widthupper));
     ppeaks = ppeaks(find(ppeaks(:,2)),:);
     
     leng = length(preallwidths(find(preallwidths(:,2))));
@@ -2616,14 +2629,14 @@ if (size(allpeaksDP,1) > 1) && (caorephys ~= 2)
         assignin('base','consens',consens);
     end
     consensT = consens;
-    consensT(:,1) = (consensT(:,1)/srate)+t_scale(1);
+    consensT(:,1) = ((consensT(:,1))/srate)+t_scale(1);
     
     if debug
         assignin('base','consensT',consensT);
     end
     
     allpeaksT = allpeaksDP;
-    allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
+    allpeaksT(:,1,:) = ((allpeaksT(:,1,:))/srate)+t_scale(1);
     if debug
         assignin('base','allpeaksT',allpeaksT);
     end
@@ -2659,7 +2672,7 @@ else
     consensT = 0;
     leadchan = zeros(1,2);
     allpeaksT = allpeaksDP;
-    allpeaksT(:,1,:) = (allpeaksT(:,1,:)/srate)+t_scale(1);
+    allpeaksT(:,1,:) = ((allpeaksT(:,1,:))/srate)+t_scale(1);
     if debug
         assignin('base','allpeaksT',allpeaksT)
     end
