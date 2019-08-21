@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 14-Aug-2019 11:02:31
+% Last Modified by GUIDE v2.5 21-Aug-2019 11:02:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,6 +59,20 @@ handles.output = hObject;
 handles.evdet_hdls = varargin{1};
 eventdet_handles = varargin{1};
 handles.wavenum = 0;
+% simultan = eventdet_handles.simultan;
+% caorephys = eventdet_handles.caorephys;
+% 
+% switch simultan
+%     case 0
+%         switch caorephys
+%             case 1
+%             
+%             case 2
+%                 handles.canum = 1;
+%         end
+%     case 1
+%         handles.canum = 1;
+% end
 handles.canum = 1;
 
 set(handles.cadelay,'String',num2str(eventdet_handles.cadelay*1000));
@@ -128,8 +142,15 @@ else
     handles.wavenum = 1;
 end
 
+set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',num2str(length(ephysca))]);
+
 % Update handles structure
 guidata(hObject, handles);
+
+if get(handles.onlysim_but,'Value')
+    onlysim_but_Callback(handles.onlysim_but,eventdata,handles);
+    handles = guidata(hObject);
+end
 
 showave(hObject,handles);
 
@@ -150,8 +171,15 @@ else
     handles.wavenum = length(ephysca);
 end
 
+set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',num2str(length(ephysca))]);
+
 % Update handles structure
 guidata(hObject, handles);
+
+if get(handles.onlysim_but,'Value')
+    onlysim_but_Callback(handles.onlysim_but,eventdata,handles);
+    handles = guidata(hObject);
+end
 
 showave(hObject,handles);
 
@@ -187,6 +215,7 @@ switch onlysim
 end
 
 validpos = find(validcanums==canum);
+validpos = validpos(1);
 
 if ismember(canum-1,validcanums)
     canum = canum-1;
@@ -248,6 +277,7 @@ switch onlysim
 end
 
 validpos = find(validcanums==canum);
+validpos = validpos(1);
 
 if ismember(canum+1,validcanums)
     canum = canum+1;
@@ -446,6 +476,7 @@ copy_button.CData = icon;
 % set(annot_caaxes,'Position',[0.1 0.1 0.8 0.2]);
 
 dogsub = subplot(3,1,1);
+disableDefaultInteractivity(dogsub);
 dogx = get(handles.dogplot,'XData');
 dogy = get(handles.dogplot,'YData');
 annot_dog = plot(dogx,dogy);
@@ -453,6 +484,7 @@ line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
 drawscalebar(dogsub,dogx,dogy,1,scalebarspecs);
 
 instpowsub = subplot(3,1,2);
+disableDefaultInteractivity(instpowsub);
 instpowx = get(handles.instpowplot,'XData');
 instpowy = get(handles.instpowplot,'YData');
 annot_instpow = plot(instpowx,instpowy);
@@ -460,6 +492,7 @@ line(instpowsub,handles.instpowline.XData,handles.instpowline.YData,'Color','r')
 drawscalebar(instpowsub,instpowx,instpowy,2,scalebarspecs);
 
 casub = subplot(3,1,3);
+disableDefaultInteractivity(casub);
 cax = get(handles.caplot,'XData');
 cay = get(handles.caplot,'YData');
 annot_ca = plot(cax,cay);
@@ -495,7 +528,7 @@ ylen = max(ydata) - min(ydata);
 hbar_orig = xdata(1) + xlen*0.85;
 hbar_end = hbar_orig + str2double(scalebarspecs{1});
 
-vbar_orig = min(ydata) + ylen*0.15;
+vbar_orig = min(ydata) + ylen*0.2;
 
 switch datatype
     case 1
@@ -542,7 +575,9 @@ if state
     end
 
     handles.canum = validcanums(1);
-    guidata(hObject,handles);
+%     guidata(hObject,handles);
 
     showave(hObject,handles);
 end
+
+guidata(hObject,handles);
