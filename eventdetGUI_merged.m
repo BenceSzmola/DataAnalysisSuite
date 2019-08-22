@@ -1559,6 +1559,8 @@ elseif nargin == 3
             case 2
                 handles.ephysleadch = ephysleadch(2);
         end
+        handles.simult = 1;
+        handles.caorephys = 0;
         guidata(hObject,handles);
         assignin('base','guistuff',handles);
 
@@ -1620,6 +1622,8 @@ elseif nargin == 3
         handles.ephysca = ephysca;
         handles.cadelay = ephyvsca_tolerance;
         handles.supreme = supreme;
+        handles.cacons_onlyT = cacons_onlyT;
+        handles.ephyscons_onlyT = ephyscons_onlyT(~isnan(ephyscons_onlyT));
         guidata(hObject,handles);
         
         norm_ca_gors = [];
@@ -2523,12 +2527,18 @@ for i = ivec
             assignin('base','widths',widths);
         end
     end
+    
+    if debug
+        assignin('base','preallwidths',preallwidths);
+    end
         
 %     widths = widths((widths>=widthlower) & (widths<=widthupper));
     ppeaks = ppeaks(find(ppeaks(:,2)),:);
     
-    leng = length(preallwidths(find(preallwidths(:,2))));
-    allwidths(1:leng,:,i) = preallwidths(find(preallwidths(:,2)),:);
+    if ~isempty(preallwidths)
+        leng = length(preallwidths(find(preallwidths(:,2))));
+        allwidths(1:leng,:,i) = preallwidths(find(preallwidths(:,2)),:);
+    end
     
     %%% refcsatorna peakjei
     if i == refch
