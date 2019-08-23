@@ -1303,6 +1303,48 @@ elseif nargin == 3
 %         handles = guidata(hObject);
         set(handles.progress_tag,'String','Writing CSV');
         guidata(hObject,handles);
+        
+        switch caorephys
+            case 1
+                handles.ephyssrate = true_srate;
+                handles.dog = dogged;
+                handles.instpow = ephyspower;
+                handles.ephys_t_scale = t_scale;
+                handles.ephys_allwidths = allwidths;
+                switch ephys_param(16)
+                    case 1
+                        handles.ephysleadch = ephysleadch(1);
+                    case 2
+                        handles.ephysleadch = ephysleadch(2);
+                end
+                handles.ephyscons_onlyT = ephyscons_onlyT;
+                handles.caorephys = 1;
+            case 2
+                handles.casrate = true_srate;
+                handles.normed_ca = normed_ca;
+                handles.ca_t_scale = t_scale;
+                handles.ca_allwidths = allwidths;
+                handles.caorephys = 2;
+                temp = zeros(size(allpeaksT,3),size(allpeaksT,1));
+                maxlen = 0;
+                for i = 1:size(allpeaksT,3)
+                    temp1 = allpeaksT(:,1,i);
+                    temp1 = temp1(:);
+                    temp1 = temp1(temp1~=0);
+                    temp1 = temp1(~isnan(temp1));
+                    temp(i,1:length(temp1)) = temp1;
+                    if length(temp1) > maxlen 
+                        maxlen = length(temp1);
+                    end
+                end
+                temp = temp(:,1:maxlen);
+                handles.cacons_onlyT = temp;
+        end
+        handles.simult = 0;
+        guidata(hObject,handles);
+        if debug
+            assignin('base','guistuff',handles);
+        end
 
         %%% CSV irás
         [csvname,path] = uiputfile('*.csv','Name CSV!');
@@ -1312,7 +1354,6 @@ elseif nargin == 3
             if ishandle(finitodlg)
                 close(finitodlg);
             end
-%             close(hObject);
             return
         end
         cd(path);
@@ -1562,7 +1603,9 @@ elseif nargin == 3
         handles.simult = 1;
         handles.caorephys = 0;
         guidata(hObject,handles);
-        assignin('base','guistuff',handles);
+        if debug
+            assignin('base','guistuff',handles);
+        end
 
         %%% ca & ephys comparison
 
