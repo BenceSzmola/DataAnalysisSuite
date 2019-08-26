@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 21-Aug-2019 11:02:00
+% Last Modified by GUIDE v2.5 26-Aug-2019 16:13:43
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -98,7 +98,6 @@ switch simult
         end
     case 1
         handles.canum = 1;
-        set(handles.cadelay,'String',num2str(eventdet_handles.cadelay*1000));
         dog = eventdet_handles.dog;
         instpow = eventdet_handles.instpow;
         normed_ca = eventdet_handles.normed_ca;
@@ -393,25 +392,68 @@ showave(hObject,handles);
 % % % --------------- wavelet plotter
 function showave(hObject,handles)
 
-eventdet_handles = handles.evdet_hdls;
+evdet_hdls = handles.evdet_hdls;
 wavenum = handles.wavenum;
 linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
+linkstate = 1;
 
-if eventdet_handles.simult
-    cadelay = eventdet_handles.cadelay;
-    ephysca = eventdet_handles.ephysca;
-    supreme = eventdet_handles.supreme;
-    set(handles.evtstamp,'String',num2str(ephysca(wavenum)*1000));
+if evdet_hdls.simult && any(abs(evdet_hdls.per_roi_det(:,:,handles.canum)-evdet_hdls.ephysca(wavenum))<0.01)
+    linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'off');
+    linkaxes([handles.dogaxes,handles.instpowaxes],'x');
+    linkstate = 0;
 end
 
-if eventdet_handles.simult || (eventdet_handles.caorephys == 1)
-    dog = eventdet_handles.dog;
-    instpow = eventdet_handles.instpow;
-    ephys_t_scale = eventdet_handles.ephys_t_scale;
-    ephysleadch = eventdet_handles.ephysleadch;
-    ephyssrate = eventdet_handles.ephyssrate;
-    ephysaw = eventdet_handles.ephys_allwidths;
-    ephyscons_onlyT = eventdet_handles.ephyscons_onlyT;
+if evdet_hdls.simult
+    cadelay = evdet_hdls.cadelay;
+    ephysca = evdet_hdls.ephysca;
+    supreme = evdet_hdls.supreme;
+    
+    ephysaw = evdet_hdls.ephys_allwidths;
+    ephysleadch = evdet_hdls.ephysleadch;
+    canum = handles.canum;
+    caaw = evdet_hdls.ca_allwidths;
+end
+
+if evdet_hdls.simult
+    switch supreme
+        case 1
+            ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
+            if ~isempty(ephyspos)
+                ephyspos = ephyspos(1);
+                set(handles.ephyststamp,'String',num2str(ephysaw(ephyspos,1,ephysleadch)*1000));
+            end
+            capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < cadelay) ...
+                & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
+            if ~isempty(capos)
+                capos = capos(1);
+                set(handles.cadelay,'String',num2str((caaw(capos,1,canum)-ephysca(wavenum))*1000));
+                set(handles.catstamp,'String',num2str(caaw(capos,1,canum)*1000));
+            end
+        case 2
+            ephyspos = find(((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) >= -cadelay) ...
+                & ((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) <= 0 ));
+            if ~isempty(ephyspos)
+                ephyspos = ephyspos(1);
+                set(handles.ephyststamp,'String',num2str(ephysaw(ephyspos,1,ephysleadch)*1000));
+            end
+            capos = find(abs(caaw(:,1,canum)-ephysca(wavenum)) < 0.01);
+            if ~isempty(capos)
+                capos = capos(1);
+                set(handles.cadelay,'String',num2str(abs(caaw(capos,1,canum)-ephysca(wavenum))*1000));
+                set(handles.catstamp,'String',num2str(caaw(capos,1,canum)*1000));
+            end
+    end
+    set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
+    set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
+end
+
+if evdet_hdls.simult || (evdet_hdls.caorephys == 1)
+    dog = evdet_hdls.dog;
+    instpow = evdet_hdls.instpow;
+    ephys_t_scale = evdet_hdls.ephys_t_scale;
+    ephysleadch = evdet_hdls.ephysleadch;
+    ephyssrate = evdet_hdls.ephyssrate;
+    ephyscons_onlyT = evdet_hdls.ephyscons_onlyT;
     
     leaddog = dog(:,ephysleadch);
     leadinstpow = instpow(:,ephysleadch);
@@ -419,13 +461,13 @@ if eventdet_handles.simult || (eventdet_handles.caorephys == 1)
     (ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
 
     if wavenum ~= 0
-        switch eventdet_handles.simult
+        switch evdet_hdls.simult
             case 0
                 ephyscurrev_pos = find(abs(ephysxscala-ephyscons_onlyT(wavenum))<=(1/ephyssrate));                
             case 1
                 ephyscurrev_pos = find(abs(ephysxscala-ephysca(wavenum))<=(1/ephyssrate));
         end
-        ephyssurround = round(0.5*ephyssrate);
+        ephyssurround = round(0.1*ephyssrate);
         
         leaddog = leaddog(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
         leadinstpow = leadinstpow(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
@@ -436,11 +478,11 @@ if eventdet_handles.simult || (eventdet_handles.caorephys == 1)
     dogplot = plot(handles.dogaxes,ephysxscala*1000,leaddog);
     instpowplot = plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
     if wavenum ~= 0
-        if ~eventdet_handles.simult
+        if ~evdet_hdls.simult
             dogline = line(handles.dogaxes,[ephyscons_onlyT(wavenum)*1000 ephyscons_onlyT(wavenum)*1000],...
-                    [min(leaddog) max(leaddog)],'Color','r');
+                    [min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))],'Color','r');
             instpowline = line(handles.instpowaxes,[ephyscons_onlyT(wavenum)*1000 ephyscons_onlyT(wavenum)*1000],...
-                [min(leadinstpow) max(leadinstpow)],'Color','r');
+                [min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))],'Color','r');
             
             handles.dogline = dogline;
             handles.instpowline = instpowline;
@@ -450,12 +492,12 @@ if eventdet_handles.simult || (eventdet_handles.caorephys == 1)
     handles.instpowplot = instpowplot;
 end
 
-if eventdet_handles.simult || (eventdet_handles.caorephys == 2)
-    normed_ca = eventdet_handles.normed_ca;
-    ca_t_scale = eventdet_handles.ca_t_scale;
-    casrate = eventdet_handles.casrate;
-    caaw = eventdet_handles.ca_allwidths;
-    cacons_onlyT = eventdet_handles.cacons_onlyT;
+if evdet_hdls.simult || (evdet_hdls.caorephys == 2)
+    normed_ca = evdet_hdls.normed_ca;
+    ca_t_scale = evdet_hdls.ca_t_scale;
+    casrate = evdet_hdls.casrate;
+    caaw = evdet_hdls.ca_allwidths;
+    cacons_onlyT = evdet_hdls.cacons_onlyT;
     
     canum = handles.canum;
     currca = normed_ca(canum,:);
@@ -463,14 +505,23 @@ if eventdet_handles.simult || (eventdet_handles.caorephys == 2)
     (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
 
     if wavenum ~= 0
-        switch eventdet_handles.simult
+        switch evdet_hdls.simult
             case 0
                 cacurrev_pos = find(abs(caxscala-cacons_onlyT(canum,wavenum))<=(1/casrate));
             case 1
-                cacurrev_pos = find(abs(caxscala-ephysca(wavenum))<=(1/casrate));
+                switch linkstate
+                    case 0
+                        cacurrev_pos = find(abs(caxscala-caaw(capos,1,canum))<=(1/casrate)); 
+                    case 1
+                        cacurrev_pos = find(abs(caxscala-ephysca(wavenum))<=(1/casrate));
+                end
         end
-        
-        casurround = round(0.5*casrate);
+        switch linkstate
+            case 0
+                casurround = round(0.25*casrate);
+            case 1
+                casurround = round(0.1*casrate);
+        end
         if cacurrev_pos <= casurround
             currca = currca(1:2*casurround);
             caxscala = caxscala(1:2*casurround);
@@ -484,13 +535,13 @@ if eventdet_handles.simult || (eventdet_handles.caorephys == 2)
     end
     
     caplot = plot(handles.caaxes,caxscala*1000,currca);
-    if ~eventdet_handles.simult
+    if ~evdet_hdls.simult
         if wavenum ~= 0
             try
                 caline = line(handles.caaxes,...
                     [cacons_onlyT(canum,wavenum)*1000,...
                     cacons_onlyT(canum,wavenum)*1000],...
-                    [min(currca) max(currca)],'Color','r');
+                    [min(currca)-abs(min(currca)) max(currca)+abs(max(currca))],'Color','r');
             catch
                 caline = 0;
             end
@@ -500,45 +551,45 @@ if eventdet_handles.simult || (eventdet_handles.caorephys == 2)
     handles.caplot = caplot;
 end
 
-if eventdet_handles.simult
-    switch supreme
-        case 1
-            ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
-            if ~isempty(ephyspos)
-                ephyspos = ephyspos(1);
-            end
-            capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < cadelay) ...
-                & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
-            if ~isempty(capos)
-                capos = capos(1);
-            end
-        case 2
-            ephyspos = find(((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) >= -cadelay) ...
-                & ((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) <= 0 ));
-            if ~isempty(ephyspos)
-                ephyspos = ephyspos(1);
-            end
-            capos = find(abs(caaw(:,1,canum)-ephysca(wavenum)) < 0.01);
-            if ~isempty(capos)
-                capos = capos(1);
-            end
-    end
-    set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
-    set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
-end
+% if evdet_hdls.simult
+%     switch supreme
+%         case 1
+%             ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
+%             if ~isempty(ephyspos)
+%                 ephyspos = ephyspos(1);
+%             end
+%             capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < cadelay) ...
+%                 & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
+%             if ~isempty(capos)
+%                 capos = capos(1);
+%             end
+%         case 2
+%             ephyspos = find(((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) >= -cadelay) ...
+%                 & ((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) <= 0 ));
+%             if ~isempty(ephyspos)
+%                 ephyspos = ephyspos(1);
+%             end
+%             capos = find(abs(caaw(:,1,canum)-ephysca(wavenum)) < 0.01);
+%             if ~isempty(capos)
+%                 capos = capos(1);
+%             end
+%     end
+%     set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
+%     set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
+% end
 
-if eventdet_handles.simult
+if evdet_hdls.simult
     if wavenum ~= 0
         dogline = line(handles.dogaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],...
-                    [min(leaddog) max(leaddog)],'Color','r');
+                    [min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))],'Color','r');
         instpowline = line(handles.instpowaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],...
-            [min(leadinstpow) max(leadinstpow)],'Color','r');
+            [min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))],'Color','r');
         handles.dogline = dogline;
         handles.instpowline = instpowline;
         
         try
             caline = line(handles.caaxes,[caaw(capos,1,canum)*1000 caaw(capos,1,canum)*1000],...
-                [min(currca) max(currca)],'Color','r');
+                [min(currca)-abs(min(currca)) max(currca)+abs(max(currca))],'Color','r');
         catch
             caline = 0;
         end
@@ -587,7 +638,7 @@ end
 %     ephysxscala = ephysxscala(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
 %     caxscala = caxscala(cacurrev_pos-casurround:cacurrev_pos+casurround);
 %     
-%     set(handles.evtstamp,'String',num2str(ephysca(wavenum)*1000));
+%     set(handles.ephyststamp,'String',num2str(ephysca(wavenum)*1000));
 %     
 %     switch supreme
 %         case 1
@@ -645,9 +696,9 @@ try
 catch
     title(handles.caaxes,'Normed Ca2+');
 end
-axis(handles.dogaxes,[-inf inf -inf inf]);
-axis(handles.instpowaxes,[-inf inf -inf inf]);
-axis(handles.caaxes,[-inf inf -inf inf]);
+axis(handles.dogaxes,[-inf inf min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
+axis(handles.instpowaxes,[-inf inf min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
+axis(handles.caaxes,[-inf inf min(currca)-abs(min(currca)) max(currca)+abs(max(currca))]);
 
 % if wavenum ~= 0
 %     handles.dogplot = dogplot;
