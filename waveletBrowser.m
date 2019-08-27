@@ -63,6 +63,16 @@ simult = eventdet_handles.simult;
 caorephys = eventdet_handles.caorephys;
 linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
 
+cm1 = uicontextmenu(hObject);
+cm2 = uicontextmenu(hObject);
+cm3 = uicontextmenu(hObject);
+handles.dogaxes.UIContextMenu = cm1;
+handles.instpowaxes.UIContextMenu = cm2;
+handles.caaxes.UIContextMenu = cm3;
+subm1 = uimenu(cm1,'Label','Set axis limits','Callback',{@modaxlim,handles.dogaxes});
+subm2 = uimenu(cm2,'Label','Set axis limits','Callback',{@modaxlim,handles.instpowaxes});
+subm3 = uimenu(cm3,'Label','Set axis limits','Callback',{@modaxlim,handles.caaxes});
+
 switch simult
     case 0
         switch caorephys
@@ -162,6 +172,19 @@ guidata(hObject, handles);
 
 % UIWAIT makes waveletBrowser wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
+
+
+% % % - - - - - - - - - - - - - - 
+function modaxlim(~,~,axe)
+
+inp = inputdlg({'x min','x max','y min','y max'},'Set axis limits',[1 10],...
+    {num2str(axe.XLim(1)),num2str(axe.XLim(2)),num2str(axe.YLim(1)),num2str(axe.YLim(2))});
+if isempty(inp)
+    return
+end
+inp_num = str2double(inp);
+axe.XLim = [inp_num(1) inp_num(2)];
+axe.YLim = [inp_num(3) inp_num(4)];
 
 
 % --- Outputs from this function are returned to the command line.
@@ -696,9 +719,9 @@ try
 catch
     title(handles.caaxes,'Normed Ca2+');
 end
-axis(handles.dogaxes,[-inf inf min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
-axis(handles.instpowaxes,[-inf inf min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
-axis(handles.caaxes,[-inf inf min(currca)-abs(min(currca)) max(currca)+abs(max(currca))]);
+axis(handles.dogaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
+axis(handles.instpowaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
+axis(handles.caaxes,[caxscala(1)*1000 caxscala(end)*1000 min(currca)-abs(min(currca)) max(currca)+abs(max(currca))]);
 
 % if wavenum ~= 0
 %     handles.dogplot = dogplot;
@@ -756,7 +779,7 @@ function annowin_ClickedCallback(hObject, eventdata, handles)
 
 opts.Interpreter = 'tex';
 scalebarspecs = inputdlg({'Time bar size(ms)','DoG bar size(\muV)','Instpow bar size(\muV^2)',...
-    'Ca2+ bar size(dF/F)'},'Scalebar settings',[1 15],{'50','10','2','0.1'},opts);
+    'Ca2+ bar size(dF/F)'},'Scalebar settings',[1 15],{'15','10','2','0.1'},opts);
 
 annowin = figure('Name','Annotation Window','NumberTitle','off');
 annowin.ToolBar = 'figure';
@@ -783,7 +806,6 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
     dogy = get(handles.dogplot,'YData');
     annot_dog = plot(dogx,dogy);
     line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
-    drawscalebar(dogsub,dogx,dogy,1,scalebarspecs);
 
     if handles.evdet_hdls.simult
         instpowsub = subplot(3,1,2);
@@ -795,7 +817,6 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
     instpowy = get(handles.instpowplot,'YData');
     annot_instpow = plot(instpowx,instpowy);
     line(instpowsub,handles.instpowline.XData,handles.instpowline.YData,'Color','r');
-    drawscalebar(instpowsub,instpowx,instpowy,2,scalebarspecs);
     
     xlabel(dogsub,'Time(ms)');
     ylabel(dogsub,'Voltage(\muV)');
@@ -803,8 +824,12 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
     ylabel(instpowsub,'Power(\muV^2)');
     title(dogsub,'Difference of Gaussians');
     title(instpowsub,'Instantaneous Power');
-    axis(dogsub,[-inf inf -inf inf]);
-    axis(instpowsub,[-inf inf -inf inf]);
+    lim = axis(handles.dogaxes);
+    axis(dogsub,lim);
+    drawscalebar(dogsub,lim,1,scalebarspecs);
+    lim = axis(handles.instpowaxes);
+    axis(instpowsub,lim);
+    drawscalebar(instpowsub,lim,2,scalebarspecs);
     dogsub.Toolbar.Visible = 'off';
     instpowsub.Toolbar.Visible = 'off';
 end
@@ -822,13 +847,14 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==2
     if handles.caline ~= 0
         line(casub,handles.caline.XData,handles.caline.YData,'Color','r');
     end
-    drawscalebar(casub,cax,cay,3,scalebarspecs);
     
     xlabel(casub,'Time(ms)');
     ylabel(casub,'dF/F');
     title(casub,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
-    axis(casub,[-inf inf -inf inf]);
+    lim = axis(handles.caaxes);
+    axis(casub,lim);
     casub.Toolbar.Visible = 'off';
+    drawscalebar(casub,lim,3,scalebarspecs);
 end
 
 % xlabel(dogsub,'Time(ms)');
@@ -850,16 +876,17 @@ end
 
 
 % % % -------------- Scalebar maker
-function drawscalebar(axes,xdata,ydata,datatype,scalebarspecs)
+function drawscalebar(axes,lim,datatype,scalebarspecs)
+xlim = lim(1:2);
+ylim = lim(3:4);
 
-xlen = xdata(end) - xdata(1);
-ylen = max(ydata) - min(ydata);
+xlen = xlim(end) - xlim(1);
+ylen = max(ylim) - min(ylim);
 
-hbar_orig = xdata(1) + xlen*0.85;
+hbar_orig = xlim(1) + xlen*0.85;
 hbar_end = hbar_orig + str2double(scalebarspecs{1});
 
-vbar_orig = min(ydata) + ylen*0.2;
-
+vbar_orig = min(ylim) + ylen*0.2;
 switch datatype
     case 1
         vbar_end = vbar_orig + str2double(scalebarspecs{2});
@@ -874,8 +901,9 @@ end
 
 line(axes,[hbar_orig hbar_end],[vbar_orig vbar_orig],'Color','k','LineWidth',1.5);
 line(axes,[hbar_end hbar_end],[vbar_orig vbar_end],'Color','k','LineWidth',1.5);
-text(hbar_orig,vbar_orig-ylen*0.1,[scalebarspecs{1},' ms'],'FontSize',8);
-text(hbar_end+10,vbar_orig+(vbar_end-vbar_orig)*0.5,[scalebarspecs{datatype+1},yunit],'FontSize',8);
+text(axes,hbar_orig,vbar_orig-ylen*0.1,[scalebarspecs{1},' ms'],'FontSize',8);
+text(axes,hbar_end+(hbar_end-hbar_orig)*0.15,vbar_orig+(vbar_end-vbar_orig)*0.5,...
+    [scalebarspecs{datatype+1},yunit],'FontSize',8);
 
 
 % --- Executes on button press in onlysim_but.
