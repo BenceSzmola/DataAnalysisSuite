@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 26-Aug-2019 16:13:43
+% Last Modified by GUIDE v2.5 28-Aug-2019 14:18:56
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,6 +62,9 @@ handles.wavenum = 0;
 simult = eventdet_handles.simult;
 caorephys = eventdet_handles.caorephys;
 linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
+
+handles.ephyswinsize = 0.1;
+handles.cawinsize = 0.25;
 
 cm1 = uicontextmenu(hObject);
 cm2 = uicontextmenu(hObject);
@@ -424,6 +427,13 @@ if evdet_hdls.simult && any(abs(evdet_hdls.per_roi_det(:,:,handles.canum)-evdet_
     linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'off');
     linkaxes([handles.dogaxes,handles.instpowaxes],'x');
     linkstate = 0;
+    set(handles.catstamp,'Visible','on');
+    set(handles.cadelay,'Visible','on');
+    set(handles.caevlen,'Visible','on');
+else
+    set(handles.catstamp,'Visible','off');
+    set(handles.cadelay,'Visible','off');
+    set(handles.caevlen,'Visible','off');
 end
 
 if evdet_hdls.simult
@@ -490,7 +500,7 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 1)
             case 1
                 ephyscurrev_pos = find(abs(ephysxscala-ephysca(wavenum))<=(1/ephyssrate));
         end
-        ephyssurround = round(0.1*ephyssrate);
+        ephyssurround = round(handles.ephyswinsize*ephyssrate);
         
         leaddog = leaddog(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
         leadinstpow = leadinstpow(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
@@ -525,7 +535,7 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 2)
     canum = handles.canum;
     currca = normed_ca(canum,:);
     caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):...
-    (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
+        (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
 
     if wavenum ~= 0
         switch evdet_hdls.simult
@@ -541,9 +551,9 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 2)
         end
         switch linkstate
             case 0
-                casurround = round(0.25*casrate);
+                casurround = round(handles.cawinsize*casrate);
             case 1
-                casurround = round(0.1*casrate);
+                casurround = round(handles.ephyswinsize*casrate);
         end
         if cacurrev_pos <= casurround
             currca = currca(1:2*casurround);
@@ -930,3 +940,21 @@ if state
 end
 
 guidata(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function edit_winsize_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to edit_winsize (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+inp = inputdlg({'Ephys window size(ms):','Ca2+ window size(ms)'},...
+    'Window size',[1 15],{num2str(handles.ephyswinsize*2000),num2str(handles.cawinsize*2000)});
+if isempty(inp)
+    return
+end
+inp = str2double(inp);
+handles.ephyswinsize = inp(1)/1000/2;
+handles.cawinsize = inp(2)/1000/2;
+guidata(hObject,handles);
+showave(hObject,handles);
