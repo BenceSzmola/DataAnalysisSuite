@@ -1317,7 +1317,7 @@ elseif nargin == 3
                     case 2
                         handles.ephysleadch = ephysleadch(2);
                 end
-                handles.ephyscons_onlyT = ephyscons_onlyT;
+                handles.ephyscons_onlyT = ephyscons_onlyT(~isnan(ephyscons_onlyT));
                 handles.caorephys = 1;
             case 2
                 handles.casrate = true_srate;

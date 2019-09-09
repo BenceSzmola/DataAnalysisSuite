@@ -130,29 +130,7 @@ switch simult
         plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
         plot(handles.caaxes,caxscala*1000,normed_ca(1,:));
 end
-% handles.canum = 1;
 
-% set(handles.cadelay,'String',num2str(eventdet_handles.cadelay*1000));
-
-% dog = eventdet_handles.dog;
-% instpow = eventdet_handles.instpow;
-% normed_ca = eventdet_handles.normed_ca;
-% ephys_t_scale = eventdet_handles.ephys_t_scale;
-% ca_t_scale = eventdet_handles.ca_t_scale;
-% ephysleadch = eventdet_handles.ephysleadch;
-
-% leaddog = dog(:,ephysleadch);
-% leadinstpow = instpow(:,ephysleadch);
-% 
-% ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):...
-%     (ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
-% caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):...
-%     (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
-
-% linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
-% plot(handles.dogaxes,ephysxscala*1000,leaddog);
-% plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
-% plot(handles.caaxes,caxscala*1000,normed_ca(1,:));
 xlabel(handles.dogaxes,'Time(ms)');
 ylabel(handles.dogaxes,'Voltage(\muV)');
 xlabel(handles.instpowaxes,'Time(ms)');
@@ -261,15 +239,6 @@ function prevwave_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 eventdet_handles = handles.evdet_hdls;
-% ephysca = eventdet_handles.ephysca;
-% 
-% if handles.wavenum-1 >= 1
-%     handles.wavenum = handles.wavenum-1;
-% else
-%     handles.wavenum = length(ephysca);
-% end
-% 
-% set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',num2str(length(ephysca))]);
 
 switch eventdet_handles.simult
     case 0
@@ -521,6 +490,9 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 1)
             handles.instpowline = instpowline;
         end
     end
+    axis(handles.dogaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
+    axis(handles.instpowaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
+
     handles.dogplot = dogplot;
     handles.instpowplot = instpowplot;
 end
@@ -581,35 +553,10 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 2)
             handles.caline = caline;
         end
     end
+    axis(handles.caaxes,[caxscala(1)*1000 caxscala(end)*1000 min(currca)-abs(min(currca)) max(currca)+abs(max(currca))]);
+    
     handles.caplot = caplot;
 end
-
-% if evdet_hdls.simult
-%     switch supreme
-%         case 1
-%             ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
-%             if ~isempty(ephyspos)
-%                 ephyspos = ephyspos(1);
-%             end
-%             capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < cadelay) ...
-%                 & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
-%             if ~isempty(capos)
-%                 capos = capos(1);
-%             end
-%         case 2
-%             ephyspos = find(((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) >= -cadelay) ...
-%                 & ((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) <= 0 ));
-%             if ~isempty(ephyspos)
-%                 ephyspos = ephyspos(1);
-%             end
-%             capos = find(abs(caaw(:,1,canum)-ephysca(wavenum)) < 0.01);
-%             if ~isempty(capos)
-%                 capos = capos(1);
-%             end
-%     end
-%     set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
-%     set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
-% end
 
 if evdet_hdls.simult
     if wavenum ~= 0
@@ -626,96 +573,11 @@ if evdet_hdls.simult
         catch
             caline = 0;
         end
+        
         handles.caline = caline;
     end
 end
 
-% % % % % % % % % % % % % % % % % 
-
-% dog = eventdet_handles.dog;
-% instpow = eventdet_handles.instpow;
-% normed_ca = eventdet_handles.normed_ca;
-% ephys_t_scale = eventdet_handles.ephys_t_scale;
-% ca_t_scale = eventdet_handles.ca_t_scale;
-% ephysca = eventdet_handles.ephysca;
-% ephysleadch = eventdet_handles.ephysleadch;
-% ephyssrate = eventdet_handles.ephyssrate;
-% casrate = eventdet_handles.casrate;
-% ephysaw = eventdet_handles.ephys_allwidths;
-% caaw = eventdet_handles.ca_allwidths;
-% supreme = eventdet_handles.supreme;
-% cadelay = eventdet_handles.cadelay;
-% 
-% wavenum = handles.wavenum;
-% canum = handles.canum;
-% 
-% leaddog = dog(:,ephysleadch);
-% leadinstpow = instpow(:,ephysleadch);
-% currca = normed_ca(canum,:);
-% 
-% ephysxscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):...
-%     (ephys_t_scale(2)-ephys_t_scale(1))*(size(dog,1)-1)+ephys_t_scale(1);
-% caxscala = ca_t_scale(1):(ca_t_scale(2)-ca_t_scale(1)):...
-%     (ca_t_scale(2)-ca_t_scale(1))*(size(normed_ca,2)-1)+ca_t_scale(1);
-% 
-% if wavenum ~= 0
-%     ephyscurrev_pos = find(abs(ephysxscala-ephysca(wavenum))<=(1/ephyssrate));
-%     cacurrev_pos = find(abs(caxscala-ephysca(wavenum))<=(1/casrate));
-%     ephyssurround = round(0.5*ephyssrate);
-%     casurround = round(0.5*casrate);
-% 
-%     leaddog = leaddog(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
-%     leadinstpow = leadinstpow(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
-%     currca = currca(cacurrev_pos-casurround:cacurrev_pos+casurround);
-% 
-%     ephysxscala = ephysxscala(ephyscurrev_pos-ephyssurround:ephyscurrev_pos+ephyssurround);
-%     caxscala = caxscala(cacurrev_pos-casurround:cacurrev_pos+casurround);
-%     
-%     set(handles.ephyststamp,'String',num2str(ephysca(wavenum)*1000));
-%     
-%     switch supreme
-%         case 1
-%             ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
-%             if ~isempty(ephyspos)
-%                 ephyspos = ephyspos(1);
-%             end
-%             capos = find(((caaw(:,1,canum)-ephysca(wavenum)) < cadelay) ...
-%                 & ((caaw(:,1,canum)-ephysca(wavenum)) >= 0));
-%             if ~isempty(capos)
-%                 capos = capos(1);
-%             end
-%         case 2
-%             ephyspos = find(((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) >= -cadelay) ...
-%                 & ((ephysaw(:,1,ephysleadch)-ephysca(wavenum)) <= 0 ));
-%             if ~isempty(ephyspos)
-%                 ephyspos = ephyspos(1);
-%             end
-%             capos = find(abs(caaw(:,1,canum)-ephysca(wavenum)) < 0.01);
-%             if ~isempty(capos)
-%                 capos = capos(1);
-%             end
-%     end
-% 
-%     set(handles.ephysevlen,'String',num2str(ephysaw(ephyspos,2,ephysleadch)));
-%     set(handles.caevlen,'String',num2str(caaw(capos,2,canum)));
-% end
-% 
-% linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
-% dogplot = plot(handles.dogaxes,ephysxscala*1000,leaddog);
-% instpowplot = plot(handles.instpowaxes,ephysxscala*1000,leadinstpow);
-% caplot = plot(handles.caaxes,caxscala*1000,currca);
-% if wavenum ~= 0
-%     dogline = line(handles.dogaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],...
-%         [min(leaddog) max(leaddog)],'Color','r');
-%     instpowline = line(handles.instpowaxes,[ephysca(wavenum)*1000 ephysca(wavenum)*1000],...
-%         [min(leadinstpow) max(leadinstpow)],'Color','r');
-%     try
-%         caline = line(handles.caaxes,[caaw(capos,1,canum)*1000 caaw(capos,1,canum)*1000],...
-%             [min(currca) max(currca)],'Color','r');
-%     catch
-%         caline = 0;
-%     end
-% end
 xlabel(handles.dogaxes,'Time(ms)');
 ylabel(handles.dogaxes,'Voltage(\muV)');
 xlabel(handles.instpowaxes,'Time(ms)');
@@ -729,18 +591,9 @@ try
 catch
     title(handles.caaxes,'Normed Ca2+');
 end
-axis(handles.dogaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
-axis(handles.instpowaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
-axis(handles.caaxes,[caxscala(1)*1000 caxscala(end)*1000 min(currca)-abs(min(currca)) max(currca)+abs(max(currca))]);
-
-% if wavenum ~= 0
-%     handles.dogplot = dogplot;
-%     handles.dogline = dogline;
-%     handles.instpowplot = instpowplot;
-%     handles.instpowline = instpowline;
-%     handles.caplot = caplot;
-%     handles.caline = caline;
-% end
+% axis(handles.dogaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
+% axis(handles.instpowaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
+% axis(handles.caaxes,[caxscala(1)*1000 caxscala(end)*1000 min(currca)-abs(min(currca)) max(currca)+abs(max(currca))]);
 
 guidata(hObject,handles);
 
@@ -787,41 +640,47 @@ function annowin_ClickedCallback(hObject, eventdata, handles)
 
 % annotWindow(handles);
 
+lim1 = axis(handles.dogaxes);
+lim2 = axis(handles.instpowaxes);
+lim3 = axis(handles.caaxes);
+definp = {num2str(round((lim1(2)-lim1(1))*0.1)),num2str(round((lim3(2)-lim3(1))*0.1)),...
+    num2str(round((lim1(4)-lim1(3))*0.2)),num2str(round((lim2(4)-lim2(3))*0.2)),...
+    num2str(round((lim3(4)-lim3(3))*0.1,2))};
+
 opts.Interpreter = 'tex';
-scalebarspecs = inputdlg({'Time bar size(ms)','DoG bar size(\muV)','Instpow bar size(\muV^2)',...
-    'Ca2+ bar size(dF/F)'},'Scalebar settings',[1 15],{'15','10','2','0.1'},opts);
-
-annowin = figure('Name','Annotation Window','NumberTitle','off');
-annowin.ToolBar = 'figure';
-annowin.Units = 'normalized';
-
-tb = findall(annowin,'Type','uitoolbar');
-
-copy_button = uipushtool(tb,'TooltipString','Copy figure',...
-                 'ClickedCallback','print(''-clipboard'',''-dmeta'')',...
-                 'Separator','on');
-[img,map] = imread(fullfile(matlabroot,...
-'toolbox','matlab','icons','pagesicon.gif'));
-icon = ind2rgb(img,map);
-copy_button.CData = icon;
+opts.Resize = 'on';
+scalebarspecs = inputdlg({'Time bar size for ephys(ms)',...
+    'Time bar size for Ca2+(ms)','DoG bar size(\muV)','Instpow bar size(\muV^2)',...
+    'Ca2+ bar size(dF/F)'},'Scalebar settings',[1 30],definp,opts);
+if isempty(scalebarspecs)
+    return
+end
 
 if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
-    if handles.evdet_hdls.simult
-        dogsub = subplot(3,1,1);
-    else
-        dogsub = subplot(2,1,1);
-    end
+    ephysannowin = figure('Name','Annotation Window','NumberTitle','off');
+    ephysannowin.ToolBar = 'figure';
+    ephysannowin.Units = 'normalized';
+
+    tb = findall(ephysannowin,'Type','uitoolbar');
+
+    copy_button = uipushtool(tb,'TooltipString','Copy figure',...
+                     'ClickedCallback','print(''-clipboard'',''-dmeta'')',...
+                     'Separator','on');
+    [img,map] = imread(fullfile(matlabroot,...
+    'toolbox','matlab','icons','pagesicon.gif'));
+    icon = ind2rgb(img,map);
+    copy_button.CData = icon;
+    
+    dogsub = subplot(2,1,1);
+
     disableDefaultInteractivity(dogsub);
     dogx = get(handles.dogplot,'XData');
     dogy = get(handles.dogplot,'YData');
     annot_dog = plot(dogx,dogy);
     line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
 
-    if handles.evdet_hdls.simult
-        instpowsub = subplot(3,1,2);
-    else
-        instpowsub = subplot(2,1,2);
-    end
+    instpowsub = subplot(2,1,2);
+    
     disableDefaultInteractivity(instpowsub);
     instpowx = get(handles.instpowplot,'XData');
     instpowy = get(handles.instpowplot,'YData');
@@ -845,11 +704,22 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
 end
 
 if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==2
-    if handles.evdet_hdls.simult
-        casub = subplot(3,1,3);
-    else
-        casub = subplot(1,1,1);
-    end
+    caannowin = figure('Name','Annotation Window','NumberTitle','off');
+    caannowin.ToolBar = 'figure';
+    caannowin.Units = 'normalized';
+
+    tb = findall(caannowin,'Type','uitoolbar');
+
+    copy_button = uipushtool(tb,'TooltipString','Copy figure',...
+                     'ClickedCallback','print(''-clipboard'',''-dmeta'')',...
+                     'Separator','on');
+    [img,map] = imread(fullfile(matlabroot,...
+    'toolbox','matlab','icons','pagesicon.gif'));
+    icon = ind2rgb(img,map);
+    copy_button.CData = icon;
+
+    casub = subplot(1,1,1);
+    
     disableDefaultInteractivity(casub);
     cax = get(handles.caplot,'XData');
     cay = get(handles.caplot,'YData');
@@ -867,53 +737,43 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==2
     drawscalebar(casub,lim,3,scalebarspecs);
 end
 
-% xlabel(dogsub,'Time(ms)');
-% ylabel(dogsub,'Voltage(\muV)');
-% xlabel(instpowsub,'Time(ms)');
-% ylabel(instpowsub,'Power(\muV^2)');
-% xlabel(casub,'Time(ms)');
-% ylabel(casub,'dF/F');
-% title(dogsub,'Difference of Gaussians');
-% title(instpowsub,'Instantaneous Power');
-% title(casub,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
-% axis(dogsub,[-inf inf -inf inf]);
-% axis(instpowsub,[-inf inf -inf inf]);
-% axis(casub,[-inf inf -inf inf]);
-
-% dogsub.Toolbar.Visible = 'off';
-% instpowsub.Toolbar.Visible = 'off';
-% casub.Toolbar.Visible = 'off';
 
 
 % % % -------------- Scalebar maker
 function drawscalebar(axes,lim,datatype,scalebarspecs)
 xlim = lim(1:2);
 ylim = lim(3:4);
+switch datatype
+    case {1,2}
+        xspec = scalebarspecs{1};
+    case 3
+        xspec = scalebarspecs{2};
+end
 
 xlen = xlim(end) - xlim(1);
 ylen = max(ylim) - min(ylim);
 
-hbar_orig = xlim(1) + xlen*0.85;
-hbar_end = hbar_orig + str2double(scalebarspecs{1});
+hbar_orig = xlim(1) + xlen*0.8;
+hbar_end = hbar_orig + str2double(xspec);
 
 vbar_orig = min(ylim) + ylen*0.2;
 switch datatype
     case 1
-        vbar_end = vbar_orig + str2double(scalebarspecs{2});
+        vbar_end = vbar_orig + str2double(scalebarspecs{3});
         yunit = ' \muV';
     case 2
         yunit = ' \muV^2';
-        vbar_end = vbar_orig + str2double(scalebarspecs{3});
+        vbar_end = vbar_orig + str2double(scalebarspecs{4});
     case 3
         yunit = ' dF/F';
-        vbar_end = vbar_orig + str2double(scalebarspecs{4});
+        vbar_end = vbar_orig + str2double(scalebarspecs{5});
 end
 
 line(axes,[hbar_orig hbar_end],[vbar_orig vbar_orig],'Color','k','LineWidth',1.5);
 line(axes,[hbar_end hbar_end],[vbar_orig vbar_end],'Color','k','LineWidth',1.5);
-text(axes,hbar_orig,vbar_orig-ylen*0.1,[scalebarspecs{1},' ms'],'FontSize',8);
+text(axes,hbar_orig,vbar_orig-ylen*0.05,[xspec,' ms'],'FontSize',8);
 text(axes,hbar_end+(hbar_end-hbar_orig)*0.15,vbar_orig+(vbar_end-vbar_orig)*0.5,...
-    [scalebarspecs{datatype+1},yunit],'FontSize',8);
+    [scalebarspecs{datatype+2},yunit],'FontSize',8);
 
 
 % --- Executes on button press in onlysim_but.
