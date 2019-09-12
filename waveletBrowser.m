@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 28-Aug-2019 14:18:56
+% Last Modified by GUIDE v2.5 12-Sep-2019 16:03:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -89,6 +89,8 @@ switch simult
                 ephys_t_scale = eventdet_handles.ephys_t_scale;
                 ephysleadch = eventdet_handles.ephysleadch;
                 
+                set(handles.evnumtxt2,'String',['/ ',num2str(length(eventdet_handles.ephyscons_onlyT))]);
+                
                 leaddog = dog(:,ephysleadch);
                 leadinstpow = instpow(:,ephysleadch);
 
@@ -102,6 +104,7 @@ switch simult
                 set(handles.dogaxes,'Visible','off');
                 set(handles.instpowaxes,'Visible','off');
                 set(handles.onlysim_but,'Visible','off');
+                set(handles.evnumtxt2,'String',['/ ',num2str(length(eventdet_handles.cacons_onlyT))]);
                 handles.canum = 1;
                 normed_ca = eventdet_handles.normed_ca;
                 ca_t_scale = eventdet_handles.ca_t_scale;
@@ -117,6 +120,8 @@ switch simult
         ephys_t_scale = eventdet_handles.ephys_t_scale;
         ca_t_scale = eventdet_handles.ca_t_scale;
         ephysleadch = eventdet_handles.ephysleadch;
+        
+        set(handles.evnumtxt2,'String',['/ ',num2str(length(eventdet_handles.ephysca))]);
         
         leaddog = dog(:,ephysleadch);
         leadinstpow = instpow(:,ephysleadch);
@@ -196,16 +201,14 @@ switch eventdet_handles.simult
                 else
                     handles.wavenum = 1;
                 end
-                set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',...
-                    num2str(length(eventdet_handles.ephyscons_onlyT))]);
+                set(handles.evnumtxt,'String',num2str(handles.wavenum));
             case 2
                 if handles.wavenum+1 <= size(eventdet_handles.cacons_onlyT,2)
                     handles.wavenum = handles.wavenum+1;
                 else
                     handles.wavenum = 1;
                 end
-                set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',...
-                    num2str(size(eventdet_handles.cacons_onlyT,2))]);
+                set(handles.evnumtxt,'String',num2str(handles.wavenum));
         end
     case 1
         ephysca = eventdet_handles.ephysca;
@@ -216,8 +219,7 @@ switch eventdet_handles.simult
             handles.wavenum = 1;
         end
         
-        set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',...
-            num2str(length(ephysca))]);
+        set(handles.evnumtxt,'String',num2str(handles.wavenum));
 end
 
 % Update handles structure
@@ -249,16 +251,14 @@ switch eventdet_handles.simult
                 else
                     handles.wavenum = length(eventdet_handles.ephyscons_onlyT);
                 end
-                set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',...
-                    num2str(length(eventdet_handles.ephyscons_onlyT))]);
+                set(handles.evnumtxt,'String',num2str(handles.wavenum));
             case 2
                 if handles.wavenum-1 >= 1
                     handles.wavenum = handles.wavenum-1;
                 else
                     handles.wavenum = size(eventdet_handles.cacons_onlyT,2);
                 end
-                set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',...
-                    num2str(size(eventdet_handles.cacons_onlyT,2))]);
+                set(handles.evnumtxt,'String',num2str(handles.wavenum));
         end
     case 1
         ephysca = eventdet_handles.ephysca;
@@ -269,8 +269,7 @@ switch eventdet_handles.simult
             handles.wavenum = length(ephysca);
         end
         
-        set(handles.evnumtxt,'String',[num2str(handles.wavenum),'/',...
-            num2str(length(ephysca))]);
+        set(handles.evnumtxt,'String',num2str(handles.wavenum));
 end
 
 % Update handles structure
@@ -643,9 +642,10 @@ function annowin_ClickedCallback(hObject, eventdata, handles)
 lim1 = axis(handles.dogaxes);
 lim2 = axis(handles.instpowaxes);
 lim3 = axis(handles.caaxes);
+assignin('base','lim3',lim3);
 definp = {num2str(round((lim1(2)-lim1(1))*0.1)),num2str(round((lim3(2)-lim3(1))*0.1)),...
     num2str(round((lim1(4)-lim1(3))*0.2)),num2str(round((lim2(4)-lim2(3))*0.2)),...
-    num2str(round((lim3(4)-lim3(3))*0.1,2))};
+    sprintf('%1.1f',(lim3(4)-lim3(3))*0.1)};
 
 opts.Interpreter = 'tex';
 opts.Resize = 'on';
@@ -818,3 +818,78 @@ handles.ephyswinsize = inp(1)/1000/2;
 handles.cawinsize = inp(2)/1000/2;
 guidata(hObject,handles);
 showave(hObject,handles);
+
+
+% --------------------------------------------------------------------
+function cwt_but_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to cwt_but (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+dogy = get(handles.dogplot,'YData');
+
+srate = handles.evdet_hdls.ephyssrate;
+
+leaddog = handles.evdet_hdls.dog(:,handles.evdet_hdls.ephysleadch);
+mb = msgbox('Computing wavelet transform...');
+[full_coeffs,~] = cwt(leaddog,srate,'amor');
+full_coeffs = abs(full_coeffs).^2;
+avg = mean(mean(full_coeffs));
+sd = std(std(full_coeffs));
+
+[coeffs,f] = cwt(dogy,srate,'amor');
+coeffs = abs(coeffs).^2;
+
+z_coeffs = (coeffs-avg)./sd;
+
+delete(mb);
+
+t = linspace(-size(z_coeffs,2)/srate,size(z_coeffs,2)/srate,size(z_coeffs,2));
+
+figure('Name','Wavelet Transform','NumberTitle','off');
+surf(t,f,z_coeffs);
+view(0,90);
+colormap(parula(128));
+cb = colorbar;
+cb.Label.String = 'Z-Score';
+shading interp;
+axis tight;
+ylim([100 300]);
+title('Wavelet transform');
+ylabel('Frequency(Hz)');
+xlabel('Time(s)');
+
+
+
+function ephyststamp_Callback(hObject, eventdata, handles)
+% hObject    handle to ephyststamp (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of ephyststamp as text
+%        str2double(get(hObject,'String')) returns contents of ephyststamp as a double
+
+tstamp = str2double(get(hObject,'String'))/1000;
+
+if handles.evdet_hdls.simult
+    [~,ind] = min(abs(handles.evdet_hdls.ephysca - tstamp));
+    handles.wavenum = ind;
+    showave(hObject,handles);
+end
+
+
+
+function evnumtxt_Callback(hObject, eventdata, handles)
+% hObject    handle to evnumtxt (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of evnumtxt as text
+%        str2double(get(hObject,'String')) returns contents of evnumtxt as a double
+
+handles.wavenum = str2double(get(hObject,'String'));
+try
+    showave(hObject,handles);
+catch
+    errordlg('The number you entered exceeds the number of events!');
+end

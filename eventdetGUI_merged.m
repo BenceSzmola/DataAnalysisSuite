@@ -1137,7 +1137,7 @@ elseif nargin == 3
         set(handles.progress_tag,'String','Running detection');
         guidata(hObject,handles);
         
-        [det_thresh,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate,allwidths] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
+        [det_thresh,quietdata,~,t_scale,consensT,ephysleadch,ephyspower,allpeaksT,dogged,normed_ca,true_srate,allwidths] = detettore(data,t_scale,nargin,debug,caorephys,plots,param,ca_order);
         if debug
             assignin('base','t_scale',t_scale);
         end
@@ -1319,6 +1319,7 @@ elseif nargin == 3
                 end
                 handles.ephyscons_onlyT = ephyscons_onlyT(~isnan(ephyscons_onlyT));
                 handles.caorephys = 1;
+                handles.ephys_quietdata = quietdata;
             case 2
                 handles.casrate = true_srate;
                 handles.normed_ca = normed_ca;
@@ -1490,8 +1491,8 @@ elseif nargin == 3
             set(handles.progress_tag,'String','Running detection');
             guidata(hObject,handles);
 
-            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ephys_det_thresh,ephys_quietdata,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
+            [ca_det_thresh,ca_quietdata,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             
@@ -1561,8 +1562,8 @@ elseif nargin == 3
             set(handles.progress_tag,'String','Running detection');
             guidata(hObject,handles);
 
-            [ca_det_thresh,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
-            [ephys_det_thresh,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
+            [ca_det_thresh,ca_quietdata,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
+            [ephys_det_thresh,ephys_quietdata,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
             ephys_param(1) = ephys_true_srate;
             
@@ -1602,6 +1603,7 @@ elseif nargin == 3
         end
         handles.simult = 1;
         handles.caorephys = 0;
+        handles.ephys_quietdata = ephys_quietdata;
         guidata(hObject,handles);
         if debug
             assignin('base','guistuff',handles);
@@ -2107,7 +2109,7 @@ end
 
 % close(hObject);
 
-function [det_thresh,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,normed_ca,true_srate,allwidths] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
+function [det_thresh,quietdata,indataFull,t_scale,consensT,leadchan,power,allpeaksT,dogged,normed_ca,true_srate,allwidths] = detettore(indataFull,t_scale,gore,debug,caorephys,plots,param,ca_order)
 
 srate = 1/(t_scale(2)-t_scale(1));
 if gore ~= 3
@@ -2451,6 +2453,7 @@ for i = ivec
     if debug
         assignin('base',['quiet',num2str(i)],quiet);
     end
+    quietdata{i} = quiet;
     peaks = zeros(round(length(currpow)/winstepsize),2);
     peaknum = 2;
     ripsd = mean(quiet) + sdmult*std(quiet);
