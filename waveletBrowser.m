@@ -464,7 +464,8 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 1)
     if wavenum ~= 0
         switch evdet_hdls.simult
             case 0
-                ephyscurrev_pos = find(abs(ephysxscala-ephyscons_onlyT(wavenum))<=(1/ephyssrate));                
+                ephyscurrev_pos = find(abs(ephysxscala-ephyscons_onlyT(wavenum))<=(1/ephyssrate));
+                set(handles.ephyststamp,'String',num2str(ephysxscala(ephyscurrev_pos)*1000));
             case 1
                 ephyscurrev_pos = find(abs(ephysxscala-ephysca(wavenum))<=(1/ephyssrate));
         end
@@ -846,7 +847,19 @@ delete(mb);
 
 t = linspace(-size(z_coeffs,2)/srate,size(z_coeffs,2)/srate,size(z_coeffs,2));
 
-figure('Name','Wavelet Transform','NumberTitle','off');
+cwtwin = figure('Name','Wavelet Transform','NumberTitle','off');
+cwtwin.ToolBar = 'figure';
+cwtwin.Units = 'normalized';
+
+tb = findall(cwtwin,'Type','uitoolbar');
+
+copy_button = uipushtool(tb,'TooltipString','Copy figure',...
+                 'ClickedCallback','print(''-clipboard'',''-dbitmap'')',...
+                 'Separator','on');
+[img,map] = imread(fullfile(matlabroot,...
+'toolbox','matlab','icons','pagesicon.gif'));
+icon = ind2rgb(img,map);
+copy_button.CData = icon;
 surf(t,f,z_coeffs);
 view(0,90);
 colormap(parula(128));
@@ -871,10 +884,17 @@ function ephyststamp_Callback(hObject, eventdata, handles)
 
 tstamp = str2double(get(hObject,'String'))/1000;
 
-if handles.evdet_hdls.simult
-    [~,ind] = min(abs(handles.evdet_hdls.ephysca - tstamp));
-    handles.wavenum = ind;
-    showave(hObject,handles);
+switch handles.evdet_hdls.simult
+    case 0
+        if handles.evdet_hdls.caorephys == 1
+            [~,ind] = min(abs(handles.evdet_hdls.ephyscons_onlyT - tstamp));
+            handles.wavenum = ind;
+            showave(hObject,handles);
+        end
+    case 1
+        [~,ind] = min(abs(handles.evdet_hdls.ephysca - tstamp));
+        handles.wavenum = ind;
+        showave(hObject,handles);
 end
 
 
