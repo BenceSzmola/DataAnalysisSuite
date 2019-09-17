@@ -22,7 +22,7 @@ function varargout = eventdetGUI_merged(varargin)
 
 % Edit the above text to modify the response to help eventdetGUI_merged
 
-% Last Modified by GUIDE v2.5 06-Aug-2019 12:27:52
+% Last Modified by GUIDE v2.5 17-Sep-2019 15:37:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2789,3 +2789,26 @@ function wavebrowse_Callback(hObject, eventdata, handles)
 
 assignin('base','theout',handles);
 waveletBrowser(handles);
+
+
+% --- Executes on button press in gotVRdata.
+function gotVRdata_Callback(hObject, eventdata, handles)
+% hObject    handle to gotVRdata (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of gotVRdata
+
+
+% --- Executes on button press in importVRcsv.
+function importVRcsv_Callback(hObject, eventdata, handles)
+% hObject    handle to importVRcsv (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+[vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV with the VR data!');
+if vrdata_fname ~= 0
+    cd(vrpath)
+    vrdata = uiimport(vrdata_fname);
+    assignin('base','vrdata',vrdata)
+end

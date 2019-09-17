@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 12-Sep-2019 16:03:25
+% Last Modified by GUIDE v2.5 17-Sep-2019 13:30:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -56,6 +56,14 @@ function waveletBrowser_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % % % initial plotting
+load('training20s');
+handles.training20s = training20s;
+plot(handles.vrposaxes,zeros(size(training20s.Position)),training20s.Position);
+axis(handles.vrposaxes,[-1 1 min(training20s.Position) max(training20s.Position)]);
+handles.vrposaxes.XTick = [];
+plot(handles.vrspeedaxes,training20s.Time,gradient(training20s.Position));
+axis tight;
+
 handles.evdet_hdls = varargin{1};
 eventdet_handles = varargin{1};
 handles.wavenum = 0;
@@ -416,6 +424,19 @@ if evdet_hdls.simult
 end
 
 if evdet_hdls.simult
+% % % % % %
+    load('training20s');
+    handles.training20s = training20s;
+    plot(handles.vrposaxes,zeros(size(training20s.Position)),training20s.Position); 
+    hold(handles.vrposaxes,'on')
+    vrtpos = find(abs(training20s.Time - ephysca(wavenum)) < 0.1);
+    vrtpos = vrtpos(1);
+    plot(handles.vrposaxes,0,training20s.Time(vrtpos),'go');
+    hold(handles.vrposaxes,'on')
+    axis(handles.vrposaxes,[-1 1 min(training20s.Position) max(training20s.Position)]); 
+    handles.vrposaxes.XTick = [];
+    hold(handles.vrposaxes,'off')
+% % % % % %     
     switch supreme
         case 1
             ephyspos = find(abs(ephysaw(:,1,ephysleadch)-ephysca(wavenum)) < 0.01);
