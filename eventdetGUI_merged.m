@@ -72,9 +72,11 @@ function varargout = eventdetGUI_merged_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-ingor = handles.vargin;
-[sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles] = WIP_optimalfilter_withGUI(ingor,hObject,handles);
-varargout = {sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor};
+% ingor = handles.vargin;
+% [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles] = WIP_optimalfilter_withGUI(ingor,hObject,handles);
+% varargout = {sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor};
+varargout = handles.out;
+assignin('base','vrgout',varargout);
 set(handles.progress_tag,'String','Finished! For new detection launch Event Detector again!');
 guidata(hObject,handles);
 
@@ -869,6 +871,14 @@ function startbut_Callback(hObject, eventdata, handles)
 
 uiresume(handles.figure1);
 set(handles.progress_tag,'Visible','on');
+ingor = handles.vargin;
+[sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles] = WIP_optimalfilter_withGUI(ingor,hObject,handles);
+handles.out = {sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles};
+guidata(hObject,handles);
+
+% eventdetGUI_merged_OutputFcn(hObject,eventdata,handles);
+% uiresume(handles.figure1);
+% set(handles.progress_tag,'Visible','on');
 
 
 
@@ -1973,7 +1983,6 @@ elseif nargin == 3
             case 2
                 fprintf(fileID,'%s %d \n','Ca2+ simultan events (s) num=',length(ephysca));
         end
-%         fprintf(fileID,'%s %d \n','Simultan events (s) num=',length(ephysca));
         for i = 1:length(ephysca)  
             if i == length(ephysca)
                 fprintf(fileID,'%5.4f \n',ephysca(i));
@@ -2002,6 +2011,19 @@ elseif nargin == 3
             fprintf(fileID,'%5.4f ; ',delays(i));
         end
         fprintf(fileID,'\n Avg delay (s) = %5.4f \n',avgdelays);
+        
+        fprintf(fileID,'\n');
+        
+        fprintf(fileID,'\n Active ROIs during individual events: \n');
+        fprintf(fileID,'Timestamp(s) ; ROIs \n');
+        for i = 1:length(ephysca)
+            fprintf(fileID,'%5.4f ; ',ephysca(i));
+            rois = ceil(find(abs(per_roi_det-ephysca(i))<0.01)/size(per_roi_det,1));
+            for j = 1:length(rois)
+                fprintf(fileID,'%d# ',rois(j));
+            end
+            fprintf(fileID,'\n');
+        end
         
         fprintf(fileID,'\n');
         
@@ -2809,6 +2831,19 @@ function importVRcsv_Callback(hObject, eventdata, handles)
 [vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV with the VR data!');
 if vrdata_fname ~= 0
     cd(vrpath)
-    vrdata = uiimport(vrdata_fname);
+    opts = detectImportOptions(vrdata_fname);
+    opts.ImportErrorRule = 'omitvar';
+    opts.MissingRule = 'omitvar';
+    vrdata = readtable(vrdata_fname,opts);
     assignin('base','vrdata',vrdata)
+    vrtime = vrdata.Time;
+    vrtime = str2double(strrep(vrtime,',','.'));
+    vrpos = vrdata.Position;
+    vrpos = str2double(strrep(vrpos,',','.'));
+    
+    handles.vrtime = vrtime;
+    handles.vrpos = vrpos;
+    guidata(hObject,handles);
+    
+    set(handles.gotVRdata,'Value',1);
 end

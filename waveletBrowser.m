@@ -56,16 +56,28 @@ function waveletBrowser_OpeningFcn(hObject, eventdata, handles, varargin)
 handles.output = hObject;
 
 % % % initial plotting
-load('training20s');
-handles.training20s = training20s;
-plot(handles.vrposaxes,zeros(size(training20s.Position)),training20s.Position);
-axis(handles.vrposaxes,[-1 1 min(training20s.Position) max(training20s.Position)]);
-handles.vrposaxes.XTick = [];
-plot(handles.vrspeedaxes,training20s.Time,gradient(training20s.Position));
-axis tight;
 
 handles.evdet_hdls = varargin{1};
 eventdet_handles = varargin{1};
+
+if handles.evdet_hdls.gotVRdata.Value
+    vrpos = handles.evdet_hdls.vrpos;
+    vrtime = handles.evdet_hdls.vrtime;
+    plot(handles.vrposaxes,zeros(size(vrpos)),vrpos);
+    title(handles.vrposaxes,'Position in VR');
+    ylabel(handles.vrposaxes,'Position');
+    axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]);
+    handles.vrposaxes.XTick = [];
+    plot(handles.vrspeedaxes,vrtime,gradient(vrpos));
+    title('Speed in VR');
+    xlabel('Time(s)');
+    ylabel('Velocity(?/s)');
+    axis tight;
+else
+    handles.vrposaxes.Visible = 'off';
+    handles.vrspeedaxes.Visible = 'off';
+end
+    
 handles.wavenum = 0;
 simult = eventdet_handles.simult;
 caorephys = eventdet_handles.caorephys;
@@ -112,7 +124,7 @@ switch simult
                 set(handles.dogaxes,'Visible','off');
                 set(handles.instpowaxes,'Visible','off');
                 set(handles.onlysim_but,'Visible','off');
-                set(handles.evnumtxt2,'String',['/ ',num2str(length(eventdet_handles.cacons_onlyT))]);
+                set(handles.evnumtxt2,'String',['/ ',num2str(size(eventdet_handles.cacons_onlyT,2))]);
                 handles.canum = 1;
                 normed_ca = eventdet_handles.normed_ca;
                 ca_t_scale = eventdet_handles.ca_t_scale;
@@ -423,19 +435,47 @@ if evdet_hdls.simult
     caaw = evdet_hdls.ca_allwidths;
 end
 
-if evdet_hdls.simult
-% % % % % %
-    load('training20s');
-    handles.training20s = training20s;
-    plot(handles.vrposaxes,zeros(size(training20s.Position)),training20s.Position); 
+if evdet_hdls.gotVRdata.Value
+    vrpos = handles.evdet_hdls.vrpos;
+    vrtime = handles.evdet_hdls.vrtime;
+    plot(handles.vrposaxes,zeros(size(vrpos)),vrpos); 
     hold(handles.vrposaxes,'on')
-    vrtpos = find(abs(training20s.Time - ephysca(wavenum)) < 0.1);
-    vrtpos = vrtpos(1);
-    plot(handles.vrposaxes,0,training20s.Time(vrtpos),'go');
+    switch evdet_hdls.simult
+        case 0
+            switch evdet_hdls.caorephys
+                case 1
+                    vrtstamppos = find(abs(vrtime - evdet_hdls.ephyscons_onlyT(wavenum)) < 0.1);
+                    vrtstamppos = vrtstamppos(1);
+                case 2
+                    vrtstamppos = find(abs(vrtime - evdet_hdls.cacons_onlyT(handles.canum,wavenum)) < 0.1);
+                    vrtstamppos = vrtstamppos(1);
+            end
+        case 1
+            vrtstamppos = find(abs(vrtime - ephysca(wavenum)) < 0.1);
+            vrtstamppos = vrtstamppos(1);
+    end
+    plot(handles.vrposaxes,0,vrtime(vrtstamppos),'go');
     hold(handles.vrposaxes,'on')
-    axis(handles.vrposaxes,[-1 1 min(training20s.Position) max(training20s.Position)]); 
+    axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]); 
     handles.vrposaxes.XTick = [];
     hold(handles.vrposaxes,'off')
+end
+
+if evdet_hdls.simult
+% % % % % %
+%     if evdet_hdls.gotVRdata.Value
+%         vrpos = handles.evdet_hdls.vrpos;
+%         vrtime = handles.evdet_hdls.vrtime;
+%         plot(handles.vrposaxes,zeros(size(vrpos)),vrpos); 
+%         hold(handles.vrposaxes,'on')
+%         vrtstamppos = find(abs(vrtime - ephysca(wavenum)) < 0.1);
+%         vrtstamppos = vrtstamppos(1);
+%         plot(handles.vrposaxes,0,vrtime(vrtstamppos),'go');
+%         hold(handles.vrposaxes,'on')
+%         axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]); 
+%         handles.vrposaxes.XTick = [];
+%         hold(handles.vrposaxes,'off')
+%     end
 % % % % % %     
     switch supreme
         case 1
