@@ -2837,9 +2837,23 @@ if vrdata_fname ~= 0
     vrdata = readtable(vrdata_fname,opts);
     assignin('base','vrdata',vrdata)
     vrtime = vrdata.Time;
-    vrtime = str2double(strrep(vrtime,',','.'));
+    if any(contains(vrtime,','))
+        vrtime = str2double(strrep(vrtime,',','.'));
+    else
+        vrtime = str2double(vrtime);
+    end
     vrpos = vrdata.Position;
-    vrpos = str2double(strrep(vrpos,',','.'));
+    if any(contains(vrpos,','))
+        vrpos = str2double(strrep(vrpos,',','.'));
+    else
+        vrpos = str2double(vrpos);
+    end
+    
+    gradi = gradient(vrpos);
+    artepos = find(abs(gradi)>abs(mean(gradi)+5*std(gradi)));
+    vrtime = vrtime(1:artepos(1)-1);
+    vrpos = vrpos(1:artepos(1)-1);
+    vrpos = vrpos - min(vrpos);
     
     handles.vrtime = vrtime;
     handles.vrpos = vrpos;

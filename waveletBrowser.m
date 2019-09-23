@@ -63,11 +63,15 @@ eventdet_handles = varargin{1};
 if handles.evdet_hdls.gotVRdata.Value
     vrpos = handles.evdet_hdls.vrpos;
     vrtime = handles.evdet_hdls.vrtime;
-    plot(handles.vrposaxes,zeros(size(vrpos)),vrpos);
+    [vrpic]=imshow('objScenePic_adjusted.png','Parent',handles.vrposaxes); 
+    hold(handles.vrposaxes,'on');
+    handles.vrpic_size = size(vrpic.CData);
+    posdots = plot(handles.vrposaxes,0,0,'ro','MarkerFaceColor','r');
+    handles.posdots = posdots;
     title(handles.vrposaxes,'Position in VR');
     ylabel(handles.vrposaxes,'Position');
-    axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]);
-    handles.vrposaxes.XTick = [];
+    handles.vrposaxes.XTick = []; 
+    hold(handles.vrposaxes,'off');
     plot(handles.vrspeedaxes,vrtime,gradient(vrpos));
     title('Speed in VR');
     xlabel('Time(s)');
@@ -438,7 +442,9 @@ end
 if evdet_hdls.gotVRdata.Value
     vrpos = handles.evdet_hdls.vrpos;
     vrtime = handles.evdet_hdls.vrtime;
-    plot(handles.vrposaxes,zeros(size(vrpos)),vrpos); 
+%     plot(handles.vrposaxes,zeros(size(vrpos)),vrpos); 
+%     title(handles.vrposaxes,'Position in VR');
+%     ylabel(handles.vrposaxes,'Position');
     hold(handles.vrposaxes,'on')
     switch evdet_hdls.simult
         case 0
@@ -454,9 +460,12 @@ if evdet_hdls.gotVRdata.Value
             vrtstamppos = find(abs(vrtime - ephysca(wavenum)) < 0.1);
             vrtstamppos = vrtstamppos(1);
     end
-    plot(handles.vrposaxes,0,vrtime(vrtstamppos),'go');
+    scaler = handles.vrpic_size(1)/abs(max(vrpos)-min(vrpos));
+    handles.posdots.XData = handles.vrpic_size(2)/2;
+    handles.posdots.YData = vrpos(vrtstamppos)*scaler;
+%     posdots = plot(handles.vrposaxes,handles.vrpic_size(2)/2,vrpos(vrtstamppos)*scaler,'ro','MarkerFaceColor','r');
     hold(handles.vrposaxes,'on')
-    axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]); 
+%     axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]); 
     handles.vrposaxes.XTick = [];
     hold(handles.vrposaxes,'off')
 end
