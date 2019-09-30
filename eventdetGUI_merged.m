@@ -2010,11 +2010,11 @@ elseif nargin == 3
         for i = 1:length(delays)
             fprintf(fileID,'%5.4f ; ',delays(i));
         end
-        fprintf(fileID,'\n Avg delay (s) = %5.4f \n',avgdelays);
+        fprintf(fileID,'\nAvg delay (s) = %5.4f \n',avgdelays);
         
         fprintf(fileID,'\n');
         
-        fprintf(fileID,'\n Active ROIs during individual events: \n');
+        fprintf(fileID,'Active ROIs during individual events: \n');
         fprintf(fileID,'Timestamp(s) ; ROIs \n');
         for i = 1:length(ephysca)
             fprintf(fileID,'%5.4f ; ',ephysca(i));
