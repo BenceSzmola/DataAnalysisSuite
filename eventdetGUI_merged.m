@@ -1358,7 +1358,7 @@ elseif nargin == 3
         end
 
         %%% CSV irás
-        [csvname,path] = uiputfile('*.csv','Name CSV!');
+        [csvname,path] = uiputfile('*.csv','Name results CSV!');
         if csvname == 0
             finitodlg = warndlg('Event detection is finished!','Finished');
             pause(0.5);
@@ -1899,14 +1899,13 @@ elseif nargin == 3
         set(handles.progress_tag,'String','Writing CSV');
         guidata(hObject,handles);
 
-        [csvname,path] = uiputfile('*.csv','Name CSV!');
+        [csvname,path] = uiputfile('*.csv','Name results CSV!');
         if csvname == 0
             finitodlg = warndlg('Event detection is finished!','Finished');
             pause(0.5);
             if ishandle(finitodlg)
                 close(finitodlg);
             end
-%             close(hObject);
             return
         end
         cd(path);
@@ -2097,11 +2096,11 @@ elseif nargin == 3
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,1));
         end
-        fprintf(fileID,'\n sum Ca2+: %d \n',sum(allperdet(:,1)));
+        fprintf(fileID,'\nsum Ca2+: %d \n',sum(allperdet(:,1)));
         for i = 1:size(ca_allpeaksT,3)
             fprintf(fileID,'%d;',allperdet(i,2));
         end
-        fprintf(fileID,'\n sum simultan Ca2+: %d \n',sum(allperdet(:,2))); 
+        fprintf(fileID,'\nsum simultan Ca2+: %d \n',sum(allperdet(:,2))); 
         
         fprintf(fileID,'\n');
         

@@ -79,10 +79,12 @@ if handles.evdet_hdls.gotVRdata.Value
     handles.vrposaxes.XTick = []; 
     hold(handles.vrposaxes,'off');
     plot(handles.vrspeedaxes,vrtime,gradient(vrpos));
-    title('Speed in VR');
-    xlabel('Time(s)');
-    ylabel('Velocity(?/s)');
-    axis tight;
+    hold(handles.vrspeedaxes,'on');
+    axis(handles.vrspeedaxes,'tight');
+    title(handles.vrspeedaxes,'Speed in VR');
+    xlabel(handles.vrspeedaxes,'Time(s)');
+    ylabel(handles.vrspeedaxes,'Velocity(?/s)');
+    hold(handles.vrspeedaxes,'off');
 else
     handles.vrposaxes.Visible = 'off';
     handles.vrspeedaxes.Visible = 'off';
@@ -464,11 +466,18 @@ if evdet_hdls.gotVRdata.Value
             end
         case 1
             vrtstamppos = find(abs(vrtime - ephysca(wavenum)) < 0.1);
-            vrtstamppos = vrtstamppos(1);
+            if ~isempty(vrtstamppos)
+                vrtstamppos = vrtstamppos(1);
+            end
     end
     scaler = handles.vrpic_size(1)/abs(max(vrpos)-min(vrpos));
     handles.posdots.XData = handles.vrpic_size(2)/2;
-    handles.posdots.YData = vrpos(vrtstamppos)*scaler;
+    if ~isempty(vrtstamppos)
+        handles.posdots.YData = vrpos(vrtstamppos)*scaler;
+    else
+        handles.posdots.XData = [];
+        handles.posdots.YData = [];
+    end
 %     posdots = plot(handles.vrposaxes,handles.vrpic_size(2)/2,vrpos(vrtstamppos)*scaler,'ro','MarkerFaceColor','r');
     hold(handles.vrposaxes,'on')
 %     axis(handles.vrposaxes,[-1 1 min(vrpos) max(vrpos)]); 
