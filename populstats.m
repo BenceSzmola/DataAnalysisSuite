@@ -29,7 +29,7 @@ ROInums = ROInums{:};
 ROInums = double(ROInums);
 
 % % % User selects which statistic they want
-statlist = {'Synchron firing';'Time-ROIs'};
+statlist = {'Synchron firing';'Pos-ROIs'};
 [statind,~] = listdlg('PromptString','Select statistic:',...
                            'ListString',statlist);
 
@@ -98,29 +98,94 @@ switch statind
         set(ax,'YTickLabel',num2str(ROInums));
         set(ax,'XTickLabel',num2str(ROInums));
     case 2
-        % % % Time-ROI
+        % % % Pos-ROI
+        
+        [vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV with the VR data!');
+        if vrdata_fname ~= 0
+            cd(vrpath)
+            opts = detectImportOptions(vrdata_fname);
+            opts.ImportErrorRule = 'omitvar';
+            opts.MissingRule = 'omitvar';
+            vrdata = readtable(vrdata_fname,opts);
+            assignin('base','vrdata',vrdata)
+            vrtime = vrdata.Time;
+            if any(contains(vrtime,','))
+                vrtime = str2double(strrep(vrtime,',','.'));
+            else
+                vrtime = str2double(vrtime);
+            end
+            vrpos = vrdata.Position;
+            if any(contains(vrpos,','))
+                vrpos = str2double(strrep(vrpos,',','.'));
+            else
+                vrpos = str2double(vrpos);
+            end
+
+            gradi = gradient(vrpos);
+            artepos = find(abs(gradi)>abs(mean(gradi)+5*std(gradi)));
+            vrtime = vrtime(1:artepos(1)-1);
+            vrpos = vrpos(1:artepos(1)-1);
+            vrpos = vrpos - min(vrpos);
+        end
+        
+        posROI = [];
         for i = 1:num_f
             poi = find(cellfun(@(x)ischar(x)&&contains(x,'Active'),alldata{:,:,i}))+2;
             if isempty(poi)
                 continue
             end
-            j = 1;
             while ~isempty(alldata{:,:,i}{poi})
-                [evt,pausespot] = textscan(alldata{:,:,i}{poi},'%*f');
-                evts(j,:,i) = evt;
-                actives = cell2mat(textscan(alldata{:,:,i}{poi}(pausespot+3:end),'%d#'));
-                actives = unique(actives);
-                if actives ~= 0 
-                    for j = 1:length(actives)
-                        for k = 1:length(actives)
-                            if actives(j)~=actives(k)
-                                corrmat(actives(j),actives(k)) = corrmat(actives(j),actives(k))+1;
-                            end
-                        end
+                evpos = zeros(1,length(ROInums)+1);
+                [evt,pausespot] = textscan(alldata{:,:,i}{poi},'%f');
+                tmatch = abs(vrtime-cell2mat(evt))<0.1;
+                temp = vrpos(tmatch);
+                if ~isempty(temp)
+                    evpos(1,1) = temp(1);
+
+                    actives = cell2mat(textscan(alldata{:,:,i}{poi}(pausespot+3:end),'%d#'));
+                    actives = unique(actives);
+                    display(actives)
+                    if actives ~= 0 
+                        evpos(1,actives+1) = 1;
                     end
+                    display(evpos)
+                    posROI = cat(1,posROI,evpos);
                 end
                 poi = poi+1;
-                j = j+1;
+            end
+        end
+        assignin('base','posROI',posROI)
+        
+        i = 1;
+        while i <= size(posROI,1)
+            display('Start of while')
+            display(i)
+            display(posROI)
+            nears = find(abs(posROI(:,1) - posROI(i,1)) < 1); %%% tolerancia értéket bel?ni!
+            nears(nears == i) = [];
+            display(nears)
+            for j = 1:length(nears)
+                posROI(i,2:end) = posROI(i,2:end) + posROI(nears(j),2:end);
+            end
+            display('After first loop')
+            display(posROI)
+            for j = 1:length(nears)
+                posROI(nears(j),:) = [];
+            end
+            display('After second loop')
+            display(posROI)
+            
+            i = i+1;
+        end
+        
+        % % % Create graph
+        figure
+        for i = 1:size(posROI,1)
+            for j = 2:size(posROI,2)
+                if posROI(i,j) ~= 0
+                    plot(posROI(i,1),j-1,'ro');
+                    hold on;
+                end
             end
         end
 end
