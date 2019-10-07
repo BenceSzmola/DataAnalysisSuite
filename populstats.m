@@ -178,14 +178,30 @@ switch statind
             i = i+1;
         end
         
-        % % % Create graph
+        posROI_pad = cat(2,posROI,posROI(:,end));
+        % % % Create placefield graph
         figure
+        tracksteps = linspace(0,max(posROI(:,1)),50);
+        [X,Y] = meshgrid(tracksteps,1:(length(ROInums)+1));
+        Z = zeros(size(X));
         for i = 1:size(posROI,1)
-            for j = 2:size(posROI,2)
-                if posROI(i,j) ~= 0
-                    plot(posROI(i,1),j-1,'ro');
-                    hold on;
-                end
+            finds = find(abs(tracksteps-posROI(i,1))<1);
+            for j = 1:length(finds)
+                Z(:,finds(j)) = posROI_pad(i,2:end);
             end
         end
+        subplot(2,1,2)
+        surf(X,Y,Z)
+        view(0,90)
+        axis tight
+        
+        imaxis = subplot(2,1,1);
+        [vrpicfname,path] = uigetfile({'*.png';'*.jpg';'*.jpeg'},'Choose the VR track!');
+        oldpath = cd(path);
+        vrpicnumeric = imread(vrpicfname);
+        vrpicnumeric = imrotate(vrpicnumeric,90);
+        % % % ide még maybe aspect ratio check
+        cd(oldpath);
+%         vrpicnumeric = imresize(vrpicnumeric,[length(vrpicnumeric),100]);
+        [vrpic]=imshow(vrpicnumeric,'Parent',imaxis);
 end
