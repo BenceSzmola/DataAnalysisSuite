@@ -1376,6 +1376,8 @@ elseif nargin == 3
         end
         switch caorephys
             case 1 
+                fprintf(fileID,'Mode: %d\n',get(handles.simultan_check,'Value'));
+                fprintf(fileID,'\n \n');
                 fprintf(fileID,'Ephys parameters \n');
                 for i = 1:length(ephys_param_prompts)
                     fprintf(fileID,'%s: %d \n',string(ephys_param_prompts(i)),param(i));
@@ -1415,6 +1417,9 @@ elseif nargin == 3
                 end
                                 
             case 2
+                fprintf(fileID,'Mode: %d\n',get(handles.simultan_check,'Value'));
+                fprintf(fileID,'Num of ROIs: %d\n',length(ingor));
+                fprintf(fileID,'\n');
                 fprintf(fileID,'Ca2+ parameters \n');
                 for i = 1:length(ca_param_prompts)
                     fprintf(fileID,'%s: %d \n',string(ca_param_prompts(i)),param(i));
@@ -1427,6 +1432,25 @@ elseif nargin == 3
                 fprintf(fileID,'Detection thresholds per ROI \n');
                 for i = 1:length(ingor)
                     fprintf(fileID,'#%d ; %5.4f \n',ca_order(i)-1,det_thresh(i,2));
+                end
+                
+                fprintf(fileID,'\n');
+                
+                fprintf(fileID,'Active ROIs for each event\n');
+                fprintf(fileID,'Timestamp(s);ROIs\n');
+                unipeaks = unique(allpeaksT(:,1,:));
+                unipeaks(unipeaks == 0) = [];
+                [~,lib] = ismember(allpeaksT,unipeaks);
+                inds = lib(:,1,:);
+                inds=inds(:);
+                for i = 1:length(unipeaks)
+                    founds=find(inds == i);
+                    rois = ceil(founds/4);
+                    fprintf(fileID,'%.4f ; ',unipeaks(i));
+                    for j = 1:length(rois)
+                        fprintf(fileID,'%d# ',rois(j));
+                    end
+                    fprintf(fileID,'\n');
                 end
                 
                 fprintf(fileID,'\n');
@@ -1915,6 +1939,9 @@ elseif nargin == 3
             waitforbuttonpress;
             fileID = fopen(string(csvname),'w');
         end
+        fprintf(fileID,'Mode: %d\n',get(handles.simultan_check,'Value'));
+        fprintf(fileID,'Num of ROIs: %d\n',size(per_roi_det,3));
+        fprintf(fileID,'\n');
         fprintf(fileID,'%s \n','Ephys parameters');
         for i = 1:length(ephys_param_prompts)
             fprintf(fileID,'%s: %d \n',string(ephys_param_prompts(i)),ephys_param(i));

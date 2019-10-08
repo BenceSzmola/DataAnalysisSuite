@@ -1,7 +1,7 @@
 function populstats
 
 % % % Reading CSVs into a 3D cell
-[fnames,path] = uigetfile('*.csv','Select the CSVs!','Multiselect','on');
+[fnames,path] = uigetfile('*.csv','Select the event detector CSVs!','Multiselect','on');
 cd(path);
 num_f = length(fnames);
 for i = 1:num_f
@@ -23,10 +23,10 @@ end
 assignin('base','AD',alldata);
 
 % % % Getting num of ROIs
-poi = find(cellfun(@(x)ischar(x)&&contains(x,'Ca2+ detection'),alldata{:,:,1}));
-ROInums = textscan(alldata{:,:,1}{poi+1},'%d# ;');
+ROInums = textscan(alldata{:,:,1}{2},'Num of ROIs: %d');
 ROInums = ROInums{:};
-ROInums = double(ROInums);
+ROInums = double(1:ROInums);
+ROInums = ROInums(:);
 
 % % % User selects which statistic they want
 statlist = {'Synchron firing';'Pos-ROIs'};
@@ -100,7 +100,7 @@ switch statind
     case 2
         % % % Pos-ROI
         
-        [vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV with the VR data!');
+        [vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV containing the VR data!');
         if vrdata_fname ~= 0
             cd(vrpath)
             opts = detectImportOptions(vrdata_fname);
@@ -190,7 +190,7 @@ switch statind
                 Z(:,finds(j)) = posROI_pad(i,2:end);
             end
         end
-        subplot(2,1,2)
+        surfax = subplot(2,1,2);
         surf(X,Y,Z)
         view(0,90)
         axis tight
@@ -204,4 +204,5 @@ switch statind
         cd(oldpath);
 %         vrpicnumeric = imresize(vrpicnumeric,[length(vrpicnumeric),100]);
         [vrpic]=imshow(vrpicnumeric,'Parent',imaxis);
+%         linkaxes([imaxis,surfax],'x');
 end
