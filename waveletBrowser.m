@@ -75,15 +75,15 @@ if handles.evdet_hdls.gotVRdata.Value
     posdots = plot(handles.vrposaxes,0,0,'ro','MarkerFaceColor','r');
     handles.posdots = posdots;
     title(handles.vrposaxes,'Position in VR');
-    ylabel(handles.vrposaxes,'Position');
+%     ylabel(handles.vrposaxes,'Position');
     handles.vrposaxes.XTick = []; 
     hold(handles.vrposaxes,'off');
-    plot(handles.vrspeedaxes,vrtime,gradient(vrpos));
+    plot(handles.vrspeedaxes,vrtime*1000,gradient(vrpos));
     hold(handles.vrspeedaxes,'on');
     axis(handles.vrspeedaxes,'tight');
     title(handles.vrspeedaxes,'Speed in VR');
-    xlabel(handles.vrspeedaxes,'Time(s)');
-    ylabel(handles.vrspeedaxes,'Velocity(?/s)');
+    xlabel(handles.vrspeedaxes,'Time [ms]');
+    ylabel(handles.vrspeedaxes,'Velocity [cm/s]');
     hold(handles.vrspeedaxes,'off');
 else
     handles.vrposaxes.Visible = 'off';
@@ -168,11 +168,11 @@ switch simult
         plot(handles.caaxes,caxscala*1000,normed_ca(1,:));
 end
 
-xlabel(handles.dogaxes,'Time(ms)');
-ylabel(handles.dogaxes,'Voltage(\muV)');
-xlabel(handles.instpowaxes,'Time(ms)');
-ylabel(handles.instpowaxes,'Power(\muV^2)');
-xlabel(handles.caaxes,'Time(ms)');
+xlabel(handles.dogaxes,'Time [ms]');
+ylabel(handles.dogaxes,'Voltage [\muV]');
+xlabel(handles.instpowaxes,'Time [ms]');
+ylabel(handles.instpowaxes,'Power [\muV^2]');
+xlabel(handles.caaxes,'Time [ms]');
 ylabel(handles.caaxes,'dF/F');
 title(handles.dogaxes,'Difference of Gaussians');
 title(handles.instpowaxes,'Instantaneous Power');
@@ -663,11 +663,11 @@ if evdet_hdls.simult
     end
 end
 
-xlabel(handles.dogaxes,'Time(ms)');
-ylabel(handles.dogaxes,'Voltage(\muV)');
-xlabel(handles.instpowaxes,'Time(ms)');
-ylabel(handles.instpowaxes,'Power(\muV^2)');
-xlabel(handles.caaxes,'Time(ms)');
+xlabel(handles.dogaxes,'Time [ms]');
+ylabel(handles.dogaxes,'Voltage [\muV]');
+xlabel(handles.instpowaxes,'Time [ms]');
+ylabel(handles.instpowaxes,'Power [\muV^2]');
+xlabel(handles.caaxes,'Time [ms]');
 ylabel(handles.caaxes,'dF/F');
 title(handles.dogaxes,'Difference of Gaussians');
 title(handles.instpowaxes,'Instantaneous Power');
@@ -773,10 +773,10 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
     annot_instpow = plot(instpowx,instpowy);
     line(instpowsub,handles.instpowline.XData,handles.instpowline.YData,'Color','r');
     
-    xlabel(dogsub,'Time(ms)');
-    ylabel(dogsub,'Voltage(\muV)');
-    xlabel(instpowsub,'Time(ms)');
-    ylabel(instpowsub,'Power(\muV^2)');
+    xlabel(dogsub,'Time [ms]');
+    ylabel(dogsub,'Voltage [\muV]');
+    xlabel(instpowsub,'Time [ms]');
+    ylabel(instpowsub,'Power [\muV^2]');
     title(dogsub,'Difference of Gaussians');
     title(instpowsub,'Instantaneous Power');
     lim = axis(handles.dogaxes);
@@ -814,7 +814,7 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==2
         line(casub,handles.caline.XData,handles.caline.YData,'Color','r');
     end
     
-    xlabel(casub,'Time(ms)');
+    xlabel(casub,'Time [ms]');
     ylabel(casub,'dF/F');
     title(casub,['Normed Ca2+ ROI #',num2str(handles.canum-1)]);
     lim = axis(handles.caaxes);
@@ -954,8 +954,8 @@ shading interp;
 axis tight;
 ylim([100 300]);
 title('Wavelet transform');
-ylabel('Frequency(Hz)');
-xlabel('Time(s)');
+ylabel('Frequency [Hz]');
+xlabel('Time [s]');
 
 
 

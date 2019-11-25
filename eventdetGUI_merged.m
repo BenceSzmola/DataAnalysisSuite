@@ -1595,7 +1595,9 @@ elseif nargin == 3
 %             handles = guidata(hObject);
             set(handles.progress_tag,'String','Running detection');
             guidata(hObject,handles);
-
+            
+            og_catscale = ca_t_scale;
+            og_cadata = cadata;
             [ca_det_thresh,ca_quietdata,cadata,ca_t_scale,~,~,~,ca_allpeaksT,~,normed_ca,ca_true_srate,ca_allwidths] = detettore(cadata,ca_t_scale,nargin,debug,2,plots,ca_param,ca_order);
             [ephys_det_thresh,ephys_quietdata,~,~,ephysconsensT,ephysleadch,ephyspower,ephys_allpeaksT,dogged,~,ephys_true_srate,ephys_allwidths] = detettore(ephysdata,ephys_t_scale,nargin,debug,1,plots,ephys_param,ca_order);
             ca_param(1) = ca_true_srate;
@@ -1615,7 +1617,7 @@ elseif nargin == 3
                 assignin('base','ca_allpeaksT',ca_allpeaksT);                
             end
         end
-        
+                
         if ephys_param(13)
             ephys_t_scale = ephys_t_scale +1;
         end
@@ -1892,6 +1894,25 @@ elseif nargin == 3
         guidata(hObject,handles);
         
         close(wb);
+        
+        figure;
+        sp1=subplot(2,1,1);
+        exscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):ephys_t_scale(1)+(ephys_t_scale(2)-ephys_t_scale(1))*(length(ephyspower(:,ephysleadch(2)))-1);
+        plot(exscala*1000,ephyspower(:,ephysleadch(2)),'r'); hold on;
+%       [ephys_t_scale(1)*1000, (ephys_t_scale(2)*1000-ephys_t_scale(1)*1000)*length(ephyspower)]
+        for i=1:length(ephysca)
+            line([ephysca(i)*1000 ephysca(i)*1000],[min(ephyspower(:,ephysleadch(2))), max(ephyspower(:,ephysleadch(2)))],'Color','g');
+        end
+        hold off;
+        sp2=subplot(2,1,2);
+        caxscala = og_catscale(1):(og_catscale(2)-og_catscale(1)):og_catscale(1)+(og_catscale(2)-og_catscale(1))*(length(og_cadata(9,:))-1);
+        plot(caxscala*1000,og_cadata(9,:)); hold on;
+        prd_extract = per_roi_det(:,:,9);
+        for i=1:size(prd_extract,1)
+            line([prd_extract(i)*1000 prd_extract(i)*1000],[min(og_cadata(9,:)), max(og_cadata(9,:))],'Color','g');
+        end
+        linkaxes([sp1,sp2],'x');
+        axis tight;
         
         if debug
             assignin('base','ephysca',ephysca);
@@ -2529,16 +2550,16 @@ for i = ivec
     if plots
         if (caorephys == 0) || (caorephys == 1)
             ax1=subplot(2,1,1);
-            plot(xscala,dogged(:,i));
+            plot(xscala*1000,dogged(:,i));
             grid on;
             title('DoG');
             ax2=subplot(2,1,2);
-            plot(xscala,currpow); hold on;
+            plot(xscala*1000,currpow); hold on;
             title('Instantaneous power');
             grid on;
             linkaxes([ax1 ax2],'x');
         elseif caorephys == 2
-            plot(xscala,currpow); hold on;
+            plot(xscala*1000,currpow); hold on;
             title('Calcium signal');
             grid on;
         end
@@ -2667,8 +2688,8 @@ for i = ivec
         assignin('base',['peaks', num2str(i)],ppeaks);
     end
     if plots
-        plot(ppeaks(:,1),ppeaks(:,2),'o'); hold on;
-        line([t_scale(1), (t_scale(2)-t_scale(1))*length(currpow)],[ripsd ripsd],'Color','r'); hold off;
+        plot(ppeaks(:,1)*1000,ppeaks(:,2),'o'); hold on;
+        line([t_scale(1)*1000, (t_scale(2)-t_scale(1))*length(currpow)*1000],[ripsd ripsd],'Color','r'); hold off;
     end
   
 end

@@ -2,7 +2,7 @@ function populstats
 
 % % % Reading CSVs into a 3D cell
 [fnames,path] = uigetfile('*.csv','Select the event detector CSVs!','Multiselect','on');
-cd(path);
+oldpath = cd(path);
 num_f = length(fnames);
 for i = 1:num_f
     temp={};
@@ -20,6 +20,7 @@ for i = 1:num_f
     alldata{:,:,i} = temp;
     fclose(fileID);
 end
+cd(oldpath);
 assignin('base','AD',alldata);
 
 % % % Getting num of ROIs
@@ -102,11 +103,12 @@ switch statind
         
         [vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV containing the VR data!');
         if vrdata_fname ~= 0
-            cd(vrpath)
+            oldpath = cd(vrpath);
             opts = detectImportOptions(vrdata_fname);
-            opts.ImportErrorRule = 'omitvar';
-            opts.MissingRule = 'omitvar';
+            opts.ImportErrorRule = 'omitrow';
+            opts.MissingRule = 'omitrow';
             vrdata = readtable(vrdata_fname,opts);
+            cd(oldpath);
             assignin('base','vrdata',vrdata)
             vrtime = vrdata.Time;
             if any(contains(vrtime,','))
@@ -121,12 +123,16 @@ switch statind
                 vrpos = str2double(vrpos);
             end
 
-            gradi = gradient(vrpos);
-            artepos = find(abs(gradi)>abs(mean(gradi)+5*std(gradi)));
-            vrtime = vrtime(1:artepos(1)-1);
-            vrpos = vrpos(1:artepos(1)-1);
+%             gradi = gradient(vrpos);
+%             artepos = find(abs(gradi)>abs(mean(gradi)+5*std(gradi)));
+%             if ~isempty(artepos)
+%                 vrtime = vrtime(1:artepos(1)-1);
+%                 vrpos = vrpos(1:artepos(1)-1);
+%             end
             vrpos = vrpos - min(vrpos);
         end
+        assignin('base','vrt',vrtime)
+        assignin('base','vrp',vrpos)
         
         posROI = [];
         for i = 1:num_f
@@ -169,19 +175,20 @@ switch statind
             end
             display('After first loop')
             display(posROI)
-            for j = 1:length(nears)
-                posROI(nears(j),:) = [];
-            end
-            display('After second loop')
+            posROI(nears,:) = [];
+            display('After second proc')
             display(posROI)
             
             i = i+1;
         end
         
+        assignin('base','proc_posROI',posROI)
+        
         posROI_pad = cat(2,posROI,posROI(:,end));
         % % % Create placefield graph
         figure
-        tracksteps = linspace(0,max(posROI(:,1)),50);
+%         tracksteps = linspace(0,max(posROI(:,1)),50);
+        tracksteps = linspace(0,max(vrpos),50);
         [X,Y] = meshgrid(tracksteps,1:(length(ROInums)+1));
         Z = zeros(size(X));
         for i = 1:size(posROI,1)
@@ -194,6 +201,10 @@ switch statind
         surf(X,Y,Z)
         view(0,90)
         axis tight
+        
+        ax = gca;
+        set(ax,'YTick',ROInums+0.5);
+        set(ax,'YTickLabel',num2str(ROInums));
         
         imaxis = subplot(2,1,1);
         [vrpicfname,path] = uigetfile({'*.png';'*.jpg';'*.jpeg'},'Choose the VR track!');
