@@ -63,11 +63,12 @@ eventdet_handles = varargin{1};
 if handles.evdet_hdls.gotVRdata.Value
     vrpos = handles.evdet_hdls.vrpos;
     vrtime = handles.evdet_hdls.vrtime;
-    [vrpicfname,path] = uigetfile({'*.png';'*.jpg';'*.jpeg'},'Choose the VR track!');
-    oldpath = cd(path);
-    vrpicnumeric = imread(vrpicfname);
-% % % ide még maybe aspect ratio check
-    cd(oldpath);
+%     [vrpicfname,path] = uigetfile({'*.png';'*.jpg';'*.jpeg'},'Choose the VR track!');
+%     oldpath = cd(path);
+%     vrpicnumeric = imread(vrpicfname);
+% % % % ide még maybe aspect ratio check
+%     cd(oldpath);
+    vrpicnumeric = eventdet_handles.vrpicnumeric;
     vrpicnumeric = imresize(vrpicnumeric,[length(vrpicnumeric),100]);
     [vrpic]=imshow(vrpicnumeric,'Parent',handles.vrposaxes); 
     hold(handles.vrposaxes,'on');

@@ -22,7 +22,7 @@ function varargout = eventdetGUI_merged(varargin)
 
 % Edit the above text to modify the response to help eventdetGUI_merged
 
-% Last Modified by GUIDE v2.5 17-Sep-2019 15:37:53
+% Last Modified by GUIDE v2.5 28-Nov-2019 10:53:13
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1895,24 +1895,24 @@ elseif nargin == 3
         
         close(wb);
         
-        figure;
-        sp1=subplot(2,1,1);
-        exscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):ephys_t_scale(1)+(ephys_t_scale(2)-ephys_t_scale(1))*(length(ephyspower(:,ephysleadch(2)))-1);
-        plot(exscala*1000,ephyspower(:,ephysleadch(2)),'r'); hold on;
-%       [ephys_t_scale(1)*1000, (ephys_t_scale(2)*1000-ephys_t_scale(1)*1000)*length(ephyspower)]
-        for i=1:length(ephysca)
-            line([ephysca(i)*1000 ephysca(i)*1000],[min(ephyspower(:,ephysleadch(2))), max(ephyspower(:,ephysleadch(2)))],'Color','g');
-        end
-        hold off;
-        sp2=subplot(2,1,2);
-        caxscala = og_catscale(1):(og_catscale(2)-og_catscale(1)):og_catscale(1)+(og_catscale(2)-og_catscale(1))*(length(og_cadata(9,:))-1);
-        plot(caxscala*1000,og_cadata(9,:)); hold on;
-        prd_extract = per_roi_det(:,:,9);
-        for i=1:size(prd_extract,1)
-            line([prd_extract(i)*1000 prd_extract(i)*1000],[min(og_cadata(9,:)), max(og_cadata(9,:))],'Color','g');
-        end
-        linkaxes([sp1,sp2],'x');
-        axis tight;
+%         figure;
+%         sp1=subplot(2,1,1);
+%         exscala = ephys_t_scale(1):(ephys_t_scale(2)-ephys_t_scale(1)):ephys_t_scale(1)+(ephys_t_scale(2)-ephys_t_scale(1))*(length(ephyspower(:,ephysleadch(2)))-1);
+%         plot(exscala*1000,ephyspower(:,ephysleadch(2)),'r'); hold on;
+% %       [ephys_t_scale(1)*1000, (ephys_t_scale(2)*1000-ephys_t_scale(1)*1000)*length(ephyspower)]
+%         for i=1:length(ephysca)
+%             line([ephysca(i)*1000 ephysca(i)*1000],[min(ephyspower(:,ephysleadch(2))), max(ephyspower(:,ephysleadch(2)))],'Color','g');
+%         end
+%         hold off;
+%         sp2=subplot(2,1,2);
+%         caxscala = og_catscale(1):(og_catscale(2)-og_catscale(1)):og_catscale(1)+(og_catscale(2)-og_catscale(1))*(length(og_cadata(9,:))-1);
+%         plot(caxscala*1000,og_cadata(9,:)); hold on;
+%         prd_extract = per_roi_det(:,:,9);
+%         for i=1:size(prd_extract,1)
+%             line([prd_extract(i)*1000 prd_extract(i)*1000],[min(og_cadata(9,:)), max(og_cadata(9,:))],'Color','g');
+%         end
+%         linkaxes([sp1,sp2],'x');
+%         axis tight;
         
         if debug
             assignin('base','ephysca',ephysca);
@@ -2877,11 +2877,12 @@ function importVRcsv_Callback(hObject, eventdata, handles)
 
 [vrdata_fname,vrpath] = uigetfile('*.csv','Select the CSV with the VR data!');
 if vrdata_fname ~= 0
-    cd(vrpath)
+    oldpath = cd(vrpath);
     opts = detectImportOptions(vrdata_fname);
-    opts.ImportErrorRule = 'omitvar';
-    opts.MissingRule = 'omitvar';
+    opts.ImportErrorRule = 'omitrow';
+    opts.MissingRule = 'omitrow';
     vrdata = readtable(vrdata_fname,opts);
+    cd(oldpath);
     assignin('base','vrdata',vrdata)
     vrtime = vrdata.Time;
     if any(contains(vrtime,','))
@@ -2907,4 +2908,33 @@ if vrdata_fname ~= 0
     guidata(hObject,handles);
     
     set(handles.gotVRdata,'Value',1);
+    set(handles.choose_vrscene,'Visible',1);
 end
+
+
+% --- Executes on selection change in choose_vrscene.
+function choose_vrscene_Callback(hObject, eventdata, handles)
+% hObject    handle to choose_vrscene (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns choose_vrscene contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from choose_vrscene
+load VRscenes.mat;
+handles.vrpicnumeric = VRscenes{hObject.Value-1};
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function choose_vrscene_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to choose_vrscene (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+set(hObject,'String',{'Choose VR scene!','objectMaze_vol1','pure','walledinMaze'});
