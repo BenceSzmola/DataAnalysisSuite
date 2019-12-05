@@ -186,7 +186,6 @@ switch statind
         
         posROI_pad = cat(2,posROI,posROI(:,end));
         % % % Create placefield graph
-        figure
 %         tracksteps = linspace(0,max(posROI(:,1)),50);
         tracksteps = linspace(0,max(vrpos),50);
         [X,Y] = meshgrid(tracksteps,1:(length(ROInums)+1));
@@ -197,6 +196,8 @@ switch statind
                 Z(:,finds(j)) = posROI_pad(i,2:end);
             end
         end
+        
+        figure
         surfax = subplot(2,1,2);
         surf(X,Y,Z)
         view(0,90)
