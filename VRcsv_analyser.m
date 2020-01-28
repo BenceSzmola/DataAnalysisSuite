@@ -50,12 +50,20 @@ assignin('base','runtable_v',runtable_v);
 
 for i = 1:num_f
     tmax(i) = max(runtable_t{i});
+    pmax(i) = max(runtable_p{i});
 end
 
-fprintf(1,'Average lap time: %.2f s\nStandard deviation: %.2f s\n',mean(tmax),std(tmax));
+pmax_licks = pmax(pmax>62 & pmax<84);
+
+fprintf(1,'Average lap time: %.2f s\nStandard deviation: %.2f s\nRuns/Licks: %d/%d\n',mean(tmax),std(tmax),num_f,length(pmax_licks));
 
 figure;
-plot(tmax,'ok');
+plot(tmax,'ok'); hold on;
+for i = 1:num_f
+    if (pmax(i)<84) && (pmax(i)>62)
+        plot(i,tmax(i),'ok','MarkerFaceColor','r'); hold on;
+    end
+end
 title('Lap duration')
 ylabel('Time [s]')
 xlabel('Lap #')

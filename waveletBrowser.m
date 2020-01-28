@@ -63,6 +63,7 @@ eventdet_handles = varargin{1};
 if handles.evdet_hdls.gotVRdata.Value
     vrpos = handles.evdet_hdls.vrpos;
     vrtime = handles.evdet_hdls.vrtime;
+    vrvelo = handles.evdet_hdls.vrvelo;
 %     [vrpicfname,path] = uigetfile({'*.png';'*.jpg';'*.jpeg'},'Choose the VR track!');
 %     oldpath = cd(path);
 %     vrpicnumeric = imread(vrpicfname);
@@ -79,7 +80,7 @@ if handles.evdet_hdls.gotVRdata.Value
 %     ylabel(handles.vrposaxes,'Position');
     handles.vrposaxes.XTick = []; 
     hold(handles.vrposaxes,'off');
-    plot(handles.vrspeedaxes,vrtime*1000,gradient(vrpos));
+    plot(handles.vrspeedaxes,vrtime*1000,vrvelo);
     hold(handles.vrspeedaxes,'on');
     axis(handles.vrspeedaxes,'tight');
     title(handles.vrspeedaxes,'Speed in VR');

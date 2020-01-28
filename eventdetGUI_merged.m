@@ -2885,26 +2885,42 @@ if vrdata_fname ~= 0
     cd(oldpath);
     assignin('base','vrdata',vrdata)
     vrtime = vrdata.Time;
-    if any(contains(vrtime,','))
-        vrtime = str2double(strrep(vrtime,',','.'));
-    else
-        vrtime = str2double(vrtime);
+    try
+        if any(contains(vrtime,','))
+            vrtime = str2double(strrep(vrtime,',','.'));
+        else
+            vrtime = str2double(vrtime);
+        end
+    catch
     end
     vrpos = vrdata.Position;
-    if any(contains(vrpos,','))
-        vrpos = str2double(strrep(vrpos,',','.'));
-    else
-        vrpos = str2double(vrpos);
+    try
+        if any(contains(vrpos,','))
+            vrpos = str2double(strrep(vrpos,',','.'));
+        else
+            vrpos = str2double(vrpos);
+        end
+    catch
+    end
+    vrvelo = vrdata.Velocity;
+    try
+        if any(contains(vrvelo,','))
+            vrvelo = str2double(strrep(vrvelo,',','.'));
+        else
+            vrvelo = str2double(vrvelo);
+        end
+    catch
     end
     
-    gradi = gradient(vrpos);
-    artepos = find(abs(gradi)>abs(mean(gradi)+5*std(gradi)));
-    vrtime = vrtime(1:artepos(1)-1);
-    vrpos = vrpos(1:artepos(1)-1);
+%     gradi = gradient(vrpos);
+%     artepos = find(abs(gradi)>abs(mean(gradi)+5*std(gradi)));
+%     vrtime = vrtime(1:artepos(1)-1);
+%     vrpos = vrpos(1:artepos(1)-1);
     vrpos = vrpos - min(vrpos);
     
     handles.vrtime = vrtime;
     handles.vrpos = vrpos;
+    handles.vrvelo = vrvelo;
     guidata(hObject,handles);
     
     set(handles.gotVRdata,'Value',1);
