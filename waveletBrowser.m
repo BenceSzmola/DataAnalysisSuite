@@ -97,7 +97,7 @@ simult = eventdet_handles.simult;
 caorephys = eventdet_handles.caorephys;
 linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
 
-handles.ephyswinsize = 0.1;
+handles.ephyswinsize = 0.2;
 handles.cawinsize = 0.25;
 
 cm1 = uicontextmenu(hObject);
@@ -427,7 +427,7 @@ function showave(hObject,handles)
 evdet_hdls = handles.evdet_hdls;
 wavenum = handles.wavenum;
 % linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
-linkstate = 0;
+linkstate = 1;
 
 if evdet_hdls.simult && any(abs(evdet_hdls.per_roi_det(:,:,handles.canum)-evdet_hdls.ephysca(wavenum))<0.01)
     linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'off');
@@ -735,8 +735,8 @@ lim1 = axis(handles.dogaxes);
 lim2 = axis(handles.instpowaxes);
 lim3 = axis(handles.caaxes);
 assignin('base','lim3',lim3);
-definp = {num2str(round((lim1(2)-lim1(1))*0.1)),num2str(round((lim3(2)-lim3(1))*0.1)),...
-    num2str(round((lim1(4)-lim1(3))*0.2)),num2str(round((lim2(4)-lim2(3))*0.2)),...
+definp = {num2str(round(((lim1(2)-lim1(1))*0.1)/5)*5),num2str(round(((lim3(2)-lim3(1))*0.1)/5)*5),...
+    num2str(round(((lim1(4)-lim1(3))*0.2)/5)*5),num2str(round(((lim2(4)-lim2(3))*0.2)/5)*5),...
     sprintf('%1.1f',(lim3(4)-lim3(3))*0.1)};
 
 opts.Interpreter = 'tex';
