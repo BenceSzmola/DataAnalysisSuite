@@ -261,10 +261,12 @@ guidata(hObject, handles);
 
 if get(handles.onlysim_but,'Value')
     onlysim_but_Callback(handles.onlysim_but,eventdata,handles);
-    handles = guidata(hObject);
+%     handles = guidata(hObject);
+else
+    showave(hObject,handles);
 end
 
-showave(hObject,handles);
+% showave(hObject,handles);
 
 
 
@@ -311,10 +313,12 @@ guidata(hObject, handles);
 
 if get(handles.onlysim_but,'Value')
     onlysim_but_Callback(handles.onlysim_but,eventdata,handles);
-    handles = guidata(hObject);
+%     handles = guidata(hObject);
+else
+    showave(hObject,handles);
 end
 
-showave(hObject,handles);
+% showave(hObject,handles);
 
 
 % --- Executes on button press in prevca.
@@ -422,8 +426,8 @@ function showave(hObject,handles)
 
 evdet_hdls = handles.evdet_hdls;
 wavenum = handles.wavenum;
-linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
-linkstate = 1;
+% linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'x');
+linkstate = 0;
 
 if evdet_hdls.simult && any(abs(evdet_hdls.per_roi_det(:,:,handles.canum)-evdet_hdls.ephysca(wavenum))<0.01)
     linkaxes([handles.dogaxes,handles.caaxes,handles.instpowaxes],'off');
