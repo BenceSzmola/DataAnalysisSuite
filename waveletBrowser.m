@@ -936,7 +936,7 @@ z_coeffs = (coeffs-avg)./sd;
 
 delete(mb);
 
-t = linspace(-size(z_coeffs,2)/srate,size(z_coeffs,2)/srate,size(z_coeffs,2));
+t = linspace(-size(z_coeffs,2)/srate,size(z_coeffs,2)/srate,size(z_coeffs,2))*1000;
 
 cwtwin = figure('Name','Wavelet Transform','NumberTitle','off');
 cwtwin.ToolBar = 'figure';
@@ -961,7 +961,7 @@ axis tight;
 ylim([100 300]);
 title('Wavelet transform');
 ylabel('Frequency [Hz]');
-xlabel('Time [s]');
+xlabel('Time [ms]');
 
 
 
