@@ -584,6 +584,9 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 1)
     axis(handles.dogaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
     axis(handles.instpowaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
 
+% % % ezt félbehagytam
+%     set(handles.ephysevlen,'String',num2str(evdet_hdls.ephys_allwidths(ephyspos,2,ephysleadch)));
+    
     handles.dogplot = dogplot;
     handles.instpowplot = instpowplot;
 end
@@ -768,6 +771,9 @@ if handles.evdet_hdls.simult || handles.evdet_hdls.caorephys==1
     disableDefaultInteractivity(dogsub);
     dogx = get(handles.dogplot,'XData');
     dogy = get(handles.dogplot,'YData');
+    
+    assignin('base','dogy',dogy)
+    
     annot_dog = plot(dogx,dogy);
     line(dogsub,handles.dogline.XData,handles.dogline.YData,'Color','r');
 
