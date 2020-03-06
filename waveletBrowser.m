@@ -584,8 +584,8 @@ if evdet_hdls.simult || (evdet_hdls.caorephys == 1)
     axis(handles.dogaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leaddog)-abs(min(leaddog)) max(leaddog)+abs(max(leaddog))]);
     axis(handles.instpowaxes,[ephysxscala(1)*1000 ephysxscala(end)*1000 min(leadinstpow)-abs(min(leadinstpow)) max(leadinstpow)+abs(max(leadinstpow))]);
 
-% % % ezt félbehagytam
-%     set(handles.ephysevlen,'String',num2str(evdet_hdls.ephys_allwidths(ephyspos,2,ephysleadch)));
+    ephyspos = find(abs(evdet_hdls.ephys_allwidths(:,1,ephysleadch)-ephyscons_onlyT(wavenum)) < 0.01);
+    set(handles.ephysevlen,'String',num2str(evdet_hdls.ephys_allwidths(ephyspos,2,ephysleadch)));
     
     handles.dogplot = dogplot;
     handles.instpowplot = instpowplot;
@@ -942,7 +942,7 @@ z_coeffs = (coeffs-avg)./sd;
 
 delete(mb);
 
-t = linspace(-size(z_coeffs,2)/srate,size(z_coeffs,2)/srate,size(z_coeffs,2))*1000;
+t = linspace(-size(z_coeffs,2)/(srate*2),size(z_coeffs,2)/(srate*2),size(z_coeffs,2))*1000;
 
 cwtwin = figure('Name','Wavelet Transform','NumberTitle','off');
 cwtwin.ToolBar = 'figure';
