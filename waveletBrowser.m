@@ -55,6 +55,9 @@ function waveletBrowser_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for waveletBrowser
 handles.output = hObject;
 
+% % % state check for wavelettrans
+handles.cwtpressed = 0;
+
 % % % initial plotting
 
 handles.evdet_hdls = varargin{1};
@@ -928,14 +931,22 @@ dogy = get(handles.dogplot,'YData');
 
 srate = handles.evdet_hdls.ephyssrate;
 
-leaddog = handles.evdet_hdls.dog(:,handles.evdet_hdls.ephysleadch);
+mid = (size(dogy,2)+1)/2;
+dist = str2double(handles.evdet_hdls.ephys_mindist.String)*(srate/1000);
+
 mb = msgbox('Computing wavelet transform...');
-[full_coeffs,~] = cwt(leaddog,srate,'amor');
-full_coeffs = abs(full_coeffs).^2;
+if ~handles.cwtpressed
+    leaddog = handles.evdet_hdls.dog(:,handles.evdet_hdls.ephysleadch);
+    [full_coeffs,~] = cwt(leaddog,srate,'amor','FrequencyLimits',[0 300]);
+    full_coeffs = abs(full_coeffs).^2;
+    handles.full_coeffs = full_coeffs;
+else
+    full_coeffs = handles.full_coeffs;
+end
 avg = mean(mean(full_coeffs));
 sd = std(std(full_coeffs));
 
-[coeffs,f] = cwt(dogy,srate,'amor');
+[coeffs,f] = cwt(dogy,srate,'amor','FrequencyLimits',[0 300]);
 coeffs = abs(coeffs).^2;
 
 z_coeffs = (coeffs-avg)./sd;
@@ -968,6 +979,14 @@ ylim([100 300]);
 title('Wavelet transform');
 ylabel('Frequency [Hz]');
 xlabel('Time [ms]');
+
+% % % wavelettel validálni detekciót
+if max(max(z_coeffs(:,mid-dist:mid+dist))) < 20
+    warndlg('Probably not a SPW-R!')
+end
+
+handles.cwtpressed = 1;
+guidata(hObject,handles)
 
 
 
