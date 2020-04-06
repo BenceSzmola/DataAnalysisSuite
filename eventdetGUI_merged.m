@@ -961,7 +961,7 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%%% Event detector code
+% % % Event detector code
 function [sim_det_gor,doggor,ephys_det_gor,norm_ca_gors,roi_det_gor,handles] = WIP_optimalfilter_withGUI(ingor,hObject,handles) 
 
 ingor = ingor{1};
@@ -2228,6 +2228,7 @@ end
 if debug 
     assignin('base','indata',indataFull);
 end
+% % % delete digital input channel
 if gore == 0
     len = size(indataFull,1)-1;
 else
@@ -2248,7 +2249,7 @@ if debug
 end
 power = zeros(size(indataFull,2),len);
 
-%%% Ca kezelés
+% % % Ca kezelés
 if gore == 3 && caorephys == 2 && selected == 2 
     power = transpose(indataFull);
 elseif gore == 3 && caorephys == 2 && selected == 1
@@ -2278,7 +2279,7 @@ if debug && caorephys == 2
     assignin('base','altered_ca_t_scale',t_scale);
 end
 
-%%% Filters
+% % % Ephys proc
 if selected == 1 && caorephys == 1
     for i = ivec
         indata = indataFull(i,:);
@@ -2335,137 +2336,140 @@ end
 if debug
     assignin('base','POWER',power);
 end
-%%% Alapzaj meghatározása
-piccolo = zeros(size(indataFull,2),len);
-for i = ivec
-    currpow = power(:,i);
-    %%% Közös intervallumot keres változat
-    quietthresh(i) = (mean(currpow) + qsdmult*std(currpow));
-    piccolo(1:length(find(currpow < (mean(currpow) + qsdmult*std(currpow)))),i) = find(currpow < (mean(currpow) + qsdmult*std(currpow)));
-end
-if debug
-    assignin('base','quietthresh',quietthresh);
-    assignin('base','piccolo',piccolo);
-end
-switch length(ivec)
-    case 0
-        warndlg('Not enough channels');
-        return;
-    case 1
-        sect = piccolo;
-    case 2
-        sect = intersect(piccolo(:,ivec(1)),piccolo(:,ivec(2)));
-    otherwise
-        sect = intersect(piccolo(:,ivec(1)),piccolo(:,ivec(2)));
-        for i = ivec(3):ivec(end)
-            sect = intersect(piccolo(:,i),sect);
-        end
-end
 
-if debug
-    assignin('base','runsect',sect);
-end
-qsect = diff(sect);
-louds = qsect(qsect>1);
-if debug
-    assignin('base','runlouds',louds);
-end
-[~, inds] = ismember(qsect,louds);
-goodinds = find(inds~=0);
-goodinds = goodinds + 1;
-if(goodinds(1) ~= 1)
-    goodinds = cat(1,1,goodinds);
-end
-if debug
-    assignin('base','runginds',goodinds);
-end
-[quietivlen, ind] = max(diff(goodinds));
-quietiv = [sect(goodinds(ind)), sect(goodinds(ind))+quietivlen];
-quietivs = zeros(size(indataFull,2),2,len);
-quietivs(1,:,1) = quietiv;
-if debug
-    assignin('base','intervals',quietiv);
-end
-quietivT = (quietiv/srate)+t_scale(1);
-if debug
-    assignin('base','intervalsT',quietivT);
-end
-
-extendedivs = 0;
-%%% Ha tul rovid az interval, vagy eleve nincs közös, akkor csatornankent hozzarakok 
-if caorephys == 2
-    sec = inf;
-end
-if ((quietiv(2)-quietiv(1)) < sec*srate)
-    extendedivs = 1;
-    maxnum = 0;
+% % % Alapzaj meghatározása static thresh
+if (selected == 1) || (caorephys == 2)
+    piccolo = zeros(size(indataFull,2),len);
     for i = ivec
-        extquiets = piccolo(:,i);
-        diffquiets = diff(extquiets);
-        extlouds = diffquiets(diffquiets>1);
-        [~, inds] = ismember(diffquiets,extlouds);
-        extgoodinds = find(inds~=0);
-        if(extgoodinds(1) ~= 1)
-            extgoodinds = cat(1,1,extgoodinds);
-        end
-        goodies = diff(extgoodinds);
-        if debug
-            assignin('base',['goodies',num2str(i)],goodies);
-        end
-        tempivs = zeros(length(goodies),2);
-        tempivs(1,:) = quietiv;
-        indx = 1;
-        while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate+(quietiv(2)-quietiv(1)))
-            indx = indx + 1;
-            [goodielen, ind] = max(goodies);
-            if goodielen == 0 && caorephys == 1
-                warn = warndlg('Couldnt reach specified quietlenght');
-                pause(0.25);
-                close(warn);
-                break
-            elseif goodielen == 0 && caorephys == 2
-                break
+        currpow = power(:,i);
+        %%% Közös intervallumot keres változat
+        quietthresh(i) = (mean(currpow) + qsdmult*std(currpow));
+        piccolo(1:length(find(currpow < (mean(currpow) + qsdmult*std(currpow)))),i) = find(currpow < (mean(currpow) + qsdmult*std(currpow)));
+    end
+    if debug
+        assignin('base','quietthresh',quietthresh);
+        assignin('base','piccolo',piccolo);
+    end
+    switch length(ivec)
+        case 0
+            warndlg('Not enough channels');
+            return;
+        case 1
+            sect = piccolo;
+        case 2
+            sect = intersect(piccolo(:,ivec(1)),piccolo(:,ivec(2)));
+        otherwise
+            sect = intersect(piccolo(:,ivec(1)),piccolo(:,ivec(2)));
+            for i = ivec(3):ivec(end)
+                sect = intersect(piccolo(:,i),sect);
             end
-            tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
-            goodies(ind) = 0;
-        end
-        if debug
-            assignin('base',['fulltempivs',num2str(i)],tempivs);
-        end
-        tempivs = tempivs(any(tempivs,2),:);
-        tempivs2 = tempivs;
-        if debug
-            assignin('base',['tempivs',num2str(i)],tempivs);
-            assignin('base',['extgoodies',num2str(i)],goodies);  
-        end
-        for j = 2:size(tempivs,1)
-            overlap = intersect(tempivs(j,1):tempivs(j,2),tempivs(1,1):tempivs(1,2));
-            if length(overlap) > 1
-                tempivs2(j,:) = [];
-                tempivs2 = cat(1,tempivs2,[tempivs(j,1) overlap(1)]);
-                tempivs2 = cat(1,tempivs2,[overlap(end) tempivs(j,2)]);
+    end
+
+    if debug
+        assignin('base','runsect',sect);
+    end
+    qsect = diff(sect);
+    louds = qsect(qsect>1);
+    if debug
+        assignin('base','runlouds',louds);
+    end
+    [~, inds] = ismember(qsect,louds);
+    goodinds = find(inds~=0);
+    goodinds = goodinds + 1;
+    if(goodinds(1) ~= 1)
+        goodinds = cat(1,1,goodinds);
+    end
+    if debug
+        assignin('base','runginds',goodinds);
+    end
+    [quietivlen, ind] = max(diff(goodinds));
+    quietiv = [sect(goodinds(ind)), sect(goodinds(ind))+quietivlen];
+    quietivs = zeros(size(indataFull,2),2,len);
+    quietivs(1,:,1) = quietiv;
+    if debug
+        assignin('base','intervals',quietiv);
+    end
+    quietivT = (quietiv/srate)+t_scale(1);
+    if debug
+        assignin('base','intervalsT',quietivT);
+    end
+
+    extendedivs = 0;
+    %%% Ha tul rovid az interval, vagy eleve nincs közös, akkor csatornankent hozzarakok 
+    if caorephys == 2
+        sec = inf;
+    end
+    if ((quietiv(2)-quietiv(1)) < sec*srate)
+        extendedivs = 1;
+        maxnum = 0;
+        for i = ivec
+            extquiets = piccolo(:,i);
+            diffquiets = diff(extquiets);
+            extlouds = diffquiets(diffquiets>1);
+            [~, inds] = ismember(diffquiets,extlouds);
+            extgoodinds = find(inds~=0);
+            if(extgoodinds(1) ~= 1)
+                extgoodinds = cat(1,1,extgoodinds);
+            end
+            goodies = diff(extgoodinds);
+            if debug
+                assignin('base',['goodies',num2str(i)],goodies);
+            end
+            tempivs = zeros(length(goodies),2);
+            tempivs(1,:) = quietiv;
+            indx = 1;
+            while (sum(tempivs(:,2)-tempivs(:,1))) < (sec*srate+(quietiv(2)-quietiv(1)))
+                indx = indx + 1;
+                [goodielen, ind] = max(goodies);
+                if goodielen == 0 && caorephys == 1
+                    warn = warndlg('Couldnt reach specified quietlenght');
+                    pause(0.25);
+                    close(warn);
+                    break
+                elseif goodielen == 0 && caorephys == 2
+                    break
+                end
+                tempivs(indx,:) = [extquiets(extgoodinds(ind)) , extquiets(extgoodinds(ind))+goodielen];
+                goodies(ind) = 0;
+            end
+            if debug
+                assignin('base',['fulltempivs',num2str(i)],tempivs);
+            end
+            tempivs = tempivs(any(tempivs,2),:);
+            tempivs2 = tempivs;
+            if debug
+                assignin('base',['tempivs',num2str(i)],tempivs);
+                assignin('base',['extgoodies',num2str(i)],goodies);  
+            end
+            for j = 2:size(tempivs,1)
+                overlap = intersect(tempivs(j,1):tempivs(j,2),tempivs(1,1):tempivs(1,2));
+                if length(overlap) > 1
+                    tempivs2(j,:) = [];
+                    tempivs2 = cat(1,tempivs2,[tempivs(j,1) overlap(1)]);
+                    tempivs2 = cat(1,tempivs2,[overlap(end) tempivs(j,2)]);
+                end
+            end
+            if size(tempivs2,1) > maxnum
+                maxnum = size(tempivs2,1);
+            end
+            quietivs(1:size(tempivs2,1),:,i) = tempivs2;
+            if debug
+                assignin('base','quietivs',quietivs);
+                assignin('base',['tempivs2',num2str(i)],tempivs2);
             end
         end
-        if size(tempivs2,1) > maxnum
-            maxnum = size(tempivs2,1);
+        for i = 1:size(quietivs,3)
+            quietivs(maxnum+1:end,:,:) = [];
         end
-        quietivs(1:size(tempivs2,1),:,i) = tempivs2;
         if debug
             assignin('base','quietivs',quietivs);
-            assignin('base',['tempivs2',num2str(i)],tempivs2);
         end
-    end
-    for i = 1:size(quietivs,3)
-        quietivs(maxnum+1:end,:,:) = [];
-    end
-    if debug
-        assignin('base','quietivs',quietivs);
-    end
-    quietivsT = quietivs;
-    quietivsT(:,:,:) = (quietivsT(:,:,:)/srate)+t_scale(1);
-    if debug
-        assignin('base','quietivsT',quietivsT);
-    end
+        quietivsT = quietivs;
+        quietivsT(:,:,:) = (quietivsT(:,:,:)/srate)+t_scale(1);
+        if debug
+            assignin('base','quietivsT',quietivsT);
+        end
+    end    
 end
 
 %%% Ca adatok normálása, baselineolása
@@ -2485,14 +2489,6 @@ if caorephys == 2
         end
         avg = mean(quiet);
         indataFull(i,:) = indataFull(i,:)-avg;
-%         newgor = [];
-%         newgor.name = ['Normed_Ca_Roi_',num2str(ca_order(i)-1)];
-%         newgor.xname = 'Time';
-%         newgor.yname = 'dF/F';
-%         newgor.xunit = 'ms';
-%         newgor = gorobj('eqsamp',[t_scale(1) t_scale(2)-t_scale(1)]*1000,'double',indataFull(i,:),newgor);
-%         newgor = set(newgor,'vars',1,det_thresh(i));
-%         norm_ca_gors = [norm_ca_gors ; newgor];
     end
     normed_ca = indataFull;
     power = transpose(indataFull);
@@ -2502,9 +2498,11 @@ allpeaksDP = zeros(size(indataFull,2),2,length(noref));
 if debug
     assignin('base','INITallpeaksDP',allpeaksDP);
 end
-%%%%%%%%%%%%%%
-%%% SWR detect
-%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%
+% % % Event detection
+%%%%%%%%%%%%%%%%%%%%%
+
 det_thresh = zeros(length(ivec),2);
 allwidths = zeros(size(indataFull,2),2,length(ivec));
 for i = ivec
