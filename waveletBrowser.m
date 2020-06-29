@@ -938,7 +938,7 @@ mb = msgbox('Computing wavelet transform...');
 if ~handles.cwtpressed
     leaddog = handles.evdet_hdls.dog(:,handles.evdet_hdls.ephysleadch);
     [full_coeffs,~] = cwt(leaddog,srate,'amor','FrequencyLimits',[0 300]);
-    full_coeffs = abs(full_coeffs).^2;
+    full_coeffs = abs(full_coeffs);
     handles.full_coeffs = full_coeffs;
 else
     full_coeffs = handles.full_coeffs;
@@ -947,9 +947,9 @@ avg = mean(mean(full_coeffs));
 sd = std(std(full_coeffs));
 
 [coeffs,f] = cwt(dogy,srate,'amor','FrequencyLimits',[0 300]);
-coeffs = abs(coeffs).^2;
+coeffs = abs(coeffs);
 
-z_coeffs = (coeffs-avg)./sd;
+z_coeffs = (coeffs-avg)/sd;
 
 delete(mb);
 
@@ -981,7 +981,7 @@ ylabel('Frequency [Hz]');
 xlabel('Time [ms]');
 
 % % % wavelettel validálni detekciót
-if max(max(z_coeffs(:,mid-dist:mid+dist))) < 20
+if max(max(z_coeffs(:,floor(mid-dist:mid+dist)))) < 20
     warndlg('Probably not a SPW-R!')
 end
 

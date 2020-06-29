@@ -201,7 +201,7 @@ function ephys_proc_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-list = {'DoG + InstPow'};
+list = {'DoG + InstPow'; 'DoG + Adaptive Thresholding'};
 set(hObject,'string',list);
 
 
@@ -2280,7 +2280,8 @@ if debug && caorephys == 2
 end
 
 % % % Ephys proc
-if selected == 1 && caorephys == 1
+
+if (selected == 1 || selected == 2) && caorephys == 1
     for i = ivec
         indata = indataFull(i,:);
         if i ~= refch && denoise == 1
@@ -2309,6 +2310,7 @@ elseif selected == 3 && caorephys == 1
         assignin('base','predogged',dogged);
     end
 end
+
 if (selected == 1 || selected == 3) && caorephys == 1
     for i = ivec
 
@@ -2331,10 +2333,10 @@ if (selected == 1 || selected == 3) && caorephys == 1
         power(:,i) = ripPower0;
 
     end
-end
-
-if debug
-    assignin('base','POWER',power);
+    
+    if debug
+        assignin('base','POWER',power);
+    end
 end
 
 % % % Alapzaj meghatározása static thresh
@@ -2469,7 +2471,7 @@ if (selected == 1) || (caorephys == 2)
         if debug
             assignin('base','quietivsT',quietivsT);
         end
-    end    
+    end
 end
 
 %%% Ca adatok normálása, baselineolása
@@ -2506,6 +2508,7 @@ end
 det_thresh = zeros(length(ivec),2);
 allwidths = zeros(size(indataFull,2),2,length(ivec));
 for i = ivec
+        
     currpow = power(:,i);
     if debug
         assignin('base',['currpow',num2str(i)],currpow);
