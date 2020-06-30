@@ -3,7 +3,9 @@ function wavyDet(data)
 
 srate = 20000;
 mindist = 50;
-sdmult = 3;
+runavgwindow = 0.25;
+minlen = 0.02;
+sdmult = 4;
 
 %% Input data handling
 
@@ -72,36 +74,62 @@ delete(mb);
 
 %% Threshold calculation and detection
 
-colmax = max(coeffs);
-colavg = mean(colmax);
-colsd = std(colmax);
-thr = colavg + sdmult*colsd;
+colmean = mean(coeffs);
+colstd = std(coeffs);
+runavg = movmean(colmean,runavgwindow*srate);
+runstd = movstd(colstd,runavgwindow*srate);
+thr = runavg + sdmult*runstd;
+% thr = mean(mean(coeffs)) + sdmult*std(std(coeffs));
 assignin('base','thr',thr)
-coeffs_det = coeffs;
+coeffs_det = colmean;
 coeffs_det(coeffs_det<thr) = 0;
 coeffs_det(:,1:0.1*srate) = 0;
 coeffs_det(:,length(coeffs)-0.1*srate:end) = 0;
 assignin('base','coeffs_det',coeffs_det)
 [~,dets] = find(coeffs_det);
 dets = unique(dets);
-for i = 1:length(dets)-1
-    if (dets(i+1)-dets(i)) < 0.05*srate
-        dets(i) = 0;
+
+% for i = 1:length(dets)-1
+%     if (dets(i+1)-dets(i)) < 0.001*srate
+%         dets(i) = 0;
+%     end
+% end
+% dets(dets==0) = [];
+
+steps = diff(dets);
+events = find(steps~=1);
+vevents = [];
+for i = 1:length(events)
+    if i == 1
+        len = events(i);
+    else
+        len = events(i)-events(i-1);
+    end
+    if len > minlen*srate
+        vevents = [vevents, events(i)];
     end
 end
-dets(dets==0) = [];
+
 bips = zeros(length(t),1);
 bips(:) = nan;
-bips(dets) = 0;
+bips(dets(vevents)) = 0;
 
 assignin('base','t',t)
 assignin('base','doggy',dogged)
 %% Plotting
 
 figure
+ax1 = subplot(2,1,1);
 plot(t,dogged)
 hold on
 plot(t,bips,'r*','MarkerSize',12)
 axis tight
 title('Detections based on CWT')
 xlabel('Time [ms]')
+ax2 = subplot(2,1,2);
+plot(t,colmean)
+hold on
+plot(t,thr)
+axis tight
+legend('colmean','threshold')
+linkaxes([ax1,ax2],'x')
