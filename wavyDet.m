@@ -4,7 +4,7 @@ function wavyDet(data)
 srate = 20000;
 mindist = 50;
 runavgwindow = 0.25;
-minlen = 0.02;
+minlen = 0.0;
 sdmult = 4;
 
 %% Input data handling
@@ -74,46 +74,68 @@ delete(mb);
 
 %% Threshold calculation and detection
 
-colmean = mean(coeffs);
-colstd = std(coeffs);
-runavg = movmean(colmean,runavgwindow*srate);
-runstd = movstd(colstd,runavgwindow*srate);
-thr = runavg + sdmult*runstd;
-% thr = mean(mean(coeffs)) + sdmult*std(std(coeffs));
+% % Standard mean+sd approach with running average
+% colmean = mean(coeffs);
+% colstd = std(coeffs);
+% runavg = movmean(colmean,runavgwindow*srate);
+% runstd = movstd(colstd,runavgwindow*srate);
+% thr = runavg + sdmult*runstd;
+% % thr = mean(mean(coeffs)) + sdmult*std(std(coeffs));
+% assignin('base','thr',thr)
+% coeffs_det = colmean;
+% coeffs_det(coeffs_det<thr) = 0;
+% coeffs_det(:,1:0.1*srate) = 0;
+% coeffs_det(:,length(coeffs)-0.1*srate:end) = 0;
+% assignin('base','coeffs_det',coeffs_det)
+% [~,dets] = find(coeffs_det);
+% dets = unique(dets);
+
+% Instantaneous energy integral approach
+instE = trapz(coeffs);
+thr = mean(instE) + sdmult*std(instE);
 assignin('base','thr',thr)
-coeffs_det = colmean;
+coeffs_det = instE;
 coeffs_det(coeffs_det<thr) = 0;
 coeffs_det(:,1:0.1*srate) = 0;
 coeffs_det(:,length(coeffs)-0.1*srate:end) = 0;
 assignin('base','coeffs_det',coeffs_det)
 [~,dets] = find(coeffs_det);
 dets = unique(dets);
-
-% for i = 1:length(dets)-1
-%     if (dets(i+1)-dets(i)) < 0.001*srate
-%         dets(i) = 0;
-%     end
-% end
-% dets(dets==0) = [];
+assignin('base','dets',dets)
 
 steps = diff(dets);
 events = find(steps~=1);
-vevents = [];
+events = events+1;
+vEvents = [];
+
+if (isempty(events)) && (length(dets) > minlen*srate)
+    vEvents = dets(1);
+else
+    events = [events, length(steps)];
+end
+
+assignin('base','events',events)
+
 for i = 1:length(events)
     if i == 1
-        len = events(i);
+        len = events(i)-1;
+        if len > minlen*srate
+            vEvents = [vEvents, 1];
+        end
     else
         len = events(i)-events(i-1);
-    end
-    if len > minlen*srate
-        vevents = [vevents, events(i)];
+        if len > minlen*srate
+            vEvents = [vEvents, events(i-1)];
+        end
     end
 end
+assignin('base','vEvents',vEvents)
 
 bips = zeros(length(t),1);
 bips(:) = nan;
-bips(dets(vevents)) = 0;
+bips(dets(vEvents)) = 0;
 
+assignin('base','bips',bips)
 assignin('base','t',t)
 assignin('base','doggy',dogged)
 %% Plotting
@@ -127,9 +149,13 @@ axis tight
 title('Detections based on CWT')
 xlabel('Time [ms]')
 ax2 = subplot(2,1,2);
-plot(t,colmean)
+try
+    plot(t,instE)
+catch
+    plot(t,colmean)
+end
 hold on
-plot(t,thr)
+plot(t,ones(size(t))*thr)
 axis tight
 legend('colmean','threshold')
 linkaxes([ax1,ax2],'x')
