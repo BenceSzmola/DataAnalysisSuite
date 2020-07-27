@@ -4,8 +4,8 @@ function wavyDet(data)
 srate = 20000;
 mindist = 50;
 runavgwindow = 0.25;
-minlen = 0.0;
-sdmult = 4;
+minlen = 0.02;
+sdmult = 2;
 
 %% Input data handling
 
@@ -45,8 +45,8 @@ t = linspace(0,length(data)/srate,length(data))*1000;
 mb = msgbox('Computing wavelet transform...');
 
 figure
-[coeffs,f,coi] = cwt(data,srate,'FrequencyLimits',[150 250]);
-cwt(data,srate,'amor','FrequencyLimits',[150 250]); 
+[coeffs,f,coi] = cwt(data,srate,'amor','FrequencyLimits',[100 250]);
+cwt(data,srate,'amor','FrequencyLimits',[100 250]); 
 coeffs = abs(coeffs);
 assignin('base','coeffs',coeffs)
 assignin('base','f',f)
@@ -89,9 +89,11 @@ delete(mb);
 % assignin('base','coeffs_det',coeffs_det)
 % [~,dets] = find(coeffs_det);
 % dets = unique(dets);
+% assignin('base','dets',dets)
 
 % Instantaneous energy integral approach
-instE = trapz(coeffs);
+minlen = 0;
+instE = trapz(abs(coeffs));
 thr = mean(instE) + sdmult*std(instE);
 assignin('base','thr',thr)
 coeffs_det = instE;
@@ -156,6 +158,8 @@ catch
 end
 hold on
 plot(t,ones(size(t))*thr)
+% plot(t,thr)
 axis tight
 legend('colmean','threshold')
 linkaxes([ax1,ax2],'x')
+xlim([100 t(end)-100])
