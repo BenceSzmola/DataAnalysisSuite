@@ -8,6 +8,9 @@ end
 
 L = max(size(data));
 numchan = min(size(data));
+if size(data,1) > size(data,2)
+    data = data';
+end
 
 for i = 1:numchan
     Y = fft(data(i,:));

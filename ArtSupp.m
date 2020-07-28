@@ -10,6 +10,7 @@ if nargin == 0
     [filename,path] = uigetfile('*.rhd');
     oldpath = cd(path);
     data = read_Intan_RHD2000_file_cl(filename);
+    data = data.amplifier_data;
     cd(oldpath)
 end
 
@@ -20,11 +21,11 @@ PlotEEG(icaEEG,fs,[],[],'Independent components')
 
 %% CWT of ICs
 
-for i = 1:size(data,1)
-    figure
-    cwt(icaEEG(i,:),'amor',fs,'FrequencyLimit',[0 500])
-    title(['Cwt of IC #',num2str(i)])
-end
+% for i = 1:size(data,1)
+%     figure
+%     cwt(icaEEG(i,:),'amor',fs,'FrequencyLimit',[0 500])
+%     title(['Cwt of IC #',num2str(i)])
+% end
 
 %% wICA style suppression (Makarov et al)
 
@@ -43,3 +44,6 @@ PlotEEG(icaEEG2, fs, [], [], 'wavelet filtered ICs');
 Data_wICA = A*icaEEG2;
 figure('color','w');
 PlotEEG(Data_wICA, fs, [], [], 'wICA cleanned EEG');
+
+assignin('base','icaEEG2',icaEEG2)
+assignin('base','Data_wICA',Data_wICA)
