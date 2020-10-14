@@ -5,7 +5,7 @@ dt = 1/srate;
 step = 0.05;
 win = step*2;
 upthr = 2.7;
-lowthr = 1.6;
+lowthr = 2.1;%1.6;
 minwidth = 0.01;
 mindist = 0.03;
 ratio = 0.99;
@@ -54,6 +54,7 @@ dogged = lfpLow;
 avg = mean(dogged);
 sd = std(dogged);
 z_dog = (dogged-avg)./sd;
+assignin('base','z_dog',z_dog)
 
 %% Calculate its envelope
 envel = hilbert(z_dog);
@@ -69,6 +70,7 @@ assignin('base','env',envel)
 %% Smoothing with Gaussian window
 gw = gausswin(0.02*srate);
 smoothie = conv(envel,gw,'same');
+% smoothie = imgaussfilt(envel,6);
 assignin('base','smoothie',smoothie)
 
 % fig=figure;
@@ -138,10 +140,14 @@ imagesc(tax,vbins,histo)
 set(gca,'YDir','normal')
 colormap(hot)
 colorbar
+title('Histogram from Hilbert envelope peaks')
+xlabel('Time [s]')
+ylabel('Voltage [\muV]')
 % hold on
 % plot(tax,sliding_avg*upthr,'w')
 hold on
 hist_low = plot(tax,sliding_avg*lowthr,'g');
+hold off
 
 figure
 sp1=subplot(2,1,1);
@@ -150,9 +156,15 @@ sp1=subplot(2,1,1);
 lowline = plot(tax,sliding_avg*lowthr);
 hold on
 plot(tax,smoothie)
+title('Hilbert envelope smoothed by Gaussian filter')
+xlabel('Time [s]')
+ylabel('Voltage [\muV]')
+legend('Threshold','Hilbert envelope')
 sp2=subplot(2,1,2);
 plot(tax,z_dog)
-hold on
+title('DoG filtered LFP')
+xlabel('Time [s]')
+ylabel('Voltage [\muV]')
 linkaxes([sp1,sp2],'x')
 
 %% Detection based on num of peaks
@@ -215,6 +227,8 @@ csillag(detettione) = 0;
 % figure
 % plot(tax,z_dog)
 % hold on
+hold(sp2,'on')
 plot(tax,csillag,'r*','MarkerSize',12)
+legend('DoG','Detections')
 axis tight
 hold off

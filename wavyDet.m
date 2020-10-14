@@ -5,7 +5,7 @@ srate = 20000;
 mindist = 50;
 runavgwindow = 0.25;
 minlen = 0.02;
-sdmult = 2;
+sdmult = 3;
 
 %% Input data handling
 
@@ -40,7 +40,7 @@ dogged = lfpLow;
 
 %% CWT
 
-t = linspace(0,length(data)/srate,length(data))*1000;
+t = linspace(0,length(data)/srate,length(data));
 
 mb = msgbox('Computing wavelet transform...');
 
@@ -149,7 +149,8 @@ hold on
 plot(t,bips,'r*','MarkerSize',12)
 axis tight
 title('Detections based on CWT')
-xlabel('Time [ms]')
+xlabel('Time [s]')
+ylabel('Voltage [\muV]')
 ax2 = subplot(2,1,2);
 try
     plot(t,instE)
@@ -158,8 +159,9 @@ catch
 end
 hold on
 plot(t,ones(size(t))*thr)
-% plot(t,thr)
+xlabel('Time [s]')
+ylabel('CWT coefficient magnitude')
 axis tight
-legend('colmean','threshold')
+legend('Inst. Energy integral over all frequencies','threshold')
 linkaxes([ax1,ax2],'x')
-xlim([100 t(end)-100])
+xlim([0.1 t(end)-0.1])

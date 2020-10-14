@@ -1,9 +1,14 @@
-function freqspec(data,Fs)
+function freqspec(data,Fs,fmin,fmax)
 % from matlab help
 
 if nargin < 2
     Fs = 20000;
     fprintf(1,'Using default sampling frequency (20 kHz)\n')
+end
+
+if nargin < 4
+    fmin = 0;
+    fmax = 500;
 end
 
 L = max(size(data));
@@ -25,4 +30,5 @@ for i = 1:numchan
     title(['FFT spectrum channel #',num2str(i)])
     xlabel('f (Hz)')
     ylabel('|P1(f)|')
+    xlim([fmin fmax])
 end
