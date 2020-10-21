@@ -118,46 +118,129 @@ switch idx
         data_pad = [data(chan,:),zeros(1,mult*2^lvl-length(data(chan,:)))];
         [swa,swd] = swt(data_pad,lvl,wname);
         art_inds = {};
-        figure
+%         figure
         for i = 1:lvl
             alpha = median(abs(swd(i,:)))/0.6745;
             thr = alpha*sqrt(2*log(length(data_pad)));
-            tres(i) = thr;
+            thr_det(i) = thr;
             temp = swd(i,:);
 %             temp(abs(temp)>thr) = temp(abs(temp)>thr) - (thr^2)./temp(abs(temp)>thr);
 %             temp(abs(temp)>thr) = thr;
-            temp(abs(temp)>thr) = 0;
-            art_inds{i,1} = find(temp(abs(temp)>thr));
+%             temp(abs(temp)<=thr) = 0;
+            art_inds{i,1} = find(abs(temp)>thr);
             
+%             subplot(2,1,1)
+%             plot(swd(i,:))
+%             title(['lvl',num2str(i),' detail'])
+%             hold on
+%             line([1 length(temp)],[thr thr])
+%             hold on
+%             line([1 length(temp)],[-thr -thr])
+%             hold off
+%             subplot(2,1,2)
+%             plot(temp)
+%             title(['lvl',num2str(i),' detail thresholded'])
+%             hold on
+%             line([1 length(temp)],[thr thr])
+%             hold on
+%             line([1 length(temp)],[-thr -thr])
+%             hold off
+%             swd_thr(i,:) = temp;
+%             
+%             waitforbuttonpress
+        end
+        alpha = median(abs(swa(10,:)))/0.6745;
+        thr_apr = alpha*sqrt(2*log(length(data_pad)));
+        swa_thr = swa(10,:);
+%         swa_thr(abs(swa_thr)>thr) = swa_thr(abs(swa_thr)>thr) - (thr^2)./swa_thr(abs(swa_thr)>thr);
+%         swa_thr(abs(swa_thr)>thr) = 0;
+        art_inds{1,2} = find(abs(swa_thr)>thr_apr);
+        assignin('base','swd',swd)
+%         assignin('base','swd_thr',swd_thr)
+        assignin('base','tres',thr_det)
+        assignin('base','artinds',art_inds)
+        
+        % Filtering
+        spikeband = DoG(data(chan,:),fs,300,5000);
+        badband = DoG(data(chan,:),fs,150,400);
+%         [bh,ah] = butter(4,5000/(fs/2),'high');
+%         high = filter(bh,ah,data(chan,:));
+        high = DoG(data(chan,:),fs,5000,10000);
+        thr_sp = (median(abs(spikeband))/0.6745)*sqrt(2*log(length(data(chan,:))));
+        thr_bb = (median(abs(badband))/0.6745)*sqrt(2*log(length(data(chan,:))));
+        thr_high = (median(abs(high))/0.6745)*sqrt(2*log(length(data(chan,:))));
+        figure
+        subplot(311)
+        plot(spikeband)
+        title('spike')
+        subplot(312)
+        plot(badband)
+        title('badband')
+        subplot(313)
+        plot(high)
+        title('highpass')
+        
+        inds = find(~cellfun('isempty', art_inds));
+%         for i = 1:length(inds)
+%             for j = 1:length(art_inds{i})
+%                 if art_inds{i}(j) <= length(data(chan,:))
+%                     idx = art_inds{i}(j);
+%                     if (abs(badband(idx)) < thr_bb) || (abs(high(idx)) < thr_high)
+%                         if (abs(spikeband(idx)) > thr_sp)
+%                             % not an artifact index
+%                             art_inds{i}(j) = nan;
+%                         else
+%                             % is an artifact index
+%                         end
+%                     else
+%                         % is an artifact
+%                     end
+%                 end
+%             end
+%         end
+%         assignin('base','artinds2',art_inds)
+        
+        % Thresholding coefficients
+        swd_thr = swd;
+        swa_thr = swa(end,:);
+        for i = 1:length(inds)
+            for j = 1:length(art_inds{i})
+                idx = art_inds{i}(j);
+                if ~isnan(idx)
+                    if i~=length(inds)
+%                         swd_thr(i,idx) = swd(i,idx) - (thr_det(i)^2)./swd(i,idx);
+                        swd_thr(i,idx) = thr_det(i);
+                    else
+%                         swa_thr(idx) = swa_thr(idx) - (thr_apr^2)./swa_thr(idx);
+                        swa_thr(idx) = thr_apr;
+                    end
+                end
+            end
+        end
+        assignin('base','swd_thr',swd_thr)
+        assignin('base','swa_thr',swa_thr)
+        
+        figure
+        for i = 1:10
             subplot(2,1,1)
             plot(swd(i,:))
             title(['lvl',num2str(i),' detail'])
             hold on
-            line([1 length(temp)],[thr thr])
+            line([1 length(swd(i,:))],[thr_det(i) thr_det(i)])
             hold on
-            line([1 length(temp)],[-thr -thr])
+            line([1 length(swd(i,:))],[-thr_det(i) -thr_det(i)])
             hold off
             subplot(2,1,2)
-            plot(temp)
+            plot(swd_thr(i,:))
             title(['lvl',num2str(i),' detail thresholded'])
             hold on
-            line([1 length(temp)],[thr thr])
+            line([1 length(swd(i,:))],[thr_det(i) thr_det(i)])
             hold on
-            line([1 length(temp)],[-thr -thr])
+            line([1 length(swd(i,:))],[-thr_det(i) -thr_det(i)])
             hold off
-            swd_thr(i,:) = temp;
-            
+
             waitforbuttonpress
         end
-        alpha = median(abs(swa(10,:)))/0.6745;
-        thr = alpha*sqrt(2*log(length(data_pad)));
-        swa_thr = swa(10,:);
-%         swa_thr(abs(swa_thr)>thr) = swa_thr(abs(swa_thr)>thr) - (thr^2)./swa_thr(abs(swa_thr)>thr);
-        swa_thr(abs(swa_thr)>thr) = 0;
-        art_inds{1,2} = find(swa_thr(abs(swa_thr)>thr));
-        assignin('base','swd',swd)
-        assignin('base','swd_thr',swd_thr)
-        assignin('base','tres',tres)
         
         data_cl = iswt(swa_thr,swd_thr,wname);
         figure
