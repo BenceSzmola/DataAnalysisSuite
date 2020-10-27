@@ -6,8 +6,8 @@ fs = 20000;
 
 %% Select algorithm
 
-list = {'wICA', 'my_wICA','islam2014'};
-[idx tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
+list = {'wICA', 'my_wICA','islam2014','other wICA'};
+[meth tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
 if ~tf
     return
 end
@@ -22,13 +22,13 @@ if nargin == 0
     cd(oldpath)
 end
 
-% Independent Component Analysis
-
-[icaEEG,A,W]=fastica(data); % Finding the ICs
-figure;
-PlotEEG(icaEEG,fs,[],[],'Independent components')
-
-assignin('base','icaEEG',icaEEG)
+% % Independent Component Analysis
+% 
+% [icaEEG,A,W]=fastica(data); % Finding the ICs
+% figure;
+% PlotEEG(icaEEG,fs,[],[],'Independent components')
+% 
+% assignin('base','icaEEG',icaEEG)
 
 %% CWT of ICs
 
@@ -38,7 +38,7 @@ assignin('base','icaEEG',icaEEG)
 %     title(['Cwt of IC #',num2str(i)])
 % end
 
-switch idx
+switch meth
 %% wICA style suppression (Makarov et al)
     case 1
 
@@ -251,6 +251,80 @@ switch idx
         plot(data_cl)
         title('reconstructed lfp')
         linkaxes([ax1,ax2],'x')
+        
+    case 4
+        % Different kind of wICA
+        
+        lvl = 10;
+        wname = 'db4';
+        corrthr = 0.5;
+        refchan = inputdlg('# of reference channel');
+        refchan = str2double(refchan{:});
+        
+        mult = ceil(length(data)/2^lvl);
+        data_pad = [data,zeros(size(data,1),mult*2^lvl-length(data))];
+        
+        corrupts = zeros(min(size(data)),lvl+1);
+        
+        % find the corrupted wavelet components based on correlation with
+        % the reference
+        [swa_ref,swd_ref] = swt(data_pad(refchan,:),lvl,wname);
+        for i = 1:min(size(data))
+            if i ~= refchan
+                [swa,swd] = swt(data_pad(i,:),lvl,wname);
+                for j = 1:(lvl+1)
+                    if j <= lvl
+                        rho = corrcoef(swd(j,:),swd_ref(j,:));
+                        if rho > corrthr
+                            corrupts(i,j) = 1;
+                        end
+                    elseif j == lvl+1
+                        rho = corrcoef(swa(lvl,:),swa_ref(lvl,:));
+                        if rho > corrthr
+                            corrupts(i,lvl+1) = 1;
+                        end
+                    end
+                end
+            end
+        end
+        assignin('base','corrupts',corrupts)
+        
+        data_cl = zeros(size(data_pad));        
+        for i = 1:size(corrupts,1)
+            temp = find(corrupts(i,:));
+            assignin('base','cortemp',temp)
+            if isempty(temp)
+                continue
+            end
+            [swa,swd] = swt(data_pad(i,:),lvl,wname);
+            if ~isempty(find(temp==lvl+1))
+                tempMat = [swd(temp(1:end-1),:);swa(end,:)];
+            else
+                tempMat = swd(temp,:);
+            end
+            assignin('base','tempMat',tempMat)
+            [icaSwt,A,W] = fastica(tempMat);
+            icfig = figure;
+            for j = 1:length(temp)
+                plot(icaSwt(j,:))
+                title(['IC #',num2str(j),' - channel #',num2str(i)])
+                decision = questdlg('Keep IC?');
+                if strcmp(decision,'No')
+                    icaSwt(j,:) = 0;
+                end
+            end
+            close(icfig)
+            tempMat_cl = A*icaSwt;
+            assignin('base','tempMat_cl',tempMat_cl)
+            if ~isempty(find(temp==lvl+1))
+                swd(temp(1:end-1),:) = tempMat_cl(1:end-1,:);
+                swa(end,:) = tempMat_cl(end,:);
+            else
+                swd(temp,:) = tempMat_cl;
+            end
+            data_cl(i,:) = iswt(swa(end,:),swd,wname);
+        end
+        assignin('base','data_cl',data_cl)
 end
 
 %% Apply DoG (from BuzsakiLab)
@@ -264,7 +338,23 @@ waitbar(2/2,wb,'Calculating DoG from cleaned LFP')
 dogged_cl = DoG(data_cl,fs,4,12);
 close(wb)
 
-figure;
+t = linspace(0,length(data)/fs,length(data));
+t_pad = linspace(0,length(data_pad)/fs,length(data_pad));
+
+figure
+j = 1;
+for i = 1:size(data,1)
+    subplot(size(data,1),2,j)
+    j = j+1;
+    plot(t,data(i,:))
+    title(['Original - ch#',num2str(i)])
+    subplot(size(data,1),2,j)
+    plot(t_pad,data_cl(i,:))
+    title(['Cleaned - ch#',num2str(i)])
+    j = j+1;
+end
+
+figure
 PlotEEG(dogged,fs,[],[],'DoG from uncleaned')
 figure;
 PlotEEG(dogged_cl,fs,[],[],'DoG from cleaned')
