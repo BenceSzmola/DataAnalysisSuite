@@ -1,5 +1,6 @@
-function freqspec(data,Fs,fmin,fmax)
+function [faxis,psd] = freqspec(data,Fs,fmin,fmax)
 % from matlab help
+% [faxis,psd] = freqspec(data,Fs,fmin,fmax)
 
 if nargin < 2
     Fs = 20000;
@@ -17,6 +18,11 @@ if size(data,1) > size(data,2)
     data = data';
 end
 
+if nargout ~= 0
+    faxis = [];
+    psd = [];
+end
+
 for i = 1:numchan
     Y = fft(data(i,:));
 
@@ -31,4 +37,9 @@ for i = 1:numchan
     xlabel('f (Hz)')
     ylabel('|P1(f)|')
     xlim([fmin fmax])
+    
+    if nargout ~= 0
+        faxis = [faxis; f];
+        psd = [psd; P1];
+    end
 end

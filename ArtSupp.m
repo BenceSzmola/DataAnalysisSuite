@@ -269,17 +269,22 @@ switch meth
         % find the corrupted wavelet components based on correlation with
         % the reference
         [swa_ref,swd_ref] = swt(data_pad(refchan,:),lvl,wname);
+        refMat = [swd_ref;swa_ref(end,:)];
+        refIca = fastica(refMat);
+        
         for i = 1:min(size(data))
             if i ~= refchan
                 [swa,swd] = swt(data_pad(i,:),lvl,wname);
                 for j = 1:(lvl+1)
                     if j <= lvl
                         rho = corrcoef(swd(j,:),swd_ref(j,:));
+                        rho = rho(2);
                         if rho > corrthr
                             corrupts(i,j) = 1;
                         end
                     elseif j == lvl+1
                         rho = corrcoef(swa(lvl,:),swa_ref(lvl,:));
+                        rho = rho(2);
                         if rho > corrthr
                             corrupts(i,lvl+1) = 1;
                         end
@@ -306,12 +311,31 @@ switch meth
             [icaSwt,A,W] = fastica(tempMat);
             icfig = figure;
             for j = 1:length(temp)
+                subplot(211)
                 plot(icaSwt(j,:))
                 title(['IC #',num2str(j),' - channel #',num2str(i)])
-                decision = questdlg('Keep IC?');
-                if strcmp(decision,'No')
-                    icaSwt(j,:) = 0;
+                
+                assignin('base','refe',refIca)
+                assignin('base','nemref',icaSwt)
+                for k = 1:size(refIca,1)
+                    rho = corrcoef(icaSwt(j,:),refIca(k,:));
+                    display(rho)
+                    rho = rho(2);
+                    
+                    subplot(212)
+                    plot(refIca(k,:))
+                    title(['ref IC#',num2str(k),' corr=',num2str(rho)])
+                    
+                    if rho > corrthr
+                        icaSwt(j,:) = 0;
+                    end
+                    waitforbuttonpress
                 end
+%                 decision = questdlg('Keep IC?');
+%                 if strcmp(decision,'No')
+% %                     icaSwt(j,:) = 0;
+%                     A(j,:) = 0;
+%                 end
             end
             close(icfig)
             tempMat_cl = A*icaSwt;
