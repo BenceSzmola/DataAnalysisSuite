@@ -1,15 +1,19 @@
-function [faxis,psd] = freqspec(data,Fs,fmin,fmax)
+function [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
 % from matlab help
-% [faxis,psd] = freqspec(data,Fs,fmin,fmax)
+% [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
 
 if nargin < 2
     Fs = 20000;
     fprintf(1,'Using default sampling frequency (20 kHz)\n')
 end
 
-if nargin < 4
+if nargin < 5
     fmin = 0;
     fmax = 500;
+end
+
+if nargin < 3
+    plots = 1;
 end
 
 L = max(size(data));
@@ -31,12 +35,14 @@ for i = 1:numchan
     P1(2:end-1) = 2*P1(2:end-1);
 
     f = Fs*(0:floor(L/2))/L;
-    figure
-    plot(f,P1) 
-    title(['FFT spectrum channel #',num2str(i)])
-    xlabel('f (Hz)')
-    ylabel('|P1(f)|')
-    xlim([fmin fmax])
+    if plots
+        figure
+        plot(f,P1) 
+        title(['FFT spectrum channel #',num2str(i)])
+        xlabel('f (Hz)')
+        ylabel('|P1(f)|')
+        xlim([fmin fmax])
+    end
     
     if nargout ~= 0
         faxis = [faxis; f];

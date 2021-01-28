@@ -1,5 +1,6 @@
 function [dogged] = DoG(data,fs,w1,w2) 
-%% (from BuzsakiLab)
+%[dogged] = DoG(data,fs,w1,w2)
+%(from BuzsakiLab)
 
 numchans = min(size(data));
 dogged = zeros(size(data));

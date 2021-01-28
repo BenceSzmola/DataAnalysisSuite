@@ -6,7 +6,7 @@ fs = 20000;
 
 %% Select algorithm
 
-list = {'wICA', 'my_wICA','islam2014','other wICA'};
+list = {'wICA', 'my_wICA','islam2014','other wICA','ACAR/ANC','classic ref subtract'};
 [meth tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
 if ~tf
     return
@@ -22,6 +22,13 @@ if nargin == 0
     cd(oldpath)
 end
 
+if size(data,1)>size(data,2)
+    data = data';
+    disp('Input data was transposed')
+end
+
+t = linspace(0,length(data)/fs,length(data));
+
 % % Independent Component Analysis
 % 
 % [icaEEG,A,W]=fastica(data); % Finding the ICs
@@ -30,17 +37,10 @@ end
 % 
 % assignin('base','icaEEG',icaEEG)
 
-%% CWT of ICs
-
-% for i = 1:size(data,1)
-%     figure
-%     cwt(icaEEG(i,:),'amor',fs,'FrequencyLimit',[0 500])
-%     title(['Cwt of IC #',num2str(i)])
-% end
-
+%% Different methods
 switch meth
-%% wICA style suppression (Makarov et al)
     case 1
+%% wICA style suppression (Makarov et al)
 
         nICs = 1:size(icaEEG,1); % Components to be processed, e.g. [1, 4:7]
         Kthr = 1.25;             % Tolerance for cleaning artifacts, try: 1, 1.15,...
@@ -253,11 +253,11 @@ switch meth
         linkaxes([ax1,ax2],'x')
         
     case 4
-        % Different kind of wICA
+        %% Different kind of wICA
         
         lvl = 10;
         wname = 'db4';
-        corrthr = 0.5;
+        corrthr = 0.7;
         refchan = inputdlg('# of reference channel');
         refchan = str2double(refchan{:});
         
@@ -276,12 +276,23 @@ switch meth
             if i ~= refchan
                 [swa,swd] = swt(data_pad(i,:),lvl,wname);
                 for j = 1:(lvl+1)
-                    if j <= lvl
+                    if j <= lvl                        
                         rho = corrcoef(swd(j,:),swd_ref(j,:));
                         rho = rho(2);
                         if rho > corrthr
                             corrupts(i,j) = 1;
                         end
+                        
+%                         tf = figure;
+%                         subplot(211)
+%                         plot(swd(j,:))
+%                         title('sig')
+%                         subplot(212)
+%                         plot(swd_ref(j,:))
+%                         title(['ref, corr=',num2str(rho)])
+%                         waitforbuttonpress
+%                         close(tf)
+                        
                     elseif j == lvl+1
                         rho = corrcoef(swa(lvl,:),swa_ref(lvl,:));
                         rho = rho(2);
@@ -317,25 +328,25 @@ switch meth
                 
                 assignin('base','refe',refIca)
                 assignin('base','nemref',icaSwt)
-                for k = 1:size(refIca,1)
-                    rho = corrcoef(icaSwt(j,:),refIca(k,:));
-                    display(rho)
-                    rho = rho(2);
-                    
-                    subplot(212)
-                    plot(refIca(k,:))
-                    title(['ref IC#',num2str(k),' corr=',num2str(rho)])
-                    
-                    if rho > corrthr
-                        icaSwt(j,:) = 0;
-                    end
-                    waitforbuttonpress
-                end
-%                 decision = questdlg('Keep IC?');
-%                 if strcmp(decision,'No')
-% %                     icaSwt(j,:) = 0;
-%                     A(j,:) = 0;
+%                 for k = 1:size(refIca,1)
+%                     rho = corrcoef(icaSwt(j,:),refIca(k,:));
+%                     display(rho)
+%                     rho = rho(2);
+%                     
+%                     subplot(212)
+%                     plot(refIca(k,:))
+%                     title(['ref IC#',num2str(k),' corr=',num2str(rho)])
+%                     
+%                     if rho > corrthr
+%                         icaSwt(j,:) = 0;
+%                     end
+%                     waitforbuttonpress
 %                 end
+                decision = questdlg('Keep IC?');
+                if strcmp(decision,'No')
+%                     icaSwt(j,:) = 0;
+                    A(j,:) = 0;
+                end
             end
             close(icfig)
             tempMat_cl = A*icaSwt;
@@ -348,49 +359,267 @@ switch meth
             end
             data_cl(i,:) = iswt(swa(end,:),swd,wname);
         end
+        data_cl = data_cl(:,1:length(data));
+        data_cl(refchan,:) = data(refchan,:);
         assignin('base','data_cl',data_cl)
+        
+        figure('Name','wICA')
+        j = 1;
+        for i = 1:size(data,1)
+            sp1 = subplot(size(data,1),2,j);
+            j = j+1;
+            plot(t,data(i,:))
+            title(['Raw LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            sp2 = subplot(size(data,1),2,j);
+            plot(t,data_cl(i,:))
+            title(['Cleaned LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            linkaxes([sp1,sp2],'xy')
+            j = j+1;
+        end
+        
+    case 5
+        %% ACAR (Xinyu et al 2017) / ANC using refchan
+        L = 1000; % length of filter tap
+        u = 0.1; % step size to ensure stability
+%         car = sum(data,1)/size(data,1);
+        refchan = inputdlg('# of reference channel');
+        refchan = str2double(refchan{:});
+        ref = data(refchan,:);
+%         pow = rms(ref)^2;
+        pow = var(ref);
+        sigchans = 1:size(data,1);
+        sigchans(sigchans==refchan) = [];
+        data_sig = data(sigchans,:);
+        % trying removing mean
+        data_sig = data_sig-mean(data_sig,2);
+        data_cl = zeros(size(data));
+        
+%         wbank = zeros(length(sigchans),L);
+%         for i = 1:length(sigchans)
+%             w = zeros(1,L);
+%             for j = L:length(data_sig)
+%                 n_est = ref(j-L+1:j).*w;
+%                 s_est = data_sig(i,j-L+1:j)-n_est;
+%                 w = w+2*u*s_est.*ref(j-L+1:j)/(L*pow);
+%             end
+%             if mean(w) < 0
+%                 w = -1*w;
+%             end
+%             wbank(i,:) = w;
+%             data_cl(sigchans(i),:) = filter(w,1,data_sig(i,:));
+%             ma = movmean(data_cl(sigchans(i),:),L/2);
+%             data_cl(sigchans(i),:) = data_cl(sigchans(i),:)/L;
+%         end
+%         data_cl(refchan,:) = ref;
+%         assignin('base','data_cl',data_cl)        
+%         assignin('base','wbank',wbank)
+        
+        for i = 1:length(sigchans)
+            w = ones(1,L);
+%             w = 0;
+            for j = L:length(data_sig)
+                n_est = ref(j-L+1:j).*w;
+%                 display(size(n_est))
+                s_est = data_sig(i,j-L+1:j)-n_est;
+%                 display(size(s_est))
+                data_cl(sigchans(i),j-L+1:j) = s_est;
+                w = w+2*u*s_est*ref(j-L+1:j)'/(L*pow);
+%                 display(size(w))
+%                 display('break')
+            end
+%             data_cl(sigchans(i),:) = data_sig(i,:)-ref*w;
+%             display(w)
+        end
+        data_cl(refchan,:) = ref;
+        assignin('base','data_cl',data_cl)  
+        
+        figure('Name','Adaptive filter')
+        j = 1;
+        for i = 1:size(data,1)
+            sp1 = subplot(size(data,1),2,j);
+            j = j+1;
+            plot(t,data(i,:))
+            title(['Raw LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            sp2 = subplot(size(data,1),2,j);
+            plot(t,data_cl(i,:))
+            title(['Cleaned LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            linkaxes([sp1,sp2],'xy')
+%             ylim([-2000 2000])
+            j = j+1;
+        end
+        
+%         figure
+%         dogi=DoG(data_cl,20000,150,250);
+%         dogclassic = DoG(data-data(5,:),20000,150,250);
+%         dognoncl = DoG(data,20000,150,250);
+%         sp1=subplot(411);
+%         plot(dogi(1,:))
+%         title('DoG after prototype denoise')
+%         sp2=subplot(412);
+%         plot(dognoncl(1,:))
+%         title('DoG from raw')
+%         sp3=subplot(413);
+%         plot(dogclassic(1,:))
+%         title('DoG with classic subtraction')
+%         sp4=subplot(414);
+%         plot(dognoncl(5,:))
+%         title('DoG of refchan')
+%         linkaxes([sp1,sp2,sp3,sp4],'x')
+        
+    case 6
+        %% classic refchan subtraction
+        refchan = inputdlg('# of reference channel');
+        refchan = str2double(refchan{:});
+        ref = data(refchan,:);
+        sigchans = 1:size(data,1);
+        sigchans(sigchans==refchan) = [];
+
+        data_cl = data;
+        data_cl(sigchans,:) = data_cl(sigchans,:) - ref;
+        assignin('base','data_cl',data_cl)
+        
+        figure('Name','Classic subtraction')
+        j = 1;
+        for i = 1:size(data,1)
+            sp1 = subplot(size(data,1),2,j);
+            j = j+1;
+            plot(t,data(i,:))
+            title(['Raw LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            sp2 = subplot(size(data,1),2,j);
+            plot(t,data_cl(i,:))
+            title(['Cleaned LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            linkaxes([sp1,sp2],'xy')
+            j = j+1;
+        end
+        
 end
 
-%% Apply DoG (from BuzsakiLab)
+%% Performance evaluation
 
-wb = waitbar(0,'Calculating DoG');
-
-waitbar(1/2,wb,'Calculating DoG from original LFP')
-dogged = DoG(data,fs,4,12);
-
-waitbar(2/2,wb,'Calculating DoG from cleaned LFP')
-dogged_cl = DoG(data_cl,fs,4,12);
-close(wb)
-
-t = linspace(0,length(data)/fs,length(data));
-t_pad = linspace(0,length(data_pad)/fs,length(data_pad));
-
-figure
-j = 1;
-for i = 1:size(data,1)
-    subplot(size(data,1),2,j)
-    j = j+1;
-    plot(t,data(i,:))
-    title(['Original - ch#',num2str(i)])
-    subplot(size(data,1),2,j)
-    plot(t_pad,data_cl(i,:))
-    title(['Cleaned - ch#',num2str(i)])
-    j = j+1;
+answer = questdlg('Lauch performance evaluation?','Performance evaluation');
+if strcmp(answer,'Yes')
+    refchan = inputdlg('# of reference channel or 0 if you want to run on all');
+    refchan = str2double(refchan{:});
+    ref = data(refchan,:);
+    sigchans = 1:size(data,1);
+    sigchans(sigchans==refchan) = [];
+    
+    tempfig = figure;
+    spcell = cell(1,size(data,1));
+    for i = 1:size(data,1)
+        sp = subplot(size(data,1),1,i);
+        spcell{i} = sp;
+        plot(t,data(i,:))
+        title(['Original LFP, channel#',num2str(i)])
+    end
+    linkaxes([spcell{1},spcell{2},spcell{3},spcell{4},spcell{5}],'x')
+    noiseregion = inputdlg('Noise_begin noise_end (in [s])');
+    cleanregion = inputdlg('Clean_begin clean_end (in [s])');
+    close(tempfig)
+    assignin('base','noiseregion',noiseregion)
+    assignin('base','cleanregion',cleanregion)
+    
+    noise_borders = sscanf(noiseregion{:},'%f %f');
+    clean_borders = sscanf(cleanregion{:},'%f %f');
+    
+    if abs(diff(noise_borders)) == abs(diff(clean_borders))
+        mysnr_raw = sum(sum(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+            sum(sum(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2));
+        mysnr_raw_dB = 10*log10(mysnr_raw);
+        
+        mysnr_cl = sum(sum(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+        sum(sum(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2));
+        mysnr_cl_dB = 10*log10(mysnr_cl);
+        
+%         mysnr_raw = var(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs))/...
+%             var(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs));
+%         mysnr_raw_dB = 10*log10(mysnr_raw);
+%         mysnr_cl = var(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs))/...
+%             var(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs));
+%         mysnr_cl_dB = 10*log10(mysnr_cl);
+    else
+        fprintf(1,'Specified segments have different lengths -> normalizing\n')
+        mysnr_raw1 = sum(sum(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+            (abs(diff(clean_borders))*fs*length(sigchans));
+        mysnr_raw2 = sum(sum(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2))/...
+            (abs(diff(noise_borders))*fs*length(sigchans));
+        mysnr_raw = mysnr_raw1/mysnr_raw2;
+        
+        mysnr_raw_dB = 10*log10(mysnr_raw);
+        
+        mysnr_cl1 = sum(sum(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+            (abs(diff(clean_borders))*fs*length(sigchans));
+        mysnr_cl2 = sum(sum(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2))/...
+            (abs(diff(noise_borders))*fs*length(sigchans));
+        mysnr_cl = mysnr_cl1/mysnr_cl2;
+        
+        mysnr_cl_dB = 10*log10(mysnr_cl);
+    end
+    
+    fprintf(1,'Raw SNR = %f\ncleaned SNR = %f\n',mysnr_raw,mysnr_cl)
+    fprintf(1,'In dB: %f dB; %f dB\n',mysnr_raw_dB,mysnr_cl_dB)
+    fprintf(1,'deltaSNR = %f [dB]\n',mysnr_cl_dB-mysnr_raw_dB)
 end
 
-figure
-PlotEEG(dogged,fs,[],[],'DoG from uncleaned')
-figure;
-PlotEEG(dogged_cl,fs,[],[],'DoG from cleaned')
-
+%% Shared visualizer part (might or might not keep)
+% %% Apply DoG (from BuzsakiLab)
+% 
+% wb = waitbar(0,'Calculating DoG');
+% 
+% waitbar(1/2,wb,'Calculating DoG from original LFP')
+% dogged = DoG(data,fs,4,12);
+% 
+% waitbar(2/2,wb,'Calculating DoG from cleaned LFP')
+% dogged_cl = DoG(data_cl,fs,4,12);
+% close(wb)
+% 
+% t = linspace(0,length(data)/fs,length(data));
+% t_pad = linspace(0,length(data_pad)/fs,length(data_pad));
+% 
 % figure
-% ax1 = subplot(211);
-% plot(dogged(chan,:))
-% title('Uncleaned DoG')
-% ax2 = subplot(212);
-% plot(dogged_cl)
-% title('Cleaned DoG')
-% linkaxes([ax1,ax2],'x')
-
-assignin('base','dogged',dogged)
-assignin('base','dogged_cl',dogged_cl)
+% j = 1;
+% for i = 1:size(data,1)
+%     subplot(size(data,1),2,j)
+%     j = j+1;
+%     plot(t,data(i,:))
+%     title(['Original - ch#',num2str(i)])
+%     subplot(size(data,1),2,j)
+%     plot(t_pad,data_cl(i,:))
+%     title(['Cleaned - ch#',num2str(i)])
+%     j = j+1;
+% end
+% 
+% figure
+% PlotEEG(dogged,fs,[],[],'DoG from uncleaned')
+% figure;
+% PlotEEG(dogged_cl,fs,[],[],'DoG from cleaned')
+% 
+% % figure
+% % ax1 = subplot(211);
+% % plot(dogged(chan,:))
+% % title('Uncleaned DoG')
+% % ax2 = subplot(212);
+% % plot(dogged_cl)
+% % title('Cleaned DoG')
+% % linkaxes([ax1,ax2],'x')
+% 
+% assignin('base','dogged',dogged)
+% assignin('base','dogged_cl',dogged_cl)
