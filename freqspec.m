@@ -2,6 +2,14 @@ function [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
 % from matlab help
 % [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
 
+if nargin == 0 || isempty(data)
+    [filename,path] = uigetfile('*.rhd');
+    oldpath = cd(path);
+    data = read_Intan_RHD2000_file_cl(filename);
+    data = data.amplifier_data;
+    cd(oldpath)
+end
+
 if nargin < 2
     Fs = 20000;
     fprintf(1,'Using default sampling frequency (20 kHz)\n')

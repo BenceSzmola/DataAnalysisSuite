@@ -366,21 +366,23 @@ switch meth
         figure('Name','wICA')
         j = 1;
         for i = 1:size(data,1)
-            sp1 = subplot(size(data,1),2,j);
-            j = j+1;
-            plot(t,data(i,:))
-            title(['Raw LFP - ch#',num2str(i)])
-            xlabel('Time [s]')
-            ylabel('Voltage [\muV]')
-            axis tight
-            sp2 = subplot(size(data,1),2,j);
-            plot(t,data_cl(i,:))
-            title(['Cleaned LFP - ch#',num2str(i)])
-            xlabel('Time [s]')
-            ylabel('Voltage [\muV]')
-            axis tight
-            linkaxes([sp1,sp2],'xy')
-            j = j+1;
+            if i ~= refchan
+                sp1 = subplot(size(data,1)-1,2,j);
+                j = j+1;
+                plot(t,data(i,:))
+                title(['Raw LFP - ch#',num2str(i)])
+                xlabel('Time [s]')
+                ylabel('Voltage [\muV]')
+                axis tight
+                sp2 = subplot(size(data,1)-1,2,j);
+                plot(t,data_cl(i,:))
+                title(['Cleaned LFP - ch#',num2str(i)])
+                xlabel('Time [s]')
+                ylabel('Voltage [\muV]')
+                axis tight
+                linkaxes([sp1,sp2],'xy')
+                j = j+1;
+            end
         end
         
     case 5
