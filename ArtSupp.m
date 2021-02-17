@@ -17,7 +17,7 @@ end
 if nargin == 0
     [filename,path] = uigetfile('*.rhd');
     oldpath = cd(path);
-    data = read_Intan_RHD2000_file_cl(filename);
+    data = read_Intan_RHD2000_file_szb(filename);
     data = data.amplifier_data;
     cd(oldpath)
 end
