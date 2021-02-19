@@ -42,6 +42,12 @@ switch meth
     case 1
 %% wICA style suppression (Makarov et al)
 
+        % Independent Component Analysis 
+        [icaEEG,A,W]=fastica(data); % Finding the ICs
+        figure;
+        PlotEEG(icaEEG,fs,[],[],'Independent components')
+        
+        assignin('base','icaEEG',icaEEG)
         nICs = 1:size(icaEEG,1); % Components to be processed, e.g. [1, 4:7]
         Kthr = 1.25;             % Tolerance for cleaning artifacts, try: 1, 1.15,...
         ArtefThreshold = 4;      % Threshold for detection of ICs with artefacts
@@ -51,20 +57,42 @@ switch meth
 
         icaEEG2 = RemoveStrongArtifacts(icaEEG, nICs, Kthr, ArtefThreshold, fs, verbose); 
 
-        figure('color','w');
-        PlotEEG(icaEEG2, fs, [], [], 'wavelet filtered ICs');
+%         figure('color','w');
+%         PlotEEG(icaEEG2, fs, [], [], 'wavelet filtered ICs');
 
         data_cl = A*icaEEG2;
-        figure
-        PlotEEG(data,fs,[],[],'Raw LFP')
-        figure('color','w');
-        PlotEEG(data_cl, fs, [], [], 'wICA cleaned LFP');
+%         figure
+%         PlotEEG(data,fs,[],[],'Raw LFP')
+%         figure('color','w');
+%         PlotEEG(data_cl, fs, [], [], 'wICA cleaned LFP');
 
+        figure('Name','Makarov wICA')
+        j = 1;
+        for i = 1:size(data,1)
+            sp1 = subplot(size(data,1),2,j);
+            j = j+1;
+            plot(t,data(i,:))
+            title(['Raw LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            sp2 = subplot(size(data,1),2,j);
+            plot(t,data_cl(i,:))
+            title(['Cleaned LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            linkaxes([sp1,sp2],'xy')
+            j = j+1;
+        end
         assignin('base','icaEEG2',icaEEG2)
         assignin('base','data_cl',data_cl)
         
     case 2
 %% Own version of wICA
+        
+        % Independent Component Analysis 
+        [icaEEG,A,W]=fastica(data); % Finding the ICs
         
         lvl = 10;
         wb = waitbar(0,'Cleaning ICs...');
@@ -98,13 +126,27 @@ switch meth
         close(wb)
         
         data_cl = A*icaEEG_cl;
-        
-        figure
-        PlotEEG(icaEEG_cl,fs,[],[],'Cleaned ICs')
-        figure
-        PlotEEG(data,fs,[],[],'Raw LFP')
-        figure
-        PlotEEG(data_cl,fs,[],[],'Cleaned LFP')
+        t_ext = linspace(0,length(data_cl)/fs,length(data_cl));
+
+        figure('Name','Makarov wICA')
+        j = 1;
+        for i = 1:size(data,1)
+            sp1 = subplot(size(data,1),2,j);
+            j = j+1;
+            plot(t,data(i,:))
+            title(['Raw LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            sp2 = subplot(size(data,1),2,j);
+            plot(t_ext,data_cl(i,:))
+            title(['Cleaned LFP - ch#',num2str(i)])
+            xlabel('Time [s]')
+            ylabel('Voltage [\muV]')
+            axis tight
+            linkaxes([sp1,sp2],'xy')
+            j = j+1;
+        end
         
         assignin('base','icaEEG_cl',icaEEG_cl)
         assignin('base','data_cl',data_cl)
@@ -255,7 +297,7 @@ switch meth
     case 4
         %% Different kind of wICA
         
-        lvl = 10;
+        lvl = 14;
         wname = 'db4';
         corrthr = 0.7;
         refchan = inputdlg('# of reference channel');
@@ -322,26 +364,13 @@ switch meth
             [icaSwt,A,W] = fastica(tempMat);
             icfig = figure;
             for j = 1:length(temp)
-                subplot(211)
+                sp1 = subplot(211);
                 plot(icaSwt(j,:))
                 title(['IC #',num2str(j),' - channel #',num2str(i)])
-                
-                assignin('base','refe',refIca)
-                assignin('base','nemref',icaSwt)
-%                 for k = 1:size(refIca,1)
-%                     rho = corrcoef(icaSwt(j,:),refIca(k,:));
-%                     display(rho)
-%                     rho = rho(2);
-%                     
-%                     subplot(212)
-%                     plot(refIca(k,:))
-%                     title(['ref IC#',num2str(k),' corr=',num2str(rho)])
-%                     
-%                     if rho > corrthr
-%                         icaSwt(j,:) = 0;
-%                     end
-%                     waitforbuttonpress
-%                 end
+                sp2 = subplot(212);
+                plot(data(i,:))
+                title(['Raw LFP - channel #',num2str(i)])
+                linkaxes([sp1,sp2],'x')
                 decision = questdlg('Keep IC?');
                 if strcmp(decision,'No')
 %                     icaSwt(j,:) = 0;
