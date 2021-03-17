@@ -457,9 +457,9 @@ end
 
  move_to_base_workspace(notes);
  rhd_data.amplifier_data = amplifier_data;
- amplifier_channels = amplifier_channels;
  rhd_data.spike_triggers = spike_triggers;
  rhd_data.t_amplifier = t_amplifier;
+ rhd_data.fs = sample_rate;
  if (num_amplifier_channels > 0)
      move_to_base_workspace(amplifier_channels);
      if (data_present)
