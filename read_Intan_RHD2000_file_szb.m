@@ -1,4 +1,4 @@
-function rhd_data = read_Intan_RHD2000_file_cl(filename)
+function rhd_data = read_Intan_RHD2000_file_szb(filename)
 
 % read_Intan_RHD2000_file
 %
