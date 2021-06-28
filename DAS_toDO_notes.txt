@@ -1,17 +1,11 @@
 DAS toDo notes
 
--folytatni az imaging proc tab funkcionalitás beüzemelést
--megnézni h kell e külön a proc datáknak plot function v vhogy
-	egybe lehet vonni
-- eventDetTab: axes hozzáadni ahol egyesével lehet lesni a detekciokat
 -megnézni rendesen a különböző importálás körülményeket
 	(már van egyik adat, jön másik; van bent elfiz, jön új elfiz?)
 -position axokat átrendezni Gábor kérése alapján
 -ötlet: export konfigurálható uitable segítségével
--simultDetRun megcsinálni
--vmiert rossz a simult detection + simult marker megjelenitese fagyaszt
--eventDetTab-ban ROI-k vmiert mind 3 detectiont mutatnak
 -position axes kitalálni
 -valami baja van a fastICA-nak amikor az ArtSupp otherWICA-val 
 	hasznalnam
 -periodicNoise automata base freq funkcio nem a legjobb
+-sharp wave detection utánanézni

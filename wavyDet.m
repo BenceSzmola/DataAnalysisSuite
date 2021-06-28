@@ -1,17 +1,26 @@
-function bips = wavyDet(data,srate,minlen,sdmult)
+function bips = wavyDet(data,srate,minlen,sdmult,w1,w2)
 %% Parameters
 % srate = 20000;
-srate = round(srate,4);
-% mindist = 50;
-% runavgwindow = 0.25;
-% minlen = 0.02;
-minlen = round(minlen,4);
-% sdmult = 3;
-sdmult = round(sdmult,4);
+if nargin ~= 0
+    srate = round(srate,4);
+    % mindist = 50;
+    % runavgwindow = 0.25;
+    % minlen = 0.02;
+    minlen = round(minlen,4);
+    % sdmult = 3;
+    sdmult = round(sdmult,4);
+    w1 = round(w1,4);
+    w2 = round(w2,4);
+end
 
 %% Input data handling
 
 if nargin == 0
+    minlen = 0.02;
+    sdmult = 3;
+    w1 = 100;
+    w2 = 250;
+    srate = 20000;
     [filename,path] = uigetfile('*.rhd');
     oldpath = cd(path);
     data = read_Intan_RHD2000_file_cl(filename);
@@ -30,13 +39,13 @@ end
 
 %% Apply DoG (from BuzsakiLab)
 
-GFw1       = makegausslpfir( 150, srate, 6 );
-GFw2       = makegausslpfir( 250, srate, 6 );
-lfpLow     = firfilt( data, GFw2 );      % lowpass filter
-eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
-lfpLow     = lfpLow - eegLo;            % difference of Gaussians
-
-dogged = lfpLow;
+% GFw1       = makegausslpfir( w1, srate, 6 );
+% GFw2       = makegausslpfir( w2, srate, 6 );
+% lfpLow     = firfilt( data, GFw2 );      % lowpass filter
+% eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
+% lfpLow     = lfpLow - eegLo;            % difference of Gaussians
+% 
+% dogged = lfpLow;
 
 %% Wavelet filtered solution
 
@@ -50,8 +59,8 @@ t = linspace(0,length(data)/srate,length(data));
 mb = msgbox('Computing wavelet transform...');
 
 figure
-[coeffs,f,coi] = cwt(data,srate,'amor','FrequencyLimits',[100 250]);
-cwt(data,srate,'amor','FrequencyLimits',[100 250]); 
+[coeffs,f,coi] = cwt(data,srate,'amor','FrequencyLimits',[w1 w2]);
+cwt(data,srate,'amor','FrequencyLimits',[w1 w2]); 
 coeffs = abs(coeffs);
 % assignin('base','coeffs',coeffs)
 % assignin('base','f',f)
@@ -98,7 +107,7 @@ delete(mb);
 
 % Instantaneous energy integral approach
 % minlen = 0;
-instE = trapz(abs(coeffs));
+instE = trapz(abs(coeffs).^2);
 thr = mean(instE) + sdmult*std(instE);
 % assignin('base','thr',thr)
 coeffs_det = instE;
@@ -146,27 +155,27 @@ bips(dets(vEvents)) = 0;
 % assignin('base','t',t)
 % assignin('base','doggy',dogged)
 %% Plotting
-
-figure
-ax1 = subplot(2,1,1);
-plot(t,dogged)
-hold on
-plot(t,bips,'r*','MarkerSize',12)
-axis tight
-title('Detections based on CWT')
-xlabel('Time [s]')
-ylabel('Voltage [\muV]')
-ax2 = subplot(2,1,2);
-try
-    plot(t,instE)
-catch
-    plot(t,colmean)
-end
-hold on
-plot(t,ones(size(t))*thr)
-xlabel('Time [s]')
-ylabel('CWT coefficient magnitude')
-axis tight
-legend('Inst. Energy integral over all frequencies','threshold')
-linkaxes([ax1,ax2],'x')
-xlim([0.1 t(end)-0.1])
+% 
+% figure
+% ax1 = subplot(2,1,1);
+% plot(t,dogged)
+% hold on
+% plot(t,bips,'r*','MarkerSize',12)
+% axis tight
+% title('Detections based on CWT')
+% xlabel('Time [s]')
+% ylabel('Voltage [\muV]')
+% ax2 = subplot(2,1,2);
+% try
+%     plot(t,instE)
+% catch
+%     plot(t,colmean)
+% end
+% hold on
+% plot(t,ones(size(t))*thr)
+% xlabel('Time [s]')
+% ylabel('CWT coefficient magnitude')
+% axis tight
+% legend('Inst. Energy integral over all frequencies','threshold')
+% linkaxes([ax1,ax2],'x')
+% xlim([0.1 t(end)-0.1])

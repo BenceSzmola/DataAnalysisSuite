@@ -1,4 +1,4 @@
-function data_cl = ArtSupp(data,fs,meth)
+function data_cl = ArtSupp(data,fs,meth,refchan)
 
 %% Parameters
 
@@ -7,7 +7,7 @@ function data_cl = ArtSupp(data,fs,meth)
 %% Select algorithm
 
 if nargin < 3
-    list = {'wICA', 'my_wICA','islam2014','other wICA','ACAR/ANC','classic ref subtract'};
+    list = {'wICA','classic ref subtract','Makarov wICA', 'my wICA','islam2014','ACAR/ANC'};
     [meth, tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
     if ~tf
         return
@@ -44,7 +44,7 @@ t = linspace(0,length(data)/fs,length(data));
 
 %% Different methods
 switch meth
-    case 1
+    case 3
 %% wICA style suppression (Makarov et al)
 
         % Independent Component Analysis 
@@ -93,7 +93,7 @@ switch meth
         assignin('base','icaEEG2',icaEEG2)
         assignin('base','data_cl',data_cl)
         
-    case 2
+    case 4
 %% Own version of wICA
         
         % Independent Component Analysis 
@@ -156,7 +156,7 @@ switch meth
         assignin('base','icaEEG_cl',icaEEG_cl)
         assignin('base','data_cl',data_cl)
    
-    case 3
+    case 5
 %% based on islam2014 - need to integrate the time index detection
         lvl = 10;
         chan = 1;
@@ -299,14 +299,16 @@ switch meth
         title('reconstructed lfp')
         linkaxes([ax1,ax2],'x')
         
-    case 4
+    case 1
         %% Different kind of wICA
         
         lvl = 14;
         wname = 'db4';
         corrthr = 0.7;
-        refchan = inputdlg('# of reference channel');
-        refchan = str2double(refchan{:});
+        if nargin < 4
+            refchan = inputdlg('# of reference channel');
+            refchan = str2double(refchan{:});
+        end
         
         mult = ceil(length(data)/2^lvl);
         data_pad = [data,zeros(size(data,1),mult*2^lvl-length(data))];
@@ -369,13 +371,16 @@ switch meth
             [icaSwt,A,W] = fastica(tempMat);
             icfig = figure;
             for j = 1:length(temp)
-                sp1 = subplot(211);
+                sp1 = subplot(311);
                 plot(icaSwt(j,:))
                 title(['IC #',num2str(j),' - channel #',num2str(i)])
-                sp2 = subplot(212);
+                sp2 = subplot(312);
                 plot(data(i,:))
                 title(['Raw LFP - channel #',num2str(i)])
-                linkaxes([sp1,sp2],'x')
+                sp3 = subplot(313);
+                plot(data(refchan,:))
+                title('Raw LFP - reference channel')
+                linkaxes([sp1,sp2,sp3],'x')
                 decision = questdlg('Keep IC?');
                 if strcmp(decision,'No')
 %                     icaSwt(j,:) = 0;
@@ -395,7 +400,7 @@ switch meth
         end
         data_cl = data_cl(:,1:length(data));
         data_cl(refchan,:) = data(refchan,:);
-        assignin('base','data_cl',data_cl)
+%         assignin('base','data_cl',data_cl)
         
         figure('Name','wICA')
         j = 1;
@@ -419,13 +424,15 @@ switch meth
             end
         end
         
-    case 5
+    case 6
         %% ACAR (Xinyu et al 2017) / ANC using refchan
         L = 1000; % length of filter tap
         u = 0.1; % step size to ensure stability
 %         car = sum(data,1)/size(data,1);
-        refchan = inputdlg('# of reference channel');
-        refchan = str2double(refchan{:});
+        if nargin < 4
+            refchan = inputdlg('# of reference channel');
+            refchan = str2double(refchan{:});
+        end
         ref = data(refchan,:);
 %         pow = rms(ref)^2;
         pow = var(ref);
@@ -473,7 +480,7 @@ switch meth
 %             display(w)
         end
         data_cl(refchan,:) = ref;
-        assignin('base','data_cl',data_cl)  
+%         assignin('base','data_cl',data_cl)  
         
         figure('Name','Adaptive filter')
         j = 1;
@@ -514,17 +521,19 @@ switch meth
 %         title('DoG of refchan')
 %         linkaxes([sp1,sp2,sp3,sp4],'x')
         
-    case 6
+    case 2
         %% classic refchan subtraction
-        refchan = inputdlg('# of reference channel');
-        refchan = str2double(refchan{:});
+        if nargin < 4
+            refchan = inputdlg('# of reference channel');
+            refchan = str2double(refchan{:});
+        end
         ref = data(refchan,:);
         sigchans = 1:size(data,1);
         sigchans(sigchans==refchan) = [];
 
         data_cl = data;
         data_cl(sigchans,:) = data_cl(sigchans,:) - ref;
-        assignin('base','data_cl',data_cl)
+%         assignin('base','data_cl',data_cl)
         
         figure('Name','Classic subtraction')
         j = 1;

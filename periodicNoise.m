@@ -158,14 +158,14 @@ end
 
 plotfft = questdlg('Plot before&after FFTs?','FFT plots');
 if strcmp(plotfft,'Yes')
-    [faxis,psd] = freqspec(data,fs,1,0,fmax);
-    [faxis_cl,psd_cl] = freqspec(data_filt,fs,1,0,fmax);
+    [faxis,psd] = freqspec(data,fs,1,0,fmax,'before');
+    [faxis_cl,psd_cl] = freqspec(data_filt,fs,1,0,fmax,'after');
 end
 
-assignin('base','faxis',faxis)
-assignin('base','faxiscl',faxis_cl)
-assignin('base','psd',psd)
-assignin('base','psdcl',psd_cl)
+% assignin('base','faxis',faxis)
+% assignin('base','faxiscl',faxis_cl)
+% assignin('base','psd',psd)
+% assignin('base','psdcl',psd_cl)
 
 if nargout == 0
     clear data_filt

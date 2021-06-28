@@ -1,4 +1,4 @@
-function [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
+function [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax,titleXtra)
 % from matlab help
 % [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
 
@@ -24,6 +24,12 @@ if nargin < 3
     plots = 1;
 end
 
+if nargin < 6
+    titleXtra = '';
+else
+    titleXtra = [' - ',titleXtra];
+end
+
 L = max(size(data));
 numchan = min(size(data));
 if size(data,1) > size(data,2)
@@ -46,7 +52,7 @@ for i = 1:numchan
     if plots
         figure
         plot(f,P1) 
-        title(['FFT spectrum channel #',num2str(i)])
+        title(['FFT spectrum channel #',num2str(i),titleXtra])
         xlabel('f (Hz)')
         ylabel('|P1(f)|')
         xlim([fmin fmax])
