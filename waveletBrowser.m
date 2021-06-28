@@ -22,7 +22,7 @@ function varargout = waveletBrowser(varargin)
 
 % Edit the above text to modify the response to help waveletBrowser
 
-% Last Modified by GUIDE v2.5 17-Sep-2019 13:30:35
+% Last Modified by GUIDE v2.5 15-Apr-2021 16:17:31
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -1029,3 +1029,10 @@ try
 catch
     errordlg('The number you entered exceeds the number of events!');
 end
+
+
+% --------------------------------------------------------------------
+function uitoggletool2_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to uitoggletool2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)

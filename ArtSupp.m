@@ -1,15 +1,17 @@
-function ArtSupp(data)
+function data_cl = ArtSupp(data,fs,meth)
 
 %% Parameters
 
-fs = 20000;
+% fs = 20000;
 
 %% Select algorithm
 
-list = {'wICA', 'my_wICA','islam2014','other wICA','ACAR/ANC','classic ref subtract'};
-[meth tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
-if ~tf
-    return
+if nargin < 3
+    list = {'wICA', 'my_wICA','islam2014','other wICA','ACAR/ANC','classic ref subtract'};
+    [meth, tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
+    if ~tf
+        return
+    end
 end
 
 %% Input data handling
@@ -20,6 +22,9 @@ if nargin == 0
     data = read_Intan_RHD2000_file_szb(filename);
     data = data.amplifier_data;
     cd(oldpath)
+    fs = 20000;
+elseif nargin >= 2
+    fs = round(fs,4);
 end
 
 if size(data,1)>size(data,2)
@@ -544,71 +549,71 @@ switch meth
 end
 
 %% Performance evaluation
-
-answer = questdlg('Lauch performance evaluation?','Performance evaluation');
-if strcmp(answer,'Yes')
-    refchan = inputdlg('# of reference channel or 0 if you want to run on all');
-    refchan = str2double(refchan{:});
-    ref = data(refchan,:);
-    sigchans = 1:size(data,1);
-    sigchans(sigchans==refchan) = [];
-    
-    tempfig = figure;
-    spcell = cell(1,size(data,1));
-    for i = 1:size(data,1)
-        sp = subplot(size(data,1),1,i);
-        spcell{i} = sp;
-        plot(t,data(i,:))
-        title(['Original LFP, channel#',num2str(i)])
-    end
-    linkaxes([spcell{1},spcell{2},spcell{3},spcell{4},spcell{5}],'x')
-    noiseregion = inputdlg('Noise_begin noise_end (in [s])');
-    cleanregion = inputdlg('Clean_begin clean_end (in [s])');
-    close(tempfig)
-    assignin('base','noiseregion',noiseregion)
-    assignin('base','cleanregion',cleanregion)
-    
-    noise_borders = sscanf(noiseregion{:},'%f %f');
-    clean_borders = sscanf(cleanregion{:},'%f %f');
-    
-    if abs(diff(noise_borders)) == abs(diff(clean_borders))
-        mysnr_raw = sum(sum(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
-            sum(sum(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2));
-        mysnr_raw_dB = 10*log10(mysnr_raw);
-        
-        mysnr_cl = sum(sum(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
-        sum(sum(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2));
-        mysnr_cl_dB = 10*log10(mysnr_cl);
-        
-%         mysnr_raw = var(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs))/...
-%             var(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs));
+% 
+% answer = questdlg('Lauch performance evaluation?','Performance evaluation');
+% if strcmp(answer,'Yes')
+%     refchan = inputdlg('# of reference channel or 0 if you want to run on all');
+%     refchan = str2double(refchan{:});
+%     ref = data(refchan,:);
+%     sigchans = 1:size(data,1);
+%     sigchans(sigchans==refchan) = [];
+%     
+%     tempfig = figure;
+%     spcell = cell(1,size(data,1));
+%     for i = 1:size(data,1)
+%         sp = subplot(size(data,1),1,i);
+%         spcell{i} = sp;
+%         plot(t,data(i,:))
+%         title(['Original LFP, channel#',num2str(i)])
+%     end
+%     linkaxes([spcell{1},spcell{2},spcell{3},spcell{4},spcell{5}],'x')
+%     noiseregion = inputdlg('Noise_begin noise_end (in [s])');
+%     cleanregion = inputdlg('Clean_begin clean_end (in [s])');
+%     close(tempfig)
+%     assignin('base','noiseregion',noiseregion)
+%     assignin('base','cleanregion',cleanregion)
+%     
+%     noise_borders = sscanf(noiseregion{:},'%f %f');
+%     clean_borders = sscanf(cleanregion{:},'%f %f');
+%     
+%     if abs(diff(noise_borders)) == abs(diff(clean_borders))
+%         mysnr_raw = sum(sum(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+%             sum(sum(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2));
 %         mysnr_raw_dB = 10*log10(mysnr_raw);
-%         mysnr_cl = var(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs))/...
-%             var(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs));
+%         
+%         mysnr_cl = sum(sum(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+%         sum(sum(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2));
 %         mysnr_cl_dB = 10*log10(mysnr_cl);
-    else
-        fprintf(1,'Specified segments have different lengths -> normalizing\n')
-        mysnr_raw1 = sum(sum(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
-            (abs(diff(clean_borders))*fs*length(sigchans));
-        mysnr_raw2 = sum(sum(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2))/...
-            (abs(diff(noise_borders))*fs*length(sigchans));
-        mysnr_raw = mysnr_raw1/mysnr_raw2;
-        
-        mysnr_raw_dB = 10*log10(mysnr_raw);
-        
-        mysnr_cl1 = sum(sum(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
-            (abs(diff(clean_borders))*fs*length(sigchans));
-        mysnr_cl2 = sum(sum(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2))/...
-            (abs(diff(noise_borders))*fs*length(sigchans));
-        mysnr_cl = mysnr_cl1/mysnr_cl2;
-        
-        mysnr_cl_dB = 10*log10(mysnr_cl);
-    end
-    
-    fprintf(1,'Raw SNR = %f\ncleaned SNR = %f\n',mysnr_raw,mysnr_cl)
-    fprintf(1,'In dB: %f dB; %f dB\n',mysnr_raw_dB,mysnr_cl_dB)
-    fprintf(1,'deltaSNR = %f [dB]\n',mysnr_cl_dB-mysnr_raw_dB)
-end
+%         
+% %         mysnr_raw = var(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs))/...
+% %             var(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs));
+% %         mysnr_raw_dB = 10*log10(mysnr_raw);
+% %         mysnr_cl = var(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs))/...
+% %             var(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs));
+% %         mysnr_cl_dB = 10*log10(mysnr_cl);
+%     else
+%         fprintf(1,'Specified segments have different lengths -> normalizing\n')
+%         mysnr_raw1 = sum(sum(data(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+%             (abs(diff(clean_borders))*fs*length(sigchans));
+%         mysnr_raw2 = sum(sum(data(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2))/...
+%             (abs(diff(noise_borders))*fs*length(sigchans));
+%         mysnr_raw = mysnr_raw1/mysnr_raw2;
+%         
+%         mysnr_raw_dB = 10*log10(mysnr_raw);
+%         
+%         mysnr_cl1 = sum(sum(data_cl(sigchans,clean_borders(1)*fs:clean_borders(2)*fs).^2,2))/...
+%             (abs(diff(clean_borders))*fs*length(sigchans));
+%         mysnr_cl2 = sum(sum(data_cl(sigchans,noise_borders(1)*fs:noise_borders(2)*fs).^2,2))/...
+%             (abs(diff(noise_borders))*fs*length(sigchans));
+%         mysnr_cl = mysnr_cl1/mysnr_cl2;
+%         
+%         mysnr_cl_dB = 10*log10(mysnr_cl);
+%     end
+%     
+%     fprintf(1,'Raw SNR = %f\ncleaned SNR = %f\n',mysnr_raw,mysnr_cl)
+%     fprintf(1,'In dB: %f dB; %f dB\n',mysnr_raw_dB,mysnr_cl_dB)
+%     fprintf(1,'deltaSNR = %f [dB]\n',mysnr_cl_dB-mysnr_raw_dB)
+% end
 
 %% Shared visualizer part (might or might not keep)
 % %% Apply DoG (from BuzsakiLab)

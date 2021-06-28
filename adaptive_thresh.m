@@ -1,14 +1,19 @@
-function adaptive_thresh(data)
+function csillag = adaptive_thresh(data,srate,step,minwidth,mindist,ratio)
 %%
-srate = 20000;
+% srate = 20000;
+srate = round(srate,4);
 dt = 1/srate;
-step = 0.05;
+% step = 0.05;
+step = round(step,4);
 win = step*2;
-upthr = 2.7;
-lowthr = 2.1;%1.6;
-minwidth = 0.01;
-mindist = 0.03;
-ratio = 0.99;
+upthr = 2.5;
+lowthr = 1.5;%1.6;
+% minwidth = 0.01;
+minwidth = round(minwidth,4);
+% mindist = 0.03;
+midist = round(mindist,4);
+% ratio = 0.99;
+
 
 %%
 if nargin == 0
@@ -54,12 +59,12 @@ dogged = lfpLow;
 avg = mean(dogged);
 sd = std(dogged);
 z_dog = (dogged-avg)./sd;
-assignin('base','z_dog',z_dog)
+% assignin('base','z_dog',z_dog)
 
 %% Calculate its envelope
 envel = hilbert(z_dog);
 envel = abs(envel);
-assignin('base','env',envel)
+% assignin('base','env',envel)
 
 % fig=figure;
 % plot(dogged) 
@@ -71,7 +76,7 @@ assignin('base','env',envel)
 gw = gausswin(0.02*srate);
 smoothie = conv(envel,gw,'same');
 % smoothie = imgaussfilt(envel,6);
-assignin('base','smoothie',smoothie)
+% assignin('base','smoothie',smoothie)
 
 % fig=figure;
 % sp1=subplot(2,1,1);
@@ -82,8 +87,8 @@ assignin('base','smoothie',smoothie)
 
 %% Peak finding on smoothed signal
 [piks,inds] = findpeaks(smoothie);
-assignin('base','piks',piks)
-assignin('base','inds',inds)
+% assignin('base','piks',piks)
+% assignin('base','inds',inds)
 
 tps = tax(inds);
 
@@ -102,8 +107,8 @@ for i = 1:step*srate:length(smoothie)
         end
     end
 end
-assignin('base','histo',histo)
-assignin('base','vbins',vbins)
+% assignin('base','histo',histo)
+% assignin('base','vbins',vbins)
 
 %% Sliding window mean
 sliding_avg = zeros(1,length(smoothie));
@@ -131,8 +136,8 @@ for i = 1:step*srate:length(smoothie)
         detections = [detections; i];
     end
 end
-assignin('base','sliding_avg',sliding_avg)
-assignin('base','detections',detections)
+% assignin('base','sliding_avg',sliding_avg)
+% assignin('base','detections',detections)
 
 %% Histogram meg thresholdok abrazolasa
 figure;
@@ -218,7 +223,7 @@ for i = 1:length(detettione)-1
 end
 detettione(detettione==0) = [];
 
-assignin('base','detettione',detettione)
+% assignin('base','detettione',detettione)
 
 %% Show detecitons on dog
 csillag = zeros(1,length(smoothie));

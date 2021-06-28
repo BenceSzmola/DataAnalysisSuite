@@ -137,7 +137,7 @@ for i = 1:min(size(data))
     
     % fmax is the frequency up to which the algorithm will run
     if (nargin > 0 && nargin < 3) || isempty(fmax) || isnan(fmax)
-        fmax = ((fs/2)-f_fund);
+        fmax = ((fs/2)-f_fund-1);
     end
 
     % Use series of bandstop filters to eliminate the periodic noise
@@ -158,9 +158,14 @@ end
 
 plotfft = questdlg('Plot before&after FFTs?','FFT plots');
 if strcmp(plotfft,'Yes')
-    freqspec(data,fs,1,0,fmax)
-    freqspec(data_filt,fs,1,0,fmax)
+    [faxis,psd] = freqspec(data,fs,1,0,fmax);
+    [faxis_cl,psd_cl] = freqspec(data_filt,fs,1,0,fmax);
 end
+
+assignin('base','faxis',faxis)
+assignin('base','faxiscl',faxis_cl)
+assignin('base','psd',psd)
+assignin('base','psdcl',psd_cl)
 
 if nargout == 0
     clear data_filt

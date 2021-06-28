@@ -1,0 +1,5 @@
+function rundas
+
+DAS;
+
+end

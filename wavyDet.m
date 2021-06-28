@@ -1,11 +1,13 @@
-function wavyDet(data)
+function bips = wavyDet(data,srate,minlen,sdmult)
 %% Parameters
-
-srate = 20000;
-mindist = 50;
-runavgwindow = 0.25;
-minlen = 0.02;
-sdmult = 3;
+% srate = 20000;
+srate = round(srate,4);
+% mindist = 50;
+% runavgwindow = 0.25;
+% minlen = 0.02;
+minlen = round(minlen,4);
+% sdmult = 3;
+sdmult = round(sdmult,4);
 
 %% Input data handling
 
@@ -22,6 +24,9 @@ if nargin == 0
         data = data.amplifier_data(goodch,:);
     end
 end
+
+%% Apply periodic filt
+% data = periodicNoise(data,srate,1000);
 
 %% Apply DoG (from BuzsakiLab)
 
@@ -48,13 +53,13 @@ figure
 [coeffs,f,coi] = cwt(data,srate,'amor','FrequencyLimits',[100 250]);
 cwt(data,srate,'amor','FrequencyLimits',[100 250]); 
 coeffs = abs(coeffs);
-assignin('base','coeffs',coeffs)
-assignin('base','f',f)
-assignin('base','coi',coi)
+% assignin('base','coeffs',coeffs)
+% assignin('base','f',f)
+% assignin('base','coi',coi)
 %% Z-score
 
 z_coeffs = (coeffs-mean(mean(coeffs)))/std(std(coeffs));
-assignin('base','zizz',z_coeffs)
+% assignin('base','zizz',z_coeffs)
 delete(mb);
 
 % figure('Name','Wavelet Transform','NumberTitle','off');
@@ -92,18 +97,18 @@ delete(mb);
 % assignin('base','dets',dets)
 
 % Instantaneous energy integral approach
-minlen = 0;
+% minlen = 0;
 instE = trapz(abs(coeffs));
 thr = mean(instE) + sdmult*std(instE);
-assignin('base','thr',thr)
+% assignin('base','thr',thr)
 coeffs_det = instE;
 coeffs_det(coeffs_det<thr) = 0;
 coeffs_det(:,1:0.1*srate) = 0;
 coeffs_det(:,length(coeffs)-0.1*srate:end) = 0;
-assignin('base','coeffs_det',coeffs_det)
+% assignin('base','coeffs_det',coeffs_det)
 [~,dets] = find(coeffs_det);
 dets = unique(dets);
-assignin('base','dets',dets)
+% assignin('base','dets',dets)
 
 steps = diff(dets);
 events = find(steps~=1);
@@ -116,7 +121,7 @@ else
     events = [events, length(steps)];
 end
 
-assignin('base','events',events)
+% assignin('base','events',events)
 
 for i = 1:length(events)
     if i == 1
@@ -131,15 +136,15 @@ for i = 1:length(events)
         end
     end
 end
-assignin('base','vEvents',vEvents)
+% assignin('base','vEvents',vEvents)
 
-bips = zeros(length(t),1);
+bips = zeros(1,length(t));
 bips(:) = nan;
 bips(dets(vEvents)) = 0;
 
-assignin('base','bips',bips)
-assignin('base','t',t)
-assignin('base','doggy',dogged)
+% assignin('base','bips',bips)
+% assignin('base','t',t)
+% assignin('base','doggy',dogged)
 %% Plotting
 
 figure

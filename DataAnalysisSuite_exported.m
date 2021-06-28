@@ -725,7 +725,7 @@ classdef DataAnalysisSuite_exported < matlab.apps.AppBase
 
             % Create DataAnalysisSuiteUIFigure
             app.DataAnalysisSuiteUIFigure = uifigure;
-            app.DataAnalysisSuiteUIFigure.Position = [100 100 1280 720];
+            app.DataAnalysisSuiteUIFigure.Position = [1 1 1280 720];
             app.DataAnalysisSuiteUIFigure.Name = 'Data Analysis Suite';
             app.DataAnalysisSuiteUIFigure.Resize = 'off';
 
