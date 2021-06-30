@@ -23,7 +23,7 @@ if nargin == 0
     fs = str2double(parameters{1});
     fmax = str2double(parameters{2});
     f_fund = str2double(parameters{3});
-    stopbandwidth = str2double(parameters{4});
+    stopbandwidth = str2double(parameters{4})/2;
 end
 
 if nargin == 0 || isempty(data)
@@ -73,6 +73,7 @@ for i = 1:min(size(data))
         maxproms = sort(proms,'descend');
         % Maximal prominence is at 0 lag -> not needed
         maxproms = maxproms(2:end);
+        % Every peak is repeated because of negative and positive shifts
         maxproms = maxproms(1:2:end);
 
         waitbar(.66,wb1,'Computing the fundamental frequency...')
@@ -113,14 +114,15 @@ for i = 1:min(size(data))
         dps = zeros(2,10);
         runavg = movmean(autocorr,find(faxis>1,1));
         f_fund = 0;
-        for j = 1:10
+        numproms = min([10,length(maxproms)]);
+        for j = 1:numproms
             dps(1,j) = abs(lag(locs(find(proms==maxproms(j),1))));
             dps(2,j) = autocorr(locs(find(proms==maxproms(j),1)))-runavg(locs(find(proms==maxproms(j),1)));
         end
         [~,inds1] = sort(dps(1,:));
         [~,inds2] = sort(dps(2,:),'descend');
         bestscore = 20;
-        for j = 1:10
+        for j = 1:numproms
             if find(inds1==j)+find(inds2==j) < bestscore
                 f_fund = faxis(dps(1,j)+1);
                 bestscore = find(inds1==j)+find(inds2==j);

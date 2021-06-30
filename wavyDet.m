@@ -16,10 +16,10 @@ end
 %% Input data handling
 
 if nargin == 0
-    minlen = 0.02;
+    minlen = 0.01;
     sdmult = 3;
-    w1 = 100;
-    w2 = 250;
+    w1 = 5;
+    w2 = 40;
     srate = 20000;
     [filename,path] = uigetfile('*.rhd');
     oldpath = cd(path);
@@ -39,13 +39,13 @@ end
 
 %% Apply DoG (from BuzsakiLab)
 
-% GFw1       = makegausslpfir( w1, srate, 6 );
-% GFw2       = makegausslpfir( w2, srate, 6 );
-% lfpLow     = firfilt( data, GFw2 );      % lowpass filter
-% eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
-% lfpLow     = lfpLow - eegLo;            % difference of Gaussians
-% 
-% dogged = lfpLow;
+GFw1       = makegausslpfir( 150, srate, 6 );
+GFw2       = makegausslpfir( 250, srate, 6 );
+lfpLow     = firfilt( data, GFw2 );      % lowpass filter
+eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
+lfpLow     = lfpLow - eegLo;            % difference of Gaussians
+
+dogged = lfpLow;
 
 %% Wavelet filtered solution
 
@@ -108,6 +108,7 @@ delete(mb);
 % Instantaneous energy integral approach
 % minlen = 0;
 instE = trapz(abs(coeffs).^2);
+assignin('base','instE',instE)
 thr = mean(instE) + sdmult*std(instE);
 % assignin('base','thr',thr)
 coeffs_det = instE;
@@ -117,65 +118,90 @@ coeffs_det(:,length(coeffs)-0.1*srate:end) = 0;
 % assignin('base','coeffs_det',coeffs_det)
 [~,dets] = find(coeffs_det);
 dets = unique(dets);
-% assignin('base','dets',dets)
+assignin('base','dets',dets)
 
 steps = diff(dets);
 events = find(steps~=1);
 events = events+1;
 vEvents = [];
-
-if (isempty(events)) && (length(dets) > minlen*srate)
-    vEvents = dets(1);
-else
-    events = [events, length(steps)];
-end
-
-% assignin('base','events',events)
-
-for i = 1:length(events)
-    if i == 1
-        len = events(i)-1;
-        if len > minlen*srate
-            vEvents = [vEvents, 1];
-        end
-    else
-        len = events(i)-events(i-1);
-        if len > minlen*srate
-            vEvents = [vEvents, events(i-1)];
-        end
-    end
-end
-% assignin('base','vEvents',vEvents)
-
 bips = zeros(1,length(t));
 bips(:) = nan;
-bips(dets(vEvents)) = 0;
+
+if (isempty(events)) && (length(dets) > minlen*srate)
+    
+    [~,maxIdx] = max(instE(dets));
+    vEvents = maxIdx + dets(1);
+    bips(vEvents) = 0;
+else
+    events = [events, length(steps)];
+    
+    for i = 1:length(events)
+        if i == 1
+            len = events(i)-1;
+            if len > minlen*srate
+                [~,maxIdx] = max(instE(1:dets(events(i))));
+%                 vEvents = [vEvents, 1];
+                vEvents = [vEvents, maxIdx];
+            end
+        else
+            len = events(i)-events(i-1);
+            if len > minlen*srate
+                [~,maxIdx] = max(instE(dets(events(i-1):events(i))));
+%                 vEvents = [vEvents, events(i-1)];
+                vEvents = [vEvents, maxIdx+dets(events(i-1))];
+            end
+        end
+    end
+    bips(vEvents) = 0;
+end
+
+assignin('base','events',events)
+
+% for i = 1:length(events)
+%     if i == 1
+%         len = events(i)-1;
+%         if len > minlen*srate
+%             vEvents = [vEvents, 1];
+%         end
+%     else
+%         len = events(i)-events(i-1);
+%         if len > minlen*srate
+%             vEvents = [vEvents, events(i-1)];
+%         end
+%     end
+% end
+
+assignin('base','vEvents',vEvents)
+
+% bips = zeros(1,length(t));
+% bips(:) = nan;
+% bips(dets(vEvents)) = 0;
 
 % assignin('base','bips',bips)
 % assignin('base','t',t)
 % assignin('base','doggy',dogged)
 %% Plotting
-% 
-% figure
-% ax1 = subplot(2,1,1);
-% plot(t,dogged)
-% hold on
-% plot(t,bips,'r*','MarkerSize',12)
-% axis tight
-% title('Detections based on CWT')
-% xlabel('Time [s]')
-% ylabel('Voltage [\muV]')
-% ax2 = subplot(2,1,2);
-% try
-%     plot(t,instE)
-% catch
-%     plot(t,colmean)
-% end
-% hold on
-% plot(t,ones(size(t))*thr)
-% xlabel('Time [s]')
-% ylabel('CWT coefficient magnitude')
-% axis tight
-% legend('Inst. Energy integral over all frequencies','threshold')
-% linkaxes([ax1,ax2],'x')
-% xlim([0.1 t(end)-0.1])
+
+figure
+ax1 = subplot(2,1,1);
+plot(t,data)
+hold on
+plot(t,bips,'r*','MarkerSize',12)
+axis tight
+title('Detections based on CWT')
+xlabel('Time [s]')
+ylabel('Voltage [\muV]')
+ax2 = subplot(2,1,2);
+try
+    plot(t,instE)
+catch
+    plot(t,colmean)
+end
+hold on
+plot(t,ones(size(t))*thr)
+xlabel('Time [s]')
+ylabel('CWT coefficient magnitude')
+axis tight
+legend('Inst. Energy integral over all frequencies','threshold')
+linkaxes([ax1,ax2],'x')
+xlim([0.1 t(end)-0.1])

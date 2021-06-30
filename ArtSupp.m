@@ -7,7 +7,7 @@ function data_cl = ArtSupp(data,fs,meth,refchan)
 %% Select algorithm
 
 if nargin < 3
-    list = {'wICA','classic ref subtract','Makarov wICA', 'my wICA','islam2014','ACAR/ANC'};
+    list = {'wICA','classic ref subtract','Makarov wICA', 'my wICA','islam2014','ACAR/ANC','wICA2'};
     [meth, tf] = listdlg('PromptString','Select cleaning algorithm!','ListString',list,'SelectionMode','single');
     if ~tf
         return
@@ -300,7 +300,7 @@ switch meth
         linkaxes([ax1,ax2],'x')
         
     case 1
-        %% Different kind of wICA
+        %% Different kind of wICA (preferred kind)
         
         lvl = 14;
         wname = 'db4';
@@ -555,6 +555,50 @@ switch meth
             j = j+1;
         end
         
+        
+    case 7
+        %% wICA preferred kind, DE IC-ket korrelál
+        lvl = 14;
+        wname = 'db4';
+        corrthr = 0.7;
+        if nargin < 4
+            refchan = inputdlg('# of reference channel');
+            refchan = str2double(refchan{:});
+        end
+        
+        mult = ceil(length(data)/2^lvl);
+        data_pad = [data,zeros(size(data,1),mult*2^lvl-length(data))];
+        
+        corrupts = zeros(min(size(data)),lvl+1);
+        
+        % find the corrupted wavelet components based on correlation with
+        % the reference
+%         [swa_ref,swd_ref] = swt(data_pad(refchan,:),lvl,wname);
+%         refMat = [swd_ref;swa_ref(end,:)];
+%         refIca = fastica(refMat);
+        dogged = DoG(data,fs,150,250);
+        
+        for i = 1:min(size(data))
+            if i ~= refchan
+                [swa,swd] = swt(data_pad(i,:),lvl,wname);
+                tempMat = [swd;swa(end,:)];
+                swtIca = fastica(tempMat);
+                icFig = figure;
+                for j = 1:min(size(swtIca))
+%                     for k = 1:min(size(refIca))
+%                         rho = corrcoef(swtIca(j,:),refIca(k,:));
+%                         rho = rho(2);
+                        subplot(211)
+                        plot(swtIca(j,:))
+                        title(['Chan#',num2str(i), 'IC#',num2str(j)])
+                        subplot(212)
+                        plot(dogged(i,:))
+                        title('DoG')
+                        waitforbuttonpress
+%                     end
+                end
+            end
+        end
 end
 
 %% Performance evaluation

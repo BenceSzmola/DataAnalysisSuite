@@ -733,13 +733,15 @@ classdef DAS < handle
         
         function eventDetAxesButtFcn(guiobj,axNum,detRoi,upDwn)
             switch axNum
-                case 1
+                case 1 %ephys axes
                     if isempty(guiobj.ephys_detections)
                         return
                     end
                     
                     ax = guiobj.axesEventDet1;
                     switch detRoi
+                        case 0
+                            guiobj.eventDet1CurrDet = 1;
                         case 1
                             switch upDwn
                                 case 1
@@ -762,10 +764,16 @@ classdef DAS < handle
                     detInd = guiobj.eventDet1CurrDet;
                     tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
                     tInd = tInd(detInd);
+                    tStamp = guiobj.ephys_taxis(tInd);
                     win = round(0.25 * guiobj.ephys_fs,4);
                     tWin = guiobj.ephys_taxis(tInd-win:tInd+win);
                     dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
                     plot(ax,tWin,dataWin)
+                    hold(ax,'on')
+                    line(ax,[tStamp tStamp],[min(dataWin), max(dataWin)],...
+                        'Color','r')
+                    hold(ax,'off')
+                    axis(ax,'tight')
                     xlabel(ax,guiobj.xtitle)
                     ylabel(ax,guiobj.ephys_ylabel);
                     title(ax,['Channel#',num2str(chan),' Detection#',num2str(detInd)])
@@ -777,6 +785,8 @@ classdef DAS < handle
                     
                     ax = guiobj.axesEventDet2;
                     switch detRoi
+                        case 0
+                            guiobj.eventDet2CurrDet = 1;
                         case 1
                             switch upDwn
                                 case 1
@@ -811,10 +821,16 @@ classdef DAS < handle
                     detInd = guiobj.eventDet2CurrDet;
                     tInd = find(~isnan(guiobj.imaging_detections(roi,:)));
                     tInd = tInd(detInd);
+                    tStamp = guiobj.imaging_taxis(tInd);
                     win = round(1 * guiobj.imaging_fs);
                     tWin = guiobj.imaging_taxis(tInd-win:tInd+win);
                     dataWin = guiobj.imaging_data(roi,tInd-win:tInd+win);
                     plot(ax,tWin,dataWin)
+                    hold(ax,'on')
+                    line(ax,[tStamp tStamp],[min(dataWin), max(dataWin)],...
+                        'Color','r')
+                    hold(ax,'off')
+                    axis(ax,'tight')
                     xlabel(ax,guiobj.xtitle)
                     ylabel(ax,guiobj.imaging_ylabel);
                     title(ax,['ROI#',num2str(roi),' Detection#',num2str(detInd)])
@@ -1548,8 +1564,15 @@ classdef DAS < handle
                             procDatanames = {['DoG| ',...
                                 datanames{data_idx(i)}]};
                         elseif ~isempty(procDatanames)
-                            procDatanames = [procDatanames,...
-                                ['DoG| ',datanames{data_idx(i)}]];
+                            switch selectedButt
+                                case 'Raw data'
+                                    procDatanames = [procDatanames,...
+                                        ['DoG| ',datanames{data_idx(i)}]];
+                                case 'Processed data'
+                                    procDatanames = [procDatanames,...
+                                        ['DoG| ',procDatanames{data_idx(i)}]];
+                            end
+                            
                         end
                     end
                     
@@ -1566,8 +1589,14 @@ classdef DAS < handle
                             procDatanames = {['Periodic| ',...
                                 datanames{data_idx(i)}]};
                         elseif ~isempty(procDatanames)
-                            procDatanames = [procDatanames,...
-                                ['Periodic| ',datanames{data_idx(i)}]];
+                            switch selectedButt
+                                case 'Raw data'    
+                                    procDatanames = [procDatanames,...
+                                            ['Periodic| ',datanames{data_idx(i)}]];
+                                case 'Processed data'
+                                    procDatanames = [procDatanames,...
+                                            ['Periodic| ',procDatanames{data_idx(i)}]];
+                            end
                         end
                     end
             end
@@ -1609,8 +1638,14 @@ classdef DAS < handle
                     procDatanames = {[artSuppName,'| ',...
                         datanames{data_idx(i)}]};
                 elseif ~isempty(procDatanames)
-                    procDatanames = [procDatanames,...
-                        [artSuppName,'| ',datanames{data_idx(i)}]];
+                    switch selectedButt
+                        case 'Raw data'
+                            procDatanames = [procDatanames,...
+                                [artSuppName,'| ',procDatanames{data_idx(i)}]];
+                        case 'Processed data'
+                            procDatanames = [procDatanames,...
+                                [artSuppName,'| ',procDatanames{data_idx(i)}]];
+                    end
                 end
             end
             
@@ -1686,8 +1721,14 @@ classdef DAS < handle
                                     procDatanames = {['GaussAvg| ',...
                                         datanames{data_idx(i)}]};
                                 elseif ~isempty(procDatanames)
-                                    procDatanames = [procDatanames,...
-                                        ['GaussAvg| ',datanames{data_idx(i)}]];
+                                    switch selectedButt
+                                        case 'Raw data'
+                                            procDatanames = [procDatanames,...
+                                                ['GaussAvg| ',datanames{data_idx(i)}]];
+                                        case 'Processed data'
+                                            procDatanames = [procDatanames,...
+                                                ['GaussAvg] ',procDatanames{data_idx(i)}]];
+                                    end
                                 end
                             end
                     end
@@ -1726,6 +1767,7 @@ classdef DAS < handle
         function ephysDetRun(guiobj,event)
             guiobj.ephysDetStatusLabel.String = 'Detection running';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'r';
+            drawnow
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
             
@@ -1742,10 +1784,10 @@ classdef DAS < handle
                     refch = str2double(guiobj.ephysCwtDetRefChanEdit.String);
                     switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
                         case 2 % wICA
-                            data_cl = ArtSupp(guiobj.ephys_data,fs,4,refch);
+                            data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
                             data = data_cl(chan,:);
                         case 3 % ref chan subtract
-                            data_cl = ArtSupp(guiobj.ephys_data,fs,6,refch);
+                            data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
                             data = data_cl(chan,:);
                     end
                     
@@ -1768,6 +1810,8 @@ classdef DAS < handle
             
             guiobj.ephysDetStatusLabel.String = '--IDLE--';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+            
+            eventDetAxesButtFcn(guiobj,1,0,0);
         end
         
         function imagingDetPopMenuSelected(guiobj,event)
@@ -1795,6 +1839,7 @@ classdef DAS < handle
         function imagingDetRun(guiobj,event)
             guiobj.imagingDetStatusLabel.String = 'Detection running';
             guiobj.imagingDetStatusLabel.BackgroundColor = 'r';
+            drawnow
             
             dettype = guiobj.imagingDetPopMenu.Value;
             dettype = guiobj.imagingDetPopMenu.String{dettype};
@@ -1821,6 +1866,8 @@ classdef DAS < handle
             pause(1)
             guiobj.imagingDetStatusLabel.String = '--IDLE--';
             guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
+            
+            eventDetAxesButtFcn(guiobj,2,0,0)
         end
         
         function simultDetRun(guiobj,event)
@@ -2519,7 +2566,7 @@ classdef DAS < handle
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.01 0.65, 0.35, 0.1],...
-                'String','Cutoff frequency [Hz]');
+                'String','Frequency band [Hz]');
             guiobj.ephysCwtDetW1Edit = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
