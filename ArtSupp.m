@@ -402,27 +402,27 @@ switch meth
         data_cl(refchan,:) = data(refchan,:);
 %         assignin('base','data_cl',data_cl)
         
-        figure('Name','wICA')
-        j = 1;
-        for i = 1:size(data,1)
-            if i ~= refchan
-                sp1 = subplot(size(data,1)-1,2,j);
-                j = j+1;
-                plot(t,data(i,:))
-                title(['Raw LFP - ch#',num2str(i)])
-                xlabel('Time [s]')
-                ylabel('Voltage [\muV]')
-                axis tight
-                sp2 = subplot(size(data,1)-1,2,j);
-                plot(t,data_cl(i,:))
-                title(['Cleaned LFP - ch#',num2str(i)])
-                xlabel('Time [s]')
-                ylabel('Voltage [\muV]')
-                axis tight
-                linkaxes([sp1,sp2],'xy')
-                j = j+1;
-            end
-        end
+%         figure('Name','wICA')
+%         j = 1;
+%         for i = 1:size(data,1)
+%             if i ~= refchan
+%                 sp1 = subplot(size(data,1)-1,2,j);
+%                 j = j+1;
+%                 plot(t,data(i,:))
+%                 title(['Raw LFP - ch#',num2str(i)])
+%                 xlabel('Time [s]')
+%                 ylabel('Voltage [\muV]')
+%                 axis tight
+%                 sp2 = subplot(size(data,1)-1,2,j);
+%                 plot(t,data_cl(i,:))
+%                 title(['Cleaned LFP - ch#',num2str(i)])
+%                 xlabel('Time [s]')
+%                 ylabel('Voltage [\muV]')
+%                 axis tight
+%                 linkaxes([sp1,sp2],'xy')
+%                 j = j+1;
+%             end
+%         end
         
     case 6
         %% ACAR (Xinyu et al 2017) / ANC using refchan
@@ -535,25 +535,25 @@ switch meth
         data_cl(sigchans,:) = data_cl(sigchans,:) - ref;
 %         assignin('base','data_cl',data_cl)
         
-        figure('Name','Classic subtraction')
-        j = 1;
-        for i = 1:size(data,1)
-            sp1 = subplot(size(data,1),2,j);
-            j = j+1;
-            plot(t,data(i,:))
-            title(['Raw LFP - ch#',num2str(i)])
-            xlabel('Time [s]')
-            ylabel('Voltage [\muV]')
-            axis tight
-            sp2 = subplot(size(data,1),2,j);
-            plot(t,data_cl(i,:))
-            title(['Cleaned LFP - ch#',num2str(i)])
-            xlabel('Time [s]')
-            ylabel('Voltage [\muV]')
-            axis tight
-            linkaxes([sp1,sp2],'xy')
-            j = j+1;
-        end
+%         figure('Name','Classic subtraction')
+%         j = 1;
+%         for i = 1:size(data,1)
+%             sp1 = subplot(size(data,1),2,j);
+%             j = j+1;
+%             plot(t,data(i,:))
+%             title(['Raw LFP - ch#',num2str(i)])
+%             xlabel('Time [s]')
+%             ylabel('Voltage [\muV]')
+%             axis tight
+%             sp2 = subplot(size(data,1),2,j);
+%             plot(t,data_cl(i,:))
+%             title(['Cleaned LFP - ch#',num2str(i)])
+%             xlabel('Time [s]')
+%             ylabel('Voltage [\muV]')
+%             axis tight
+%             linkaxes([sp1,sp2],'xy')
+%             j = j+1;
+%         end
         
         
     case 7

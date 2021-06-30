@@ -1445,7 +1445,8 @@ classdef DAS < handle
                     case guiobj.tabs.Children(4)
                         if ~isempty(guiobj.ephys_data)
                             temp = 1:size(guiobj.ephys_data,1);
-                            guiobj.ephysDetChSelPopMenu.String = num2str(temp');
+                            temp = {num2str(temp');'all'};
+                            guiobj.ephysDetChSelPopMenu.String = temp;
                         end
                 end
                 smartplot(guiobj)
@@ -1641,7 +1642,7 @@ classdef DAS < handle
                     switch selectedButt
                         case 'Raw data'
                             procDatanames = [procDatanames,...
-                                [artSuppName,'| ',procDatanames{data_idx(i)}]];
+                                [artSuppName,'| ',datanames{data_idx(i)}]];
                         case 'Processed data'
                             procDatanames = [procDatanames,...
                                 [artSuppName,'| ',procDatanames{data_idx(i)}]];
@@ -1772,7 +1773,11 @@ classdef DAS < handle
             dettype = guiobj.ephysDetPopMenu.String{dettype};
             
             chan = guiobj.ephysDetChSelPopMenu.Value;
-            data = guiobj.ephys_data(chan,:);
+            if chan < min(size(guiobj.ephys_data))
+                data = guiobj.ephys_data(chan,:);
+            else
+                data = guiobj.ephys_data;
+            end
             fs = guiobj.ephys_fs;
                         
             switch dettype
@@ -1785,10 +1790,20 @@ classdef DAS < handle
                     switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            data = data_cl(chan,:);
+                            if chan < min(size(guiobj.ephys_data))
+                                data = data_cl(chan,:);
+                            else
+                                data = data_cl;
+                            end
+%                             data = data_cl(chan,:);
                         case 3 % ref chan subtract
                             data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            data = data_cl(chan,:);
+                            if chan < min(size(guiobj.ephys_data))
+                                data = data_cl(chan,:);
+                            else
+                                data = data_cl;
+                            end
+%                             data = data_cl(chan,:);
                     end
                     
                     dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2);
