@@ -180,6 +180,8 @@ classdef DAS < handle
         axesEventDet1
         axesEventDet1UpButt
         axesEventDet1DownButt
+        axesEventDet1ChanUpButt
+        axesEventDet1ChanDownButt
         axesEventDet2
         axesEventDet2DetUpButt
         axesEventDet2DetDownButt
@@ -202,9 +204,11 @@ classdef DAS < handle
         ephys_proccedInfo
         % Stores which proc type is which 
         ephys_procTypes = ["DoG"; "Periodic"];
-        ephys_detections
+        ephys_detections                    % Location of detections on time axis
         ephys_detectionsInfo
         ephys_detMarkerSelection
+        ephys_detRunsNum = 0;               % Number of detection runs
+        ephys_currdet                       % Detection run currently active in detection tab
         ephys_dettypes = ["CWT based"; "Adaptive threshold"; "DoG+InstPow"];
         ephys_taxis                         % Time axis for electrophysiology data
         ephys_fs                            % Sampling frequency of electrophysiology data
@@ -220,6 +224,7 @@ classdef DAS < handle
         imaging_detections
         imaging_detectionsInfo
         imaging_detMarkerSelection
+        imaging_detRunsNum = 0;             % Number of detection runs
         imaging_dettypes = ["Mean+SD"];
         imaging_taxis                       % Time axis for imaging data
         imaging_fs                          % Sampling frequency of imaging data
@@ -239,7 +244,7 @@ classdef DAS < handle
         
         eventDet1CurrIdx = 1;
         eventDet1CurrDet = 1;
-        eventDet1CurrRoi = 1;
+        eventDet1CurrChan = 1;
         eventDet2CurrIdx = 1;
         eventDet2CurrDet = 1;
         eventDet2CurrRoi = 1;
@@ -747,6 +752,10 @@ classdef DAS < handle
         function eventDetAxesButtFcn(guiobj,axNum,detRoi,upDwn)
             switch axNum
                 case 1 %ephys axes
+                    currDetRun = guiobj.ephys_currdet;
+                    temp = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
+                    currChans = guiobj.ephys_detectionsInfo(temp,1);
+                    
                     if isempty(guiobj.ephys_detections)
                         return
                     end
@@ -755,6 +764,7 @@ classdef DAS < handle
                     switch detRoi
                         case 0
                             guiobj.eventDet1CurrDet = 1;
+                            guiobj.eventDet1CurrChan = 1;
                         case 1
                             switch upDwn
                                 case 1
@@ -769,10 +779,26 @@ classdef DAS < handle
                                     end
                             end
                         case 2
-                            errordlg('Error!')
+                            guiobj.eventDet1CurrDet = 1;
+%                             temp = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
+%                             currChans = guiobj.ephys_detectionsInfo(temp,1);
+                            switch upDwn
+                                case 1
+                                    if guiobj.eventDet1CurrChan < size(guiobj.ephys_data,1)
+                                        guiobj.eventDet1CurrChan = ...
+                                            guiobj.eventDet1CurrChan + 1;
+                                    end
+                                case 2
+                                    if guiobj.eventDet1CurrChan > 1
+                                        guiobj.eventDet1CurrChan = ...
+                                            guiobj.eventDet1CurrChan - 1;
+                                    end
+                                    
+                            end
                     end
                     
-                    chan = guiobj.ephysDetChSelPopMenu.Value;
+%                     chan = guiobj.ephysDetChSelPopMenu.Value;
+                    chan = guiobj.eventDet1CurrChan;
                     currDet = guiobj.eventDet1CurrIdx;
                     detInd = guiobj.eventDet1CurrDet;
                     tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
@@ -1871,6 +1897,7 @@ classdef DAS < handle
             drawnow
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
+            guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
             
             chan = guiobj.ephysDetChSelPopMenu.Value;
             if chan < min(size(guiobj.ephys_data))
@@ -1907,7 +1934,13 @@ classdef DAS < handle
                     end
                     
                     dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2);
-                    detinfo = [chan, 1];
+                    if chan < min(size(guiobj.ephys_data))
+                        detinfo = [chan, 1, guiobj.ephys_detRunsNum];
+                    else
+                        detinfo = [(1:min(size(guiobj.ephys_data)))',...
+                            1*ones(min(size(guiobj.ephys_data)),1),...
+                            guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
+                    end
                     
                 case 'Adaptive threshold'
                     step = eval(guiobj.ephysAdaptDetStepEdit.String)/1000;
@@ -1915,7 +1948,14 @@ classdef DAS < handle
                     minlen = eval(guiobj.ephysAdaptDetMinwidthEdit.String)/1000;
                     ratio = eval(guiobj.ephysAdaptDetRatioEdit.String)/100;
                     dets = adaptive_thresh(data,fs,step,minlen,mindist,ratio);
-                    detinfo = [chan, 2];
+%                     detinfo = [chan, 2];
+                    if chan < min(size(guiobj.ephys_data))
+                        detinfo = [chan, 2, guiobj.ephys_detRunsNum];
+                    else
+                        detinfo = [(1:min(size(guiobj.ephys_data)))',...
+                            2*ones(min(size(guiobj.ephys_data)),1),...
+                            guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
+                    end
                     
                 case 'DoG+InstPow'
                     w1 = str2double(guiobj.ephysDoGInstPowDetW1Edit.String);
@@ -1944,7 +1984,14 @@ classdef DAS < handle
                     end
                     
                     dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen);
-                    detinfo = [chan, 3];
+%                     detinfo = [chan, 3];
+                    if chan < min(size(guiobj.ephys_data))
+                        detinfo = [chan, 3, guiobj.ephys_detRunsNum];
+                    else
+                        detinfo = [(1:min(size(guiobj.ephys_data)))',...
+                            3*ones(min(size(guiobj.ephys_data)),1),...
+                            guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
+                    end
             end
             
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
@@ -1952,8 +1999,11 @@ classdef DAS < handle
                 detinfo];
             guiobj.eventDet1CurrIdx = size(guiobj.ephys_detections,1);
             
+            
             guiobj.ephysDetStatusLabel.String = '--IDLE--';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+            
+            guiobj.ephys_currdet = guiobj.ephys_detRunsNum;
             
             eventDetAxesButtFcn(guiobj,1,0,0);
         end
@@ -2081,6 +2131,14 @@ classdef DAS < handle
         
         function axesEventDet1DownButtPush(guiobj,event)
             eventDetAxesButtFcn(guiobj,1,1,2)
+        end
+        
+        function axesEventDet1ChanUpButtPush(guiobj,event)
+            eventDetAxesButtFcn(guiobj,1,2,1)
+        end
+        
+        function axesEventDet1ChanDownButtPush(guiobj,event)
+            eventDetAxesButtFcn(guiobj,1,2,2)
         end
         
         function axesEventDet2DetUpButtPush(guiobj,event)
@@ -2931,15 +2989,27 @@ classdef DAS < handle
             guiobj.axesEventDet1UpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.85, 0.03, 0.05],...
+                'Position',[0.96, 0.9, 0.03, 0.05],...
                 'String','<HTML>Det&uarr',...
                 'Callback',@(h,e) guiobj.axesEventDet1UpButtPush);
             guiobj.axesEventDet1DownButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.8, 0.03, 0.05],...
+                'Position',[0.96, 0.85, 0.03, 0.05],...
                 'String','<HTML>Det&darr',...
                 'Callback',@(h,e) guiobj.axesEventDet1DownButtPush);
+            guiobj.axesEventDet1ChanUpButt = uicontrol(guiobj.eventDetTab,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.96, 0.75, 0.03, 0.05],...
+                'String','<HTML>Chan&uarr',...
+                'Callback',@(h,e) guiobj.axesEventDet1ChanUpButtPush);
+            guiobj.axesEventDet1ChanDownButt = uicontrol(guiobj.eventDetTab,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.96, 0.7, 0.03, 0.05],...
+                'String','<HTML>Chan&darr',...
+                'Callback',@(h,e) guiobj.axesEventDet1ChanDownButtPush);
             guiobj.axesEventDet2 = axes(guiobj.eventDetTab,...
                 'Position',[0.5, 0.1, 0.45, 0.35]);
             guiobj.axesEventDet2DetUpButt = uicontrol(guiobj.eventDetTab,...
