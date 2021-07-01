@@ -142,6 +142,19 @@ classdef DAS < handle
         ephysAdaptDetRatioLabel
         ephysAdaptDetRatioEdit
         
+        ephysDoGInstPowDetPanel
+        ephysDoGInstPowDetFreqBandLabel
+        ephysDoGInstPowDetW1Edit
+        ephysDoGInstPowDetW2Edit
+        ephysDoGInstPowDetSdMultLabel
+        ephysDoGInstPowDetSdMultEdit
+        ephysDoGInstPowDetMinLenLabel
+        ephysDoGInstPowDetMinLenEdit
+        ephysDoGInstPowDetRefChanLabel
+        ephysDoGInstPowDetRefChanEdit
+        ephysDoGInstPowDetArtSuppPopMenuLabel
+        ephysDoGInstPowDetArtSuppPopMenu
+        
         ephysDetRunButt
         ephysDetStatusLabel
         
@@ -192,7 +205,7 @@ classdef DAS < handle
         ephys_detections
         ephys_detectionsInfo
         ephys_detMarkerSelection
-        ephys_dettypes = ["CWT based"; "Adaptive threshold"];
+        ephys_dettypes = ["CWT based"; "Adaptive threshold"; "DoG+InstPow"];
         ephys_taxis                         % Time axis for electrophysiology data
         ephys_fs                            % Sampling frequency of electrophysiology data
         ephys_ylabel = 'Voltage [\muV]';
@@ -836,6 +849,80 @@ classdef DAS < handle
                     title(ax,['ROI#',num2str(roi),' Detection#',num2str(detInd)])
             end
         end
+        
+        function resetGuiData(guiobj,rhdORgor)
+%             guiobj.timedim = 1;
+%             guiobj.datatyp = [0, 0, 0];
+%         
+%             guiobj.xtitle = 'Time [s]';
+%         
+%             guiobj.ephys_data = [];
+%             guiobj.ephys_procced = [];
+%             guiobj.ephys_proccedInfo = [];
+%             guiobj.ephys_procTypes = ["DoG"; "Periodic"];
+%             guiobj.ephys_detections = [];
+%             guiobj.ephys_detectionsInfo = [];
+%             guiobj.ephys_detMarkerSelection = [];
+%             guiobj.ephys_dettypes = ["CWT based"; "Adaptive threshold"; "DoG+InstPow"];
+%             guiobj.ephys_taxis = [];
+%             guiobj.ephys_fs = [];
+%             guiobj.ephys_ylabel = 'Voltage [\muV]';
+%             guiobj.ephys_select = [];
+%             guiobj.ephys_datanames = {};
+%             guiobj.ephys_procdatanames = {};
+% 
+%             guiobj.imaging_data = [];
+%             guiobj.imaging_procced = [];
+%             guiobj.imaging_proccedInfo = [];
+%             guiobj.imaging_procTypes = ["GaussAvg"];
+%             guiobj.imaging_detections = [];
+%             guiobj.imaging_detectionsInfo = [];
+%             guiobj.imaging_detMarkerSelection = [];
+%             guiobj.imaging_dettypes = ["Mean+SD"];
+%             guiobj.imaging_taxis = [];
+%             guiobj.imaging_fs = [];
+%             guiobj.imaging_ylabel = '\DeltaF/F';
+%             guiobj.imag_select = [];
+%             guiobj.imag_datanames = {};
+%             guiobj.imag_proc_datanames = {};
+% 
+%             guiobj.run_pos = [];
+%             guiobj.run_veloc = [];
+%             guiobj.run_taxis = [];
+%             guiobj.run_fs = [];
+%             guiobj.run_pos_ylabel = 'Pos [%]';
+%             guiobj.run_veloc_ylabel = 'Velocity [cm/s]';
+% 
+%             guiobj.simult_detections = [];
+% 
+%             guiobj.eventDet1CurrIdx = 1;
+%             guiobj.eventDet1CurrDet = 1;
+%             guiobj.eventDet1CurrRoi = 1;
+%             guiobj.eventDet2CurrIdx = 1;
+%             guiobj.eventDet2CurrDet = 1;
+%             guiobj.eventDet2CurrRoi = 1;
+            dtyp = guiobj.datatyp;
+            close(guiobj.mainfig)
+            delete(guiobj)
+            guiobj = DAS;
+            if dtyp(1) == 1
+                guiobj.ephysCheckBox.Value = 1;
+                ephysCheckBoxValueChanged(guiobj)
+                if rhdORgor == 1
+                    ImportRHDButtonPushed(guiobj)
+                elseif rhdORgor == 2
+                    ImportgorobjButtonPushed(guiobj)
+                end
+            elseif dtyp(2) == 1
+                guiobj.imagingCheckBox.Value = 1;
+                imagingCheckBoxValueChanged(guiobj)
+                ImportgorobjButtonPushed(guiobj)
+            elseif dtyp(3) == 1
+                guiobj.runCheckBox.Value = 1;
+                runCheckBoxValueChanged(guiobj)
+                ImportruncsvButtonPushed(guiobj)
+            end
+        end
     end
     
     %% Callback functions
@@ -851,6 +938,13 @@ classdef DAS < handle
 %             %%%test
 %             display(event)
 %             %%%
+            if ~isempty(guiobj.ephys_data)
+                clrGUI = questdlg('Reset GUI?');
+                if strcmp(clrGUI,'Yes')
+                    resetGuiData(guiobj,1)
+                end
+                return
+            end
             
             [filename,path] = uigetfile('*.rhd');
             if filename == 0
@@ -1759,9 +1853,15 @@ classdef DAS < handle
                 case 'CWT based'
                     guiobj.ephysAdaptDetPanel.Visible = 'off';
                     guiobj.ephysCwtDetPanel.Visible = 'on';
+                    guiobj.ephysDoGInstPowDetPanel.Visible = 'off';
                 case 'Adaptive threshold'
                     guiobj.ephysAdaptDetPanel.Visible = 'on';
                     guiobj.ephysCwtDetPanel.Visible = 'off';
+                    guiobj.ephysDoGInstPowDetPanel.Visible = 'off';
+                case 'DoG+InstPow'
+                    guiobj.ephysAdaptDetPanel.Visible = 'off';
+                    guiobj.ephysCwtDetPanel.Visible = 'off';
+                    guiobj.ephysDoGInstPowDetPanel.Visible = 'on';
             end
         end
         
@@ -1816,6 +1916,35 @@ classdef DAS < handle
                     ratio = eval(guiobj.ephysAdaptDetRatioEdit.String)/100;
                     dets = adaptive_thresh(data,fs,step,minlen,mindist,ratio);
                     detinfo = [chan, 2];
+                    
+                case 'DoG+InstPow'
+                    w1 = str2double(guiobj.ephysDoGInstPowDetW1Edit.String);
+                    w2 = str2double(guiobj.ephysDoGInstPowDetW2Edit.String);
+                    sdmult = str2double(guiobj.ephysDoGInstPowDetSdMultEdit.String);
+                    minLen = str2double(guiobj.ephysDoGInstPowDetMinLenEdit.String)/1000;
+                    refch = str2double(guiobj.ephysDoGInstPowDetRefChanEdit.String);
+                    
+                    switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
+                        case 2 % wICA
+                            data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
+                            if chan < min(size(guiobj.ephys_data))
+                                data = data_cl(chan,:);
+                            else
+                                data = data_cl;
+                            end
+%                             data = data_cl(chan,:);
+                        case 3 % ref chan subtract
+                            data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
+                            if chan < min(size(guiobj.ephys_data))
+                                data = data_cl(chan,:);
+                            else
+                                data = data_cl;
+                            end
+%                             data = data_cl(chan,:);
+                    end
+                    
+                    dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen);
+                    detinfo = [chan, 3];
             end
             
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
@@ -2539,7 +2668,7 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.89, 0.1, 0.1],...
                 'String',{'--Ephys detection methods--','CWT based',...
-                'Adaptive threshold'},...
+                'Adaptive threshold','DoG+InstPow'},...
                 'Callback',@(h,e) guiobj.ephysDetPopMenuSelected);
             
             guiobj.ephysDetChSelLabel = uicontrol(guiobj.eventDetTab,...
@@ -2590,20 +2719,20 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.48, 0.65, 0.1, 0.1]);
-            guiobj.ephysCwtDetArtSuppPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
-                'Style','popupmenu',...
-                'Units','normalized',...
-                'Position',[0.01, 0.5, 0.5, 0.1],...
-                'String',{'--Select artifact suppression--','wICA','RefSubtract'});
             guiobj.ephysCwtDetRefChanLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.35, 0.35, 0.1],...
+                'Position',[0.01, 0.55, 0.35, 0.1],...
                 'String','RefChannel');
             guiobj.ephysCwtDetRefChanEdit = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.37, 0.35, 0.1, 0.1]);
+                'Position',[0.37, 0.55, 0.1, 0.1]);
+            guiobj.ephysCwtDetArtSuppPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.01, 0.35, 0.5, 0.1],...
+                'String',{'--Select artifact suppression--','wICA','RefSubtract'});
             
             guiobj.ephysAdaptDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.3, 0.3],...
@@ -2650,6 +2779,60 @@ classdef DAS < handle
                 'Position',[0.52, 0.4, 0.1, 0.1],...
                 'String','99');
             
+            guiobj.ephysDoGInstPowDetPanel = uipanel(guiobj.eventDetTab,...
+                'Position',[0.12, 0.65, 0.3, 0.3],...
+                'Title','Parameters for DoG+InstPow based detection',...
+                'Visible','off');
+            guiobj.ephysDoGInstPowDetFreqBandLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.01, 0.85, 0.5, 0.1],...
+                'String','Lower-Upper cutoff [Hz]');
+            guiobj.ephysDoGInstPowDetW1Edit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.55, 0.85, 0.1, 0.1]);
+            guiobj.ephysDoGInstPowDetW2Edit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.65, 0.85, 0.1, 0.1]);
+            guiobj.ephysDoGInstPowDetSdMultLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.01, 0.7, 0.5, 0.1],...
+                'String','SD multiplier');
+            guiobj.ephysDoGInstPowDetSdMultEdit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.55, 0.7, 0.1, 0.1]);
+            guiobj.ephysDoGInstPowDetMinLenLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.01, 0.55, 0.5, 0.1],...
+                'String','Min event length [ms]');
+            guiobj.ephysDoGInstPowDetMinLenEdit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.55, 0.55, 0.1, 0.1]);
+            guiobj.ephysDoGInstPowDetRefChanLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.01, 0.4, 0.5, 0.1],...
+                'String','Referece channel');
+            guiobj.ephysDoGInstPowDetRefChanEdit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.55, 0.4, 0.1, 0.1]);
+%             guiobj.ephysDoGInstPowDetArtSuppPopMenuLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+%                 'Style','text',...
+%                 'Units','normalized',...
+%                 'Position',[0.01, 0.25, 0.5, 0.1],...
+%                 'String','Select artifact suppression method');
+            guiobj.ephysDoGInstPowDetArtSuppPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.01, 0.25, 0.5, 0.1],...
+                'String',{'--Select artifact suppression--','wICA','RefSubtract'});
             
             guiobj.ephysDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...

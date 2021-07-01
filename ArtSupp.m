@@ -528,11 +528,26 @@ switch meth
             refchan = str2double(refchan{:});
         end
         ref = data(refchan,:);
+        % normalize then subtract (trial)
+%         refBL = ref + abs(min(ref));
+%         refNorm = refBL / abs(max(refBL));
+        
         sigchans = 1:size(data,1);
         sigchans(sigchans==refchan) = [];
-
+        
         data_cl = data;
         data_cl(sigchans,:) = data_cl(sigchans,:) - ref;
+        
+%         for i = sigchans
+%             temp = data(i,:);
+%             tempBL = temp + abs(min(temp));
+%             tempNorm = tempBL / abs(max(tempBL));
+%             tempNorm = tempNorm - refNorm;
+% %             temp = tempNorm*abs(max(tempBL)) - abs(min(temp));
+% %             data_cl(i,:) = temp;
+%             data_cl(i,:) = tempNorm;
+%         end
+        
 %         assignin('base','data_cl',data_cl)
         
 %         figure('Name','Classic subtraction')

@@ -10,3 +10,4 @@ DAS toDo notes
 -periodicNoise automata base freq funkcio nem a legjobb
 -sharp wave detection utánanézni
 -elfiz detection: ha minden chan-ra fut, akkor tisztázni a működést
+-egymás után importálás rendesen kezelni

@@ -19,9 +19,10 @@ elseif nargin == 3
     w2 = varargin{3};
 elseif nargin == 4
     data = varargin{1};
-    fs = varargin{2};
-    w1 = varargin{3};
-    w2 = varargin{4};
+    % rounding because data coming from GUI might not be converted proper
+    fs = round(varargin{2},4);
+    w1 = round(varargin{3},4);
+    w2 = round(varargin{4},4);
 end
 
 if nargin < 4 || isempty(varargin{1})
