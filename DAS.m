@@ -208,7 +208,7 @@ classdef DAS < handle
         ephys_detectionsInfo
         ephys_detMarkerSelection
         ephys_detRunsNum = 0;               % Number of detection runs
-        ephys_currdet                       % Detection run currently active in detection tab
+        ephys_currDetRun                       % Detection run currently active in detection tab
         ephys_dettypes = ["CWT based"; "Adaptive threshold"; "DoG+InstPow"];
         ephys_taxis                         % Time axis for electrophysiology data
         ephys_fs                            % Sampling frequency of electrophysiology data
@@ -752,7 +752,7 @@ classdef DAS < handle
         function eventDetAxesButtFcn(guiobj,axNum,detRoi,upDwn)
             switch axNum
                 case 1 %ephys axes
-                    currDetRun = guiobj.ephys_currdet;
+                    currDetRun = guiobj.ephys_currDetRun;
                     temp = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
                     currChans = guiobj.ephys_detectionsInfo(temp,1);
                     
@@ -784,7 +784,7 @@ classdef DAS < handle
 %                             currChans = guiobj.ephys_detectionsInfo(temp,1);
                             switch upDwn
                                 case 1
-                                    if guiobj.eventDet1CurrChan < size(guiobj.ephys_data,1)
+                                    if guiobj.eventDet1CurrChan < length(currChans)
                                         guiobj.eventDet1CurrChan = ...
                                             guiobj.eventDet1CurrChan + 1;
                                     end
@@ -798,7 +798,7 @@ classdef DAS < handle
                     end
                     
 %                     chan = guiobj.ephysDetChSelPopMenu.Value;
-                    chan = guiobj.eventDet1CurrChan;
+                    chan = currChans(guiobj.eventDet1CurrChan);
                     currDet = guiobj.eventDet1CurrIdx;
                     detInd = guiobj.eventDet1CurrDet;
                     tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
@@ -2003,7 +2003,7 @@ classdef DAS < handle
             guiobj.ephysDetStatusLabel.String = '--IDLE--';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
             
-            guiobj.ephys_currdet = guiobj.ephys_detRunsNum;
+            guiobj.ephys_currDetRun = guiobj.ephys_detRunsNum;
             
             eventDetAxesButtFcn(guiobj,1,0,0);
         end
