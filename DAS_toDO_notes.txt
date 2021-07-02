@@ -7,8 +7,9 @@ DAS toDo notes
 -position axes kitalálni
 -valami baja van a fastICA-nak amikor az ArtSupp otherWICA-val 
 	hasznalnam
--periodicNoise automata base freq funkcio nem a legjobb
+-periodicNoise automata base freq funkcio nem a legjobb <- ezzel még mindig foglalkozni kéne
 -sharp wave detection utánanézni
 -elfiz detection: ha minden chan-ra fut, akkor tisztázni a működést
 	-757. sor és környékét rendesen megnézni: hogy döntse el melyik csatornákon kell végigmenni
 -egymás után importálás rendesen kezelni <- ez kb megvan
+-refchan validalas funkciot bevezetni mindegyik detection modhoz es bugfixelni

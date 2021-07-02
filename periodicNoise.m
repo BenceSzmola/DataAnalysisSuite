@@ -14,7 +14,7 @@ if nargin == 0
         'Fundamental frequency of the periodic noise (if not given, the algorithm will find it) [Hz]:',...
         'Stopband width [Hz]:'};
     title = 'Parameter input for periodic noise filter';
-    definput = {'20000','500','','0.5'};
+    definput = {'20000','500','','1'};
     opts.Interpreter = 'tex';
     parameters = inputdlg(prompt,title,1,definput,opts);
     if isempty(parameters)
@@ -59,6 +59,10 @@ for i = 1:min(size(data))
         % Calculate FFT
         [faxis,psd] = freqspec(data(i,:),fs,0);
 
+        % Check FFT for extreme peaks
+        fftRunavg = movmean(psd,find(faxis>10,1));
+        
+        
         % Cutting out low frequencies from PSD
         cutpsd = psd(find(faxis>20,1):end);
 
@@ -111,10 +115,12 @@ for i = 1:min(size(data))
 %             end
 %         f_fund = faxis(minloc+1);
 
-        dps = zeros(2,10);
+%         dps = zeros(2,10);
         runavg = movmean(autocorr,find(faxis>1,1));
         f_fund = 0;
         numproms = min([10,length(maxproms)]);
+        dps = zeros(2,numproms);
+        
         for j = 1:numproms
             dps(1,j) = abs(lag(locs(find(proms==maxproms(j),1))));
             dps(2,j) = autocorr(locs(find(proms==maxproms(j),1)))-runavg(locs(find(proms==maxproms(j),1)));

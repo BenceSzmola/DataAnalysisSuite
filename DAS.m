@@ -152,6 +152,7 @@ classdef DAS < handle
         ephysDoGInstPowDetMinLenEdit
         ephysDoGInstPowDetRefChanLabel
         ephysDoGInstPowDetRefChanEdit
+        ephysDogInstPowDetRefValChBox
         ephysDoGInstPowDetArtSuppPopMenuLabel
         ephysDoGInstPowDetArtSuppPopMenu
         
@@ -1998,6 +1999,7 @@ classdef DAS < handle
                     w2 = str2double(guiobj.ephysDoGInstPowDetW2Edit.String);
                     sdmult = str2double(guiobj.ephysDoGInstPowDetSdMultEdit.String);
                     minLen = str2double(guiobj.ephysDoGInstPowDetMinLenEdit.String)/1000;
+                    refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
                     
                     % Handling no input cases
                     if (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))...
@@ -2012,6 +2014,13 @@ classdef DAS < handle
                     
                     % Handling no input case when artsupp is enabled
                     if (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
+                        errordlg('No reference channel specified!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
+                    if refVal && (isempty(refch)||isnan(refch))
                         errordlg('No reference channel specified!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -2037,7 +2046,13 @@ classdef DAS < handle
 %                             data = data_cl(chan,:);
                     end
                     
-                    dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen);
+                    if ~refVal
+                        dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,0);
+                    elseif refVal && (size(data,1)>1)
+                        dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,refch);
+                    elseif refVal && (size(data,1)==1)
+                        dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:));
+                    end
 %                     detinfo = [chan, 3];
                     if chan < min(size(guiobj.ephys_data))
                         detinfo = [chan, 3, guiobj.ephys_detRunsNum];
@@ -2929,12 +2944,17 @@ classdef DAS < handle
             guiobj.ephysDoGInstPowDetRefChanLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.4, 0.5, 0.1],...
+                'Position',[0.01, 0.4, 0.3, 0.1],...
                 'String','Referece channel');
             guiobj.ephysDoGInstPowDetRefChanEdit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.55, 0.4, 0.1, 0.1]);
+                'Position',[0.35, 0.4, 0.1, 0.1]);
+            guiobj.ephysDogInstPowDetRefValChBox = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.5, 0.4, 0.4, 0.1],...
+                'String','RefChan validate');
 %             guiobj.ephysDoGInstPowDetArtSuppPopMenuLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
 %                 'Style','text',...
 %                 'Units','normalized',...
