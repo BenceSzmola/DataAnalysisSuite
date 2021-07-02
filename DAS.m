@@ -752,6 +752,10 @@ classdef DAS < handle
         function eventDetAxesButtFcn(guiobj,axNum,detRoi,upDwn)
             switch axNum
                 case 1 %ephys axes
+                    if isempty(guiobj.ephys_detections)
+                        return
+                    end
+                    
                     currDetRun = guiobj.ephys_currDetRun;
                     temp = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
                     currChans = guiobj.ephys_detectionsInfo(temp,1);
@@ -1233,9 +1237,10 @@ classdef DAS < handle
                 for i = 1:size(guiobj.ephys_detectionsInfo,1)
                     detList{i} = strcat(guiobj.ephys_dettypes(...
                         guiobj.ephys_detectionsInfo(i,2)),'| Channel #',...
-                        num2str(guiobj.ephys_detectionsInfo(i,1)));
+                        num2str(guiobj.ephys_detectionsInfo(i,1)),'| Det#',...
+                        num2str(guiobj.ephys_detectionsInfo(i,3)));
                 end
-                [indx,tf] = listdlg('ListString',detList);
+                [indx,tf] = listdlg('ListString',detList,'ListSize',[220,300]);
                 if ~tf
                     return
                 end
@@ -1674,6 +1679,7 @@ classdef DAS < handle
                 case 'DoG'
                     if isnan(w1) || isnan(w2)
                         errordlg('DoG needs both upper and lower cutoff!')
+                        guiobj.runFiltButton.BackgroundColor = 'g';
                         return
                     end
                     procced = DoG(data,guiobj.ephys_fs,w1,w2);
@@ -1913,7 +1919,26 @@ classdef DAS < handle
                     sdmult = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                     w1 = str2double(guiobj.ephysCwtDetW1Edit.String);
                     w2 = str2double(guiobj.ephysCwtDetW2Edit.String);
+                    
+                    % Handling no input cases
+                    if (isempty(minlen)||isnan(minlen)) || (isempty(sdmult)||isnan(sdmult))...
+                            || (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))
+                        errordlg('Missing parameters!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     refch = str2double(guiobj.ephysCwtDetRefChanEdit.String);
+                    
+                    % Handling no input case when artsupp is enabled
+                    if (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
+                        errordlg('No reference channel specified!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
@@ -1947,7 +1972,18 @@ classdef DAS < handle
                     mindist = eval(guiobj.ephysAdaptDetMindistEdit.String)/1000;
                     minlen = eval(guiobj.ephysAdaptDetMinwidthEdit.String)/1000;
                     ratio = eval(guiobj.ephysAdaptDetRatioEdit.String)/100;
+                    
+                    % Handling no input cases
+                    if (isempty(step)||isnan(step)) || (isempty(mindist)||isnan(mindist))...
+                            || (isempty(minlen)||isnan(minlen)) || (isempty(ratio)||isnan(ratio))
+                        errordlg('Missing parameters!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     dets = adaptive_thresh(data,fs,step,minlen,mindist,ratio);
+                                       
 %                     detinfo = [chan, 2];
                     if chan < min(size(guiobj.ephys_data))
                         detinfo = [chan, 2, guiobj.ephys_detRunsNum];
@@ -1962,9 +1998,27 @@ classdef DAS < handle
                     w2 = str2double(guiobj.ephysDoGInstPowDetW2Edit.String);
                     sdmult = str2double(guiobj.ephysDoGInstPowDetSdMultEdit.String);
                     minLen = str2double(guiobj.ephysDoGInstPowDetMinLenEdit.String)/1000;
+                    
+                    % Handling no input cases
+                    if (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))...
+                            || (isempty(sdmult)||isnan(sdmult)) || (isempty(minLen)||isnan(minLen))
+                        errordlg('Missing parameters!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     refch = str2double(guiobj.ephysDoGInstPowDetRefChanEdit.String);
                     
-                    switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
+                    % Handling no input case when artsupp is enabled
+                    if (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
+                        errordlg('No reference channel specified!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
+                    switch guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
                             if chan < min(size(guiobj.ephys_data))

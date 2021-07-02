@@ -12,7 +12,7 @@ if nargin == 0
     prompt = {'Sampling frequency [Hz]:',...
         'Upper frequency limit for filtering (if left empty the algorithm will run until fs/2) [Hz]:',...
         'Fundamental frequency of the periodic noise (if not given, the algorithm will find it) [Hz]:',...
-        '\pm how many Hz should be filtered around the noise [Hz]:'};
+        'Stopband width [Hz]:'};
     title = 'Parameter input for periodic noise filter';
     definput = {'20000','500','','0.5'};
     opts.Interpreter = 'tex';
@@ -23,7 +23,7 @@ if nargin == 0
     fs = str2double(parameters{1});
     fmax = str2double(parameters{2});
     f_fund = str2double(parameters{3});
-    stopbandwidth = str2double(parameters{4})/2;
+    stopbandwidth = str2double(parameters{4});
 end
 
 if nargin == 0 || isempty(data)
