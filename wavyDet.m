@@ -1,4 +1,4 @@
-function bips = wavyDet(data,srate,minlen,sdmult,w1,w2)
+function bips = wavyDet(data,srate,minlen,sdmult,w1,w2,refch)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -16,8 +16,20 @@ if nargin ~= 0
     end
 end
 
+% Checking whether refchan validation is requested 
+% 0 => not reqeusted; nonzero number => number of refchan; 
+% dataseries => refchan itself
+if refch == 0
+    refVal = 0;
+elseif isnumber(refch) && (refch~=0)
+    refVal = 1;
+else % Only one data channel is given + the refchannel in a separate array
+    refVal = 2;
+end
+
 %% Input data handling
 
+% Usage from commandline
 if nargin == 0
     minlen = 0.01;
     sdmult = 3;
@@ -37,11 +49,29 @@ if nargin == 0
     end
 end
 
-bips = zeros(size(data));
-bips(:) = nan;
+bips = nan(size(data));
+% bips(:) = nan;
 t = linspace(0,length(data)/srate,length(data));
 
+% Finding above threshold segments on refchan
+if refVal ~= 0
+    refdets = nan(1,length(data));
+    switch refVal
+        case 1
+            refData = data(refch,:);
+        case 2
+            refData = refch;
+    end
+    [refCoeffs,~,~] = cwt(refData,srate,'amor','FrequencyLimits',[w1 w2]);
+    refInstE = trapz(abs(refCoeffs).^2);
+    refThr = mean(refInstE) + sdmult*std(refInstE);
+    refdets(refInstE > refThr) = 0;
+end
+
 for i = 1:min(size(data))
+    if i == refch
+        continue
+    end
     %% Apply periodic filt
     % data = periodicNoise(data,srate,1000);
 
@@ -139,7 +169,9 @@ for i = 1:min(size(data))
 
         [~,maxIdx] = max(instE(dets));
         vEvents = maxIdx + dets(1);
-        bips(i,vEvents) = 0;
+        if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(vEvents))))
+            bips(i,vEvents) = 0;
+        end
     else
         events = [events, length(steps)];
 
@@ -149,14 +181,18 @@ for i = 1:min(size(data))
                 if len > minlen*srate
                     [~,maxIdx] = max(instE(1:dets(events(j))));
     %                 vEvents = [vEvents, 1];
-                    vEvents = [vEvents, maxIdx];
+                    if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(maxIdx))))
+                        vEvents = [vEvents, maxIdx];
+                    end
                 end
             else
                 len = events(j)-events(j-1);
                 if len > minlen*srate
                     [~,maxIdx] = max(instE(dets(events(j-1):events(j))));
     %                 vEvents = [vEvents, events(i-1)];
-                    vEvents = [vEvents, maxIdx+dets(events(j-1))];
+                    if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(maxIdx+dets(events(j-1))))))
+                        vEvents = [vEvents, maxIdx+dets(events(j-1))];
+                    end
                 end
             end
         end
@@ -189,32 +225,46 @@ for i = 1:min(size(data))
     % assignin('base','t',t)
     % assignin('base','doggy',dogged)
     %% Plotting
-    
-    figure
-    ax1 = subplot(2,1,1);
-    plot(t,data)
-    hold on
-    plot(t,bips(i,:),'r*','MarkerSize',12)
-    axis tight
-    if min(size(data)) == 1
-        title('Detections based on CWT')
-    else
-        title(['Detections based on CWT - Ch#',num2str(i)])
-    end
-    xlabel('Time [s]')
-    ylabel('Voltage [\muV]')
-    ax2 = subplot(2,1,2);
-    try
-        plot(t,instE)
-    catch
-        plot(t,colmean)
-    end
-    hold on
-    plot(t,ones(size(t))*thr)
-    xlabel('Time [s]')
-    ylabel('CWT coefficient magnitude')
-    axis tight
-    legend('Inst. Energy integral over all frequencies','threshold')
-    linkaxes([ax1,ax2],'x')
-    xlim([0.1 t(end)-0.1])
+%     
+%     figure
+%     
+%     ax1 = subplot(311);
+%     plot(t,data(i,:))
+%     hold on
+%     plot(t,bips(i,:),'r*','MarkerSize',12)
+%     axis tight
+%     if min(size(data)) == 1
+%         title('Detections based on CWT')
+%     else
+%         title(['Detections based on CWT - Ch#',num2str(i)])
+%     end
+%     xlabel('Time [s]')
+%     ylabel('Voltage [\muV]')
+%     
+%     ax2 = subplot(312);
+%     try
+%         plot(t,instE)
+%     catch
+%         plot(t,colmean)
+%     end
+%     hold on
+%     plot(t,ones(size(t))*thr)
+%     xlabel('Time [s]')
+%     ylabel('CWT coefficient magnitude')
+%     axis tight
+%     legend('Inst. Energy integral over all frequencies','threshold')
+%     
+%     ax3 = subplot(313);
+%     if refVal ~= 0
+%         plot(t,refInstE)
+%         hold on
+%         plot(t,refdets,'*r')
+%     end
+%     
+%     linkaxes([ax1,ax2,ax3],'x')
+%     xlim([0.1 t(end)-0.1])
+end
+
+if refVal == 1
+    bips(refch,:) = refdets;
 end

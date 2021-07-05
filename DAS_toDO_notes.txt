@@ -13,3 +13,5 @@ DAS toDo notes
 	-757. sor és környékét rendesen megnézni: hogy döntse el melyik csatornákon kell végigmenni
 -egymás után importálás rendesen kezelni <- ez kb megvan
 -refchan validalas funkciot bevezetni mindegyik detection modhoz es bugfixelni
+-sok detekcio/processing utan mintha meghibbanna
+-detection mutatásnál a time window ha kifut negativ vagy pozitiv iranyba az nincs kezelve

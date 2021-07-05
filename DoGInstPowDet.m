@@ -53,8 +53,12 @@ if refVal == 2
 end
 
 % Detection part
-dets = nan(size(data));
-refdets = nan(size(data));
+% if (refVal == 0) | (refVal == 2)
+    dets = nan(size(data));
+% elseif refVal == 1
+%     dets = nan(size(data,1)-1,size(data,2));   
+% end
+refdets = nan(1,length(data));
 
 if (refch ~= 0)
     if refVal == 2
@@ -117,4 +121,31 @@ for i = 1:size(data,1)
         end
         dets(i,vEvents) = 0;
     end
+    
+    % plotting part mainly for bugfixing
+    t=linspace(0,length(data)/fs,length(data));
+    figure('Name',['Chan#',num2str(i)])
+    sp1=subplot(311);
+    plot(t,dogged(i,:))
+    hold on
+    plot(t,dets(i,:),'*r')
+    sp2=subplot(312);
+    plot(t,instPow(i,:))
+    hold on
+    plot(t,dets(i,:),'*r')
+    sp3=subplot(313);
+    if refVal ==1
+        plot(t,dogged(refch,:))
+        hold on 
+        plot(t,refdets,'*r')
+    elseif refVal == 2
+        plot(t,refdogged)
+        hold on
+        plot(t,refdets,'*r')
+    end
+    linkaxes([sp1,sp2,sp3],'x')
+end
+
+if refVal == 1
+    dets(refch,:) = refdets;
 end

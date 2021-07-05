@@ -128,6 +128,7 @@ classdef DAS < handle
         ephysCwtDetCutoffLabel
         ephysCwtDetW1Edit
         ephysCwtDetW2Edit
+        ephysCwtDetRefValCheck
         ephysCwtDetArtSuppPopMenu
         ephysCwtDetRefChanLabel
         ephysCwtDetRefChanEdit
@@ -243,9 +244,9 @@ classdef DAS < handle
         
         simult_detections
         
-        eventDet1CurrIdx = 1;
-        eventDet1CurrDet = 1;
-        eventDet1CurrChan = 1;
+        eventDet1CurrIdx = 1;               % # in the dets array
+        eventDet1CurrDet = 1;               % index of detection marker on one channel
+        eventDet1CurrChan = 1;              % currently selected channel from data
         eventDet2CurrIdx = 1;
         eventDet2CurrDet = 1;
         eventDet2CurrRoi = 1;
@@ -436,7 +437,7 @@ classdef DAS < handle
                         cla(guiobj.axes11)
                         guiobj.axes11.Visible = 'off';
                         guiobj.axesAbsPos1.Visible = 'on';
-                        guiobj.axesLapPos1.Visible = 'on'
+                        guiobj.axesLapPos1.Visible = 'on';
                         guiobj.axesveloc1.Visible = 'on';
                         
                         runposplot(guiobj)
@@ -792,11 +793,15 @@ classdef DAS < handle
                                     if guiobj.eventDet1CurrChan < length(currChans)
                                         guiobj.eventDet1CurrChan = ...
                                             guiobj.eventDet1CurrChan + 1;
+                                        guiobj.eventDet1CurrIdx = ...
+                                            guiobj.eventDet1CurrIdx + 1;
                                     end
                                 case 2
                                     if guiobj.eventDet1CurrChan > 1
                                         guiobj.eventDet1CurrChan = ...
                                             guiobj.eventDet1CurrChan - 1;
+                                        guiobj.eventDet1CurrIdx = ...
+                                            guiobj.eventDet1CurrIdx - 1;
                                     end
                                     
                             end
@@ -806,12 +811,24 @@ classdef DAS < handle
                     chan = currChans(guiobj.eventDet1CurrChan);
                     currDet = guiobj.eventDet1CurrIdx;
                     detInd = guiobj.eventDet1CurrDet;
+                    %%%
+                    assignin('base','efizdets',guiobj.ephys_detections)
+                    %%%
                     tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
                     tInd = tInd(detInd);
                     tStamp = guiobj.ephys_taxis(tInd);
                     win = round(0.25 * guiobj.ephys_fs,4);
-                    tWin = guiobj.ephys_taxis(tInd-win:tInd+win);
-                    dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
+                    if (tInd-win > 0) & (tInd+win <= length(guiobj.ephys_taxis))
+                        tWin = guiobj.ephys_taxis(tInd-win:tInd+win);
+                        dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
+                    elseif tInd-win <= 0
+                        tWin = guiobj.ephys_taxis(1:tInd+win);
+                        dataWin = guiobj.ephys_data(chan,1:tInd+win);
+                    elseif tInd+win > length(guiobj.ephys_taxis)
+                        tWin = guiobj.ephys_taxis(tInd-win:end);
+                        dataWin = guiobj.ephys_data(chan,tInd-win:end);
+                    end
+%                     dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
                     plot(ax,tWin,dataWin)
                     hold(ax,'on')
                     line(ax,[tStamp tStamp],[min(dataWin), max(dataWin)],...
@@ -1902,9 +1919,19 @@ classdef DAS < handle
             guiobj.ephysDetStatusLabel.String = 'Detection running';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'r';
             drawnow
+            
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
+            if strcmp(dettype,'--Ephys detection methods--')
+                errordlg('Select detection method first!')
+                guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                return
+            end
+                        
             guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
+            
+            numofdetchans = size(guiobj.ephys_detections,1);
             
             chan = guiobj.ephysDetChSelPopMenu.Value;
             if chan < min(size(guiobj.ephys_data))
@@ -1920,6 +1947,7 @@ classdef DAS < handle
                     sdmult = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                     w1 = str2double(guiobj.ephysCwtDetW1Edit.String);
                     w2 = str2double(guiobj.ephysCwtDetW2Edit.String);
+                    refVal = guiobj.ephysCwtDetRefValCheck.Value;
                     
                     % Handling no input cases
                     if (isempty(minlen)||isnan(minlen)) || (isempty(sdmult)||isnan(sdmult))...
@@ -1934,6 +1962,13 @@ classdef DAS < handle
                     
                     % Handling no input case when artsupp is enabled
                     if (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
+                        errordlg('No reference channel specified!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
+                    if refVal && (isempty(refch)||isnan(refch))
                         errordlg('No reference channel specified!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -1959,7 +1994,14 @@ classdef DAS < handle
 %                             data = data_cl(chan,:);
                     end
                     
-                    dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2);
+                    if ~refVal
+                        dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2,0);
+                    elseif refVal & (chan > min(size(guiobj.ephys_data)))
+                        dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2,refch);
+                    elseif refVal & (chan < min(size(guiobj.ephys_data)))
+                        dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:));
+                    end
+                    
                     if chan < min(size(guiobj.ephys_data))
                         detinfo = [chan, 1, guiobj.ephys_detRunsNum];
                     else
@@ -2063,10 +2105,18 @@ classdef DAS < handle
                     end
             end
             
+            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1)))
+                errordlg('No events were found!')
+                guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                return                
+            end
+            
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
             guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo;...
                 detinfo];
-            guiobj.eventDet1CurrIdx = size(guiobj.ephys_detections,1);
+%             guiobj.eventDet1CurrIdx = size(guiobj.ephys_detections,1);
+            guiobj.eventDet1CurrIdx = numofdetchans + 1;
             
             
             guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -2822,7 +2872,7 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.37, 0.85, 0.1, 0.1],...
-                'String','20');
+                'String','10');
             guiobj.ephysCwtDetSdMultLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -2855,6 +2905,11 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.37, 0.55, 0.1, 0.1]);
+            guiobj.ephysCwtDetRefValCheck = uicontrol(guiobj.ephysCwtDetPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.5, 0.55, 0.4, 0.1],...
+                'String','RefChan validate');
             guiobj.ephysCwtDetArtSuppPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
