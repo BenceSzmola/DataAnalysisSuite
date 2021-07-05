@@ -14,6 +14,8 @@ classdef DAS < handle
         showEphysDetMarkersMenu
         showImagingDetMarkersMenu
         showSimultMarkersMenu
+        ephysEventDetTabDataTypeMenu
+        ephysEventDetTabFiltCutoffMenu
         MakewindowlargerMenu
         MakewindowsmallerMenu
         tabs
@@ -199,6 +201,8 @@ classdef DAS < handle
         xtitle = 'Time [s]';
         
         ephys_data                          % Currently imported electrophysiology data
+        ephys_dogged
+        ephys_instPowed
         % For storing processed electrophysiology data
         ephys_procced
         % Info on processed data: 2 column array, [channel, type of
@@ -247,6 +251,11 @@ classdef DAS < handle
         eventDet1CurrIdx = 1;               % # in the dets array
         eventDet1CurrDet = 1;               % index of detection marker on one channel
         eventDet1CurrChan = 1;              % currently selected channel from data
+        eventDet1DataType = 1;              % Type of data to show in eventdetTab
+                                            % 1-Raw; 2-DoG; 3-InstPow
+        eventDet1W1 = 150;
+        eventDet1W2 = 250;
+        eventDet1Win = 500;
         eventDet2CurrIdx = 1;
         eventDet2CurrDet = 1;
         eventDet2CurrRoi = 1;
@@ -752,10 +761,22 @@ classdef DAS < handle
         end
         
         function eventDetAxesButtFcn(guiobj,axNum,detRoi,upDwn)
+%             display(axNum)
+%             display(detRoi)
+%             display(upDwn)
             switch axNum
                 case 1 %ephys axes
                     if isempty(guiobj.ephys_detections)
                         return
+                    end
+                    
+                    switch guiobj.eventDet1DataType
+                        case 1
+                            data = guiobj.ephys_data;
+                        case 2
+                            data = guiobj.ephys_dogged;
+                        case 3
+                            data = guiobj.ephys_instPowed;
                     end
                     
                     currDetRun = guiobj.ephys_currDetRun;
@@ -769,6 +790,7 @@ classdef DAS < handle
                     ax = guiobj.axesEventDet1;
                     switch detRoi
                         case 0
+                            guiobj.eventDet1CurrIdx = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,1);
                             guiobj.eventDet1CurrDet = 1;
                             guiobj.eventDet1CurrChan = 1;
                         case 1
@@ -817,16 +839,21 @@ classdef DAS < handle
                     tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
                     tInd = tInd(detInd);
                     tStamp = guiobj.ephys_taxis(tInd);
-                    win = round(0.25 * guiobj.ephys_fs,4);
+%                     win = round(0.25 * guiobj.ephys_fs,4);
+                    win = guiobj.eventDet1Win/2000;
+                    win = round(win*guiobj.ephys_fs,4);
                     if (tInd-win > 0) & (tInd+win <= length(guiobj.ephys_taxis))
                         tWin = guiobj.ephys_taxis(tInd-win:tInd+win);
-                        dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
+%                         dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
+                        dataWin = data(chan,tInd-win:tInd+win);
                     elseif tInd-win <= 0
                         tWin = guiobj.ephys_taxis(1:tInd+win);
-                        dataWin = guiobj.ephys_data(chan,1:tInd+win);
+%                         dataWin = guiobj.ephys_data(chan,1:tInd+win);
+                        dataWin = data(chan,1:tInd+win);
                     elseif tInd+win > length(guiobj.ephys_taxis)
                         tWin = guiobj.ephys_taxis(tInd-win:end);
-                        dataWin = guiobj.ephys_data(chan,tInd-win:end);
+%                         dataWin = guiobj.ephys_data(chan,tInd-win:end);
+                        dataWin = guiobj.data(chan,tInd-win:end);
                     end
 %                     dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
                     plot(ax,tWin,dataWin)
@@ -838,6 +865,8 @@ classdef DAS < handle
                     xlabel(ax,guiobj.xtitle)
                     ylabel(ax,guiobj.ephys_ylabel);
                     title(ax,['Channel#',num2str(chan),' Detection#',num2str(detInd)])
+                    
+                    display('----------------------------------------')
                     
                 case 2
                     if isempty(guiobj.imaging_detections)
@@ -2276,6 +2305,36 @@ classdef DAS < handle
             eventDetAxesButtFcn(guiobj,2,2,2)
         end
         
+        function changeEventDetTabDataType(guiobj,event)
+            list = {'RawData','DoG','InstPow'};
+            [idx,tf] = listdlg('ListString',list);
+            if ~tf
+                return
+            end
+            guiobj.eventDet1DataType = idx;
+            switch idx
+                case 2
+                    guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
+                        guiobj.eventDet1W1,guiobj.eventDet1W2);
+                case 3
+                    guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
+                        guiobj.eventDet1W1,guiobj.eventDet1W2);
+            end
+            eventDetAxesButtFcn(guiobj,1,0,0)
+        end
+        
+        function changeEventDetTabCutoff(guiobj,event)
+            prompt = {'Lower cutoff [Hz]','Upper cutoff [Hz]','Event window [ms]'};
+            title = 'Frequency band for EventDetTab graphs';
+            dims = [1, 15];
+            definput = {'150','250','500'};
+            answer = inputdlg(prompt,title,dims,definput);
+            guiobj.eventDet1W1 = str2double(answer{1});
+            guiobj.eventDet1W2 = str2double(answer{2});
+            guiobj.eventDet1Win = str2double(answer{3});
+            eventDetAxesButtFcn(guiobj,1,0,0)
+        end
+        
         function testcallback(varargin)
             display(varargin)
             assignin('base','testinput',varargin)
@@ -2327,6 +2386,13 @@ classdef DAS < handle
             guiobj.showSimultMarkersMenu = uimenu(guiobj.showDetMarkersMenu,...
                 'Text','Show simultaneous detection markers',...
                 'MenuSelectedFcn',@(h,e) guiobj.showSimultDetMarkers);
+            
+            guiobj.ephysEventDetTabDataTypeMenu = uimenu(guiobj.OptionsMenu,...
+                'Text','Ephys data type in EventDetTab',...
+                'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabDataType);
+            guiobj.ephysEventDetTabFiltCutoffMenu = uimenu(guiobj.OptionsMenu,...
+                'Text','EventDetTab - change cutoff frequencies',...
+                'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabCutoff);
 
 %             % Create MakewindowlargerMenu
 %             guiobj.MakewindowlargerMenu = uimenu(guiobj.OptionsMenu,...
