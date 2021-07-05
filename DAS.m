@@ -782,15 +782,29 @@ classdef DAS < handle
                     currDetRun = guiobj.ephys_currDetRun;
                     temp = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
                     currChans = guiobj.ephys_detectionsInfo(temp,1);
+                    emptyChans = [];
                     
-                    if isempty(guiobj.ephys_detections)
-                        return
+%                     display('currChans before')
+%                     currChans
+                    
+                    for j = 1:length(temp)
+                        if isempty(find(~isnan(guiobj.ephys_detections(temp(j),:)),1))
+                            emptyChans = [emptyChans, j];
+                        end
                     end
+                    currChans(emptyChans) = [];
+                    
+%                     display('currChans after')
+%                     currChans
                     
                     ax = guiobj.axesEventDet1;
                     switch detRoi
                         case 0
-                            guiobj.eventDet1CurrIdx = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,1);
+%                             assignin('base','detinfo',guiobj.ephys_detectionsInfo)
+%                             assignin('base','curdetrun',currDetRun)
+%                             find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1))
+                            guiobj.eventDet1CurrIdx = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1));
+                            guiobj.eventDet1CurrIdx = guiobj.eventDet1CurrIdx(end);
                             guiobj.eventDet1CurrDet = 1;
                             guiobj.eventDet1CurrChan = 1;
                         case 1
@@ -866,7 +880,7 @@ classdef DAS < handle
                     ylabel(ax,guiobj.ephys_ylabel);
                     title(ax,['Channel#',num2str(chan),' Detection#',num2str(detInd)])
                     
-                    display('----------------------------------------')
+%                     display('----------------------------------------')
                     
                 case 2
                     if isempty(guiobj.imaging_detections)
