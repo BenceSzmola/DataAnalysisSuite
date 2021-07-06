@@ -133,6 +133,8 @@ for i = 1:size(data,1)
     plot(t,instPow(i,:))
     hold on
     plot(t,dets(i,:),'*r')
+    hold on
+    plot(t,thr*ones(1,length(t)),'-g')
     sp3=subplot(313);
     if refVal ==1
         plot(t,dogged(refch,:))

@@ -14,4 +14,10 @@ DAS toDo notes
 -egymás után importálás rendesen kezelni <- ez kb megvan
 -refchan validalas funkciot bevezetni mindegyik detection modhoz es bugfixelni
 -sok detekcio/processing utan mintha meghibbanna
--detection mutatásnál a time window ha kifut negativ vagy pozitiv iranyba az nincs kezelve
+-detection mutatásnál a time window ha kifut negativ vagy pozitiv iranyba az nincs kezelve <- DONE
+-visszakövethetővé tenni a detectio/processing paramtereket
+-mutatni h hány detectio volt meg a statokat
+-quiet threshold ujra bevezetni
+-parameter preset mentés/utoljára használt paraméterek megjegyzése
+-eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional
+-lehetőség arra h a felhasznalo manualisan megadja h melyik ido intervallumot nem kéne thresholdhoz használni

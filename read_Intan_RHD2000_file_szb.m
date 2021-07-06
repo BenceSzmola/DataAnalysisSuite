@@ -472,21 +472,21 @@ end
      move_to_base_workspace(aux_input_channels);
      if (data_present)
          move_to_base_workspace(aux_input_data);
-         move_to_base_workspace(t_aux_input);
+%          move_to_base_workspace(t_aux_input);
      end
  end
  if (num_supply_voltage_channels > 0)
      move_to_base_workspace(supply_voltage_channels);
      if (data_present)
          move_to_base_workspace(supply_voltage_data);
-         move_to_base_workspace(t_supply_voltage);
+%          move_to_base_workspace(t_supply_voltage);
      end
  end
  if (num_board_adc_channels > 0)
      move_to_base_workspace(board_adc_channels);
      if (data_present)
          move_to_base_workspace(board_adc_data);
-         move_to_base_workspace(t_board_adc);
+%          move_to_base_workspace(t_board_adc);
      end
  end
  if (num_board_dig_in_channels > 0)
@@ -506,7 +506,7 @@ end
  if (num_temp_sensor_channels > 0)
      if (data_present)
          move_to_base_workspace(temp_sensor_data);
-         move_to_base_workspace(t_temp_sensor);
+%          move_to_base_workspace(t_temp_sensor);
      end
  end
 
