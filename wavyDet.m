@@ -66,6 +66,14 @@ if refVal ~= 0
     refInstE = trapz(abs(refCoeffs).^2);
     refThr = mean(refInstE) + sdmult*std(refInstE);
     refdets(refInstE > refThr) = 0;
+    refdetsInds = find(refdets==0);
+    for i = 1:length(refdetsInds)
+        if i ~= length(refdetsInds)
+            if (refdetsInds(i+1) - refdetsInds(i)) < 0.2*fs
+                refdets(refdetsInds(i):refdetsInds(i+1)) = 0;
+            end
+        end
+    end
 end
 
 for i = 1:min(size(data))

@@ -68,6 +68,14 @@ if (refch ~= 0)
         thr = mean(instPow(refch,:)) + sdmult*std(instPow(refch,:));
         refdets(instPow(refch,:)>thr) = 0;
     end
+    refdetsInds = find(refdets==0);
+    for i = 1:length(refdetsInds)
+        if i ~= length(refdetsInds)
+            if (refdetsInds(i+1) - refdetsInds(i)) < 0.2*fs
+                refdets(refdetsInds(i):refdetsInds(i+1)) = 0;
+            end
+        end
+    end
 end
 
 for i = 1:size(data,1)
@@ -75,8 +83,18 @@ for i = 1:size(data,1)
         continue
     end
     
-    thr = mean(instPow(i,:)) + sdmult*std(instPow(i,:));
+    % Determining background noise segments
     currInstPow = instPow(i,:);
+    quietthr = mean(currInstPow) + std(currInstPow);
+    quietSegs = currInstPow(currInstPow < quietthr);
+    qSegsInds = currInstPow;
+    qSegsInds(currInstPow>=quietthr) = nan;
+    
+    
+    thr = mean(quietSegs) + sdmult*std(quietSegs);
+    
+%     thr = mean(instPow(i,:)) + sdmult*std(instPow(i,:));
+%     currInstPow = instPow(i,:);
     temp = instPow(i,:);
     
     temp(temp < thr) = 0;
@@ -135,6 +153,10 @@ for i = 1:size(data,1)
     plot(t,dets(i,:),'*r')
     hold on
     plot(t,thr*ones(1,length(t)),'-g')
+    hold on
+    plot(t,quietthr*ones(1,length(t)),'-k')
+    hold on
+    plot(t,qSegsInds,'-y')
     sp3=subplot(313);
     if refVal ==1
         plot(t,dogged(refch,:))

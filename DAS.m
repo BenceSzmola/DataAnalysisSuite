@@ -158,6 +158,9 @@ classdef DAS < handle
         ephysDogInstPowDetRefValChBox
         ephysDoGInstPowDetArtSuppPopMenuLabel
         ephysDoGInstPowDetArtSuppPopMenu
+        ephysDoGInstPowDetPresetPopMenu
+        ephysDoGInstPowDetPresetSaveButt
+        ephysDoGInstPowDetPresetDelButt
         
         ephysDetRunButt
         ephysDetStatusLabel
@@ -222,6 +225,7 @@ classdef DAS < handle
         ephys_select                        % Currently selected channel
         ephys_datanames = {};             % Names of the imported electrophysiology data
         ephys_procdatanames = {};
+        ephys_presets
         
         imaging_data                        % Currently imported imaging data
         imaging_procced
@@ -238,6 +242,7 @@ classdef DAS < handle
         imag_select                         % Currently selected ROI
         imag_datanames = {};              % Names of the imported imaging data
         imag_proc_datanames = {};
+        imaging_presets
         
         run_pos                             % Currently imported running data
         run_veloc                           % Running velocity
@@ -268,6 +273,7 @@ classdef DAS < handle
         % Constructor function
         function guiobj = DAS
             createComponents(guiobj)
+            mainFigOpenFcn(guiobj)
             if nargout == 0
                 clear guiobj
             end
@@ -889,7 +895,7 @@ classdef DAS < handle
                     axis(ax,'tight')
                     xlabel(ax,guiobj.xtitle)
                     ylabel(ax,guiobj.ephys_ylabel);
-                    title(ax,['Channel#',num2str(chan),' Detection#',num2str(detInd),...
+                    title(ax,['Channel#',num2str(chan),'      Detection#',num2str(detInd),...
                         '/',num2str(numDets)])
                     
                     display('----------------------------------------')
@@ -2346,7 +2352,7 @@ classdef DAS < handle
                     guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
                         guiobj.eventDet1W1,guiobj.eventDet1W2);
             end
-            eventDetAxesButtFcn(guiobj,1,0,0)
+            eventDetAxesButtFcn(guiobj,1,-1,0)
         end
         
         function changeEventDetTabCutoff(guiobj,event)
@@ -2358,7 +2364,137 @@ classdef DAS < handle
             guiobj.eventDet1W1 = str2double(answer{1});
             guiobj.eventDet1W2 = str2double(answer{2});
             guiobj.eventDet1Win = str2double(answer{3});
-            eventDetAxesButtFcn(guiobj,1,0,0)
+            eventDetAxesButtFcn(guiobj,1,-1,0)
+        end
+        
+        function mainFigOpenFcn(guiobj,~,~)
+            % Check if logfile exists
+            fID = fopen('DAS_LOG.mat');
+            % If it does, load it, if it doesnt create it
+            if fID >= 3
+                try
+                    load('DAS_LOG.mat')
+                    disp('Log file found and loaded.')
+
+                    temp = DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow;
+                    guiobj.ephysDoGInstPowDetW1Edit.String = temp.w1;
+                    guiobj.ephysDoGInstPowDetW2Edit.String = temp.w2;
+                    guiobj.ephysDoGInstPowDetSdMultEdit.String = temp.sdmult;
+                    guiobj.ephysDoGInstPowDetMinLenEdit.String = temp.minLen;
+                    guiobj.ephysDoGInstPowDetRefChanEdit.String = temp.refch;
+                    guiobj.ephysDogInstPowDetRefValChBox.Value = temp.refVal;
+                    clear temp
+
+                    temp = DAS_LOG.lastState.eventDetTab.ephys.CWT; 
+                    guiobj.ephysCwtDetMinlenEdit.String = temp.minlen;
+                    guiobj.ephysCwtDetSdMultEdit.String = temp.sdmult;
+                    guiobj.ephysCwtDetW1Edit.String = temp.w1;
+                    guiobj.ephysCwtDetW2Edit.String = temp.w2;
+                    guiobj.ephysCwtDetRefChanEdit.String = temp.refch;
+                    guiobj.ephysCwtDetRefValCheck.Value = temp.refVal;
+                    clear temp
+                    
+%                     temp = DAS_LOG.presets.ephys;
+%                     guiobj.ephys_presets = temp;
+%                     presetList = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
+%                     for i = 1:length(temp.evDetTab.DoGInstPow)
+%                          presetList = [presetList;];
+%                     end
+%                     clear temp
+                    
+                catch
+                    disp('Error in reading logfile! It will be genereted anew upon closing the GUI.')
+                end
+            else
+                disp('No log file found! It will be created when closing the GUI.')
+            end
+        end
+        
+        function mainFigCloseFcn(guiobj,event)
+            temp.w1 = guiobj.ephysDoGInstPowDetW1Edit.String;
+            temp.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
+            temp.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
+            temp.minLen = guiobj.ephysDoGInstPowDetMinLenEdit.String;
+            temp.refch = guiobj.ephysDoGInstPowDetRefChanEdit.String;
+            temp.refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+            
+            DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow = temp;
+            clear temp
+            
+            temp.minlen = guiobj.ephysCwtDetMinlenEdit.String;
+            temp.sdmult = guiobj.ephysCwtDetSdMultEdit.String;
+            temp.w1 = guiobj.ephysCwtDetW1Edit.String;
+            temp.w2 = guiobj.ephysCwtDetW2Edit.String;
+            temp.refch = guiobj.ephysCwtDetRefChanEdit.String;
+            temp.refVal = guiobj.ephysCwtDetRefValCheck.Value;
+            
+            DAS_LOG.lastState.eventDetTab.ephys.CWT = temp;
+            clear temp
+            
+            DAS_LOG.presets.ephys = guiobj.ephys_presets;
+            
+            save('DAS_LOG.mat','DAS_LOG')
+            
+            delete(guiobj)
+        end
+        
+        function presetSave(guiobj,~,~,dtyp,procID)
+            answer = inputdlg('Name of preset:','Saving new preset');
+            switch dtyp
+                case 1 %ephys
+                    switch procID
+                        case 1 % CWT based
+                            
+                        case 2 % adaptive thresh
+                            
+                        case 3 % DogInstpow
+                            temp = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
+                            temp = {temp; answer{1}};
+                            guiobj.ephysDoGInstPowDetPresetPopMenu.String = temp;
+                            clear temp
+                            
+                            temp = [];
+                            temp2 = temp.evDetTab.DoGInstPow;
+                            new.name = answer{1};
+                            new.w1 = guiobj.ephysDoGInstPowDetW1Edit.String;
+                            new.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
+                            new.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
+                            new.minLen = guiobj.ephysDoGInstPowDetMinLenEdit.String;
+                            new.refch = guiobj.ephysDoGInstPowDetRefChanEdit.String;
+                            new.refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                            temp2 = [temp2, new];
+                    end
+                    
+                    guiobj.ephys_presets = [guiobj.ephys_presets; temp];
+                    clear temp
+                case 2 %imaging
+                    
+            end
+        end
+        
+        function presetDel(guiobj,~,~,dtyp,procID)
+            [idx,tf] = listdlg('ListString',guiobj.ephysDoGInstPowDetPresetPopMenu.String);
+            % There is a title as the first entry of the popmenu!
+            if ~tf
+                return 
+            end
+            
+            switch dtyp
+                case 1 %ephys
+                    switch procID
+                        case 1 % CWT based
+                            
+                        case 2 % adaptive thresh
+                            
+                        case 3 % DogInstpow
+                            guiobj.ephysDoGInstPowDetPresetPopMenu.String{idx} = [];
+                            guiobj.ephys_presets(idx-1) = [];
+                    end
+                case 2 %imaging
+                    
+            end
+            
+            
         end
         
         function testcallback(varargin)
@@ -2380,7 +2516,8 @@ classdef DAS < handle
                 'Position',[0.1, 0.1, 0.8, 0.7],...
                 'NumberTitle','off',...
                 'Name','Data Analysis Suite',...
-                'MenuBar','none');
+                'MenuBar','none',...
+                'DeleteFcn',@(h,e) guiobj.mainFigCloseFcn);
 
             % Create OptionsMenu
             guiobj.OptionsMenu = uimenu(guiobj.mainfig,...
@@ -3112,7 +3249,24 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.25, 0.5, 0.1],...
                 'String',{'--Select artifact suppression--','wICA','RefSubtract'});
-            
+            guiobj.ephysDoGInstPowDetPresetPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.6, 0.25, 0.3, 0.1],...
+                'String','--Presets--');
+            guiobj.ephysDoGInstPowDetPresetSaveButt = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.6, 0.1, 0.15, 0.1],...
+                'String','Save',...
+                'Callback',@ guiobj.ephysDoGInstPowDetPresetSave);
+            guiobj.ephysDoGInstPowDetPresetDelButt = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.75, 0.1, 0.15, 0.1],...
+                'String','Delete',...
+                'Callback',@ guiobj.ephysDoGInstPowDetPresetDel);
+                          
             guiobj.ephysDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
