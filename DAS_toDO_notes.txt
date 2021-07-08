@@ -21,4 +21,12 @@ DAS toDo notes
 -parameter preset mentés/utoljára használt paraméterek megjegyzése
 -eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional
 -lehetőség arra h a felhasznalo manualisan megadja h melyik ido intervallumot nem kéne thresholdhoz használni
--preseteket rendesen megcsinalni
+-preseteket rendesen megcsinalni <- kb DONE
+-statisztika panel
+	ampl
+	hossz
+	gorbe alatti
+	felfutatsi sebesseg
+	lecsenges (tau)
+	frekvencia
+	felertek szelesseg
