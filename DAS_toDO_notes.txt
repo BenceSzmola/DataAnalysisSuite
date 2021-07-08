@@ -12,14 +12,17 @@ DAS toDo notes
 -elfiz detection: ha minden chan-ra fut, akkor tisztázni a működést
 	-757. sor és környékét rendesen megnézni: hogy döntse el melyik csatornákon kell végigmenni
 -egymás után importálás rendesen kezelni <- ez kb megvan
+	megoldva egyelőre azzal hogy új import -> új GUI instance
 -refchan validalas funkciot bevezetni mindegyik detection modhoz es bugfixelni
--sok detekcio/processing utan mintha meghibbanna
--detection mutatásnál a time window ha kifut negativ vagy pozitiv iranyba az nincs kezelve <- DONE
+	megvan, de csak exact datapoint egyezést néz egyelőre
+-sok detekcio/processing utan mintha meghibbanna:
+	nem sikerult még reprodukálni
++detection mutatásnál a time window ha kifut negativ vagy pozitiv iranyba az nincs kezelve <- DONE
 -visszakövethetővé tenni a detectio/processing paramtereket
 -mutatni h hány detectio volt meg a statokat
--quiet threshold ujra bevezetni
--parameter preset mentés/utoljára használt paraméterek megjegyzése
--eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional
+-quiet threshold ujra bevezetni: DoGInstPow-hoz megvan
++parameter preset mentés/utoljára használt paraméterek megjegyzése
++eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional <- DONE
 -lehetőség arra h a felhasznalo manualisan megadja h melyik ido intervallumot nem kéne thresholdhoz használni
 -preseteket rendesen megcsinalni <- kb DONE
 -statisztika panel

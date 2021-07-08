@@ -83,6 +83,8 @@ classdef DAS < handle
         
         ephysArtSuppPanel
         ephysArtSuppTypePopMenu
+        ephysArtSuppRefChanLabel
+        ephysArtSuppRefChanEdit
         ephysArtSuppRunButt
         
         ephysFiltParamPanel
@@ -1138,7 +1140,7 @@ classdef DAS < handle
                 wsgors = wsgors(ind);
             elseif isempty(wsgors)
                 errordlg(['There are no gorobj variables in the base '...
-                    'workspace (MES Curveanalysis: export -> curves to'...
+                    'workspace (MES Curve analysis: export -> curves to '...
                     'variable)! Please add them or import data using the '...
                     'other methods!'])
                 return
@@ -1186,12 +1188,15 @@ classdef DAS < handle
                         length(guiobj.imaging_data));
                 end
             elseif guiobj.datatyp(1) && guiobj.datatyp(2)
-                guiobj.EphysListBox.String = datanames(dtyp==1);
-                guiobj.ephys_datanames = datanames(dtyp==1);
-                guiobj.ImagingListBox.String = datanames(dtyp==2);
-                guiobj.imag_datanames = datanames(dtyp==2);
+%                 guiobj.EphysListBox.String = datanames(dtyp==1);
+%                 guiobj.ephys_datanames = datanames(dtyp==1);
+%                 guiobj.ImagingListBox.String = datanames(dtyp==2);
+%                 guiobj.imag_datanames = datanames(dtyp==2);
                 
                 if ~isempty(find(dtyp==1, 1))
+                    guiobj.EphysListBox.String = datanames(dtyp==1);
+                    guiobj.ephys_datanames = datanames(dtyp==1);
+                    
                     taxis = get(wsgors(find(dtyp==1,1)),'x')*...
                         (10^-3/guiobj.timedim);
                     guiobj.ephys_fs = 1/taxis(2);
@@ -1201,6 +1206,9 @@ classdef DAS < handle
                 end
                 
                 if ~isempty(find(dtyp==2,1))
+                    guiobj.ImagingListBox.String = datanames(dtyp==2);
+                    guiobj.imag_datanames = datanames(dtyp==2);
+                
                     taxis = get(wsgors(find(dtyp==2,1)),'x')*...
                         (10^-3/guiobj.timedim);
                     guiobj.imaging_fs = 1/taxis(2);
@@ -1791,16 +1799,18 @@ classdef DAS < handle
                     
                     for i = 1:length(data_idx)
                         if isempty(procDatanames)
-                            procDatanames = {['DoG| ',...
+                            procDatanames = {['DoG(',num2str(w1),'-',num2str(w2),')| ',...
                                 datanames{data_idx(i)}]};
                         elseif ~isempty(procDatanames)
                             switch selectedButt
                                 case 'Raw data'
                                     procDatanames = [procDatanames,...
-                                        ['DoG| ',datanames{data_idx(i)}]];
+                                        ['DoG(',num2str(w1),'-',num2str(w2),')| ',...
+                                        datanames{data_idx(i)}]];
                                 case 'Processed data'
                                     procDatanames = [procDatanames,...
-                                        ['DoG| ',procDatanames{data_idx(i)}]];
+                                        ['DoG(',num2str(w1),'-',num2str(w2),')| ',...
+                                        procDatanames{data_idx(i)}]];
                             end
                             
                         end
@@ -1809,7 +1819,7 @@ classdef DAS < handle
                 case 'Periodic'
                     fmax = str2double(guiobj.fmaxEdit.String);
                     ffund = str2double(guiobj.ffundEdit.String);
-                    stopbandwidth = str2double(guiobj.stopbandwidthEdit.String);
+                    stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
                     procced = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
                     guiobj.ephys_proccedInfo = [guiobj.ephys_proccedInfo;...
                         [data_idx', 2*ones(size(data_idx'))]];
@@ -1850,6 +1860,8 @@ classdef DAS < handle
             selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
             selectedButt = selectedButt.String;
             
+            refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
+            
             switch selectedButt
                 case 'Raw data'
                     data_idx = guiobj.ephysProcListBox.Value;
@@ -1860,7 +1872,7 @@ classdef DAS < handle
             end
             
             fs = guiobj.ephys_fs;
-            data_cl = ArtSupp(data,fs,artSuppType);
+            data_cl = ArtSupp(data,fs,artSuppType,refChan);
             
             
             for i = 1:length(data_idx)
@@ -1912,6 +1924,31 @@ classdef DAS < handle
             imagingplot(guiobj,guiobj.axesImagingProc2,idx) 
         end
         
+        function imagingProcPopMenuSelected(guiobj,event)
+            procType = guiobj.imagingProcPopMenu.Value;
+            
+            switch procType
+                case 2
+                    guiobj.imagingFiltParamPanel.Visible = 'on';
+                otherwise
+                    guiobj.imagingFiltParamPanel.Visible = 'off';
+            end
+        end
+
+        function imagingFilterTypePopMenuSelected(guiobj,event)
+            sel = guiobj.imagingFilterTypePopMenu.Value;
+            
+            switch sel
+                case 2
+                    guiobj.imagingFiltWinSizeEdit.Visible = 'on';
+                    guiobj.imagingFiltWinSizeText.Visible = 'on';
+                otherwise
+                    guiobj.imagingFiltWinSizeEdit.Visible = 'off';
+                    guiobj.imagingFiltWinSizeText.Visible = 'off';
+            end
+                    
+        end
+        
         function imagingRunProc(guiobj,event)
             selectedButt = guiobj.imagingProcSrcButtGroup.SelectedObject;
             selectedButt = selectedButt.String;
@@ -1948,16 +1985,18 @@ classdef DAS < handle
                             
                             for i = 1:length(data_idx)
                                 if isempty(procDatanames)
-                                    procDatanames = {['GaussAvg| ',...
+                                    procDatanames = {['GaussAvg(win:',num2str(winsize),')| ',...
                                         datanames{data_idx(i)}]};
                                 elseif ~isempty(procDatanames)
                                     switch selectedButt
                                         case 'Raw data'
                                             procDatanames = [procDatanames,...
-                                                ['GaussAvg| ',datanames{data_idx(i)}]];
+                                                ['GaussAvg(win:',num2str(winsize),')| ',...
+                                                datanames{data_idx(i)}]];
                                         case 'Processed data'
                                             procDatanames = [procDatanames,...
-                                                ['GaussAvg] ',procDatanames{data_idx(i)}]];
+                                                ['GaussAvg(win:',num2str(winsize),')| ',...
+                                                procDatanames{data_idx(i)}]];
                                     end
                                 end
                             end
@@ -2430,17 +2469,25 @@ classdef DAS < handle
                     temp = DAS_LOG.presets.ephys;
 %                     assignin('base','daslogpresetsephys',temp)
                     guiobj.ephys_presets = temp;
-                    presetList = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
-                    for i = 1:length(temp.evDetTab.DoGInstPow)
-                         presetList = [presetList; string(temp.evDetTab.DoGInstPow(i).name)];
+                    try
+                        presetList = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
+                        for i = 1:length(temp.evDetTab.DoGInstPow)
+                             presetList = [presetList; string(temp.evDetTab.DoGInstPow(i).name)];
+                        end
+                        guiobj.ephysDoGInstPowDetPresetPopMenu.String = presetList;
+                    catch
+                        disp('DoGInstPow presets could not be loaded!')
                     end
-                    guiobj.ephysDoGInstPowDetPresetPopMenu.String = presetList;
                     
-                    presetList = guiobj.ephysCwtDetPresetPopMenu.String;
-                    for i = 1:length(temp.evDetTab.Cwt)
-                         presetList = [presetList; string(temp.evDetTab.Cwt(i).name)];
+                    try
+                        presetList = guiobj.ephysCwtDetPresetPopMenu.String;
+                        for i = 1:length(temp.evDetTab.Cwt)
+                             presetList = [presetList; string(temp.evDetTab.Cwt(i).name)];
+                        end
+                        guiobj.ephysCwtDetPresetPopMenu.String = presetList;
+                    catch
+                        disp('CwtDet presets could not be loaded!')
                     end
-                    guiobj.ephysCwtDetPresetPopMenu.String = presetList;
                     clear temp
                 catch ME
                     disp('Error in reading logfile! It will be genereted anew upon closing the GUI.')
@@ -3082,6 +3129,15 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
                 'String',{'wICA','classic ref subtract'});
+            guiobj.ephysArtSuppRefChanLabel = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.4, 0.85, 0.3, 0.1],...
+                'String','Reference channel');
+            guiobj.ephysArtSuppRefChanEdit = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.75, 0.85, 0.1, 0.1]);
             guiobj.ephysArtSuppRunButt = uicontrol(guiobj.ephysArtSuppPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -3134,7 +3190,8 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.8, 0.15, 0.15],...
-                'String',{'Filtering',''});
+                'String',{'--Processing type--','Filtering'},...
+                'Callback',@(h,e) guiobj.imagingProcPopMenuSelected);
             
             % Create buttongroup to choose between processing raw or
             % processed data
@@ -3159,23 +3216,26 @@ classdef DAS < handle
             guiobj.imagingFiltParamPanel = uipanel(guiobj.imagingProcTab,...
                 'Position',[0.01, 0.5, 0.3, 0.4],...
                 'Title','Filtering parameters',...
-                'Visible','on');
+                'Visible','off');
             
             % Create components of FiltParamPanel
             guiobj.imagingFilterTypePopMenu = uicontrol(guiobj.imagingFiltParamPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
-                'String',{'Gauss average',''});
+                'String',{'--Filter type--','Gauss average'},...
+                'Callback',@(h,e) guiobj.imagingFilterTypePopMenuSelected);
             guiobj.imagingFiltWinSizeText = uicontrol(guiobj.imagingFiltParamPanel,...
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.3, 0.85, 0.15, 0.1],...
-                'String','Window size in samples');
+                'String','Window size in samples',...
+                'Visible','off');
             guiobj.imagingFiltWinSizeEdit = uicontrol(guiobj.imagingFiltParamPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.45, 0.85, 0.1, 0.1]);
+                'Position',[0.45, 0.85, 0.1, 0.1],...
+                'Visible','off');
             guiobj.imagingRunFiltButton = uicontrol(guiobj.imagingFiltParamPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
