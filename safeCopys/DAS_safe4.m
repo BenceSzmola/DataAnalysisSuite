@@ -7,7 +7,6 @@ classdef DAS < handle
     %% Initializing components
     properties (Access = private)
         mainfig
-        
         OptionsMenu
         timedimChangeMenu
         showProcDataMenu
@@ -19,9 +18,6 @@ classdef DAS < handle
         ephysEventDetTabFiltCutoffMenu
         MakewindowlargerMenu
         MakewindowsmallerMenu
-        
-        SaveDetsMenu
-        
         tabs
         maintab
         ephysProcTab
@@ -224,7 +220,7 @@ classdef DAS < handle
         % Stores which proc type is which 
         ephys_procTypes = ["DoG"; "Periodic"];
         ephys_detections                    % Location of detections on time axis
-        ephys_detectionsInfo = struct('DetType',[],'Channel',[],'Params',[],'DetRun',[]);
+        ephys_detectionsInfo
         ephys_detStats = struct('Amplitude',[],'Length',[],'Frequency',[],...
             'AOC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
         ephys_detMarkerSelection
@@ -796,16 +792,14 @@ classdef DAS < handle
                         case 3
                             data = guiobj.ephys_instPowed;
                     end
-%                     assignin('base','efizdetinfo',guiobj.ephys_detectionsInfo)
+                    
                     currDetRun = guiobj.ephys_currDetRun;
-%                     currDetRows = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
-%                     currChans = guiobj.ephys_detectionsInfo(currDetRows,1);
-                    currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
-                    currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
+                    currDetRows = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun)
+                    currChans = guiobj.ephys_detectionsInfo(currDetRows,1);
                     emptyChans = [];
                     
-%                     display('currChans before')
-%                     currChans
+                    display('currChans before')
+                    currChans
                     
                     % Filtering out channels with no detections
                     for j = 1:length(currDetRows)
@@ -815,8 +809,8 @@ classdef DAS < handle
                     end
                     currChans(emptyChans) = [];
                     
-%                     display('currChans after')
-%                     currChans
+                    display('currChans after')
+                    currChans
                     
 %                     display('guiobj curridx')
 %                     display(guiobj.eventDet1CurrIdx)
@@ -824,11 +818,11 @@ classdef DAS < handle
                     ax = guiobj.axesEventDet1;
                     switch detRoi
                         case 0
-%                             assignin('base','detinfo',guiobj.ephys_detectionsInfo)
-%                             assignin('base','curdetrun',currDetRun)
-%                             find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1))
-%                             guiobj.eventDet1CurrIdx = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1));
-%                             guiobj.eventDet1CurrIdx = guiobj.eventDet1CurrIdx(end);
+                            assignin('base','detinfo',guiobj.ephys_detectionsInfo)
+                            assignin('base','curdetrun',currDetRun)
+                            find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1))
+                            guiobj.eventDet1CurrIdx = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1));
+                            guiobj.eventDet1CurrIdx = guiobj.eventDet1CurrIdx(end);
                             guiobj.eventDet1CurrDet = 1;
                             guiobj.eventDet1CurrChan = 1;
                         case 1
@@ -871,15 +865,15 @@ classdef DAS < handle
                     end
                     
 %                     chan = guiobj.ephysDetChSelPopMenu.Value;
-                    chan = currChans(guiobj.eventDet1CurrChan);
-%                     currDetRows
+                    chan = currChans(guiobj.eventDet1CurrChan)
+                    currDetRows
 %                     currDet = guiobj.eventDet1CurrIdx
 %                     currDet = currChans(guiobj.eventDet1CurrChan)+currDetRows(1)-1
-                    currDet = currDetRows(guiobj.eventDet1CurrChan);
+                    currDet = currDetRows(guiobj.eventDet1CurrChan)
                     numDets = length(find(~isnan(guiobj.ephys_detections(currDet,:))));
-                    detInd = guiobj.eventDet1CurrDet;
+                    detInd = guiobj.eventDet1CurrDet
                     %%%
-%                     assignin('base','efizdets',guiobj.ephys_detections)
+                    assignin('base','efizdets',guiobj.ephys_detections)
                     %%%
                     tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
                     tInd = tInd(detInd);
@@ -912,7 +906,7 @@ classdef DAS < handle
                     title(ax,['Channel#',num2str(chan),'      Detection#',num2str(detInd),...
                         '/',num2str(numDets)])
                     
-%                     display('----------------------------------------')
+                    display('----------------------------------------')
                     
                 case 2
                     if isempty(guiobj.imaging_detections)
@@ -1080,7 +1074,7 @@ classdef DAS < handle
 %             display(event)
 %             %%%
             if ~isempty(guiobj.ephys_data)
-                clrGUI = questdlg('GUI will be reset, have you saved everything?');
+                clrGUI = questdlg('Reset GUI?');
                 if strcmp(clrGUI,'Yes')
                     resetGuiData(guiobj,1)
                 end
@@ -1355,30 +1349,14 @@ classdef DAS < handle
             end
             
             if strcmp(guiobj.showEphysDetMarkersMenu.Checked,'off')
-                detList = [];
-                detInfo = guiobj.ephys_detectionsInfo;
-%                 for i = 1:size(guiobj.ephys_detectionsInfo,1)
-                for i = 1:length(detInfo)
-%                     detList{i} = strcat(guiobj.ephys_dettypes(...
-%                         guiobj.ephys_detectionsInfo(i,2)),'| Channel #',...
-%                         num2str(guiobj.ephys_detectionsInfo(i,1)),'| Det#',...
-%                         num2str(guiobj.ephys_detectionsInfo(i,3)));
-%                     temprows = [];
-                    temp = [];
-                    pnames = fieldnames(detInfo(i).Params);
-                    vals = struct2cell(detInfo(i).Params);
-                    for k = 1:length(fieldnames(detInfo(i).Params))
-                        temp = [temp, pnames{k},':',num2str(vals{k}),' '];
-                    end
-%                     temprows = [temprows; strcat(detInfo(i).DetType,' | ',temp,...
-%                         ' | Channel#',num2str(detInfo(i).Channel),' | ',...
-%                         'Det#',num2str(i))];
-%                     detList = [detList; temprows];
-                    detList = [detList; strcat(detInfo(i).DetType,' | ',temp,...
-                        ' | Channel#',num2str(detInfo(i).Channel),' | ',...
-                        'Det#',num2str(detInfo(i).DetRun))];
+                detList = {};
+                for i = 1:size(guiobj.ephys_detectionsInfo,1)
+                    detList{i} = strcat(guiobj.ephys_dettypes(...
+                        guiobj.ephys_detectionsInfo(i,2)),'| Channel #',...
+                        num2str(guiobj.ephys_detectionsInfo(i,1)),'| Det#',...
+                        num2str(guiobj.ephys_detectionsInfo(i,3)));
                 end
-                [indx,tf] = listdlg('ListString',detList,'ListSize',[500,200]);
+                [indx,tf] = listdlg('ListString',detList,'ListSize',[220,300]);
                 if ~tf
                     return
                 end
@@ -2158,31 +2136,11 @@ classdef DAS < handle
                     end
                     
                     if chan < min(size(guiobj.ephys_data))
-%                         detinfo = [chan, 1, guiobj.ephys_detRunsNum];
-                        detinfo.Channel = chan;
-                        detinfo.DetType = "CWT";
-                        detinfo.DetRun = guiobj.ephys_detRunsNum;
-                        detinfo.Params.W1 = w1;
-                        detinfo.Params.W2 = w2;
-                        detinfo.Params.MinLen = minlen*1000;
-                        detinfo.Params.SdMult = sdmult;
-                        detinfo.Params.RefVal = refVal;
-                        detinfo.Params.RefCh = refch;
+                        detinfo = [chan, 1, guiobj.ephys_detRunsNum];
                     else
-%                         detinfo = [(1:min(size(guiobj.ephys_data)))',...
-%                             1*ones(min(size(guiobj.ephys_data)),1),...
-%                             guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
-                        for i = 1:min(size(dets))
-                            detinfo(i).Channel = i;
-                            detinfo(i).DetType = "CWT";
-                            detinfo(i).DetRun = guiobj.ephys_detRunsNum;
-                            detinfo(i).Params.W1 = w1;
-                            detinfo(i).Params.W2 = w2;
-                            detinfo(i).Params.MinLen = minLen*1000;
-                            detinfo(i).Params.SdMult = sdmult;
-                            detinfo(i).Params.RefVal = refVal;
-                            detinfo(i).Params.RefCh = refch;
-                        end
+                        detinfo = [(1:min(size(guiobj.ephys_data)))',...
+                            1*ones(min(size(guiobj.ephys_data)),1),...
+                            guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
                     end
                     
                 case 'Adaptive threshold'
@@ -2203,35 +2161,12 @@ classdef DAS < handle
                     dets = adaptive_thresh(data,fs,step,minlen,mindist,ratio);
                                        
 %                     detinfo = [chan, 2];
-%                     detinfo.DetType = "Adapt";
-%                     detinfo.Params.Step = step*1000;
-%                     detinfo.Params.MinLen = minlen*1000;
-%                     detinfo.Params.MinDist = mindist*1000;
-%                     detinfo.Params.Ratio = ratio;
-                    
                     if chan < min(size(guiobj.ephys_data))
-                        detinfo.Channel = chan;
-                        detinfo.DetType = "Adapt";
-                        detinfo.DetRun = guiobj.ephys_detRunsNum;
-                        detinfo.Params.Step = step*1000;
-                        detinfo.Params.MinLen = minlen*1000;
-                        detinfo.Params.MinDist = mindist*1000;
-                        detinfo.Params.Ratio = ratio;
-                        
-%                         detinfo = [chan, 2, guiobj.ephys_detRunsNum];
+                        detinfo = [chan, 2, guiobj.ephys_detRunsNum];
                     else
-                        for i = 1:min(size(dets))
-                            detinfo(i).Channel = i;
-                            detinfo(i).DetType = "Adapt";
-                            detinfo(i).DetRun = guiobj.ephys_detRunsNum;
-                            detinfo(i).Params.Step = step*1000;
-                            detinfo(i).Params.MinLen = minlen*1000;
-                            detinfo(i).Params.MinDist = mindist*1000;
-                            detinfo(i).Params.Ratio = ratio;
-                        end
-%                         detinfo = [(1:min(size(guiobj.ephys_data)))',...
-%                             2*ones(min(size(guiobj.ephys_data)),1),...
-%                             guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
+                        detinfo = [(1:min(size(guiobj.ephys_data)))',...
+                            2*ones(min(size(guiobj.ephys_data)),1),...
+                            guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
                     end
                     
                 case 'DoG+InstPow'
@@ -2293,35 +2228,13 @@ classdef DAS < handle
                     elseif refVal && (size(data,1)==1)
                         dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:));
                     end
-                    
 %                     detinfo = [chan, 3];
-                    
                     if chan < min(size(guiobj.ephys_data))
-                        detinfo.Channel = chan;
-                        detinfo.DetType = "DoGInstPow";
-                        detinfo.DetRun = guiobj.ephys_detRunsNum;
-                        detinfo.Params.W1 = w1;
-                        detinfo.Params.W2 = w2;
-                        detinfo.Params.MinLen = minLen*1000;
-                        detinfo.Params.SdMult = sdmult;
-                        detinfo.Params.RefVal = refVal;
-                        detinfo.Params.RefCh = refch;
-%                         detinfo = [chan, 3, guiobj.ephys_detRunsNum];
+                        detinfo = [chan, 3, guiobj.ephys_detRunsNum];
                     else
-                        for i = 1:min(size(dets))
-                            detinfo(i).Channel = i;
-                            detinfo(i).DetType = "DoGInstPow";
-                            detinfo(i).DetRun = guiobj.ephys_detRunsNum;
-                            detinfo(i).Params.W1 = w1;
-                            detinfo(i).Params.W2 = w2;
-                            detinfo(i).Params.MinLen = minLen*1000;
-                            detinfo(i).Params.SdMult = sdmult;
-                            detinfo(i).Params.RefVal = refVal;
-                            detinfo(i).Params.RefCh = refch;
-                        end
-%                         detinfo = [(1:min(size(guiobj.ephys_data)))',...
-%                             3*ones(min(size(guiobj.ephys_data)),1),...
-%                             guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
+                        detinfo = [(1:min(size(guiobj.ephys_data)))',...
+                            3*ones(min(size(guiobj.ephys_data)),1),...
+                            guiobj.ephys_detRunsNum*ones(min(size(guiobj.ephys_data)),1)];
                     end
             end
             
@@ -2335,13 +2248,8 @@ classdef DAS < handle
 %             detStatMiner(guiobj,1,dettype,dets)
             
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
-%             guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo;...
-%                 detinfo];
-            if isempty(guiobj.ephys_detectionsInfo(1).DetType)
-                guiobj.ephys_detectionsInfo = detinfo;
-            else
-                guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo, detinfo];
-            end
+            guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo;...
+                detinfo];
 %             guiobj.eventDet1CurrIdx = size(guiobj.ephys_detections,1);
             guiobj.eventDet1CurrIdx = numofdetchans + 1;
             
@@ -2419,25 +2327,11 @@ classdef DAS < handle
             dettype = guiobj.simultDetPopMenu.Value;
             dettype = guiobj.simultDetPopMenu.String{dettype};
             
-%             detList = {};
-%             for i = 1:size(guiobj.ephys_detectionsInfo,1)
-%                 detList{i} = strcat(guiobj.ephys_dettypes(...
-%                     guiobj.ephys_detectionsInfo(i,2)),'| Channel #',...
-%                     num2str(guiobj.ephys_detectionsInfo(i,1)));
-%             end
-            detList = [];
-            detInfo = guiobj.ephys_detectionsInfo;
-%                 for i = 1:size(guiobj.ephys_detectionsInfo,1)
-            for i = 1:length(detInfo)
-                temp = [];
-                pnames = fieldnames(detInfo(i).Params);
-                vals = struct2cell(detInfo(i).Params);
-                for k = 1:length(fieldnames(detInfo(i).Params))
-                    temp = [temp, pnames{k},':',num2str(vals{k}),' '];
-                end
-                detList = [detList; strcat(detInfo(i).DetType,' | ',temp,...
-                    ' | Channel#',num2str(detInfo(i).Channel),' | ',...
-                    'Det#',num2str(detInfo(i).DetRun))];
+            detList = {};
+            for i = 1:size(guiobj.ephys_detectionsInfo,1)
+                detList{i} = strcat(guiobj.ephys_dettypes(...
+                    guiobj.ephys_detectionsInfo(i,2)),'| Channel #',...
+                    num2str(guiobj.ephys_detectionsInfo(i,1)));
             end
             [indx,tf] = listdlg('ListString',detList,...
                 'PromptString','Select electrophysiology detection!',...
@@ -2781,57 +2675,6 @@ classdef DAS < handle
             end
         end
         
-        function saveDets(guiobj,event)
-            answer = questdlg('Which detection do you want to save?','Saving detections',...
-                'Ephys','Imaging','Simultaneous','Ephys');
-            if isempty(answer)
-                return
-            end
-            
-            saveStruct = struct('ephys',[],'imaging',[],'simult',[]);
-            
-            switch answer
-                case 'Ephys'
-                    if isempty(guiobj.ephys_detectionsInfo(1).DetType)
-                        warndlg('No detections!')
-                        return
-                    end
-                                        
-                    detList = [];
-                    detInfo = guiobj.ephys_detectionsInfo;
-                    for i = 1:length(detInfo)
-                        temp = [];
-                        pnames = fieldnames(detInfo(i).Params);
-                        vals = struct2cell(detInfo(i).Params);
-                        for k = 1:length(fieldnames(detInfo(i).Params))
-                            temp = [temp, pnames{k},':',num2str(vals{k}),' '];
-                        end
-                        detList = [detList; strcat(detInfo(i).DetType,' | ',temp,...
-                            ' | Channel#',num2str(detInfo(i).Channel),' | ',...
-                            'Det#',num2str(detInfo(i).DetRun))];
-                    end
-                    [indx,tf] = listdlg('ListString',detList,...
-                        'PromptString','Select electrophysiology detection(s) to save!',...
-                        'ListSize',[500,200]);
-                    if ~tf
-                        return
-                    end
-                    
-                    saveStruct.ephys.TAxis = guiobj.ephys_taxis;
-                    saveStruct.ephys.RawData = guiobj.ephys_data;
-                    saveStruct.ephys.Dets = guiobj.ephys_detections(indx,:);
-                    saveStruct.ephys.DetInfo = guiobj.ephys_detectionsInfo(indx);
-                    
-                case 'Imaging'
-                    
-                case 'Simultaneous'
-                    
-            end
-            
-            fname = ['DASsave_',char(datetime('now','Format','yyMMdd_HHmmss'))];
-            save(fname,'saveStruct')
-        end
-        
         function testcallback(varargin)
             display(varargin)
             assignin('base','testinput',varargin)
@@ -2901,11 +2744,6 @@ classdef DAS < handle
 %             guiobj.MakewindowsmallerMenu = uimenu(guiobj.OptionsMenu,...
 %                 'MenuSelectedFcn',@(h,e) guiobj.MakewindowsmallerMenuSelected,...
 %                 'Text','Make window smaller');
-
-            guiobj.SaveDetsMenu = uimenu(guiobj.mainfig,...
-                'Text','Save detection',...
-                'MenuSelectedFcn',@(h,e) guiobj.saveDets);
-            
 
             % Create tabgroup
             guiobj.tabs = uitabgroup(guiobj.mainfig,...

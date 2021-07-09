@@ -33,3 +33,7 @@ DAS toDo notes
 	lecsenges (tau)
 	frekvencia
 	felertek szelesseg
+-preset delete: ha ki van valasztva egy preset akkor meghibban
+-gorobj import: CA-nak nem mindig scalar a mértékegysége
+-esetleg egy infopanel (nem priority)
+-ha több channel deteciton markerjét nézed egyszerre akkor különböző formák legyenek, és legyen hozzá egy felugró infopanel
