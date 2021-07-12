@@ -2788,7 +2788,7 @@ classdef DAS < handle
                 return
             end
             
-            saveStruct = struct('ephys',[],'imaging',[],'simult',[]);
+%             saveStruct = struct('ephys',[],'imaging',[],'simult',[]);
             
             switch answer
                 case 'Ephys'
@@ -2817,10 +2817,12 @@ classdef DAS < handle
                         return
                     end
                     
-                    saveStruct.ephys.TAxis = guiobj.ephys_taxis;
-                    saveStruct.ephys.RawData = guiobj.ephys_data;
-                    saveStruct.ephys.Dets = guiobj.ephys_detections(indx,:);
-                    saveStruct.ephys.DetInfo = guiobj.ephys_detectionsInfo(indx);
+                    ephysSaveData.TAxis = guiobj.ephys_taxis;
+                    ephysSaveData.YLabel = guiobj.ephys_ylabel;
+                    ephysSaveData.Fs = guiobj.ephys_fs;
+                    ephysSaveData.RawData = guiobj.ephys_data;
+                    ephysSaveData.Dets = guiobj.ephys_detections(indx,:);
+                    ephysSaveInfo = guiobj.ephys_detectionsInfo(indx);
                     
                 case 'Imaging'
                     
@@ -2829,7 +2831,8 @@ classdef DAS < handle
             end
             
             fname = ['DASsave_',char(datetime('now','Format','yyMMdd_HHmmss'))];
-            save(fname,'saveStruct')
+            save(fname,'ephysSaveData','ephysSaveInfo');%,...
+                %'imagingSaveData','imagingSaveInfo');
         end
         
         function testcallback(varargin)
