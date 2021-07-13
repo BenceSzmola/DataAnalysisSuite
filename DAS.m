@@ -280,7 +280,7 @@ classdef DAS < handle
 %         winsizes = [1280,780;1600,900;1920,1080;2560,1440;3840,2160];
     end
     
-    %%
+    %% constructor part
     methods (Access = public)
         % Constructor function
         function guiobj = DAS

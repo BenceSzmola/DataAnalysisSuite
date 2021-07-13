@@ -33,6 +33,15 @@ classdef DASeV < handle
         statPanel
         
         plotPanel
+        ephysDetUpButt
+        ephysDetDwnButt
+        ephysChanUpButt
+        ephysChanDwnButt
+        imagingDetUpButt
+        imagingDetDwnButt
+        imagingRoiUpButt
+        imagingRoiDwnButt
+        
         
         % all the axes
         ax11
@@ -57,6 +66,7 @@ classdef DASeV < handle
         %% general
         xLabel = 'Time [s]';
         loaded = [0,0,0]; % ephys-imaging-running (0-1)
+        prevNumAx = 1;
         
         %% ephys stuff
         ephysTypSelected = [1,0,0]; % raw-dog-instpow
@@ -70,6 +80,8 @@ classdef DASeV < handle
         ephysDets
         ephysYlabel
         ephysDetInfo
+        ephysCurrDetNum = 1;
+        ephysCurrDetRow = 1;
         
         %% imaging
         imagingData
@@ -179,16 +191,106 @@ classdef DASeV < handle
                     gO.ax54.Visible = 'on';
                     gO.ax55.Visible = 'on';
             end
+            
+            allAx = findobj(gO.mainFig,'Type','axes');
+            allAx = findobj(allAx,'Visible','off');
+            for i = 1:length(allAx)
+                cla(allAx(i))
+            end
+            
             drawnow
         end
         
         %%
-        function ephysPlot(gO,ax,typ,plotFull,chan,detNum)
+        function ephysPlot(gO,ax,plotFull)
+            currDetNum = gO.ephysCurrDetNum;
+            currDetRow = gO.ephysCurrDetRow;
+            numDets = length(find(~isnan(gO.ephysDets(currDetRow,:))));
+            chan = gO.ephysDetInfo(currDetRow).Channel;
             
+            if ~plotFull
+                detIdx = gO.ephysDets(currDetRow,:);
+                detIdx = find(~isnan(detIdx));
+                detIdx = detIdx(currDetNum);
+                tDetIdx = gO.ephysTaxis(detIdx);
+
+                win = 0.5;
+                win = round(win*gO.ephysFs,4);
+                
+                if (detIdx-win > 0) & (detIdx+win <= length(gO.ephysTaxis))
+                        winIdx = detIdx-win:detIdx+win;
+                        tWin = gO.ephysTaxis(winIdx);
+                    elseif tInd-win <= 0
+                        winIdx = 1:detIdx+win;
+                        tWin = gO.ephysTaxis(winIdx);
+                    elseif detIdx+win > length(gO.ephysTaxis)
+                        winIdx = detIdx-win:length(gO.ephysTaxis);
+                        tWin = gO.ephysTaxis(winIdx);
+                end
+                axTitle = ['Channel #',num2str(chan),'      Detection #',...
+                                num2str(currDetNum),'/',num2str(numDets)];
+            elseif plotFull
+                
+            end
+            
+            data = [];
+            yLabels = [];
+            switch sum(gO.ephysTypSelected)
+                case 1
+                    if gO.ephysTypSelected(1)
+                            data = gO.ephysData(chan,winIdx);
+                            yLabels = string(gO.ephysYlabel);
+                    elseif gO.ephysTypSelected(2)
+                            data = gO.ephysDoGGed(chan,winIdx);
+                            yLabels = string(gO.ephysYlabel);
+                    elseif gO.ephysTypSelected(3)
+                            data = gO.ephysInstPow(chan,winIdx);
+                            temp = find(gO.ephysYlabel=='[');
+                            yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
+                                '^2]']);
+                    end
+                case 2
+                    if gO.ephysTypSelected(1)
+                        data = [data; gO.ephysData(chan,winIdx)];
+                        yLabels = [string(yLabels); string(gO.ephysYlabel)];
+                    end
+                    if gO.ephysTypSelected(2)
+                        data = [data; gO.ephysDoGGed(chan,winIdx)];
+                        yLabels = [string(yLabels); string(gO.ephysYlabel)];
+                    end
+                    if gO.ephysTypSelected(3)
+                        data = [data; gO.ephysInstPow(chan,winIdx)];
+                        temp = find(gO.ephysYlabel=='[');
+                        yLabels = [string(yLabels); string(['Power ',gO.ephysYlabel(temp:end-1),...
+                                '^2]'])];
+                    end
+                case 3
+                    data = [gO.ephysData(chan,winIdx);...
+                        gO.ephysDoGGed(chan,winIdx);...
+                        gO.ephysInstPow(chan,winIdx)];
+                    temp = find(gO.ephysYlabel=='[');
+                    yLabels = [string(gO.ephysYlabel); string(gO.ephysYlabel);...
+                        string(['Power ',gO.ephysYlabel(temp:end-1),...
+                                '^2]'])];
+            end
+            
+            for i = 1:min(size(data))
+                plot(ax(i),tWin,data(i,:))
+                hold(ax(i),'on')
+                for j = 1:length(detIdx)
+                    line(ax(i),[tDetIdx, tDetIdx],[min(data(i,:)),max(data(i,:))],...
+                        'Color','r')
+                end
+                hold(ax(i),'off')
+                xlabel(ax(i),gO.xLabel)
+                ylabel(ax(i),yLabels(i,:))
+                axis(ax(i),'tight')
+                title(ax(i),axTitle)
+            end
         end
         
         %% 
-        function smartplot(gO,plotFull,chan,detNum)
+        function smartplot(gO,plotFull)
             axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypSelected)-1))
 %             axVisSwitch(gO,4)
             
@@ -197,20 +299,42 @@ classdef DASeV < handle
                     if gO.loaded(1)
                         switch sum(gO.ephysTypSelected)
                             case 1
-                                
+                                ax = [gO.ax11];
                             case 2
-                                
+                                ax = [gO.ax21, gO.ax22];
                             case 3
-                                
+                                ax = [gO.ax31, gO.ax32, gO.ax33];
                         end
+                        ephysPlot(gO,ax,0)
                     elseif gO.loaded(2)
                         
                     elseif gO.loaded(3)
                         
                     end
                 case 2
-                    
+                    if gO.loaded(1)
+                        switch sum(gO.ephysTypSelected)
+                            case 1
+                                ax = [gO.ax21];
+                            case 2
+                                ax = [gO.ax31, gO.ax32];
+                            case 3
+                                ax = [gO.ax41, gO.ax42, gO.ax43];
+                        end
+                        ephysPlot(gO,ax,0)
+                    end
                 case 3
+                    if gO.loaded(1)
+                        switch sum(gO.ephysTypSelected)
+                            case 1
+                                ax = [gO.ax31];
+                            case 2
+                                ax = [gO.ax41, gO.ax42];
+                            case 3
+                                ax = [gO.ax51, gO.ax52, gO.ax53];
+                        end
+                        ephysPlot(gO,ax,0)
+                    end
             end
         end
     end
@@ -229,6 +353,7 @@ classdef DASeV < handle
             gO.ephysTypSelected(:) = 0;
             gO.ephysTypSelected(idx) = 1;
             
+            smartplot(gO,0)
         end
         
         %%
@@ -316,6 +441,40 @@ classdef DASeV < handle
             gO.ephysChanTxt.String = num2str([ephysSaveInfo.Channel]);
             gO.ephysParamTable.Data = squeeze(struct2cell([ephysSaveInfo.Params]))';
             gO.ephysParamTable.ColumnName = fieldnames([ephysSaveInfo.Params]);
+        end
+        
+        function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
+            switch dTyp
+                case 1
+                    if chanUpDwn ~= 0
+                        gO.ephysCurrDetNum = 1;
+                    end
+                    
+                    switch detUpDwn
+                        case 1
+                            if gO.ephysCurrDetNum < length(find(~isnan(gO.ephysDets(gO.ephysCurrDetRow,:))))
+                                gO.ephysCurrDetNum = gO.ephysCurrDetNum + 1;
+                            end
+                        case -1
+                            if gO.ephysCurrDetNum > 1
+                                gO.ephysCurrDetNum = gO.ephysCurrDetNum - 1;
+                            end
+                    end
+                    switch chanUpDwn
+                        case 1
+                            if gO.ephysCurrDetRow < min(size(gO.ephysDets))
+                                gO.ephysCurrDetRow = gO.ephysCurrDetRow + 1;
+                            end
+                        case -1
+                            if gO.ephysCurrDetRow > 1
+                                gO.ephysCurrDetRow = gO.ephysCurrDetRow -1;
+                            end
+                    end
+                case 2
+                    
+                case 3
+            end
+            smartplot(gO)
         end
         
     end
@@ -407,7 +566,30 @@ classdef DASeV < handle
             
             gO.plotPanel = uipanel(gO.viewerTab,...
                 'Position',[0.3, 0, 0.7, 1]);
-            
+            gO.ephysDetUpButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.95, 0.05, 0.05],...
+                'String','<HTML>Det&uarr',...
+                'Callback',@(h,e) gO.axButtPress(1,1,0));
+            gO.ephysDetDwnButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.9, 0.05, 0.05],...
+                'String','<HTML>Det&darr',...
+                'Callback',@(h,e) gO.axButtPress(1,-1,0));
+            gO.ephysChanUpButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.85, 0.05, 0.05],...
+                'String','<HTML>Chan&uarr',...
+                'Callback',@(h,e) gO.axButtPress(1,0,1));
+            gO.ephysChanDwnButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.8, 0.05, 0.05],...
+                'String','<HTML>Chan&darr',...
+                'Callback',@(h,e) gO.axButtPress(1,0,-1));
 
             gO.ax11 = axes(gO.plotPanel,'Position',[0.05, 0.2, 0.9, 0.6],...
                 'Visible','off');
