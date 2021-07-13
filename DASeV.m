@@ -6,6 +6,8 @@ classdef DASeV < handle
         %% menus
         optMenu
         ephysTypMenu
+        highPassRawEphysMenu
+        plotFullMenu
         
         %% tabs
         tabgrp
@@ -67,8 +69,10 @@ classdef DASeV < handle
         xLabel = 'Time [s]';
         loaded = [0,0,0]; % ephys-imaging-running (0-1)
         prevNumAx = 1;
+        plotFull = 0;
         
         %% ephys stuff
+        highPassRawEphys = 0;
         ephysTypSelected = [1,0,0]; % raw-dog-instpow
         ephysData
         ephysDoGGed
@@ -95,6 +99,10 @@ classdef DASeV < handle
         %% Constructor function
         function gO = DASeV
             createComponents(gO)
+%             allAx = findobj(gO.mainFig,'Type','axes');
+%             for i = 1:length(allAx)
+%                 allAx(i).Toolbar.Visible = 'on';
+%             end
             if ~isempty(gO.fileList.String)
                 fileListSel(gO)
             end
@@ -202,17 +210,20 @@ classdef DASeV < handle
         end
         
         %%
-        function ephysPlot(gO,ax,plotFull)
+        function ephysPlot(gO,ax)
             currDetNum = gO.ephysCurrDetNum;
             currDetRow = gO.ephysCurrDetRow;
             numDets = length(find(~isnan(gO.ephysDets(currDetRow,:))));
             chan = gO.ephysDetInfo(currDetRow).Channel;
             
-            if ~plotFull
+            if ~gO.plotFull
+                gO.ephysDetUpButt.Enable = 'on';
+                gO.ephysDetDwnButt.Enable = 'on';
+                
                 detIdx = gO.ephysDets(currDetRow,:);
                 detIdx = find(~isnan(detIdx));
                 detIdx = detIdx(currDetNum);
-                tDetIdx = gO.ephysTaxis(detIdx);
+                tDetInds = gO.ephysTaxis(detIdx);
 
                 win = 0.5;
                 win = round(win*gO.ephysFs,4);
@@ -220,7 +231,7 @@ classdef DASeV < handle
                 if (detIdx-win > 0) & (detIdx+win <= length(gO.ephysTaxis))
                         winIdx = detIdx-win:detIdx+win;
                         tWin = gO.ephysTaxis(winIdx);
-                    elseif tInd-win <= 0
+                    elseif detIdx-win <= 0
                         winIdx = 1:detIdx+win;
                         tWin = gO.ephysTaxis(winIdx);
                     elseif detIdx+win > length(gO.ephysTaxis)
@@ -229,45 +240,98 @@ classdef DASeV < handle
                 end
                 axTitle = ['Channel #',num2str(chan),'      Detection #',...
                                 num2str(currDetNum),'/',num2str(numDets)];
-            elseif plotFull
+            elseif gO.plotFull
+                gO.ephysDetUpButt.Enable = 'off';
+                gO.ephysDetDwnButt.Enable = 'off';
+                gO.ephysCurrDetNum = 1;
                 
+                detInds = gO.ephysDets(currDetRow,:);
+                detInds = find(~isnan(detInds));
+                tDetInds = gO.ephysTaxis(detInds);
+                
+                winIdx = 1:length(gO.ephysTaxis);
+                tWin = gO.ephysTaxis;
+                
+                axTitle = ['Channel #',num2str(chan),'      #Detections = ',...
+                    num2str(numDets)];
             end
             
             data = [];
+            axLims = [];
             yLabels = [];
+            [b,a] = butter(2,5/(gO.ephysFs/2),'high');
             switch sum(gO.ephysTypSelected)
                 case 1
                     if gO.ephysTypSelected(1)
+                        if gO.highPassRawEphys == 1
+                            temp = filtfilt(b,a,gO.ephysData(chan,:));
+                            data = temp(winIdx);
+                            axLims = [tWin(1), tWin(end), min(temp), max(temp)];
+                        elseif gO.highPassRawEphys == 0
                             data = gO.ephysData(chan,winIdx);
-                            yLabels = string(gO.ephysYlabel);
+                            axLims = [tWin(1), tWin(end),...
+                                min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+                        end
+                        yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(2)
-                            data = gO.ephysDoGGed(chan,winIdx);
-                            yLabels = string(gO.ephysYlabel);
+                        data = gO.ephysDoGGed(chan,winIdx);
+                        axLims = [tWin(1), tWin(end),...
+                            min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
+                        yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(3)
-                            data = gO.ephysInstPow(chan,winIdx);
-                            temp = find(gO.ephysYlabel=='[');
-                            yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
+                        data = gO.ephysInstPow(chan,winIdx);
+                        axLims = [tWin(1), tWin(end),...
+                            min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+                        temp = find(gO.ephysYlabel=='[');
+                        yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]']);
                     end
                 case 2
                     if gO.ephysTypSelected(1)
-                        data = [data; gO.ephysData(chan,winIdx)];
+                        if gO.highPassRawEphys == 1
+                            tempfull = filtfilt(b,a,gO.ephysData(chan,:));
+                            temp = tempfull(winIdx);
+                            axLims = [axLims; tWin(1), tWin(end),...
+                                min(tempfull), max(tempfull)];
+                        elseif gO.highPassRawEphys == 0
+                            temp = gO.ephysData(chan,winIdx);
+                            axLims = [axLims; tWin(1), tWin(end),...
+                                min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+                        end
+                        data = [data; temp];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(2)
                         data = [data; gO.ephysDoGGed(chan,winIdx)];
+                        axLims = [axLims; tWin(1), tWin(end),...
+                            min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(3)
                         data = [data; gO.ephysInstPow(chan,winIdx)];
+                        axLims = [axLims; tWin(1), tWin(end),...
+                            min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = [string(yLabels); string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]'])];
                     end
                 case 3
-                    data = [gO.ephysData(chan,winIdx);...
+                    if gO.highPassRawEphys == 1
+                        tempfull = filtfilt(b,a,gO.ephysData(chan,:));
+                        temp = tempfull(winIdx);
+                        axLims = [tWin(1), tWin(end),...
+                            min(tempfull), max(tempfull)];
+                    elseif gO.highPassRawEphys == 0
+                        temp = gO.ephysData(chan,winIdx);
+                        axLims = [tWin(1), tWin(end),...
+                            min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+                    end
+                    data = [temp;...
                         gO.ephysDoGGed(chan,winIdx);...
                         gO.ephysInstPow(chan,winIdx)];
+                    axLims = [axLims; axLims(1:2), ...
+                        min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:));
+                        axLims(1:2), min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
                     temp = find(gO.ephysYlabel=='[');
                     yLabels = [string(gO.ephysYlabel); string(gO.ephysYlabel);...
                         string(['Power ',gO.ephysYlabel(temp:end-1),...
@@ -275,22 +339,28 @@ classdef DASeV < handle
             end
             
             for i = 1:min(size(data))
-                plot(ax(i),tWin,data(i,:))
+                linia=plot(ax(i),tWin,data(i,:));
+                assignin('base','linia',linia)
                 hold(ax(i),'on')
-                for j = 1:length(detIdx)
-                    line(ax(i),[tDetIdx, tDetIdx],[min(data(i,:)),max(data(i,:))],...
+                for j = 1:length(tDetInds)
+                    line(ax(i),[tDetInds(j), tDetInds(j)],axLims(i,3:4),...
                         'Color','r')
                 end
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
-                axis(ax(i),'tight')
+                axis(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
+                
+%                 z = zoom(gO.mainFig);
+%                 setAllowAxesZoom(z,ax(i),1)
+%                 getAxesZoomConstraint(z,ax(i))
             end
+            
         end
         
         %% 
-        function smartplot(gO,plotFull)
+        function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypSelected)-1))
 %             axVisSwitch(gO,4)
             
@@ -305,7 +375,7 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax31, gO.ax32, gO.ax33];
                         end
-                        ephysPlot(gO,ax,0)
+                        ephysPlot(gO,ax)
                     elseif gO.loaded(2)
                         
                     elseif gO.loaded(3)
@@ -321,7 +391,7 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax41, gO.ax42, gO.ax43];
                         end
-                        ephysPlot(gO,ax,0)
+                        ephysPlot(gO,ax)
                     end
                 case 3
                     if gO.loaded(1)
@@ -333,7 +403,7 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax51, gO.ax52, gO.ax53];
                         end
-                        ephysPlot(gO,ax,0)
+                        ephysPlot(gO,ax)
                     end
             end
         end
@@ -354,6 +424,28 @@ classdef DASeV < handle
             gO.ephysTypSelected(idx) = 1;
             
             smartplot(gO,0)
+        end
+        
+        %%
+        function highPassRawEphysMenuSel(gO,~,~)
+            if strcmp(gO.highPassRawEphysMenu.Checked,'off')
+                gO.highPassRawEphys = 1;
+                gO.highPassRawEphysMenu.Checked = 'on';
+            else
+                gO.highPassRawEphys = 0;
+                gO.highPassRawEphysMenu.Checked = 'off';
+            end
+            smartplot(gO)
+        end
+        
+        %%
+        function plotFullMenuSel(gO,~,~)
+            if gO.plotFull == 1
+                gO.plotFull = 0;
+            elseif gO.plotFull == 0
+                gO.plotFull = 1;
+            end
+            smartplot(gO)
         end
         
         %%
@@ -386,6 +478,9 @@ classdef DASeV < handle
                 warndlg('No file selected!')
                 return
             end
+            
+            gO.ephysCurrDetNum = 1;
+            gO.ephysCurrDetRow = 1;
             
             try
                 load(fname,'ephysSaveData','ephysSaveInfo')
@@ -495,6 +590,13 @@ classdef DASeV < handle
             gO.ephysTypMenu = uimenu(gO.optMenu,...
                 'Text','Ephys data type selection',...
                 'MenuSelectedFcn',@ gO.ephysTypMenuSel);
+            gO.highPassRawEphysMenu = uimenu(gO.optMenu,...
+                'Text','Apply high pass filter to displayed raw ephys data',...
+                'Checked','off',...
+                'MenuSelectedFcn',@ gO.highPassRawEphysMenuSel);
+            gO.plotFullMenu = uimenu(gO.optMenu,...
+                'Text','Plot full data / Plot individual detections',...
+                'MenuSelectedFcn',@ gO.plotFullMenuSel);
             
             %% Tabgroup
             gO.tabgrp = uitabgroup(gO.mainFig,...
@@ -569,62 +671,81 @@ classdef DASeV < handle
             gO.ephysDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.95, 0.95, 0.05, 0.05],...
+                'Position',[0.965, 0.95, 0.035, 0.05],...
                 'String','<HTML>Det&uarr',...
                 'Callback',@(h,e) gO.axButtPress(1,1,0));
             gO.ephysDetDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.95, 0.9, 0.05, 0.05],...
+                'Position',[0.965, 0.9, 0.035, 0.05],...
                 'String','<HTML>Det&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,-1,0));
             gO.ephysChanUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.95, 0.85, 0.05, 0.05],...
+                'Position',[0.965, 0.85, 0.035, 0.05],...
                 'String','<HTML>Chan&uarr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,1));
             gO.ephysChanDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.95, 0.8, 0.05, 0.05],...
+                'Position',[0.965, 0.8, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,-1));
 
-            gO.ax11 = axes(gO.plotPanel,'Position',[0.05, 0.2, 0.9, 0.6],...
+            gO.ax11 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.6],...
                 'Visible','off');
-            gO.ax21 = axes(gO.plotPanel,'Position',[0.05, 0.5, 0.9, 0.4],...
+            gO.ax11.Toolbar.Visible = 'on';
+            gO.ax21 = axes(gO.plotPanel,'Position',[0.1, 0.5, 0.85, 0.4],...
                 'Visible','off');
-            gO.ax22 = axes(gO.plotPanel,'Position',[0.05, 0.05, 0.9, 0.4],...
+            gO.ax21.Toolbar.Visible = 'on';
+            gO.ax22 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.4],...
                 'Visible','off');
+            gO.ax22.Toolbar.Visible = 'on';
             align([gO.ax21,gO.ax22],'Distribute','Distribute')
-            gO.ax31 = axes(gO.plotPanel,'Position',[0.05, 0.7, 0.9, 0.25],...
+            linkaxes([gO.ax21,gO.ax22],'x')
+            gO.ax31 = axes(gO.plotPanel,'Position',[0.1, 0.7, 0.85, 0.25],...
                 'Visible','off');
-            gO.ax32 = axes(gO.plotPanel,'Position',[0.05, 0.4, 0.9, 0.25],...
+            gO.ax31.Toolbar.Visible = 'on';
+            gO.ax32 = axes(gO.plotPanel,'Position',[0.1, 0.4, 0.85, 0.25],...
                 'Visible','off');
-            gO.ax33 = axes(gO.plotPanel,'Position',[0.05, 0.05, 0.9, 0.25],...
+            gO.ax32.Toolbar.Visible = 'on';
+            gO.ax33 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.25],...
                 'Visible','off');
+            gO.ax33.Toolbar.Visible = 'on';
             align([gO.ax31,gO.ax32,gO.ax33],'Distribute','Distribute')
-            gO.ax41 = axes(gO.plotPanel,'Position',[0.05, 0.75, 0.9, 0.2],...
+            linkaxes([gO.ax31,gO.ax32,gO.ax33],'x')
+            gO.ax41 = axes(gO.plotPanel,'Position',[0.1, 0.75, 0.85, 0.2],...
                 'Visible','off');
-            gO.ax42 = axes(gO.plotPanel,'Position',[0.05, 0.55, 0.9, 0.2],...
+            gO.ax41.Toolbar.Visible = 'on';
+            gO.ax42 = axes(gO.plotPanel,'Position',[0.1, 0.55, 0.85, 0.2],...
                 'Visible','off');
-            gO.ax43 = axes(gO.plotPanel,'Position',[0.05, 0.35, 0.9, 0.2],...
+            gO.ax42.Toolbar.Visible = 'on';
+            gO.ax43 = axes(gO.plotPanel,'Position',[0.1, 0.35, 0.85, 0.2],...
                 'Visible','off');
-            gO.ax44 = axes(gO.plotPanel,'Position',[0.05, 0.05, 0.9, 0.2],...
+            gO.ax43.Toolbar.Visible = 'on';
+            gO.ax44 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.2],...
                 'Visible','off');
+            gO.ax44.Toolbar.Visible = 'on';
             align([gO.ax41,gO.ax42,gO.ax43,gO.ax44],'Distribute','Distribute')
-            gO.ax51 = axes(gO.plotPanel,'Position',[0.05, 0.8, 0.9, 0.18],...
+            linkaxes([gO.ax41,gO.ax42,gO.ax43,gO.ax44],'x')
+            gO.ax51 = axes(gO.plotPanel,'Position',[0.1, 0.8, 0.85, 0.18],...
                 'Visible','off');
-            gO.ax52 = axes(gO.plotPanel,'Position',[0.05, 0.6, 0.9, 0.18],...
+            gO.ax51.Toolbar.Visible = 'on';
+            gO.ax52 = axes(gO.plotPanel,'Position',[0.1, 0.6, 0.85, 0.18],...
                 'Visible','off');
-            gO.ax53 = axes(gO.plotPanel,'Position',[0.05, 0.4, 0.9, 0.18],...
+            gO.ax52.Toolbar.Visible = 'on';
+            gO.ax53 = axes(gO.plotPanel,'Position',[0.1, 0.4, 0.85, 0.18],...
                 'Visible','off');
-            gO.ax54 = axes(gO.plotPanel,'Position',[0.05, 0.2, 0.9, 0.18],...
+            gO.ax53.Toolbar.Visible = 'on';
+            gO.ax54 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.18],...
                 'Visible','off');
-            gO.ax55 = axes(gO.plotPanel,'Position',[0.05, 0.05, 0.9, 0.18],...
+            gO.ax54.Toolbar.Visible = 'on';
+            gO.ax55 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.18],...
                 'Visible','off');
+            gO.ax55.Toolbar.Visible = 'on';
             align([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'Distribute','Distribute')
+            linkaxes([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'x')
         end
     end
 end

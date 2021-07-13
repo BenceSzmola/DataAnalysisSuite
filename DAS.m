@@ -20,6 +20,7 @@ classdef DAS < handle
         MakewindowlargerMenu
         MakewindowsmallerMenu
         
+        SaveMenu
         SaveDetsMenu
         
         tabs
@@ -2905,7 +2906,9 @@ classdef DAS < handle
 %                 'MenuSelectedFcn',@(h,e) guiobj.MakewindowsmallerMenuSelected,...
 %                 'Text','Make window smaller');
 
-            guiobj.SaveDetsMenu = uimenu(guiobj.mainfig,...
+            guiobj.SaveMenu = uimenu(guiobj.mainfig,...
+                'Text','Saving...');
+            guiobj.SaveDetsMenu = uimenu(guiobj.SaveMenu,...
                 'Text','Save detection',...
                 'MenuSelectedFcn',@(h,e) guiobj.saveDets);
             
