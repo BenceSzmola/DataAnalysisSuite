@@ -13,7 +13,7 @@ DAS toDo notes
 	-757. sor és környékét rendesen megnézni: hogy döntse el melyik csatornákon kell végigmenni
 -egymás után importálás rendesen kezelni <- ez kb megvan
 	megoldva egyelőre azzal hogy új import -> új GUI instance
--refchan validalas funkciot bevezetni mindegyik detection modhoz es bugfixelni
++refchan validalas funkciot bevezetni mindegyik detection modhoz es bugfixelni
 	megvan, de csak exact datapoint egyezést néz egyelőre
 -sok detekcio/processing utan mintha meghibbanna:
 	nem sikerult még reprodukálni
@@ -24,7 +24,7 @@ DAS toDo notes
 +parameter preset mentés/utoljára használt paraméterek megjegyzése
 +eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional <- DONE
 -lehetőség arra h a felhasznalo manualisan megadja h melyik ido intervallumot nem kéne thresholdhoz használni
--preseteket rendesen megcsinalni <- kb DONE
++preseteket rendesen megcsinalni <- kb DONE
 -statisztika panel
 	ampl
 	hossz
@@ -33,9 +33,16 @@ DAS toDo notes
 	lecsenges (tau)
 	frekvencia
 	felertek szelesseg
--preset delete: ha ki van valasztva egy preset akkor meghibban
--gorobj import: CA-nak nem mindig scalar a mértékegysége
++preset delete: ha ki van valasztva egy preset akkor meghibban DONE
++gorobj import: CA-nak nem mindig scalar a mértékegysége <- mostmár azt nézi h scalar vagy üres
 -esetleg egy infopanel (nem priority)
 -ha több channel deteciton markerjét nézed egyszerre akkor különböző formák legyenek, és legyen hozzá egy felugró infopanel
 +raw data megjeleniteshez egy minimalis előszűrést bevezetni (pl highpass 3 Hz-nél)
--DASeV zoom problemara rájonni
++DASeV zoom problemara rájonni DONE
+-refchan "detection" megjelenitesre valamit kitalálni
+	most a threshold feletti rész eleje meg a vége 1-1 "deteciton"
+	ötletek:
+		két határ közötti részt plusz valamennyi ablakot mutatni
+		kiemelni a threshold feletti részt színnel
+-detectiokat egymásra vetítve megmutatni
+-lehetőség a detectio színnel kiemelésére

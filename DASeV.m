@@ -117,6 +117,8 @@ classdef DASeV < handle
     methods (Access = private)
         %%
         function axVisSwitch(gO,numAx)
+            zum = zoom(gO.mainFig);
+            panobj = pan(gO.mainFig);
             switch numAx
                 case 1
                     gO.ax11.Visible = 'on';
@@ -201,9 +203,17 @@ classdef DASeV < handle
             end
             
             allAx = findobj(gO.mainFig,'Type','axes');
-            allAx = findobj(allAx,'Visible','off');
-            for i = 1:length(allAx)
-                cla(allAx(i))
+            actAx = findobj(allAx,'Visible','on');
+            actAx = findobj(actAx,'Type','axes');
+            inactAx = findobj(allAx,'Visible','off');
+            inactAx = findobj(inactAx,'Type','axes');
+            setAllowAxesZoom(zum,actAx,true)
+            setAllowAxesZoom(zum,inactAx,false)
+            setAllowAxesPan(panobj,actAx,true)
+            setAllowAxesPan(panobj,inactAx,false)
+            for i = 1:length(inactAx)
+                cla(inactAx(i))
+                
             end
             
             drawnow
@@ -339,13 +349,18 @@ classdef DASeV < handle
             end
             
             for i = 1:min(size(data))
-                linia=plot(ax(i),tWin,data(i,:));
-                assignin('base','linia',linia)
+                plot(ax(i),tWin,data(i,:))
                 hold(ax(i),'on')
-                for j = 1:length(tDetInds)
-                    line(ax(i),[tDetInds(j), tDetInds(j)],axLims(i,3:4),...
-                        'Color','r')
-                end
+%                 if chan == gO.ephysDetInfo(1).Params.RefCh
+%                     for j = 1:2:length(tDetInds)
+%                         plot(ax(i),tWin(tDetInds(j):tDetInds(j+1)),data(i,tDetInds(j):tDetInds(j+1)),'-r')
+%                     end
+%                 else
+                    for j = 1:length(tDetInds)
+                        line(ax(i),[tDetInds(j), tDetInds(j)],axLims(i,3:4),...
+                            'Color','r')
+                    end
+%                 end
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
@@ -423,7 +438,7 @@ classdef DASeV < handle
             gO.ephysTypSelected(:) = 0;
             gO.ephysTypSelected(idx) = 1;
             
-            smartplot(gO,0)
+            smartplot(gO)
         end
         
         %%
@@ -482,7 +497,10 @@ classdef DASeV < handle
             gO.ephysCurrDetNum = 1;
             gO.ephysCurrDetRow = 1;
             
-            try
+            testload = matfile(fname);
+%             try
+            if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
+                    & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
                 load(fname,'ephysSaveData','ephysSaveInfo')
 
                 gO.ephysData = ephysSaveData.RawData;
@@ -491,8 +509,8 @@ classdef DASeV < handle
                 gO.ephysYlabel = ephysSaveData.YLabel;
                 gO.ephysDets = ephysSaveData.Dets;
                 gO.ephysDetInfo = ephysSaveInfo;
-
-            catch
+            else
+%             catch
                 gO.loaded(1) = 0;
             end
             
@@ -502,10 +520,13 @@ classdef DASeV < handle
                 gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
             end
             
-            try 
+%             try
+            if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
+                    & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
                 load(fname,'imagingSaveData','imagingSaveInfo')
                 
-            catch
+%             catch
+            else
                 gO.loaded(2) = 0;
             end
             
@@ -621,7 +642,8 @@ classdef DASeV < handle
                 'Position',[0.05, 0.65, 0.1, 0.05],...
                 'String','Load selected save',...
                 'Callback',@ gO.loadSaveButtPress);
-            initFileList = dir('DASsave*.mat');
+            initFileList = dir('*DAS*.mat');
+            initFileList(find(strcmp({initFileList.name},'DAS_LOG.mat'))) = [];
             initFileList = {initFileList.name};
             gO.fileList = uicontrol(gO.loadTab,...
                 'Style','listbox',...
