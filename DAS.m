@@ -23,6 +23,7 @@ classdef DAS < handle
         
         SaveMenu
         SaveDetsMenu
+        OpenDASeVMenu
         
         tabs
         maintab
@@ -3013,10 +3014,13 @@ classdef DAS < handle
 %                 'Text','Make window smaller');
 
             guiobj.SaveMenu = uimenu(guiobj.mainfig,...
-                'Text','Saving...');
+                'Text','Saving options');
             guiobj.SaveDetsMenu = uimenu(guiobj.SaveMenu,...
                 'Text','Save detection',...
                 'MenuSelectedFcn',@(h,e) guiobj.saveDets);
+            guiobj.OpenDASeVMenu = uimenu(guiobj.SaveMenu,...
+                'Text','Open DASeV',...
+                'MenuSelectedFcn','DASeV');
             
 
             % Create tabgroup
