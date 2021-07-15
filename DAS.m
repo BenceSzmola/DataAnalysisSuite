@@ -821,6 +821,9 @@ classdef DAS < handle
                         return
                     end
                     
+%                     assignin('base','dets',guiobj.ephys_detections)
+%                     assignin('base','detinfo',guiobj.ephys_detectionsInfo)
+                    
                     switch guiobj.eventDet1DataType
                         case 1
                             data = guiobj.ephys_data;
@@ -947,6 +950,18 @@ classdef DAS < handle
                     ylabel(ax,guiobj.ephys_ylabel);
                     title(ax,['Channel#',num2str(chan),'      Detection#',num2str(detInd),...
                         '/',num2str(numDets)])
+                    
+                    %%% testing FWHM
+                    halfmax = data(chan,tInd)/2
+                    aboveHM = find(data(chan,:)>halfmax);
+                    assignin('base','aboveHM',aboveHM)
+                    assignin('base','tInd',tInd)
+                    aboveHMtInd = find(aboveHM==tInd);
+                    steps = diff(aboveHM);
+                    disconts = find(steps~=1);
+                    lowbord = aboveHM(disconts(find(disconts<aboveHMtInd,1,'last')));
+                    highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1)));
+                    FWHM = (highbord-lowbord)/20
                     
 %                     display('----------------------------------------')
                     
@@ -3861,6 +3876,7 @@ classdef DAS < handle
             
             guiobj.axesEventDet1 = axes(guiobj.eventDetTab,...
                 'Position',[0.5, 0.6, 0.45, 0.35]);
+            guiobj.axesEventDet1.Toolbar.Visible = 'on';
             guiobj.axesEventDet1UpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -3887,6 +3903,7 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.axesEventDet1ChanDownButtPush);
             guiobj.axesEventDet2 = axes(guiobj.eventDetTab,...
                 'Position',[0.5, 0.1, 0.45, 0.35]);
+            guiobj.axesEventDet2.Toolbar.Visible = 'on';
             guiobj.axesEventDet2DetUpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...

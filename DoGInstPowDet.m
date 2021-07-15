@@ -61,12 +61,12 @@ end
 refdets = nan(1,length(data));
 refDetMarks = refdets;
 
-if (refch ~= 0)
+if (refVal ~= 0)
     if refVal == 2
-        thr = mean(refInstPow) + sdmult*std(refInstPow);
+        thr = mean(refInstPow) + std(refInstPow);
         refdets(refInstPow>thr) = 0;
     else
-        thr = mean(instPowd(refch,:)) + sdmult*std(instPowd(refch,:));
+        thr = mean(instPowd(refch,:)) + std(instPowd(refch,:));
         refdets(instPowd(refch,:)>thr) = 0;
     end
     % join close-by events together
@@ -78,6 +78,7 @@ if (refch ~= 0)
             end
         end
     end
+    assignin('base','refdets',refdets)
     % reduce number of refdets by only keeping 1st and last index of an
     % event
     abThr = find(~isnan(refdets));
@@ -125,12 +126,32 @@ for i = 1:size(data,1)
     if (isempty(events)) && (length(aboveThr) > minLen*fs)
 
         [~,maxIdx] = max(currInstPow(aboveThr));
-        vEvents = maxIdx + aboveThr(1);
+        newEv = maxIdx + aboveThr(1);
         
-        % validating against refch
-        if ((refch~=0) & (refdets(vEvents)~=0)) | (refch==0)       
-            dets(i,vEvents) = 0;
+         win = 0.1*fs;
+
+%         vEvCount = vEvCount +1;
+%         %%% testing interchannel correlation
+%         fprintf(1,'Channel#%d, event#%d, (%2.2f sec)\n',i,vEvCount,newEv/fs)
+%         corrcoef(instPowd(:,newEv-win:newEv+win)')
+%         %%%
+
+        if newEv-win < 1
+            refWin = refdets(1:newEv+win);
+        elseif newEv+win > length(refdets)
+            refWin = refdets(newEv-win:end);
+        else
+            refWin = refdets(newEv-win:newEv+win);
         end
+        condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+        if condit
+            vEvents = [vEvents, newEv];
+        end
+        
+%         % validating against refch
+%         if ((refch~=0) & (refdets(vEvents)~=0)) | (refch==0)       
+        dets(i,vEvents) = 0;
+%         end
         
     else
         events = [events, length(steps)];
@@ -189,11 +210,17 @@ for i = 1:size(data,1)
     
     % plotting part mainly for bugfixing
     t=linspace(0,length(data)/fs,length(data));
+    
     figure('Name',['Chan#',num2str(i)])
+    
     sp1=subplot(311);
     plot(t,dogged(i,:))
     hold on
     plot(t,dets(i,:),'*r')
+    xlabel('Time [s]')
+    ylabel('Voltage [\muV]')
+    title(['DoG of channel #',num2str(i)])
+    
     sp2=subplot(312);
     plot(t,instPowd(i,:))
     hold on
@@ -204,6 +231,12 @@ for i = 1:size(data,1)
     plot(t,quietthr*ones(1,length(t)),'-k')
     hold on
     plot(t,qSegsInds,'-y')
+    xlabel('Time [s]')
+    ylabel('Power [\muV^2]')
+    title(['Instantaneous Power of channel #',num2str(i)])
+    legend({'Inst.Power','Detections','Detection threshold',...
+        'Threshold for quiet intervals','Quiet intervals'})
+    
     sp3=subplot(313);
     if refVal ==1
         plot(t,dogged(refch,:))
@@ -214,6 +247,9 @@ for i = 1:size(data,1)
         hold on
         plot(t,refDetMarks,'*r')
     end
+    xlabel('Time [s]')
+    ylabel('Voltage [\muV]')
+    title('DoG of reference channel')
     linkaxes([sp1,sp2,sp3],'x')
 end
 

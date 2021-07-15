@@ -1,8 +1,8 @@
-function bips = wavyDet(data,srate,minlen,sdmult,w1,w2,refch)
+function dets = wavyDet(data,fs,minlen,sdmult,w1,w2,refch)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
-    srate = round(srate,4);
+    fs = round(fs,4);
     % mindist = 50;
     % runavgwindow = 0.25;
     % minlen = 0.02;
@@ -35,7 +35,7 @@ if nargin == 0
     sdmult = 3;
     w1 = 5;
     w2 = 40;
-    srate = 20000;
+    fs = 20000;
     [filename,path] = uigetfile('*.rhd');
     oldpath = cd(path);
     data = read_Intan_RHD2000_file_cl(filename);
@@ -49,22 +49,23 @@ if nargin == 0
     end
 end
 
-bips = nan(size(data));
+dets = nan(size(data));
 % bips(:) = nan;
-t = linspace(0,length(data)/srate,length(data));
+t = linspace(0,length(data)/fs,length(data));
 
 % Finding above threshold segments on refchan
 if refVal ~= 0
     refdets = nan(1,length(data));
+    refDetMarks = refdets;
     switch refVal
         case 1
             refData = data(refch,:);
         case 2
             refData = refch;
     end
-    [refCoeffs,~,~] = cwt(refData,srate,'amor','FrequencyLimits',[w1 w2]);
+    [refCoeffs,~,~] = cwt(refData,fs,'amor','FrequencyLimits',[w1 w2]);
     refInstE = trapz(abs(refCoeffs).^2);
-    refThr = mean(refInstE) + sdmult*std(refInstE);
+    refThr = mean(refInstE) + std(refInstE);
     refdets(refInstE > refThr) = 0;
     refdetsInds = find(refdets==0);
     for i = 1:length(refdetsInds)
@@ -74,6 +75,18 @@ if refVal ~= 0
             end
         end
     end
+    
+    % reduce number of refdets by only keeping 1st and last index of an
+    % event
+    abThr = find(~isnan(refdets));
+    if ~isempty(abThr)
+        steps = diff(abThr);
+        eventsS = [1,find(steps~=1)+1];
+        eventsE = [find(steps~=1), length(steps)];
+        refDetMarks(abThr(eventsS)) = 0;
+        refDetMarks(abThr(eventsE)) = 0;
+    end
+    
 end
 
 for i = 1:min(size(data))
@@ -104,9 +117,9 @@ for i = 1:min(size(data))
 
     mb = msgbox('Computing wavelet transform...');
 
-    figure
-    [coeffs,f,coi] = cwt(data(i,:),srate,'amor','FrequencyLimits',[w1 w2]);
-    cwt(data(i,:),srate,'amor','FrequencyLimits',[w1 w2]); 
+%     figure
+    [coeffs,f,coi] = cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]);
+%     cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]); 
     coeffs = abs(coeffs);
     % assignin('base','coeffs',coeffs)
     % assignin('base','f',f)
@@ -159,52 +172,102 @@ for i = 1:min(size(data))
     % assignin('base','thr',thr)
     coeffs_det = instE;
     coeffs_det(coeffs_det<thr) = 0;
-    coeffs_det(:,1:0.1*srate) = 0;
-    coeffs_det(:,length(coeffs)-0.1*srate:end) = 0;
+    coeffs_det(:,1:0.1*fs) = 0;
+    coeffs_det(:,length(coeffs)-0.1*fs:end) = 0;
     % assignin('base','coeffs_det',coeffs_det)
-    [~,dets] = find(coeffs_det);
-    dets = unique(dets);
+    [~,aboveThr] = find(coeffs_det);
+    aboveThr = unique(aboveThr);
 %     assignin('base','dets',dets)
 
-    steps = diff(dets);
+    steps = diff(aboveThr);
     events = find(steps~=1);
     events = events+1;
     vEvents = [];
     % bips = zeros(size(data));
     % bips(:) = nan;
 
-    if (isempty(events)) && (length(dets) > minlen*srate)
+    if (isempty(events)) && (length(aboveThr) > minlen*fs)
 
-        [~,maxIdx] = max(instE(dets));
-        vEvents = maxIdx + dets(1);
-        if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(vEvents))))
-            bips(i,vEvents) = 0;
+        [~,maxIdx] = max(instE(aboveThr));
+        newEv = maxIdx + aboveThr(1);
+        
+        win = 0.1*fs;
+
+%         vEvCount = vEvCount +1;
+%         %%% testing interchannel correlation
+%         fprintf(1,'Channel#%d, event#%d, (%2.2f sec)\n',i,vEvCount,newEv/fs)
+%         corrcoef(instPowd(:,newEv-win:newEv+win)')
+%         %%%
+
+        if newEv-win < 1
+            refWin = refdets(1:newEv+win);
+        elseif newEv+win > length(refdets)
+            refWin = refdets(newEv-win:end);
+        else
+            refWin = refdets(newEv-win:newEv+win);
         end
+        condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+        if condit
+            vEvents = [vEvents, newEv];
+        end
+        
+%         if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(vEvents))))
+        dets(i,vEvents) = 0;
+%         end
     else
         events = [events, length(steps)];
 
         for j = 1:length(events)
             if j == 1
                 len = events(j)-1;
-                if len > minlen*srate
-                    [~,maxIdx] = max(instE(1:dets(events(j))));
-    %                 vEvents = [vEvents, 1];
-                    if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(maxIdx))))
-                        vEvents = [vEvents, maxIdx];
-                    end
+                if len > minlen*fs
+                    [~,maxIdx] = max(instE(1:aboveThr(events(j))));
+                    newEv = maxIdx;
+%                     if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(maxIdx))))
+%                         vEvents = [vEvents, maxIdx];
+%                     end
+                else
+                    newEv = [];
                 end
             else
                 len = events(j)-events(j-1);
-                if len > minlen*srate
-                    [~,maxIdx] = max(instE(dets(events(j-1):events(j))));
-    %                 vEvents = [vEvents, events(i-1)];
-                    if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(maxIdx+dets(events(j-1))))))
-                        vEvents = [vEvents, maxIdx+dets(events(j-1))];
-                    end
+                if len > minlen*fs
+                    [~,maxIdx] = max(instE(aboveThr(events(j-1):events(j))));
+                    newEv = maxIdx+aboveThr(events(j-1));
+%                     if (refVal == 0) | ((refVal ~= 0) & (isnan(refdets(maxIdx+aboveThr(events(j-1))))))
+%                         vEvents = [vEvents, maxIdx+aboveThr(events(j-1))];
+%                     end
+                else
+                    newEv = [];
                 end
             end
+            
+            if ~isempty(newEv)
+                win = 0.1*fs;
+                
+%                 vEvCount = vEvCount +1;
+%                 %%% testing interchannel correlation
+%                 fprintf(1,'Channel#%d, event#%d, (%2.2f sec)\n',i,vEvCount,newEv/fs)
+%                 corrcoef(instPowd(:,newEv-win:newEv+win)')
+%                 %%%
+                
+                if newEv-win < 1
+                    refWin = refdets(1:newEv+win);
+                elseif newEv+win > length(refdets)
+                    refWin = refdets(newEv-win:end);
+                else
+                    refWin = refdets(newEv-win:newEv+win);
+                end
+                condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+                if condit
+                    vEvents = [vEvents, newEv];
+                end
+            end
+            
         end
-        bips(i,vEvents) = 0;
+        
+        dets(i,vEvents) = 0;
+        
     end
 
 %     assignin('base','events',events)
@@ -233,46 +296,53 @@ for i = 1:min(size(data))
     % assignin('base','t',t)
     % assignin('base','doggy',dogged)
     %% Plotting
-%     
-%     figure
-%     
-%     ax1 = subplot(311);
-%     plot(t,data(i,:))
-%     hold on
-%     plot(t,bips(i,:),'r*','MarkerSize',12)
-%     axis tight
-%     if min(size(data)) == 1
-%         title('Detections based on CWT')
-%     else
-%         title(['Detections based on CWT - Ch#',num2str(i)])
-%     end
-%     xlabel('Time [s]')
-%     ylabel('Voltage [\muV]')
-%     
-%     ax2 = subplot(312);
-%     try
-%         plot(t,instE)
-%     catch
-%         plot(t,colmean)
-%     end
-%     hold on
-%     plot(t,ones(size(t))*thr)
-%     xlabel('Time [s]')
-%     ylabel('CWT coefficient magnitude')
-%     axis tight
-%     legend('Inst. Energy integral over all frequencies','threshold')
-%     
-%     ax3 = subplot(313);
-%     if refVal ~= 0
-%         plot(t,refInstE)
-%         hold on
-%         plot(t,refdets,'*r')
-%     end
-%     
-%     linkaxes([ax1,ax2,ax3],'x')
-%     xlim([0.1 t(end)-0.1])
+    
+    figure
+    
+    ax1 = subplot(311);
+    plot(t,data(i,:))
+    hold on
+    plot(t,dets(i,:),'r*','MarkerSize',12)
+    axis tight
+    if min(size(data)) == 1
+        title('Detections based on CWT')
+    else
+        title(['Detections based on CWT - Ch#',num2str(i)])
+    end
+    xlabel('Time [s]')
+    ylabel('Voltage [\muV]')
+    
+    ax2 = subplot(312);
+    try
+        plot(t,instE)
+    catch
+        plot(t,colmean)
+    end
+    hold on
+    plot(t,ones(size(t))*thr)
+    xlabel('Time [s]')
+    ylabel('CWT coefficient magnitude')
+    axis tight
+    legend('Inst. Energy integral over all frequencies','threshold')
+    
+    ax3 = subplot(313);
+    if refVal ~= 0
+        plot(t,refInstE)
+        hold on
+        plot(t,refDetMarks,'*r')
+%         markLabels = compose("#%d",1:length(find(~isnan(refDetMarks))));
+%         text(t(find(~isnan(refDetMarks))),refDetMarks(find(~isnan(refDetMarks))),markLabels)
+        hold off
+        xlabel('Time [s]')
+        ylabel('CWT coefficient magnitude')
+        axis tight
+        title('Inst. Energy integral - Reference Channel')
+    end
+    
+    linkaxes([ax1,ax2,ax3],'x')
+    xlim([0.1 t(end)-0.1])
 end
 
 if refVal == 1
-    bips(refch,:) = refdets;
+    dets(refch,:) = refDetMarks;
 end
