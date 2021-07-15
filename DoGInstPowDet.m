@@ -78,7 +78,7 @@ if (refVal ~= 0)
             end
         end
     end
-    assignin('base','refdets',refdets)
+%     assignin('base','refdets',refdets)
     % reduce number of refdets by only keeping 1st and last index of an
     % event
     abThr = find(~isnan(refdets));
@@ -128,23 +128,27 @@ for i = 1:size(data,1)
         [~,maxIdx] = max(currInstPow(aboveThr));
         newEv = maxIdx + aboveThr(1);
         
-         win = 0.1*fs;
+        if refVal~=0
+             win = 0.1*fs;
 
-%         vEvCount = vEvCount +1;
-%         %%% testing interchannel correlation
-%         fprintf(1,'Channel#%d, event#%d, (%2.2f sec)\n',i,vEvCount,newEv/fs)
-%         corrcoef(instPowd(:,newEv-win:newEv+win)')
-%         %%%
+    %         vEvCount = vEvCount +1;
+    %         %%% testing interchannel correlation
+    %         fprintf(1,'Channel#%d, event#%d, (%2.2f sec)\n',i,vEvCount,newEv/fs)
+    %         corrcoef(instPowd(:,newEv-win:newEv+win)')
+    %         %%%
 
-        if newEv-win < 1
-            refWin = refdets(1:newEv+win);
-        elseif newEv+win > length(refdets)
-            refWin = refdets(newEv-win:end);
+            if newEv-win < 1
+                refWin = refdets(1:newEv+win);
+            elseif newEv+win > length(refdets)
+                refWin = refdets(newEv-win:end);
+            else
+                refWin = refdets(newEv-win:newEv+win);
+            end
+            condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+            if condit
+                vEvents = [vEvents, newEv];
+            end
         else
-            refWin = refdets(newEv-win:newEv+win);
-        end
-        condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
-        if condit
             vEvents = [vEvents, newEv];
         end
         
@@ -182,7 +186,7 @@ for i = 1:size(data,1)
                 
             end
             
-            if ~isempty(newEv)
+            if ~isempty(newEv) & (refVal~=0)
                 win = 0.1*fs;
                 
 %                 vEvCount = vEvCount +1;
@@ -202,6 +206,8 @@ for i = 1:size(data,1)
                 if condit
                     vEvents = [vEvents, newEv];
                 end
+            else
+                vEvents = [vEvents, newEv];
             end
             
         end

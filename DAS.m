@@ -954,8 +954,8 @@ classdef DAS < handle
                     %%% testing FWHM
                     halfmax = data(chan,tInd)/2
                     aboveHM = find(data(chan,:)>halfmax);
-                    assignin('base','aboveHM',aboveHM)
-                    assignin('base','tInd',tInd)
+%                     assignin('base','aboveHM',aboveHM)
+%                     assignin('base','tInd',tInd)
                     aboveHMtInd = find(aboveHM==tInd);
                     steps = diff(aboveHM);
                     disconts = find(steps~=1);
