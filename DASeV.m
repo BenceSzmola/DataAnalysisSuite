@@ -478,7 +478,7 @@ classdef DASeV < handle
             if newdir == 0
                 return
             end
-            newdir = [newdir,'\DASsave*.mat'];
+            newdir = [newdir,'\*DASsave*.mat'];
             newlist = dir(newdir);
             newlist = {newlist.name};
             gO.fileList.String = newlist;
@@ -642,7 +642,7 @@ classdef DASeV < handle
                 'Position',[0.05, 0.65, 0.1, 0.05],...
                 'String','Load selected save',...
                 'Callback',@ gO.loadSaveButtPress);
-            initFileList = dir('*DAS*.mat');
+            initFileList = dir('*DASsave*.mat');
             initFileList(find(strcmp({initFileList.name},'DAS_LOG.mat'))) = [];
             initFileList = {initFileList.name};
             gO.fileList = uicontrol(gO.loadTab,...

@@ -847,9 +847,12 @@ classdef DAS < handle
                         end
                     end
                     currChans(emptyChans) = [];
+                    currDetRows(emptyChans) = [];
                     
 %                     display('currChans after')
 %                     currChans
+                    
+%                     assignin('base','detinfo',guiobj.ephys_detectionsInfo)
                     
 %                     display('guiobj curridx')
 %                     display(guiobj.eventDet1CurrIdx)
@@ -867,9 +870,9 @@ classdef DAS < handle
                         case 1
                             switch upDwn
                                 case 1
-                                    temp = find(currChans == (currChans(guiobj.eventDet1CurrChan)));
-%                                     temp = currDetRows(currChans(guiobj.eventDet1CurrChan));
-                                    temp = currDetRows(temp);
+%                                     temp = find(currChans == (currChans(guiobj.eventDet1CurrChan)));
+                                    temp = currDetRows(guiobj.eventDet1CurrChan);
+%                                     temp = currDetRows(temp)
                                     if guiobj.eventDet1CurrDet < length(find(~isnan(guiobj.ephys_detections(temp,:))))
                                         guiobj.eventDet1CurrDet = ...
                                             guiobj.eventDet1CurrDet + 1;
@@ -908,13 +911,13 @@ classdef DAS < handle
 %                     currDetRows
 %                     currDet = guiobj.eventDet1CurrIdx
 %                     currDet = currChans(guiobj.eventDet1CurrChan)+currDetRows(1)-1
-                    currDet = currDetRows(guiobj.eventDet1CurrChan);
-                    numDets = length(find(~isnan(guiobj.ephys_detections(currDet,:))));
+                    currDetRow = currDetRows(guiobj.eventDet1CurrChan);
+                    numDets = length(find(~isnan(guiobj.ephys_detections(currDetRow,:))));
                     detInd = guiobj.eventDet1CurrDet;
                     %%%
 %                     assignin('base','efizdets',guiobj.ephys_detections)
                     %%%
-                    tInd = find(~isnan(guiobj.ephys_detections(currDet,:)));
+                    tInd = find(~isnan(guiobj.ephys_detections(currDetRow,:)));
                     tInd = tInd(detInd);
                     tStamp = guiobj.ephys_taxis(tInd);
 %                     win = round(0.25 * guiobj.ephys_fs,4);
@@ -2148,7 +2151,7 @@ classdef DAS < handle
                 return
             end
                         
-            guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
+%             guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
             
             numofdetchans = size(guiobj.ephys_detections,1);
             
@@ -2162,14 +2165,14 @@ classdef DAS < handle
                         
             switch dettype
                 case 'CWT based'
-                    minlen = str2double(guiobj.ephysCwtDetMinlenEdit.String);
+                    minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String);
                     sdmult = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                     w1 = str2double(guiobj.ephysCwtDetW1Edit.String);
                     w2 = str2double(guiobj.ephysCwtDetW2Edit.String);
                     refVal = guiobj.ephysCwtDetRefValCheck.Value;
                     
                     % Handling no input cases
-                    if (isempty(minlen)||isnan(minlen)) || (isempty(sdmult)||isnan(sdmult))...
+                    if (isempty(minLen)||isnan(minLen)) || (isempty(sdmult)||isnan(sdmult))...
                             || (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))
                         errordlg('Missing parameters!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -2214,12 +2217,13 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2,0);
+                        dets = wavyDet(data,fs,minLen/1000,sdmult,w1,w2,0);
                     elseif refVal & (chan > min(size(guiobj.ephys_data)))
-                        dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2,refch);
+                        dets = wavyDet(data,fs,minLen/1000,sdmult,w1,w2,refch);
                     elseif refVal & (chan < min(size(guiobj.ephys_data)))
-                        dets = wavyDet(data,fs,minlen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:));
+                        dets = wavyDet(data,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:));
                     end
+                    guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;                    
                     
                     if chan < min(size(guiobj.ephys_data))
 %                         detinfo = [chan, 1, guiobj.ephys_detRunsNum];
@@ -2228,7 +2232,7 @@ classdef DAS < handle
                         detinfo.DetRun = guiobj.ephys_detRunsNum;
                         detinfo.Params.W1 = w1;
                         detinfo.Params.W2 = w2;
-                        detinfo.Params.MinLen = minlen*1000;
+                        detinfo.Params.MinLen = minLen*1000;
                         detinfo.Params.SdMult = sdmult;
                         detinfo.Params.RefVal = refVal;
                         detinfo.Params.RefCh = refch;
@@ -2252,20 +2256,21 @@ classdef DAS < handle
                 case 'Adaptive threshold'
                     step = eval(guiobj.ephysAdaptDetStepEdit.String)/1000;
                     mindist = eval(guiobj.ephysAdaptDetMindistEdit.String)/1000;
-                    minlen = eval(guiobj.ephysAdaptDetMinwidthEdit.String)/1000;
+                    minLen = eval(guiobj.ephysAdaptDetMinwidthEdit.String)/1000;
                     ratio = eval(guiobj.ephysAdaptDetRatioEdit.String)/100;
                     
                     % Handling no input cases
                     if (isempty(step)||isnan(step)) || (isempty(mindist)||isnan(mindist))...
-                            || (isempty(minlen)||isnan(minlen)) || (isempty(ratio)||isnan(ratio))
+                            || (isempty(minLen)||isnan(minLen)) || (isempty(ratio)||isnan(ratio))
                         errordlg('Missing parameters!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                         return
                     end
                     
-                    dets = adaptive_thresh(data,fs,step,minlen,mindist,ratio);
-                                       
+                    dets = adaptive_thresh(data,fs,step,minLen,mindist,ratio);
+                    guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
+                    
 %                     detinfo = [chan, 2];
 %                     detinfo.DetType = "Adapt";
 %                     detinfo.Params.Step = step*1000;
@@ -2278,7 +2283,7 @@ classdef DAS < handle
                         detinfo.DetType = "Adapt";
                         detinfo.DetRun = guiobj.ephys_detRunsNum;
                         detinfo.Params.Step = step*1000;
-                        detinfo.Params.MinLen = minlen*1000;
+                        detinfo.Params.MinLen = minLen*1000;
                         detinfo.Params.MinDist = mindist*1000;
                         detinfo.Params.Ratio = ratio;
                         
@@ -2289,7 +2294,7 @@ classdef DAS < handle
                             detinfo(i).DetType = "Adapt";
                             detinfo(i).DetRun = guiobj.ephys_detRunsNum;
                             detinfo(i).Params.Step = step*1000;
-                            detinfo(i).Params.MinLen = minlen*1000;
+                            detinfo(i).Params.MinLen = minLen*1000;
                             detinfo(i).Params.MinDist = mindist*1000;
                             detinfo(i).Params.Ratio = ratio;
                         end
@@ -2357,6 +2362,7 @@ classdef DAS < handle
                     elseif refVal && (size(data,1)==1)
                         dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:));
                     end
+                    guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
 %                     detinfo = [chan, 3];
                     
@@ -2393,6 +2399,7 @@ classdef DAS < handle
                 errordlg('No events were found!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                
                 return                
             end
             
@@ -2926,7 +2933,7 @@ classdef DAS < handle
             if isempty(guiobj.rhdName)
                 fname = ['DASsave_',char(datetime('now','Format','yyMMdd_HHmmss'))];
             else
-                fname = [guiobj.rhdName,'_DAS'];
+                fname = [guiobj.rhdName,'_DASsave'];
             end
             
             [fname,path] = uiputfile('*.mat','Save DAS detections',fname);
