@@ -613,7 +613,7 @@ classdef DAS < handle
                 hold(ephysAxes,'on')
                 legendLabels = cell(1,length(detSel));
                 markerObjs = [];
-                markerIdx = 1;
+                markerIdx = 0;
                 for i = 1:length(detSel)
                     legendLabels{i} = ['Chan#',num2str(i)];
                     if markerIdx+1 > length(markers)
@@ -959,12 +959,12 @@ classdef DAS < handle
                     %%% testing FWHM
                     halfmax = data(chan,tInd)/2
                     aboveHM = find(data(chan,:)>halfmax);
-%                     assignin('base','aboveHM',aboveHM)
-%                     assignin('base','tInd',tInd)
+                    assignin('base','aboveHM',aboveHM)
+                    assignin('base','tInd',tInd)
                     aboveHMtInd = find(aboveHM==tInd);
                     steps = diff(aboveHM);
                     disconts = find(steps~=1);
-                    lowbord = aboveHM(disconts(find(disconts<aboveHMtInd,1,'last')));
+                    lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last'))+1);
                     highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1)));
                     FWHM = (highbord-lowbord)/20
                     

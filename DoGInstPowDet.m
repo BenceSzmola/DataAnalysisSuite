@@ -60,13 +60,14 @@ end
 % end
 refdets = nan(1,length(data));
 refDetMarks = refdets;
+refDetIVs = refdets;
 
 if (refVal ~= 0)
     if refVal == 2
-        thr = mean(refInstPow) + std(refInstPow);
+        thr = mean(refInstPow) + 3*std(refInstPow);
         refdets(refInstPow>thr) = 0;
     else
-        thr = mean(instPowd(refch,:)) + std(instPowd(refch,:));
+        thr = mean(instPowd(refch,:)) + 3*std(instPowd(refch,:));
         refdets(instPowd(refch,:)>thr) = 0;
     end
     % join close-by events together
@@ -88,6 +89,22 @@ if (refVal ~= 0)
         eventsE = [find(steps~=1), length(steps)];
         refDetMarks(abThr(eventsS)) = 0;
         refDetMarks(abThr(eventsE)) = 0;
+        for i = 1:length(eventsS)
+            refDetIVs(abThr(eventsS(i)):abThr(eventsE(i))) = 0;
+        end
+%         notRefDetIVs = find(isnan(refDetIVs));
+        refDetIVs = find(~isnan(refDetIVs));
+        if refVal == 2
+            aboveRefThr = nan(1,length(refdogged));
+            aboveRefThr(refDetIVs) = refdogged(refDetIVs);
+            belowRefThr = refdogged;
+            belowRefThr(refDetIVs) = nan;
+        else
+            aboveRefThr = nan(1,length(dogged));
+            aboveRefThr(refDetIVs) = dogged(refch,refDetIVs);
+            belowRefThr = dogged(refch,:);
+            belowRefThr(refDetIVs) = nan;
+        end
     end
     
     
@@ -244,18 +261,29 @@ for i = 1:size(data,1)
             'Threshold for quiet intervals','Quiet intervals'})
 
         sp3=subplot(313);
-        if refVal ==1
-            plot(taxis,dogged(refch,:))
-            hold on 
-            plot(taxis,refDetMarks,'*r')
-        elseif refVal == 2
-            plot(taxis,refdogged)
-            hold on
-            plot(taxis,refDetMarks,'*r')
-        end
+        plot(taxis,belowRefThr)
+        hold on
+        plot(taxis,aboveRefThr,'-r')
+        hold off
+%         if refVal ==1
+%             plot(taxis,belowRefThr)
+%             hold on 
+% %             plot(taxis,refDetMarks,'*r')
+%             plot(taxis,aboveRefThr,'-r')
+%         elseif refVal == 2
+%             temp = refdogged;
+%             temp(refDetIVs) = nan;
+%             plot(taxis,temp)
+%             hold on
+% %             plot(taxis,refDetMarks,'*r')
+%             temp = nan(1,length(data));
+%             temp(refDetIVs) = refdogged(refDetIVs);
+%             plot(taxis,temp,'-r')
+%         end
         xlabel('Time [s]')
         ylabel('Voltage [\muV]')
         title('DoG of reference channel')
+        legend({'DoG','Above threshold'})
         linkaxes([sp1,sp2,sp3],'x')
     end
 end
