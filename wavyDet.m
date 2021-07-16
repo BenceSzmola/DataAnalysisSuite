@@ -1,4 +1,4 @@
-function dets = wavyDet(data,fs,minlen,sdmult,w1,w2,refch)
+function dets = wavyDet(data,taxis,fs,minlen,sdmult,w1,w2,refch,showFigs)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -51,7 +51,8 @@ end
 
 dets = nan(size(data));
 % bips(:) = nan;
-t = linspace(0,length(data)/fs,length(data));
+% t = linspace(0,length(data)/fs,length(data));
+t = taxis;
 
 % Finding above threshold segments on refchan
 if refVal ~= 0
@@ -118,7 +119,7 @@ for i = 1:min(size(data))
     mb = msgbox('Computing wavelet transform...');
 
 %     figure
-    [coeffs,f,coi] = cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]);
+    [coeffs,~,~] = cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]);
 %     cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]); 
     coeffs = abs(coeffs);
     % assignin('base','coeffs',coeffs)
@@ -167,7 +168,7 @@ for i = 1:min(size(data))
     % Instantaneous energy integral approach
     % minlen = 0;
     instE = trapz(abs(coeffs).^2);
-    assignin('base','instE',instE)
+%     assignin('base','instE',instE)
     thr = mean(instE) + sdmult*std(instE);
     % assignin('base','thr',thr)
     coeffs_det = instE;
@@ -301,51 +302,52 @@ for i = 1:min(size(data))
     % assignin('base','t',t)
     % assignin('base','doggy',dogged)
     %% Plotting
-    
-    figure
-    
-    ax1 = subplot(311);
-    plot(t,data(i,:))
-    hold on
-    plot(t,dets(i,:),'r*','MarkerSize',12)
-    axis tight
-    if min(size(data)) == 1
-        title('Detections based on CWT')
-    else
-        title(['Detections based on CWT - Ch#',num2str(i)])
-    end
-    xlabel('Time [s]')
-    ylabel('Voltage [\muV]')
-    
-    ax2 = subplot(312);
-    try
-        plot(t,instE)
-    catch
-        plot(t,colmean)
-    end
-    hold on
-    plot(t,ones(size(t))*thr)
-    xlabel('Time [s]')
-    ylabel('CWT coefficient magnitude')
-    axis tight
-    legend('Inst. Energy integral over all frequencies','threshold')
-    
-    ax3 = subplot(313);
-    if refVal ~= 0
-        plot(t,refInstE)
+    if showFigs
+        figure
+
+        ax1 = subplot(311);
+        plot(t,data(i,:))
         hold on
-        plot(t,refDetMarks,'*r')
-%         markLabels = compose("#%d",1:length(find(~isnan(refDetMarks))));
-%         text(t(find(~isnan(refDetMarks))),refDetMarks(find(~isnan(refDetMarks))),markLabels)
-        hold off
+        plot(t,dets(i,:),'r*','MarkerSize',12)
+        axis tight
+        if min(size(data)) == 1
+            title('Detections based on CWT')
+        else
+            title(['Detections based on CWT - Ch#',num2str(i)])
+        end
+        xlabel('Time [s]')
+        ylabel('Voltage [\muV]')
+
+        ax2 = subplot(312);
+        try
+            plot(t,instE)
+        catch
+            plot(t,colmean)
+        end
+        hold on
+        plot(t,ones(size(t))*thr)
         xlabel('Time [s]')
         ylabel('CWT coefficient magnitude')
         axis tight
-        title('Inst. Energy integral - Reference Channel')
+        legend('Inst. Energy integral','threshold')
+
+        ax3 = subplot(313);
+        if refVal ~= 0
+            plot(t,refInstE)
+            hold on
+            plot(t,refDetMarks,'*r')
+    %         markLabels = compose("#%d",1:length(find(~isnan(refDetMarks))));
+    %         text(t(find(~isnan(refDetMarks))),refDetMarks(find(~isnan(refDetMarks))),markLabels)
+            hold off
+            xlabel('Time [s]')
+            ylabel('CWT coefficient magnitude')
+            axis tight
+            title('Inst. Energy integral - Reference Channel')
+        end
+
+        linkaxes([ax1,ax2,ax3],'x')
+        xlim([0.1 t(end)-0.1])
     end
-    
-    linkaxes([ax1,ax2,ax3],'x')
-    xlim([0.1 t(end)-0.1])
 end
 
 if refVal == 1

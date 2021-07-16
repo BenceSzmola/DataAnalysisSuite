@@ -1,8 +1,8 @@
-function csillag = adaptive_thresh(data,srate,step,minwidth,mindist,ratio)
+function csillag = adaptive_thresh(data,taxis,fs,step,minwidth,mindist,ratio,showFigs)
 %%
 % srate = 20000;
-srate = round(srate,4);
-dt = 1/srate;
+fs = round(fs,4);
+dt = 1/fs;
 % step = 0.05;
 step = round(step,4);
 win = step*2;
@@ -29,12 +29,12 @@ if nargin == 0
         data = data.amplifier_data(goodch,:);
     end
 end
-tax = 0:dt:(length(data)*dt)-dt;
+% taxis = 0:dt:(length(data)*dt)-dt;
 
 
 %% Apply DoG (from BuzsakiLab)
-GFw1       = makegausslpfir( 150, srate, 6 );
-GFw2       = makegausslpfir( 250, srate, 6 );
+GFw1       = makegausslpfir( 150, fs, 6 );
+GFw2       = makegausslpfir( 250, fs, 6 );
 lfpLow     = firfilt( data, GFw2 );     % lowpass filter
 eegLo      = firfilt( lfpLow, GFw1 );   % highpass filter
 lfpLow     = lfpLow - eegLo;            % difference of Gaussians
@@ -73,7 +73,7 @@ envel = abs(envel);
 % hold off
 
 %% Smoothing with Gaussian window
-gw = gausswin(0.02*srate);
+gw = gausswin(0.02*fs);
 smoothie = conv(envel,gw,'same');
 % smoothie = imgaussfilt(envel,6);
 % assignin('base','smoothie',smoothie)
@@ -90,18 +90,18 @@ smoothie = conv(envel,gw,'same');
 % assignin('base','piks',piks)
 % assignin('base','inds',inds)
 
-tps = tax(inds);
+tps = taxis(inds);
 
 %% sliding window histogram over peaks
 vbins = linspace(min(smoothie),max(smoothie),100);
 histo = zeros(length(vbins),length(smoothie));
-for i = 1:step*srate:length(smoothie)
-    currinds = find(inds >= i & inds < (i+win*srate));
+for i = 1:step*fs:length(smoothie)
+    currinds = find(inds >= i & inds < (i+win*fs));
     currbin = piks(currinds);
     for j = 1:size(histo,1)-1
         currbins2 = currbin(currbin >= vbins(j) & currbin <= vbins(j+1));
-        if i+win*srate-1 <= size(histo,2)
-            histo(j,i:i+win*srate-1) = length(currbins2);
+        if i+win*fs-1 <= size(histo,2)
+            histo(j,i:i+win*fs-1) = length(currbins2);
         else
             histo(j,i:end) = length(currbins2);
         end
@@ -114,17 +114,17 @@ end
 sliding_avg = zeros(1,length(smoothie));
 sliding_sd = zeros(1,length(smoothie));
 detections = [];
-for i = 1:step*srate:length(smoothie)
+for i = 1:step*fs:length(smoothie)
     try
-        currstep = smoothie(i:(i+win*srate)-1);
+        currstep = smoothie(i:(i+win*fs)-1);
     catch 
         currstep = smoothie(i:end);
     end
     curravg = mean(currstep);
     currsd = std(currstep);
-    if i+win*srate-1 <= size(sliding_avg,2)
-        sliding_avg(1,i:i+win*srate-1) = curravg;
-        sliding_sd(1,i:i+win*srate-1) = currsd;
+    if i+win*fs-1 <= size(sliding_avg,2)
+        sliding_avg(1,i:i+win*fs-1) = curravg;
+        sliding_sd(1,i:i+win*fs-1) = currsd;
     else
         sliding_avg(1,i:end) = curravg;
         sliding_sd(1,i:end) = currsd;
@@ -140,37 +140,39 @@ end
 % assignin('base','detections',detections)
 
 %% Histogram meg thresholdok abrazolasa
-figure;
-imagesc(tax,vbins,histo)
-set(gca,'YDir','normal')
-colormap(hot)
-colorbar
-title('Histogram from Hilbert envelope peaks')
-xlabel('Time [s]')
-ylabel('Voltage [\muV]')
-% hold on
-% plot(tax,sliding_avg*upthr,'w')
-hold on
-hist_low = plot(tax,sliding_avg*lowthr,'g');
-hold off
+if showFigs
+    figure;
+    imagesc(taxis,vbins,histo)
+    set(gca,'YDir','normal')
+    colormap(hot)
+    colorbar
+    title('Histogram from Hilbert envelope peaks')
+    xlabel('Time [s]')
+    ylabel('Voltage [\muV]')
+    % hold on
+    % plot(taxis,sliding_avg*upthr,'w')
+    hold on
+    hist_low = plot(taxis,sliding_avg*lowthr,'g');
+    hold off
 
-figure
-sp1=subplot(2,1,1);
-% plot(tax,sliding_avg*upthr)
-% hold on
-lowline = plot(tax,sliding_avg*lowthr);
-hold on
-plot(tax,smoothie)
-title('Hilbert envelope smoothed by Gaussian filter')
-xlabel('Time [s]')
-ylabel('Voltage [\muV]')
-legend('Threshold','Hilbert envelope')
-sp2=subplot(2,1,2);
-plot(tax,z_dog)
-title('DoG filtered LFP')
-xlabel('Time [s]')
-ylabel('Voltage [\muV]')
-linkaxes([sp1,sp2],'x')
+    figure
+    sp1=subplot(2,1,1);
+    % plot(taxis,sliding_avg*upthr)
+    % hold on
+    lowline = plot(taxis,sliding_avg*lowthr);
+    hold on
+    plot(taxis,smoothie)
+    title('Hilbert envelope smoothed by Gaussian filter')
+    xlabel('Time [s]')
+    ylabel('Voltage [\muV]')
+    legend('Threshold','Hilbert envelope')
+    sp2=subplot(2,1,2);
+    plot(taxis,z_dog)
+    title('DoG filtered LFP')
+    xlabel('Time [s]')
+    ylabel('Voltage [\muV]')
+    linkaxes([sp1,sp2],'x')
+end
 
 %% Detection based on num of peaks
 biggs = 0;
@@ -187,9 +189,12 @@ while (biggs/sum(sum(histo))) < ratio
     end
     fprintf(1,'ratio: %1.4f, thresh multiplier: %1.2f\n',(biggs/sum(sum(histo))),lowthr)
 end
-lowline.YData = sliding_avg*lowthr;
-hist_low.YData = sliding_avg*lowthr;
-drawnow
+
+if showFigs
+    lowline.YData = sliding_avg*lowthr;
+    hist_low.YData = sliding_avg*lowthr;
+    drawnow
+end
 
 detettione = [];
 for i = 2:length(smoothie)-1
@@ -210,14 +215,14 @@ for i = 1:length(detettione)
         j = j+1;
     end
     highend = detettione(i)+j;
-    if (highend-lowend) < minwidth*srate
+    if (highend-lowend) < minwidth*fs
         detettione(i) = 0;
     end
 end
 detettione(detettione==0) = [];
 
 for i = 1:length(detettione)-1
-    if (detettione(i+1)-detettione(i)) < mindist*srate
+    if (detettione(i+1)-detettione(i)) < mindist*fs
         detettione(i) = 0;
     end
 end
@@ -226,14 +231,16 @@ detettione(detettione==0) = [];
 % assignin('base','detettione',detettione)
 
 %% Show detecitons on dog
-csillag = zeros(1,length(smoothie));
-csillag(:) = nan;
-csillag(detettione) = 0;
-% figure
-% plot(tax,z_dog)
-% hold on
-hold(sp2,'on')
-plot(tax,csillag,'r*','MarkerSize',12)
-legend('DoG','Detections')
-axis tight
-hold off
+if showFigs
+    csillag = zeros(1,length(smoothie));
+    csillag(:) = nan;
+    csillag(detettione) = 0;
+    % figure
+    % plot(taxis,z_dog)
+    % hold on
+    hold(sp2,'on')
+    plot(taxis,csillag,'r*','MarkerSize',12)
+    legend('DoG','Detections')
+    axis tight
+    hold off
+end

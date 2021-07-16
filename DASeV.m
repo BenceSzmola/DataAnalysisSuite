@@ -276,22 +276,23 @@ classdef DASeV < handle
                         if gO.highPassRawEphys == 1
                             temp = filtfilt(b,a,gO.ephysData(chan,:));
                             data = temp(winIdx);
-                            axLims = [tWin(1), tWin(end), min(temp), max(temp)];
+%                             axLims = [tWin(1), tWin(end), min(temp), max(temp)];
+                            axLims = [min(temp), max(temp)];
                         elseif gO.highPassRawEphys == 0
                             data = gO.ephysData(chan,winIdx);
-                            axLims = [tWin(1), tWin(end),...
-                                min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+%                             axLims = [tWin(1), tWin(end),...
+                            axLims = [min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
                         end
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(2)
                         data = gO.ephysDoGGed(chan,winIdx);
-                        axLims = [tWin(1), tWin(end),...
-                            min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
+%                         axLims = [tWin(1), tWin(end),...
+                        axLims = [min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(3)
                         data = gO.ephysInstPow(chan,winIdx);
-                        axLims = [tWin(1), tWin(end),...
-                            min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+%                         axLims = [tWin(1), tWin(end),...
+                        axLims = [min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]']);
@@ -301,26 +302,26 @@ classdef DASeV < handle
                         if gO.highPassRawEphys == 1
                             tempfull = filtfilt(b,a,gO.ephysData(chan,:));
                             temp = tempfull(winIdx);
-                            axLims = [axLims; tWin(1), tWin(end),...
-                                min(tempfull), max(tempfull)];
+%                             axLims = [axLims; tWin(1), tWin(end),...
+                            axLims = [axLims; min(tempfull), max(tempfull)];
                         elseif gO.highPassRawEphys == 0
                             temp = gO.ephysData(chan,winIdx);
-                            axLims = [axLims; tWin(1), tWin(end),...
-                                min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+%                             axLims = [axLims; tWin(1), tWin(end),...
+                            axLims = [axLims; min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
                         end
                         data = [data; temp];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(2)
                         data = [data; gO.ephysDoGGed(chan,winIdx)];
-                        axLims = [axLims; tWin(1), tWin(end),...
-                            min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
+%                         axLims = [axLims; tWin(1), tWin(end),...
+                        axLims = [axLims; min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(3)
                         data = [data; gO.ephysInstPow(chan,winIdx)];
-                        axLims = [axLims; tWin(1), tWin(end),...
-                            min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+%                         axLims = [axLims; tWin(1), tWin(end),...
+                        axLims = [axLims; min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = [string(yLabels); string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]'])];
@@ -329,19 +330,19 @@ classdef DASeV < handle
                     if gO.highPassRawEphys == 1
                         tempfull = filtfilt(b,a,gO.ephysData(chan,:));
                         temp = tempfull(winIdx);
-                        axLims = [tWin(1), tWin(end),...
-                            min(tempfull), max(tempfull)];
+%                         axLims = [tWin(1), tWin(end),...
+                        axLims = [min(tempfull), max(tempfull)];
                     elseif gO.highPassRawEphys == 0
                         temp = gO.ephysData(chan,winIdx);
-                        axLims = [tWin(1), tWin(end),...
-                            min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+%                         axLims = [tWin(1), tWin(end),...
+                        axLims = [min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
                     end
                     data = [temp;...
                         gO.ephysDoGGed(chan,winIdx);...
                         gO.ephysInstPow(chan,winIdx)];
-                    axLims = [axLims; axLims(1:2), ...
+                    axLims = [axLims;... %axLims(1:2), ...
                         min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:));
-                        axLims(1:2), min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+                        min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
                     temp = find(gO.ephysYlabel=='[');
                     yLabels = [string(gO.ephysYlabel); string(gO.ephysYlabel);...
                         string(['Power ',gO.ephysYlabel(temp:end-1),...
@@ -357,14 +358,15 @@ classdef DASeV < handle
 %                     end
 %                 else
                     for j = 1:length(tDetInds)
-                        line(ax(i),[tDetInds(j), tDetInds(j)],axLims(i,3:4),...
-                            'Color','r')
+                        xline(ax(i),tDetInds(j),'Color','r','LineWidth',1);
                     end
 %                 end
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
-                axis(ax(i),axLims(i,:))
+%                 axis(ax(i),axLims(i,:))
+                axis(ax(i),'tight')
+                ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
                 
 %                 z = zoom(gO.mainFig);
@@ -480,6 +482,10 @@ classdef DASeV < handle
             end
             newdir = [newdir,'\*DASsave*.mat'];
             newlist = dir(newdir);
+            if isempty(newdir)
+                warndlg('Selected directory does not include any save files!')
+                return
+            end
             newlist = {newlist.name};
             gO.fileList.String = newlist;
         end
@@ -603,6 +609,8 @@ classdef DASeV < handle
                 'Position',[0.1, 0.1, 0.8, 0.7],...
                 'NumberTitle','off',...
                 'Name','DAS Event Viewer',...
+                'IntegerHandle','off',...
+                'HandleVisibility','Callback',...
                 'MenuBar','none');
             
             %% Menus

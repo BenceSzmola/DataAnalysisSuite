@@ -18,6 +18,7 @@ classdef DAS < handle
         showSimultMarkersMenu
         ephysEventDetTabDataTypeMenu
         ephysEventDetTabFiltCutoffMenu
+        showXtraDetFigsMenu
         MakewindowlargerMenu
         MakewindowsmallerMenu
         
@@ -213,6 +214,7 @@ classdef DAS < handle
     properties (Access = private)
         timedim = 1;                        % Determines whether the guiobj uses seconds or milliseconds
         datatyp = [0, 0, 0];                % datatypes currently handled (ephys,imaging,running)
+        showXtraDetFigs = 0;
         
         xtitle = 'Time [s]';
         
@@ -911,6 +913,7 @@ classdef DAS < handle
                     
 %                     chan = guiobj.ephysDetChSelPopMenu.Value;
                     chan = currChans(guiobj.eventDet1CurrChan);
+                    axYMinMax = [min(data(chan,:)), max(data(chan,:))];
 %                     currDetRows
 %                     currDet = guiobj.eventDet1CurrIdx
 %                     currDet = currChans(guiobj.eventDet1CurrChan)+currDetRows(1)-1
@@ -942,10 +945,12 @@ classdef DAS < handle
 %                     dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
                     plot(ax,tWin,dataWin)
                     hold(ax,'on')
-                    line(ax,[tStamp tStamp],[min(dataWin), max(dataWin)],...
-                        'Color','r')
+%                     line(ax,[tStamp tStamp],axYMinMax,...
+%                         'Color','r')
+                    xline(ax,tStamp,'Color','r','LineWidth',1);
                     hold(ax,'off')
                     axis(ax,'tight')
+                    ylim(ax,axYMinMax)
                     xlabel(ax,guiobj.xtitle)
                     ylabel(ax,guiobj.ephys_ylabel);
                     title(ax,['Channel#',num2str(chan),'      Detection#',num2str(detInd),...
@@ -1497,6 +1502,17 @@ classdef DAS < handle
             end
             
             simultDetMarkerPlot(guiobj,1)
+        end
+        
+        %%
+        function showXtraDetFigsMenuSel(guiobj,~,~)
+            if strcmp(guiobj.showXtraDetFigsMenu.Checked,'on')
+                guiobj.showXtraDetFigsMenu.Checked = 'off';
+                guiobj.showXtraDetFigs = 0;
+            else
+                guiobj.showXtraDetFigsMenu.Checked = 'on';
+                guiobj.showXtraDetFigs = 1;
+            end
         end
         
         %% Button pushed function: ImportruncsvButton
@@ -2177,7 +2193,9 @@ classdef DAS < handle
                 data = guiobj.ephys_data;
             end
             fs = guiobj.ephys_fs;
-                        
+            tAxis = guiobj.ephys_taxis;
+            showFigs = guiobj.showXtraDetFigs;
+            
             switch dettype
                 case 'CWT based'
                     minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String);
@@ -2232,11 +2250,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        dets = wavyDet(data,fs,minLen/1000,sdmult,w1,w2,0);
+                        dets = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
                     elseif refVal & (chan > min(size(guiobj.ephys_data)))
-                        dets = wavyDet(data,fs,minLen/1000,sdmult,w1,w2,refch);
+                        dets = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
                     elseif refVal & (chan < min(size(guiobj.ephys_data)))
-                        dets = wavyDet(data,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:));
+                        dets = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;                    
                     
@@ -2283,7 +2301,7 @@ classdef DAS < handle
                         return
                     end
                     
-                    dets = adaptive_thresh(data,fs,step,minLen,mindist,ratio);
+                    dets = adaptive_thresh(data,tAxis,fs,step,minLen,mindist,ratio,showFigs);
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
 %                     detinfo = [chan, 2];
@@ -2371,11 +2389,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,0);
+                        dets = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
                     elseif refVal && (size(data,1)>1)
-                        dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,refch);
+                        dets = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
                     elseif refVal && (size(data,1)==1)
-                        dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:));
+                        dets = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
@@ -2414,7 +2432,7 @@ classdef DAS < handle
                 errordlg('No events were found!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                
+                guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum - 1;
                 return                
             end
             
@@ -2620,7 +2638,8 @@ classdef DAS < handle
         %%
         function changeEventDetTabDataType(guiobj,event)
             list = {'RawData','DoG','InstPow'};
-            [idx,tf] = listdlg('ListString',list);
+            [idx,tf] = listdlg('ListString',list,...
+                'InitialValue',guiobj.eventDet1DataType);
             if ~tf
                 return
             end
@@ -2641,7 +2660,8 @@ classdef DAS < handle
             prompt = {'Lower cutoff [Hz]','Upper cutoff [Hz]','Event window [ms]'};
             title = 'Frequency band for EventDetTab graphs';
             dims = [1, 15];
-            definput = {'150','250','500'};
+            definput = {num2str(guiobj.eventDet1W1),...
+                num2str(guiobj.eventDet1W2),num2str(guiobj.eventDet1Win)};
             answer = inputdlg(prompt,title,dims,definput);
             if isempty(answer)
                 return
@@ -2649,6 +2669,15 @@ classdef DAS < handle
             guiobj.eventDet1W1 = str2double(answer{1});
             guiobj.eventDet1W2 = str2double(answer{2});
             guiobj.eventDet1Win = str2double(answer{3});
+            
+            if ~isempty(find(guiobj.eventDet1DataType==2,1))
+                    guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
+                        guiobj.eventDet1W1,guiobj.eventDet1W2);
+            elseif ~isempty(find(guiobj.eventDet1DataType==3,1))
+                    guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
+                        guiobj.eventDet1W1,guiobj.eventDet1W2);
+            end
+            
             eventDetAxesButtFcn(guiobj,1,-1,0)
         end
         
@@ -2973,7 +3002,7 @@ classdef DAS < handle
     %% guiobj initialization and construction
     methods (Access = private)
 
-        % Create UIFigure and components
+        % Create Figure and components
         function createComponents(guiobj)
 
             % Create figure
@@ -2982,6 +3011,8 @@ classdef DAS < handle
                 'NumberTitle','off',...
                 'Name','Data Analysis Suite',...
                 'MenuBar','none',...
+                'IntegerHandle','off',...
+                'HandleVisibility','Callback',...
                 'DeleteFcn',@(h,e) guiobj.mainFigCloseFcn);
 
             % Create OptionsMenu
@@ -3024,7 +3055,11 @@ classdef DAS < handle
             guiobj.ephysEventDetTabFiltCutoffMenu = uimenu(guiobj.OptionsMenu,...
                 'Text','EventDetTab - change cutoff frequencies',...
                 'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabCutoff);
-
+            
+            guiobj.showXtraDetFigsMenu = uimenu(guiobj.OptionsMenu,...
+                'Text','Show extra detection figures',...
+                'Checked','off',...
+                'MenuSelectedFcn',@ guiobj.showXtraDetFigsMenuSel);
 %             % Create MakewindowlargerMenu
 %             guiobj.MakewindowlargerMenu = uimenu(guiobj.OptionsMenu,...
 %                 'MenuSelectedFcn',@(h,e) guiobj.MakewindowlargerMenuSelected,...

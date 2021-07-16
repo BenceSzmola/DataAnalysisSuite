@@ -1,4 +1,4 @@
-function dets = DoGInstPowDet(data,fs,w1,w2,sdmult,minLen,refch)
+function dets = DoGInstPowDet(data,taxis,fs,w1,w2,sdmult,minLen,refch,showFigs)
 
 if size(data,1) > size(data,2)
     data = data';
@@ -215,48 +215,49 @@ for i = 1:size(data,1)
     end
     
     % plotting part mainly for bugfixing
-    t=linspace(0,length(data)/fs,length(data));
-    
-    figure('Name',['Chan#',num2str(i)])
-    
-    sp1=subplot(311);
-    plot(t,dogged(i,:))
-    hold on
-    plot(t,dets(i,:),'*r')
-    xlabel('Time [s]')
-    ylabel('Voltage [\muV]')
-    title(['DoG of channel #',num2str(i)])
-    
-    sp2=subplot(312);
-    plot(t,instPowd(i,:))
-    hold on
-    plot(t,dets(i,:),'*r')
-    hold on
-    plot(t,thr*ones(1,length(t)),'-g')
-    hold on
-    plot(t,quietthr*ones(1,length(t)),'-k')
-    hold on
-    plot(t,qSegsInds,'-y')
-    xlabel('Time [s]')
-    ylabel('Power [\muV^2]')
-    title(['Instantaneous Power of channel #',num2str(i)])
-    legend({'Inst.Power','Detections','Detection threshold',...
-        'Threshold for quiet intervals','Quiet intervals'})
-    
-    sp3=subplot(313);
-    if refVal ==1
-        plot(t,dogged(refch,:))
-        hold on 
-        plot(t,refDetMarks,'*r')
-    elseif refVal == 2
-        plot(t,refdogged)
+%     t=linspace(0,length(data)/fs,length(data));
+    if showFigs
+        figure('Name',['Chan#',num2str(i)])
+
+        sp1=subplot(311);
+        plot(taxis,dogged(i,:))
         hold on
-        plot(t,refDetMarks,'*r')
+        plot(taxis,dets(i,:),'*r')
+        xlabel('Time [s]')
+        ylabel('Voltage [\muV]')
+        title(['DoG of channel #',num2str(i)])
+
+        sp2=subplot(312);
+        plot(taxis,instPowd(i,:))
+        hold on
+        plot(taxis,dets(i,:),'*r')
+        hold on
+        plot(taxis,thr*ones(1,length(taxis)),'-g')
+        hold on
+        plot(taxis,quietthr*ones(1,length(taxis)),'-k')
+        hold on
+        plot(taxis,qSegsInds,'-y')
+        xlabel('Time [s]')
+        ylabel('Power [\muV^2]')
+        title(['Instantaneous Power of channel #',num2str(i)])
+        legend({'Inst.Power','Detections','Detection threshold',...
+            'Threshold for quiet intervals','Quiet intervals'})
+
+        sp3=subplot(313);
+        if refVal ==1
+            plot(taxis,dogged(refch,:))
+            hold on 
+            plot(taxis,refDetMarks,'*r')
+        elseif refVal == 2
+            plot(taxis,refdogged)
+            hold on
+            plot(taxis,refDetMarks,'*r')
+        end
+        xlabel('Time [s]')
+        ylabel('Voltage [\muV]')
+        title('DoG of reference channel')
+        linkaxes([sp1,sp2,sp3],'x')
     end
-    xlabel('Time [s]')
-    ylabel('Voltage [\muV]')
-    title('DoG of reference channel')
-    linkaxes([sp1,sp2,sp3],'x')
 end
 
 if refVal == 1
