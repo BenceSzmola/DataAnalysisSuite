@@ -5,7 +5,7 @@ function data_filt = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
 % fs : sampling frequency
 % fmax : manually set maximal frequency up to which the algorithm will filter
 % f_fund : manually specify the fundamental frequency of the noise
-% stopbandwidth : +- how many Hz the filter should cut out around the noise
+% stopbandwidth :  how many Hz the filter should cut out around the noise
 % input [] if you dont want to specify something
 
 if nargin == 0
@@ -23,7 +23,7 @@ if nargin == 0
     fs = str2double(parameters{1});
     fmax = str2double(parameters{2});
     f_fund = str2double(parameters{3});
-    stopbandwidth = str2double(parameters{4});
+    stopbandwidth = str2double(parameters{4})/2;
 end
 
 if nargin == 0 || isempty(data)
@@ -49,7 +49,7 @@ else
 end
 
 if (nargin > 0 && nargin < 5)
-    stopbandwidth = 0.5;
+    stopbandwidth = 1;
 end
 
 data_filt = data;

@@ -1,8 +1,16 @@
 function dets = DoGInstPowDet(data,taxis,fs,w1,w2,sdmult,minLen,refch,showFigs)
 
+assignin('base','taxis',taxis)
+
 if size(data,1) > size(data,2)
     data = data';
 end
+
+% data = periodicNoise(data,fs,500);
+
+%%%
+corrThr = 0.6;
+%%%
 
 % Checking whether refchan validation is requested 
 % 0 => not reqeusted; nonzero number => number of refchan; 
@@ -79,8 +87,8 @@ if (refVal ~= 0)
 %         refdets(instPowd(refch,:)>thr) = 0;
 %     end
 
-    thr = mean(refInstPowd) + 3*std(refInstPowd);
-    refdets(refInstPowd>thr) = 0;
+    refThr = mean(refInstPowd) + 3*std(refInstPowd);
+    refdets(refInstPowd>refThr) = 0;
 
     % join close-by events together
     refdetsInds = find(refdets==0);
@@ -95,6 +103,9 @@ if (refVal ~= 0)
     % reduce number of refdets by only keeping 1st and last index of an
     % event
     abThr = find(~isnan(refdets));
+    aboveRefThr = nan(1,length(refdogged));
+    belowRefThr = refdogged;
+    
     if ~isempty(abThr)
         steps = diff(abThr);
         eventsS = [1,find(steps~=1)+1];
@@ -106,9 +117,9 @@ if (refVal ~= 0)
         end
 %         notRefDetIVs = find(isnan(refDetIVs));
         refDetIVs = find(~isnan(refDetIVs));
-        aboveRefThr = nan(1,length(refdogged));
+%         aboveRefThr = nan(1,length(refdogged));
         aboveRefThr(refDetIVs) = refdogged(refDetIVs);
-        belowRefThr = refdogged;
+%         belowRefThr = refdogged;
         belowRefThr(refDetIVs) = nan;
 %         if refVal == 2
 %             aboveRefThr = nan(1,length(refdogged));
@@ -121,8 +132,9 @@ if (refVal ~= 0)
 %             belowRefThr = dogged(refch,:);
 %             belowRefThr(refDetIVs) = nan;
 %         end
+    else
+        
     end
-    
     
 end
 
@@ -189,7 +201,7 @@ for i = 1:size(data,1)
 %             title(['Refchan window, corr = ',num2str(r(2))])
 %             waitforbuttonpress
             
-            condit = ((refch~=0) & (abs(r(2))<0.6)) | (refch==0);
+            condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
             if condit
                 vEvents = [vEvents, newEv];
             end
@@ -272,7 +284,7 @@ for i = 1:size(data,1)
 %                 title(['Refchan window, corr = ',num2str(r(2))])
 %                 waitforbuttonpress
                 
-                condit = ((refch~=0) & (abs(r(2))<0.6)) | (refch==0);
+                condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
                 if condit
                     vEvents = [vEvents, newEv];
                 end
@@ -287,57 +299,67 @@ for i = 1:size(data,1)
     % plotting part mainly for bugfixing
 %     t=linspace(0,length(data)/fs,length(data));
     if showFigs
-        figure('Name',['Chan#',num2str(i)])
+        xtraFig = figure('Name',['Chan#',num2str(i)],'Visible','off');
 
-        sp1=subplot(311);
-        plot(taxis,dogged(i,:))
-        hold on
-        plot(taxis,dets(i,:),'*r')
-        xlabel('Time [s]')
-        ylabel('Voltage [\muV]')
-        title(['DoG of channel #',num2str(i)])
+        if refVal ~= 0
+            sp1 = subplot(311);
+            sp2 = subplot(312);
+            sp3 = subplot(313);
+            linkaxes([sp1,sp2,sp3],'x')
+            
+            plot(sp3,taxis,belowRefThr)
+            hold(sp3,'on')
+            plot(sp3,taxis,aboveRefThr,'-r')
+            hold(sp3,'off')
 
-        sp2=subplot(312);
-        plot(taxis,instPowd(i,:))
-        hold on
-        plot(taxis,dets(i,:),'*r')
-        hold on
-        plot(taxis,thr*ones(1,length(taxis)),'-g')
-        hold on
-        plot(taxis,quietthr*ones(1,length(taxis)),'-k')
-        hold on
-        plot(taxis,qSegsInds,'-m')
-        xlabel('Time [s]')
-        ylabel('Power [\muV^2]')
-        title(['Instantaneous Power of channel #',num2str(i)])
-        legend({'Inst.Power','Detections','Detection threshold',...
+            xlabel(sp3,'Time [s]')
+            ylabel(sp3,'Voltage [\muV]')
+            title(sp3,'DoG of reference channel')
+            legend(sp3,{'DoG','Above threshold'})
+        else
+            sp1 = subplot(211);
+            sp2 = subplot(212);
+            linkaxes([sp1,sp2],'x')
+        end
+        
+%         sp1=subplot(311);
+        plot(sp1,taxis,dogged(i,:))
+        hold(sp1,'on')
+        plot(sp1,taxis,dets(i,:),'*r','MarkerSize',10)
+        hold(sp1,'off')
+        xlabel(sp1,'Time [s]')
+        ylabel(sp1,'Voltage [\muV]')
+        title(sp1,['DoG of channel #',num2str(i)])
+
+%         sp2=subplot(312);
+        plot(sp2,taxis,instPowd(i,:))
+        hold(sp2,'on')
+        plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
+%         hold on
+        plot(sp2,taxis,thr*ones(1,length(taxis)),'-g')
+%         hold on
+        plot(sp2,taxis,quietthr*ones(1,length(taxis)),'-k')
+%         hold on
+        plot(sp2,taxis,qSegsInds,'-m')
+        hold(sp2,'off')
+        xlabel(sp2,'Time [s]')
+        ylabel(sp2,'Power [\muV^2]')
+        title(sp2,['Instantaneous Power of channel #',num2str(i)])
+        legend(sp2,{'Inst.Power','Detections','Detection threshold',...
             'Threshold for quiet intervals','Quiet intervals'})
-
-        sp3=subplot(313);
-        plot(taxis,belowRefThr)
-        hold on
-        plot(taxis,aboveRefThr,'-r')
-        hold off
-%         if refVal ==1
-%             plot(taxis,belowRefThr)
-%             hold on 
-% %             plot(taxis,refDetMarks,'*r')
-%             plot(taxis,aboveRefThr,'-r')
-%         elseif refVal == 2
-%             temp = refdogged;
-%             temp(refDetIVs) = nan;
-%             plot(taxis,temp)
-%             hold on
-% %             plot(taxis,refDetMarks,'*r')
-%             temp = nan(1,length(data));
-%             temp(refDetIVs) = refdogged(refDetIVs);
-%             plot(taxis,temp,'-r')
-%         end
-        xlabel('Time [s]')
-        ylabel('Voltage [\muV]')
-        title('DoG of reference channel')
-        legend({'DoG','Above threshold'})
-        linkaxes([sp1,sp2,sp3],'x')
+        
+        xtraFig.Visible = 'on';
+%         sp3=subplot(313);
+%         plot(taxis,belowRefThr)
+%         hold on
+%         plot(taxis,aboveRefThr,'-r')
+%         hold off
+% 
+%         xlabel('Time [s]')
+%         ylabel('Voltage [\muV]')
+%         title('DoG of reference channel')
+%         legend({'DoG','Above threshold','Threshold'})
+%         linkaxes([sp1,sp2,sp3],'x')
     end
 end
 

@@ -8,7 +8,7 @@ classdef DAS < handle
     properties (Access = private)
         mainfig
         
-        OptionsMenu
+        MainTabOptionsMenu
         timedimChangeMenu
         showProcDataMenu
         showDetMarkersMenu
@@ -16,6 +16,8 @@ classdef DAS < handle
         showEphysDetLegendMenu
         showImagingDetMarkersMenu
         showSimultMarkersMenu
+        
+        EvDetTabOptionsMenu
         ephysEventDetTabDataTypeMenu
         ephysEventDetTabFiltCutoffMenu
         showXtraDetFigsMenu
@@ -957,16 +959,16 @@ classdef DAS < handle
                         '/',num2str(numDets)])
                     
                     %%% testing FWHM
-                    halfmax = data(chan,tInd)/2
-                    aboveHM = find(data(chan,:)>halfmax);
-                    assignin('base','aboveHM',aboveHM)
-                    assignin('base','tInd',tInd)
-                    aboveHMtInd = find(aboveHM==tInd);
-                    steps = diff(aboveHM);
-                    disconts = find(steps~=1);
-                    lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last'))+1);
-                    highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1)));
-                    FWHM = (highbord-lowbord)/20
+%                     halfmax = data(chan,tInd)/2
+%                     aboveHM = find(data(chan,:)>halfmax);
+%                     assignin('base','aboveHM',aboveHM)
+%                     assignin('base','tInd',tInd)
+%                     aboveHMtInd = find(aboveHM==tInd);
+%                     steps = diff(aboveHM);
+%                     disconts = find(steps~=1);
+%                     lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last'))+1);
+%                     highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1)));
+%                     FWHM = (highbord-lowbord)/20
                     
 %                     display('----------------------------------------')
                     
@@ -1082,6 +1084,7 @@ classdef DAS < handle
 %             guiobj.eventDet2CurrDet = 1;
 %             guiobj.eventDet2CurrRoi = 1;
             dtyp = guiobj.datatyp;
+            showXtraFigs = guiobj.showXtraDetFigs;
             close(guiobj.mainfig)
             delete(guiobj)
             guiobj = DAS;
@@ -1101,6 +1104,9 @@ classdef DAS < handle
                 guiobj.runCheckBox.Value = 1;
                 runCheckBoxValueChanged(guiobj)
                 ImportruncsvButtonPushed(guiobj)
+            end
+            if showXtraFigs
+                showXtraDetFigsMenuSel(guiobj)                
             end
         end
         
@@ -1186,6 +1192,15 @@ classdef DAS < handle
 
         %% Button pushed function: ImportgorobjButton
         function ImportgorobjButtonPushed(guiobj, event)
+            
+            if ~isempty(guiobj.ephys_data)
+                clrGUI = questdlg('GUI will be reset, have you saved everything you wanted?');
+                if strcmp(clrGUI,'Yes')
+                    resetGuiData(guiobj,2)
+                end
+                return
+            end
+            
             % Getting variables from base workspace
             wsvars = evalin('base','whos');
             % Finding gorobj variables
@@ -1509,6 +1524,7 @@ classdef DAS < handle
             if strcmp(guiobj.showXtraDetFigsMenu.Checked,'on')
                 guiobj.showXtraDetFigsMenu.Checked = 'off';
                 guiobj.showXtraDetFigs = 0;
+                
             else
                 guiobj.showXtraDetFigsMenu.Checked = 'on';
                 guiobj.showXtraDetFigs = 1;
@@ -2974,6 +2990,9 @@ classdef DAS < handle
                 
             end
             
+            comments = inputdlg('Enter comment on detection:','Comments',...
+                [10,100]);
+            
             if isempty(guiobj.rhdName)
                 fname = ['DASsave_',char(datetime('now','Format','yyMMdd_HHmmss'))];
             else
@@ -2985,7 +3004,7 @@ classdef DAS < handle
                 return
             end
             oldpath = cd(path);
-            save(fname,'ephysSaveData','ephysSaveInfo');%,...
+            save(fname,'ephysSaveData','ephysSaveInfo','comments');%,...
                 %'imagingSaveData','imagingSaveInfo');
             cd(oldpath)
         end
@@ -3016,23 +3035,23 @@ classdef DAS < handle
                 'DeleteFcn',@(h,e) guiobj.mainFigCloseFcn);
 
             % Create OptionsMenu
-            guiobj.OptionsMenu = uimenu(guiobj.mainfig,...
-                'Text', 'Options');
+            guiobj.MainTabOptionsMenu = uimenu(guiobj.mainfig,...
+                'Text', 'MainTab Options');
 
             % Create timedimChangeMenu
-            guiobj.timedimChangeMenu = uimenu(guiobj.OptionsMenu,...
+            guiobj.timedimChangeMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'MenuSelectedFcn',@(h,e) guiobj.timedimChangeMenuSelected,...
                 'Text','Change between [s]/[ms]');
             
             % Create menu to display or hide processed data in main tab
             % listboxes
-            guiobj.showProcDataMenu = uimenu(guiobj.OptionsMenu,...
+            guiobj.showProcDataMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'Checked','off',...
                 'Text','Show processed data in main tab',...
                 'MenuSelectedFcn',@(h,e) guiobj.showProcDataMenuSelected);
             
             % Create display markers topmenu
-            guiobj.showDetMarkersMenu = uimenu(guiobj.OptionsMenu,...
+            guiobj.showDetMarkersMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'Text','Show detection markers');
             
             % Create menu to display detection markers
@@ -3049,26 +3068,18 @@ classdef DAS < handle
                 'Text','Show simultaneous detection markers',...
                 'MenuSelectedFcn',@(h,e) guiobj.showSimultDetMarkers);
             
-            guiobj.ephysEventDetTabDataTypeMenu = uimenu(guiobj.OptionsMenu,...
+            guiobj.EvDetTabOptionsMenu = uimenu(guiobj.mainfig,...
+                'Text','EventDetTab Options');
+            guiobj.ephysEventDetTabDataTypeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Ephys data type in EventDetTab',...
                 'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabDataType);
-            guiobj.ephysEventDetTabFiltCutoffMenu = uimenu(guiobj.OptionsMenu,...
+            guiobj.ephysEventDetTabFiltCutoffMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','EventDetTab - change cutoff frequencies',...
                 'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabCutoff);
-            
-            guiobj.showXtraDetFigsMenu = uimenu(guiobj.OptionsMenu,...
+            guiobj.showXtraDetFigsMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show extra detection figures',...
                 'Checked','off',...
                 'MenuSelectedFcn',@ guiobj.showXtraDetFigsMenuSel);
-%             % Create MakewindowlargerMenu
-%             guiobj.MakewindowlargerMenu = uimenu(guiobj.OptionsMenu,...
-%                 'MenuSelectedFcn',@(h,e) guiobj.MakewindowlargerMenuSelected,...
-%                 'Text','Make window larger');
-% 
-%             % Create MakewindowsmallerMenu
-%             guiobj.MakewindowsmallerMenu = uimenu(guiobj.OptionsMenu,...
-%                 'MenuSelectedFcn',@(h,e) guiobj.MakewindowsmallerMenuSelected,...
-%                 'Text','Make window smaller');
 
             guiobj.SaveMenu = uimenu(guiobj.mainfig,...
                 'Text','Saving options');
