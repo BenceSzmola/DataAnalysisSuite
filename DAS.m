@@ -252,9 +252,10 @@ classdef DAS < handle
         imaging_proccedInfo
         imaging_procTypes = ["GaussAvg"];
         imaging_detections
-        imaging_detectionsInfo
+        imaging_detectionsInfo = struct('DetType',[],'Roi',[],'Params',[],'DetRun',[]);
         imaging_detMarkerSelection
         imaging_detRunsNum = 0;             % Number of detection runs
+        imaging_currDetRun
         imaging_dettypes = ["Mean+SD"];
         imaging_taxis                       % Time axis for imaging data
         imaging_fs                          % Sampling frequency of imaging data
@@ -281,6 +282,7 @@ classdef DAS < handle
         eventDet1W1 = 150;
         eventDet1W2 = 250;
         eventDet1Win = 500;
+        
         eventDet2CurrIdx = 1;
         eventDet2CurrDet = 1;
         eventDet2CurrRoi = 1;
@@ -869,7 +871,7 @@ classdef DAS < handle
         end
         
         %%
-        function eventDetAxesButtFcn(guiobj,axNum,detRoi,upDwn)
+        function eventDetAxesButtFcnOld(guiobj,axNum,detRoi,upDwn)
 %             display(axNum)
 %             display(detRoi)
 %             display(upDwn)
@@ -1083,6 +1085,178 @@ classdef DAS < handle
                     ylabel(ax,guiobj.imaging_ylabel);
                     title(ax,['ROI#',num2str(roi),' Detection#',num2str(detInd)])
             end
+        end
+        
+        %%
+        function eventDetAxesButtFcn(guiobj,dTyp,detRoi,upDwn)
+            switch dTyp
+                case 1 % ephys
+                    if isempty(guiobj.ephys_detections)
+                        return
+                    end
+                    
+                    detMat = guiobj.ephys_detections;
+                    
+                    currDetRun = guiobj.ephys_currDetRun;
+                    currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
+                    currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
+                    emptyChans = [];
+                    
+                    % Filtering out channels with no detections
+                    for j = 1:length(currDetRows)
+                        if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
+                            emptyChans = [emptyChans, j];
+                        end
+                    end
+                    currChans(emptyChans) = [];
+                    currDetRows(emptyChans) = [];
+                    
+                    currDetNum = guiobj.eventDet1CurrDet;
+                    currChanNum = guiobj.eventDet1CurrChan;
+                    
+                case 2 % imaging
+                    if isempty(guiobj.imaging_detections)
+                        return
+                    end
+                    
+                    data = guiobj.imaging_data;
+                    
+                    detMat = guiobj.imaging_detections;
+                    
+                    currDetRun = guiobj.imaging_currDetRun;
+                    currDetRows = find([guiobj.imaging_detectionsInfo.DetRun]==currDetRun);
+                    currChans = [guiobj.imaging_detectionsInfo(currDetRows).Roi];
+                    emptyChans = [];
+                    
+                    % Filtering out channels with no detections
+                    for j = 1:length(currDetRows)
+                        if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
+                            emptyChans = [emptyChans, j];
+                        end
+                    end
+                    currChans(emptyChans) = [];
+                    currDetRows(emptyChans) = [];
+                    
+                    currDetNum = guiobj.eventDet2CurrDet;
+                    currChanNum = guiobj.eventDet2CurrRoi;
+            end
+            
+            switch detRoi
+                case 0
+                    currDetNum = 1;
+                    currChanNum = 1;
+                case 1
+                    switch upDwn
+                        case 1
+                            temp = currDetRows(currChanNum);
+                            if currDetNum < length(find(~isnan(detMat(temp,:))))
+                                currDetNum = currDetNum + 1;
+                            end
+                        case 2
+                            if currDetNum > 1
+                                currDetNum = currDetNum - 1;
+                            end
+                    end
+                case 2
+                    currDetNum = 1;
+                    switch upDwn
+                        case 1
+                            if currChanNum < length(currChans)
+                                currChanNum = currChanNum + 1;
+                            end
+                        case 2
+                            if currChanNum > 1
+                                currChanNum = currChanNum - 1;
+                            end
+
+                    end
+            end
+            
+            switch dTyp
+                case 1
+                    guiobj.eventDet1CurrDet = currDetNum;
+                    guiobj.eventDet1CurrChan = currChanNum;
+                case 2
+                    guiobj.eventDet2CurrDet = currDetNum;
+                    guiobj.eventDet2CurrRoi = currChanNum;
+            end
+            
+            eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows)
+            
+        end
+        
+        %%
+        function eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows)
+            switch dTyp
+                case 1
+                    ax = guiobj.axesEventDet1;
+                    
+                    switch guiobj.eventDet1DataType
+                            case 1
+                                data = guiobj.ephys_data;
+                            case 2
+                                data = guiobj.ephys_dogged;
+                            case 3
+                                data = guiobj.ephys_instPowed;
+                    end
+                    taxis = guiobj.ephys_taxis;
+                    fs = guiobj.ephys_fs;
+                    detMat = guiobj.ephys_detections;
+                    
+                    currChanNum = guiobj.eventDet1CurrChan;
+                    currDetNum = guiobj.eventDet1CurrDet;
+                    
+                    yAxLbl = guiobj.ephys_ylabel;
+                    plotTitle = 'Channel#';
+                case 2
+                    ax = guiobj.axesEventDet2;
+                    
+                    data = guiobj.imaging_data;
+                    taxis = guiobj.imaging_taxis;
+                    fs = guiobj.imaging_fs;
+                    detMat = guiobj.imaging_detections;
+                    
+                    currChanNum = guiobj.eventDet2CurrRoi;
+                    currDetNum = guiobj.eventDet2CurrDet;
+                    
+                    yAxLbl = guiobj.imaging_ylabel;
+                    plotTitle = 'ROI#';
+            end
+            
+            
+            
+            chan = currChans(currChanNum);
+            axYMinMax = [min(data(chan,:)), max(data(chan,:))];
+            currDetRow = currDetRows(currChanNum);
+            numDets = length(find(~isnan(detMat(currDetRow,:))));
+            detInd = currDetNum;
+            %%%
+            %%%
+            tInd = find(~isnan(detMat(currDetRow,:)));
+            tInd = tInd(detInd);
+            tStamp = taxis(tInd);
+            win = guiobj.eventDet1Win/2000;
+            win = round(win*fs,4);
+            if (tInd-win > 0) & (tInd+win <= length(taxis))
+                tWin = taxis(tInd-win:tInd+win);
+                dataWin = data(chan,tInd-win:tInd+win);
+            elseif tInd-win <= 0
+                tWin = taxis(1:tInd+win);
+                dataWin = data(chan,1:tInd+win);
+            elseif tInd+win > length(taxis)
+                tWin = taxis(tInd-win:end);
+                dataWin = data(chan,tInd-win:end);
+            end
+            plot(ax,tWin,dataWin)
+            hold(ax,'on')
+            xline(ax,tStamp,'Color','r','LineWidth',1);
+            hold(ax,'off')
+            axis(ax,'tight')
+            ylim(ax,axYMinMax)
+            xlabel(ax,guiobj.xtitle)
+            ylabel(ax,yAxLbl);
+            title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detInd),...
+                '/',num2str(numDets)])
         end
         
         %%
@@ -2591,6 +2765,7 @@ classdef DAS < handle
             dets = nan(size(data));
             switch dettype
                 case 'Mean+SD'
+                    
                     for i = 1:size(data,1)
                         smoothd = smoothdata(data(i,:),'gaussian',10);
                         thr = mean(smoothd) + sdmult*std(smoothd);
@@ -2598,12 +2773,28 @@ classdef DAS < handle
 %                         aboveThrInd_diff = diff(aboveThrInds);
                         [~,locs,~,~] = findpeaks(smoothd,'MinPeakHeight',thr);
                         dets(i,locs) = 0;
+                        guiobj.imaging_detRunsNum = guiobj.imaging_detRunsNum + 1;
+                        
+                        detinfo(i).Roi = i;
+                        detinfo(i).DetType = 'Mean+SD';
+                        detinfo(i).DetRun = guiobj.imaging_detRunsNum;
+                        detinfo(i).Params.WinType = 'Gaussian';
+                        detinfo(i).Params.WinLen = 10;
                     end
+                    
             end
             
-            guiobj.imaging_detections = dets;
+            guiobj.imaging_detections = [guiobj.imaging_detections; dets];
+            if isempty(guiobj.imaging_detectionsInfo(1).DetType)
+                guiobj.imaging_detectionsInfo = detinfo;
+            else
+                guiobj.imaging_detectionsInfo = [guiobj.imaging_detectionsInfo,...
+                    detinfo];
+            end
+            
+            guiobj.imaging_currDetRun = guiobj.imaging_detRunsNum;
+            
 %             guiobj.eventDet2CurrIdx = size(guiobj.imaging_detections,1);
-            pause(1)
             guiobj.imagingDetStatusLabel.String = '--IDLE--';
             guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
             
@@ -2614,6 +2805,7 @@ classdef DAS < handle
         function simultDetRun(guiobj,event)
             guiobj.simultDetStatusLabel.String = 'Detection running';
             guiobj.simultDetStatusLabel.BackgroundColor = 'r';
+            drawnow
             
             dettype = guiobj.simultDetPopMenu.Value;
             dettype = guiobj.simultDetPopMenu.String{dettype};
