@@ -353,6 +353,7 @@ classdef DAS < handle
 
             if firstplot
                 axis(ax,'tight')
+                ax.NextPlot = 'replacechildren';
             end
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
@@ -370,8 +371,19 @@ classdef DAS < handle
             if isempty(index) | index == 0
                 return
             end
+            
+            if isempty(findobj(ax,'Type','line'))
+                firstplot = true;
+                ax.NextPlot = 'replace';
+            else
+                firstplot = false;
+            end
+            
             plot(ax,guiobj.ephys_taxis,guiobj.ephys_procced(index,:))
-            axis(ax,'tight')
+            if firstplot
+                axis(ax,'tight')
+                ax.NextPlot = 'replacechildren';
+            end
             if length(index) == 1
                 title(ax,value,'Interpreter','none')
             elseif length(index) > 1
@@ -396,13 +408,24 @@ classdef DAS < handle
                 return
             end
             
+            if isempty(guiobj.imaging_data)
+                return
+            end
+            
+            if isempty(findobj(ax,'Type','line'))
+                ax.NextPlot = 'replace';
+                firstplot = true;
+            else
+                firstplot = false;
+            end
+            
             switch guiobj.tabs.SelectedTab.Title
                 case 'Main tab'
                     % Separating incoming indices into raw/processed
                     rawInds = index(index <= size(guiobj.imaging_data,1));
                     procInds = index(index > size(guiobj.imaging_data,1));
                     procInds = procInds - size(guiobj.imaging_data,1);
-
+                                        
                     if ~isempty(rawInds)
                         plot(ax,guiobj.imaging_taxis,guiobj.imaging_data(rawInds,:))
                         hold(ax,'on')
@@ -413,7 +436,8 @@ classdef DAS < handle
                         hold(ax,'on')
                         dataname = guiobj.imagingProcListBox2.String{procInds};
                     end
-                    hold(ax,'off')
+%                     hold(ax,'off')
+                    ax.NextPlot = 'replacechildren';
 
                 case 'Imaging data processing'
                     if ax == guiobj.axesImagingProc1
@@ -427,7 +451,11 @@ classdef DAS < handle
                     end
             end
             
-            axis(ax,'tight')
+            if firstplot
+                axis(ax,'tight')
+                ax.NextPlot = 'replacechildren';
+            end
+            
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
             elseif length(index) > 1
@@ -479,6 +507,9 @@ classdef DAS < handle
         
         %%
         function plotpanelswitch(guiobj)
+            zum = zoom(guiobj.mainfig);
+            panobj = pan(guiobj.mainfig);
+            
             if guiobj.runCheckBox.Value
                 switch sum(guiobj.datatyp)
                     case 1
@@ -572,7 +603,16 @@ classdef DAS < handle
                         warndlg('Something isn''t right')
                 end
             end
-                
+           
+            allAx = findobj(guiobj.mainfig,'Type','axes');
+            actAx = findobj(allAx,'Visible','on');
+            actAx = findobj(actAx,'Type','axes');
+            inactAx = findobj(allAx,'Visible','off');
+            inactAx = findobj(inactAx,'Type','axes');
+            setAllowAxesZoom(zum,actAx,true)
+            setAllowAxesZoom(zum,inactAx,false)
+            setAllowAxesPan(panobj,actAx,true)
+            setAllowAxesPan(panobj,inactAx,false)
         end
         
         %%
@@ -644,7 +684,8 @@ classdef DAS < handle
                 elseif strcmp(guiobj.showEphysDetLegendMenu.Checked,'off')
                     legend(ephysAxes,'off')
                 end
-                hold(ephysAxes,'off')
+%                 hold(ephysAxes,'off')
+                ephysAxes.NextPlot = 'replacechildren';
             end
         end
         
@@ -692,7 +733,8 @@ classdef DAS < handle
                     plot(imagingAxes,guiobj.imaging_taxis,...
                         guiobj.imaging_detections(i,:),'g*','MarkerSize',12)
                 end
-                hold(imagingAxes,'off')
+%                 hold(imagingAxes,'off')
+                imagingAxes.NextPlot = 'replacechildren';
             end
             
         end
@@ -748,7 +790,8 @@ classdef DAS < handle
     %                             guiobj.imaging_detections(j,:),'g*','MarkerSize',12)
     %                     end
     %                 end
-                    hold(ax(i),'off')
+%                     hold(ax(i),'off')
+                    ax(i).NextPlot = 'replacechildren';
                 end
             end
             
@@ -3311,63 +3354,76 @@ classdef DAS < handle
             guiobj.axes11 = axes(guiobj.Panel1Plot,...
                 'Position',[0.1,0.2,0.85,0.6],...
                 'NextPlot','replacechildren');
-            axis(guiobj.axes11,'tight')
+%             axis(guiobj.axes11,'tight')
             guiobj.axes11.Toolbar.Visible = 'on';
             
             guiobj.axes21 = axes(guiobj.Panel2Plot,...
-                'Position',[0.1,0.6,0.85,0.35]);
+                'Position',[0.1,0.6,0.85,0.35],...
+                'NextPlot','replacechildren');
             guiobj.axes21.Toolbar.Visible = 'on';
             guiobj.axes22 = axes(guiobj.Panel2Plot,...
-                'Position',[0.1,0.1,0.85,0.35]);
+                'Position',[0.1,0.1,0.85,0.35],...
+                'NextPlot','replacechildren');
             guiobj.axes22.Toolbar.Visible = 'on';
             
             guiobj.axes31 = axes(guiobj.Panel3Plot,...
-                'Position',[0.1,0.7,0.85,0.25]);
+                'Position',[0.1,0.7,0.85,0.25],...
+                'NextPlot','replacechildren');
             guiobj.axes31.Toolbar.Visible = 'on';
             guiobj.axes32 = axes(guiobj.Panel3Plot,...
-                'Position',[0.1,0.38,0.85,0.25]);
+                'Position',[0.1,0.38,0.85,0.25],...
+                'NextPlot','replacechildren');
             guiobj.axes32.Toolbar.Visible = 'on';
             
             guiobj.axesAbsPos1 = axes(guiobj.Panel1Plot,...
                 'Position',[0.1,0.1,0.85,0.1],...
                 'Visible','off',...
-                'YTick',[]);
+                'YTick',[],...
+                'NextPlot','replacechildren');
             guiobj.axesAbsPos1.Toolbar.Visible = 'on';
             guiobj.axesLapPos1 = axes(guiobj.Panel1Plot,...
                 'Position',[0.1,0.3,0.85,0.1],...
                 'Visible','off',...
-                'YTick',[]);
+                'YTick',[],...
+                'NextPlot','replacechildren');
             guiobj.axesLapPos1.Toolbar.Visible = 'on';
             guiobj.axesveloc1 = axes(guiobj.Panel1Plot,...
                 'Position',[0.1,0.6,0.85,0.3],...
-                'Visible','off');
+                'Visible','off',...
+                'NextPlot','replacechildren');
             guiobj.axesveloc1.Toolbar.Visible = 'on';
             
             guiobj.axesAbsPos2 = axes(guiobj.Panel2Plot,...
                 'Position',[0.1,0.1,0.85,0.1],...
                 'Visible','off',...
-                'YTick',[]);
+                'YTick',[],...
+                'NextPlot','replacechildren');
             guiobj.axesAbsPos2.Toolbar.Visible = 'on';
             guiobj.axesLapPos2 = axes(guiobj.Panel2Plot,...
                 'Position',[0.1,0.2,0.85,0.1],...
                 'Visible','off',...
-                'YTick',[]);
+                'YTick',[],...
+                'NextPlot','replacechildren');
             guiobj.axesLapPos2.Toolbar.Visible = 'on';
             guiobj.axesveloc2 = axes(guiobj.Panel2Plot,...
                 'Position',[0.1,0.3,0.85,0.2],...
-                'Visible','off');
+                'Visible','off',...
+                'NextPlot','replacechildren');
             guiobj.axesveloc2.Toolbar.Visible = 'on';
             
             guiobj.axesAbsPos3 = axes(guiobj.Panel3Plot,...
                 'Position',[0.1,0.05,0.85,0.05],...
-                'YTick',[]);
+                'YTick',[],...
+                'NextPlot','replacechildren');
             guiobj.axesAbsPos3.Toolbar.Visible = 'on';
             guiobj.axesLapPos3 = axes(guiobj.Panel3Plot,...
                 'Position',[0.1,0.1,0.85,0.05],...
-                'YTick',[]);
+                'YTick',[],...
+                'NextPlot','replacechildren');
             guiobj.axesLapPos3.Toolbar.Visible = 'on';
             guiobj.axesveloc3 = axes(guiobj.Panel3Plot,...
-                'Position',[0.1,0.2,0.85,0.1]);
+                'Position',[0.1,0.2,0.85,0.1],...
+                'NextPlot','replacechildren');
             guiobj.axesveloc3.Toolbar.Visible = 'on';
             
             linkaxes([guiobj.axes11,guiobj.axes21,guiobj.axes22,...
@@ -3534,10 +3590,12 @@ classdef DAS < handle
             
             % Create axes
             guiobj.axesEphysProc1 = axes(guiobj.ephysProcTab,...
-                'Position',[0.4, 0.6, 0.55, 0.35]);
+                'Position',[0.4, 0.6, 0.55, 0.35],...
+                'NextPlot','replacechildren');
             guiobj.axesEphysProc1.Toolbar.Visible = 'on';
             guiobj.axesEphysProc2 = axes(guiobj.ephysProcTab,...
-                'Position',[0.4, 0.1, 0.55, 0.35]);
+                'Position',[0.4, 0.1, 0.55, 0.35],...
+                'NextPlot','replacechildren');
             guiobj.axesEphysProc2.Toolbar.Visible = 'on';
             linkaxes([guiobj.axesEphysProc1,guiobj.axesEphysProc2],'x');
             
@@ -3631,10 +3689,12 @@ classdef DAS < handle
             
             % Create axes
             guiobj.axesImagingProc1 = axes(guiobj.imagingProcTab,...
-                'Position',[0.4, 0.6, 0.55, 0.35]);
+                'Position',[0.4, 0.6, 0.55, 0.35],...
+                'NextPlot','replacechildren');
             guiobj.axesImagingProc1.Toolbar.Visible = 'on';
             guiobj.axesImagingProc2 = axes(guiobj.imagingProcTab,...
-                'Position',[0.4, 0.1, 0.55, 0.35]);
+                'Position',[0.4, 0.1, 0.55, 0.35],...
+                'NextPlot','replacechildren');
             guiobj.axesImagingProc2.Toolbar.Visible = 'on';
             linkaxes([guiobj.axesImagingProc1,guiobj.axesImagingProc2],'x');
             
@@ -3955,7 +4015,8 @@ classdef DAS < handle
                 'String','300');
             
             guiobj.axesEventDet1 = axes(guiobj.eventDetTab,...
-                'Position',[0.5, 0.6, 0.45, 0.35]);
+                'Position',[0.5, 0.6, 0.45, 0.35],...
+                'NextPlot','replacechildren');
             guiobj.axesEventDet1.Toolbar.Visible = 'on';
             guiobj.axesEventDet1UpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
@@ -3982,7 +4043,8 @@ classdef DAS < handle
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) guiobj.axesEventDet1ChanDownButtPush);
             guiobj.axesEventDet2 = axes(guiobj.eventDetTab,...
-                'Position',[0.5, 0.1, 0.45, 0.35]);
+                'Position',[0.5, 0.1, 0.45, 0.35],...
+                'NextPlot','replacechildren');
             guiobj.axesEventDet2.Toolbar.Visible = 'on';
             guiobj.axesEventDet2DetUpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
