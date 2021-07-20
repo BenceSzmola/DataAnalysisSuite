@@ -28,7 +28,11 @@ classdef DASeV < handle
         ephysChanLabel
         ephysChanTxt
         ephysParamTable
-        
+        imagingDetTypeLabel
+        imagingDetTypeTxt
+        imagingRoiLabel
+        imagingRoiTxt
+        imagingParamTable
         
         loadDASSaveButt
         
@@ -93,6 +97,11 @@ classdef DASeV < handle
         imagingFs
         imagingTaxis
         imagingYlabel
+        imagingDets
+        imagingDetInfo
+        
+        imagingCurrDetNum = 1;
+        imagingCurrDetRow = 1;
     end
     
     %% Constructor part
@@ -377,6 +386,73 @@ classdef DASeV < handle
             
         end
         
+        %%
+        function imagingPlot(gO,ax)
+            currDetNum = gO.imagingCurrDetNum;
+            currDetRow = gO.imagingCurrDetRow;
+            numDets = length(find(~isnan(gO.imagingDets(currDetRow,:))));
+            chan = gO.imagingDetInfo(currDetRow).Roi;
+            
+            if ~gO.plotFull
+                gO.imagingDetUpButt.Enable = 'on';
+                gO.imagingDetDwnButt.Enable = 'on';
+                
+                detIdx = gO.imagingDets(currDetRow,:);
+                detIdx = find(~isnan(detIdx));
+                detIdx = detIdx(currDetNum);
+                tDetInds = gO.imagingTaxis(detIdx);
+
+                win = 0.5;
+                win = round(win*gO.imagingFs,0);
+                
+                if (detIdx-win > 0) & (detIdx+win <= length(gO.imagingTaxis))
+                        winIdx = detIdx-win:detIdx+win;
+                        tWin = gO.imagingTaxis(winIdx);
+                    elseif detIdx-win <= 0
+                        winIdx = 1:detIdx+win;
+                        tWin = gO.imagingTaxis(winIdx);
+                    elseif detIdx+win > length(gO.imagingTaxis)
+                        winIdx = detIdx-win:length(gO.imagingTaxis);
+                        tWin = gO.imagingTaxis(winIdx);
+                end
+                axTitle = ['ROI #',num2str(chan),'      Detection #',...
+                                num2str(currDetNum),'/',num2str(numDets)];
+            elseif gO.plotFull
+                gO.imagingDetUpButt.Enable = 'off';
+                gO.imagingDetDwnButt.Enable = 'off';
+                gO.imagingCurrDetNum = 1;
+                
+                detInds = gO.imagingDets(currDetRow,:);
+                detInds = find(~isnan(detInds));
+                tDetInds = gO.imagingTaxis(detInds);
+                
+                winIdx = 1:length(gO.imagingTaxis);
+                tWin = gO.imagingTaxis;
+                
+                axTitle = ['ROI #',num2str(chan),'      #Detections = ',...
+                    num2str(numDets)];
+            end
+            
+            data = gO.imagingData(chan,winIdx);
+            axLims = [min(gO.imagingData(chan,:)), max(gO.imagingData(chan,:))];
+            yLabels = string(gO.imagingYlabel);
+            
+            for i = 1:min(size(data))
+                plot(ax(i),tWin,data(i,:))
+                hold(ax(i),'on')
+                for j = 1:length(tDetInds)
+                    xline(ax(i),tDetInds(j),'Color','r','LineWidth',1);
+                end
+                hold(ax(i),'off')
+                xlabel(ax(i),gO.xLabel)
+                ylabel(ax(i),yLabels(i,:))
+%                 axis(ax(i),axLims(i,:))
+                axis(ax(i),'tight')
+                ylim(ax(i),axLims(i,:))
+                title(ax(i),axTitle)
+            end
+        end
+        
         %% 
         function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypSelected)-1))
@@ -395,33 +471,68 @@ classdef DASeV < handle
                         end
                         ephysPlot(gO,ax)
                     elseif gO.loaded(2)
-                        
+                        ax = [gO.ax11];
+                        imagingPlot(gO,ax)
                     elseif gO.loaded(3)
                         
                     end
                 case 2
+                    ephysAxCount = 0;
                     if gO.loaded(1)
                         switch sum(gO.ephysTypSelected)
                             case 1
                                 ax = [gO.ax21];
+                                ephysAxCount = 1;
                             case 2
                                 ax = [gO.ax31, gO.ax32];
+                                ephysAxCount = 2;
                             case 3
                                 ax = [gO.ax41, gO.ax42, gO.ax43];
+                                ephysAxCount = 3;
                         end
                         ephysPlot(gO,ax)
                     end
+                    if gO.loaded(2)
+                        switch ephysAxCount
+                            case 0
+                                ax = [gO.ax21];
+                            case 1
+                                ax = [gO.ax22];
+                            case 2
+                                ax = [gO.ax33];
+                            case 3
+                                ax = [gO.ax44];
+                        end
+                        imagingPlot(gO,ax)
+                    end
                 case 3
+                    ephysAxCount = 0;
                     if gO.loaded(1)
                         switch sum(gO.ephysTypSelected)
                             case 1
+                                ephysAxCount = 1;
                                 ax = [gO.ax31];
                             case 2
+                                ephysAxCount = 2;
                                 ax = [gO.ax41, gO.ax42];
                             case 3
+                                ephysAxCount = 3;
                                 ax = [gO.ax51, gO.ax52, gO.ax53];
                         end
                         ephysPlot(gO,ax)
+                    end
+                    if gO.loaded(2)
+                        switch ephysAxCount
+                            case 0
+                                ax = [gO.ax31];
+                            case 1
+                                ax = [gO.ax32];
+                            case 2
+                                ax = [gO.ax43];
+                            case 3
+                                ax = [gO.ax54];
+                        end
+                        imagingPlot(gO,ax)
                     end
             end
         end
@@ -481,6 +592,7 @@ classdef DASeV < handle
             if newdir == 0
                 return
             end
+            cd(newdir)
             newdir = [newdir,'\*DASsave*.mat'];
             newlist = dir(newdir);
             if isempty(newdir)
@@ -532,6 +644,12 @@ classdef DASeV < handle
                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
                 load(fname,'imagingSaveData','imagingSaveInfo')
                 
+                gO.imagingData = imagingSaveData.RawData;
+                gO.imagingFs = imagingSaveData.Fs;
+                gO.imagingTaxis = imagingSaveData.TAxis;
+                gO.imagingYlabel = imagingSaveData.YLabel;
+                gO.imagingDets = imagingSaveData.Dets;
+                gO.imagingDetInfo = imagingSaveInfo;
 %             catch
             else
                 gO.loaded(2) = 0;
@@ -565,49 +683,123 @@ classdef DASeV < handle
                 gO.commentsTxt.String = comments;
             end
             
+            gO.fnameTxt.String = fname;
+            
             if ~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1))
-
                 load(fname,'ephysSaveInfo')
-
-                gO.fnameTxt.String = fname;
-                gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
-                gO.ephysChanTxt.String = num2str([ephysSaveInfo.Channel]);
-                gO.ephysParamTable.Data = squeeze(struct2cell([ephysSaveInfo.Params]))';
-                gO.ephysParamTable.ColumnName = fieldnames([ephysSaveInfo.Params]);
+                if ~isempty(ephysSaveInfo)
+%                     gO.fnameTxt.String = fname;
+                    gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
+                    gO.ephysChanTxt.String = num2str([ephysSaveInfo.Channel]);
+                    gO.ephysParamTable.Data = squeeze(struct2cell([ephysSaveInfo.Params]))';
+                    gO.ephysParamTable.ColumnName = fieldnames([ephysSaveInfo.Params]);
+                else
+                    gO.ephysDetTypeTxt.String = '';
+                    gO.ephysChanTxt.String = '';
+                    gO.ephysParamTable.Data = [];
+                    gO.ephysParamTable.ColumnName = '';
+                end
+            else
+                gO.ephysDetTypeTxt.String = '';
+                gO.ephysChanTxt.String = '';
+                gO.ephysParamTable.Data = [];
+                gO.ephysParamTable.ColumnName = '';
+            end
+            
+            if ~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1))
+                load(fname,'imagingSaveInfo')
+                if ~isempty(imagingSaveInfo)
+                    gO.imagingDetTypeTxt.String = imagingSaveInfo.DetType;
+                    gO.imagingRoiTxt.String = num2str([imagingSaveInfo.Roi]);
+                    gO.imagingParamTable.Data = squeeze(struct2cell([imagingSaveInfo.Params]))';
+                    gO.imagingParamTable.ColumnName = fieldnames([imagingSaveInfo.Params]);
+                else
+                    gO.imagingDetTypeTxt.String = '';
+                    gO.imagingRoiTxt.String = '';
+                    gO.imagingParamTable.Data = [];
+                    gO.imagingParamTable.ColumnName = '';
+                end
+            else
+                gO.imagingDetTypeTxt.String = '';
+                gO.imagingRoiTxt.String = '';
+                gO.imagingParamTable.Data = [];
+                gO.imagingParamTable.ColumnName = '';
             end
         end
         
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
             switch dTyp
                 case 1
-                    if chanUpDwn ~= 0
-                        gO.ephysCurrDetNum = 1;
-                    end
-                    
-                    switch detUpDwn
-                        case 1
-                            if gO.ephysCurrDetNum < length(find(~isnan(gO.ephysDets(gO.ephysCurrDetRow,:))))
-                                gO.ephysCurrDetNum = gO.ephysCurrDetNum + 1;
-                            end
-                        case -1
-                            if gO.ephysCurrDetNum > 1
-                                gO.ephysCurrDetNum = gO.ephysCurrDetNum - 1;
-                            end
-                    end
-                    switch chanUpDwn
-                        case 1
-                            if gO.ephysCurrDetRow < min(size(gO.ephysDets))
-                                gO.ephysCurrDetRow = gO.ephysCurrDetRow + 1;
-                            end
-                        case -1
-                            if gO.ephysCurrDetRow > 1
-                                gO.ephysCurrDetRow = gO.ephysCurrDetRow -1;
-                            end
-                    end
+                    currDetNum = gO.ephysCurrDetNum;
+                    currDetRow = gO.ephysCurrDetRow;
+                    detMat = gO.ephysDets;
+%                     if chanUpDwn ~= 0
+%                         gO.ephysCurrDetNum = 1;
+%                     end
+%                     
+%                     switch detUpDwn
+%                         case 1
+%                             if gO.ephysCurrDetNum < length(find(~isnan(gO.ephysDets(gO.ephysCurrDetRow,:))))
+%                                 gO.ephysCurrDetNum = gO.ephysCurrDetNum + 1;
+%                             end
+%                         case -1
+%                             if gO.ephysCurrDetNum > 1
+%                                 gO.ephysCurrDetNum = gO.ephysCurrDetNum - 1;
+%                             end
+%                     end
+%                     switch chanUpDwn
+%                         case 1
+%                             if gO.ephysCurrDetRow < min(size(gO.ephysDets))
+%                                 gO.ephysCurrDetRow = gO.ephysCurrDetRow + 1;
+%                             end
+%                         case -1
+%                             if gO.ephysCurrDetRow > 1
+%                                 gO.ephysCurrDetRow = gO.ephysCurrDetRow -1;
+%                             end
+%                     end
                 case 2
-                    
+                    currDetNum = gO.imagingCurrDetNum;
+                    currDetRow = gO.imagingCurrDetRow;
+                    detMat = gO.imagingDets;
                 case 3
             end
+            
+            if chanUpDwn ~= 0
+                currDetNum = 1;
+            end
+
+            switch detUpDwn
+                case 1
+                    if currDetNum < length(find(~isnan(detMat(currDetRow,:))))
+                        currDetNum = currDetNum + 1;
+                    end
+                case -1
+                    if currDetNum > 1
+                        currDetNum = currDetNum - 1;
+                    end
+            end
+            switch chanUpDwn
+                case 1
+                    if currDetRow < min(size(detMat))
+                        currDetRow = currDetRow + 1;
+                    end
+                case -1
+                    if currDetRow > 1
+                        currDetRow = currDetRow -1;
+                    end
+            end
+            
+            switch dTyp
+                case 1
+                    gO.ephysCurrDetNum = currDetNum;
+                    gO.ephysCurrDetRow = currDetRow;
+                case 2
+                    gO.imagingCurrDetNum = currDetNum;
+                    gO.imagingCurrDetRow = currDetRow;
+                case 3
+                    
+            end
+
             smartplot(gO)
         end
         
@@ -653,14 +845,14 @@ classdef DASeV < handle
             gO.selDirButt = uicontrol(gO.loadTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.05, 0.85, 0.1, 0.05],...
+                'Position',[0.01, 0.85, 0.1, 0.05],...
                 'String','Change directory',...
                 'Callback',@ gO.selDirButtPress);
             
             gO.loadDASSaveButt = uicontrol(gO.loadTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.05, 0.65, 0.1, 0.05],...
+                'Position',[0.01, 0.65, 0.1, 0.05],...
                 'String','Load selected save',...
                 'Callback',@ gO.loadSaveButtPress);
             
@@ -670,12 +862,12 @@ classdef DASeV < handle
             gO.fileList = uicontrol(gO.loadTab,...
                 'Style','listbox',...
                 'Units','normalized',...
-                'Position',[0.37,0.1,0.3,0.9],...
+                'Position',[0.12,0.1,0.3,0.9],...
                 'String',initFileList,...
                 'Callback',@ gO.fileListSel);
             
             gO.fileInfoPanel = uipanel(gO.loadTab,...
-                'Position',[0.69,0.1,0.3,0.9]);
+                'Position',[0.44,0.1,0.55,0.9]);
             gO.fnameLabel = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -688,28 +880,52 @@ classdef DASeV < handle
             gO.commentsTxt = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.68, 0.9, 0.2]);                
+                'Position',[0.01, 0.785, 0.9, 0.1]);                
+            
             gO.ephysDetTypeLabel = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.57, 0.45, 0.1],...
-                'String','Detection type:');
+                'Position',[0.01, 0.68, 0.2, 0.1],...
+                'String','Ephys detection type:');
             gO.ephysDetTypeTxt = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.54, 0.57, 0.45, 0.1]);
+                'Position',[0.215, 0.68, 0.1, 0.1]);
             gO.ephysChanLabel = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.46, 0.45, 0.1],...
-                'String','Channel #:');
+                'Position',[0.01, 0.575, 0.2, 0.1],...
+                'String','Ephys channel(s) #:');
             gO.ephysChanTxt = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.54, 0.46, 0.45, 0.1]);
+                'Position',[0.215, 0.575, 0.1, 0.1]);
             gO.ephysParamTable = uitable(gO.fileInfoPanel,...
                 'Units','normalized',...
-                'Position',[0.2, 0.25, 0.6, 0.2]);
+                'Position',[0.01, 0.37, 0.45, 0.2]);
+            
+            gO.imagingDetTypeLabel = uicontrol(gO.fileInfoPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.5, 0.68, 0.2, 0.1],...
+                'String','Imaging detection type:');
+            gO.imagingDetTypeTxt = uicontrol(gO.fileInfoPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.705, 0.68, 0.1, 0.1]);
+            gO.imagingRoiLabel = uicontrol(gO.fileInfoPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.5, 0.575, 0.2, 0.1],...
+                'String','Imaging ROI(s) #:');
+            gO.imagingRoiTxt = uicontrol(gO.fileInfoPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.705, 0.575, 0.1, 0.1]);
+            gO.imagingParamTable = uitable(gO.fileInfoPanel,...
+                'Units','normalized',...
+                'Position',[0.5, 0.37, 0.45, 0.2]);
+           
             
             %% viewerTab members
             gO.statPanel = uipanel(gO.viewerTab,...
@@ -741,6 +957,31 @@ classdef DASeV < handle
                 'Position',[0.965, 0.8, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,-1));
+            
+            gO.imagingDetUpButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.965, 0.7, 0.035, 0.05],...
+                'String','<HTML>Det&uarr',...
+                'Callback',@(h,e) gO.axButtPress(2,1,0));
+            gO.imagingDetDwnButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.965, 0.65, 0.035, 0.05],...
+                'String','<HTML>Det&darr',...
+                'Callback',@(h,e) gO.axButtPress(2,-1,0));
+            gO.imagingRoiUpButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.965, 0.6, 0.035, 0.05],...
+                'String','<HTML>ROI&uarr',...
+                'Callback',@(h,e) gO.axButtPress(2,0,1));
+            gO.imagingRoiDwnButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.965, 0.55, 0.035, 0.05],...
+                'String','<HTML>ROI&darr',...
+                'Callback',@(h,e) gO.axButtPress(2,0,-1));
 
             gO.ax11 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.6],...
                 'Visible','off');
