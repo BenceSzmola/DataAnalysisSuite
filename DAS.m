@@ -313,6 +313,13 @@ classdef DAS < handle
                 return
             end
             
+            if isempty(findobj(ax,'Type','line'))
+                ax.NextPlot = 'replace';
+                firstplot = true;
+            else
+                firstplot = false;
+            end
+            
             switch guiobj.tabs.SelectedTab.Title
                 case 'Main tab'
                     % Separating incoming indices into raw/processed
@@ -330,7 +337,8 @@ classdef DAS < handle
                         hold(ax,'on')
                         dataname = guiobj.ephysProcListBox2.String{procInds};
                     end
-                    hold(ax,'off')
+%                     hold(ax,'off')
+                    ax.NextPlot = 'replacechildren';
                 case 'Electrophysiology data processing'
                     if ax == guiobj.axesEphysProc1
                         plot(ax,guiobj.ephys_taxis,...
@@ -343,7 +351,9 @@ classdef DAS < handle
                     end
             end
 
-            axis(ax,'tight')
+            if firstplot
+                axis(ax,'tight')
+            end
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
             elseif length(index) > 1
@@ -567,15 +577,16 @@ classdef DAS < handle
         
         %%
         function lickplot(guiobj)
-            licks = guiobj.LickTimesListBox.String;
-            licks = str2double(licks);
-            allaxes = findobj(guiobj.mainfig,'Type','axes');
-            for i = 1:length(allaxes)
-                for j = 1:length(licks)
-                    yminmax = allaxes(i).YLim;
-                    line(allaxes(i),[licks(j),licks(j)],yminmax,'Color','r')
-                end
-            end
+%             licks = guiobj.LickTimesListBox.String;
+%             licks = str2double(licks);
+%             allaxes = findobj(guiobj.mainfig,'Type','axes');
+%             for i = 1:length(allaxes)
+%                 for j = 1:length(licks)
+% %                     yminmax = allaxes(i).YLim;
+% %                     line(allaxes(i),[licks(j),licks(j)],yminmax,'Color','r')
+%                     xline(allaxes(i),licks(j),'Color','r');
+%                 end
+%             end
         end
         
         %%
@@ -3298,7 +3309,9 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.LickTimesListBoxValueChanged);
             
             guiobj.axes11 = axes(guiobj.Panel1Plot,...
-                'Position',[0.1,0.2,0.85,0.6]);
+                'Position',[0.1,0.2,0.85,0.6],...
+                'NextPlot','replacechildren');
+            axis(guiobj.axes11,'tight')
             guiobj.axes11.Toolbar.Visible = 'on';
             
             guiobj.axes21 = axes(guiobj.Panel2Plot,...
