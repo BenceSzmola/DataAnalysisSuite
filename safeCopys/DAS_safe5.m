@@ -1144,23 +1144,11 @@ classdef DAS < handle
 %             display(event)
 %             %%%
             if ~isempty(guiobj.ephys_data)
-                quest = 'GUI will be reset, have you saved everything you wanted?';
-                title = 'GUI reset';
-                btn1 = 'Yes, reset GUI';
-                btn2 = 'No, don''t reset';
-                btn3 = 'Import without resetting';
-                defbtn = btn1;
-                clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
-                if strcmp(clrGUI,btn1)
+                clrGUI = questdlg('GUI will be reset, have you saved everything you wanted?');
+                if strcmp(clrGUI,'Yes')
                     resetGuiData(guiobj,1)
-                    return
-                elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
-                    return
                 end
-%                 if strcmp(clrGUI,'Yes')
-%                     resetGuiData(guiobj,1)
-%                 end
-%                 return
+                return
             end
             
             [filename,path] = uigetfile('*.rhd');
@@ -1205,21 +1193,12 @@ classdef DAS < handle
         %% Button pushed function: ImportgorobjButton
         function ImportgorobjButtonPushed(guiobj, event)
             
-            if ~isempty(guiobj.ephys_data) | ~isempty(guiobj.imaging_data)
-                quest = 'GUI will be reset, have you saved everything you wanted?';
-                title = 'GUI reset';
-                btn1 = 'Yes, reset GUI';
-                btn2 = 'No, don''t reset';
-                btn3 = 'Import without resetting';
-                defbtn = btn1;
-                clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
-                if strcmp(clrGUI,btn1)
+            if ~isempty(guiobj.ephys_data)
+                clrGUI = questdlg('GUI will be reset, have you saved everything you wanted?');
+                if strcmp(clrGUI,'Yes')
                     resetGuiData(guiobj,2)
-                    return
-                elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
-                    return
                 end
-%                 return
+                return
             end
             
             % Getting variables from base workspace
