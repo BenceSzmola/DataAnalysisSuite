@@ -3186,13 +3186,19 @@ classdef DAS < handle
                         ' | Channel#',num2str(detInfo(i).Channel),' | ',...
                         'Det#',num2str(detInfo(i).DetRun)))];
                 end
+                currDetRows = find([detInfo.DetRun]==guiobj.ephys_currDetRun);
                 [indx,tf] = listdlg('ListString',detList,...
                     'PromptString','Select electrophysiology detection(s) to save!',...
-                    'ListSize',[500,200]);
+                    'ListSize',[500,200],'InitialValue',currDetRows);
                 if ~tf
                     return
                 end
-
+                
+                if~isempty(find(ismember(idx,currDetRows)==false, 1))
+                    warndlg('Please only select from same detection run!')
+                    return
+                end
+                
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
@@ -3225,10 +3231,16 @@ classdef DAS < handle
                         ' | ROI#',num2str(detInfo(i).Roi),' | ',...
                         'Det#',num2str(detInfo(i).DetRun)))];
                 end
+                currDetRows = find([detInfo.DetRun]==guiobj.imaging_currDetRun);
                 [indx,tf] = listdlg('ListString',detList,...
                     'PromptString','Select imaging detection(s) to save!',...
-                    'ListSize',[500,200]);
+                    'ListSize',[500,200],'InitialValue',currDetRows);
                 if ~tf
+                    return
+                end
+                
+                if ~isempty(find(ismember(indx,currDetRows)==false,1))
+                    warndlg('Please only select from same detection run!')
                     return
                 end
 
