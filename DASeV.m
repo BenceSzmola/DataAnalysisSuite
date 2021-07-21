@@ -658,71 +658,67 @@ classdef DASeV < handle
             gO.ephysCurrDetRow = 1;
             
             testload = matfile(fname);
-%             try
+
+            gO.loaded(1) = 0;
+            gO.ephysDetUpButt.Enable = 'off';
+            gO.ephysDetDwnButt.Enable = 'off';
+            gO.ephysChanUpButt.Enable = 'off';
+            gO.ephysChanDwnButt.Enable = 'off';
+
             if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
                 load(fname,'ephysSaveData','ephysSaveInfo')
+                
+                if ~isempty(ephysSaveData) & ~isempty(ephysSaveInfo)
+                    gO.ephysData = ephysSaveData.RawData;
+                    gO.ephysFs = ephysSaveData.Fs;
+                    gO.ephysTaxis = ephysSaveData.TAxis;
+                    gO.ephysYlabel = ephysSaveData.YLabel;
+                    gO.ephysDets = ephysSaveData.Dets;
+                    gO.ephysDetInfo = ephysSaveInfo;
 
-                gO.ephysData = ephysSaveData.RawData;
-                gO.ephysFs = ephysSaveData.Fs;
-                gO.ephysTaxis = ephysSaveData.TAxis;
-                gO.ephysYlabel = ephysSaveData.YLabel;
-                gO.ephysDets = ephysSaveData.Dets;
-                gO.ephysDetInfo = ephysSaveInfo;
-                
-                gO.ephysDetUpButt.Enable = 'on';
-                gO.ephysDetDwnButt.Enable = 'on';
-                gO.ephysChanUpButt.Enable = 'on';
-                gO.ephysChanDwnButt.Enable = 'on';
-            else
-%             catch
-                gO.loaded(1) = 0;
-                
-                gO.ephysDetUpButt.Enable = 'off';
-                gO.ephysDetDwnButt.Enable = 'off';
-                gO.ephysChanUpButt.Enable = 'off';
-                gO.ephysChanDwnButt.Enable = 'off';
+                    gO.ephysDetUpButt.Enable = 'on';
+                    gO.ephysDetDwnButt.Enable = 'on';
+                    gO.ephysChanUpButt.Enable = 'on';
+                    gO.ephysChanDwnButt.Enable = 'on';
+
+                    gO.loaded(1) = 1;
+
+                    axButtPress(gO,1,0,0)
+
+                    gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
+                    gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
+                end
             end
             
-            if exist('ephysSaveData','var')
-                gO.loaded(1) = 1;
-                
-                axButtPress(gO,1,0,0)
-                
-                gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
-                gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
-            end
-            
-%             try
+            gO.loaded(2) = 0;
+            gO.imagingDetUpButt.Enable = 'off';
+            gO.imagingDetDwnButt.Enable = 'off';
+            gO.imagingRoiUpButt.Enable = 'off';
+            gO.imagingRoiDwnButt.Enable = 'off';            
+
             if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
                 load(fname,'imagingSaveData','imagingSaveInfo')
                 
-                gO.imagingData = imagingSaveData.RawData;
-                gO.imagingFs = imagingSaveData.Fs;
-                gO.imagingTaxis = imagingSaveData.TAxis;
-                gO.imagingYlabel = imagingSaveData.YLabel;
-                gO.imagingDets = imagingSaveData.Dets;
-                gO.imagingDetInfo = imagingSaveInfo;
-                
-                gO.imagingDetUpButt.Enable = 'on';
-                gO.imagingDetDwnButt.Enable = 'on';
-                gO.imagingRoiUpButt.Enable = 'on';
-                gO.imagingRoiDwnButt.Enable = 'on';
-%             catch
-            else
-                gO.loaded(2) = 0;
-                
-                gO.imagingDetUpButt.Enable = 'off';
-                gO.imagingDetDwnButt.Enable = 'off';
-                gO.imagingRoiUpButt.Enable = 'off';
-                gO.imagingRoiDwnButt.Enable = 'off';
+                if ~isempty(imagingSaveData) & ~isempty(imagingSaveinfo)
+                    gO.imagingData = imagingSaveData.RawData;
+                    gO.imagingFs = imagingSaveData.Fs;
+                    gO.imagingTaxis = imagingSaveData.TAxis;
+                    gO.imagingYlabel = imagingSaveData.YLabel;
+                    gO.imagingDets = imagingSaveData.Dets;
+                    gO.imagingDetInfo = imagingSaveInfo;
+
+                    gO.imagingDetUpButt.Enable = 'on';
+                    gO.imagingDetDwnButt.Enable = 'on';
+                    gO.imagingRoiUpButt.Enable = 'on';
+                    gO.imagingRoiDwnButt.Enable = 'on';
+                    
+                    gO.loaded(2) = 1;
+                    axButtPress(gO,2,0,0)
+                end
             end
             
-            if exist('imagingSaveData','var')
-                gO.loaded(2) = 1;
-                axButtPress(gO,2,0,0)
-            end
             
             if ~isempty(find(gO.loaded, 1))
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);

@@ -9,6 +9,7 @@ end
 % data = periodicNoise(data,fs,500);
 
 %%%
+valTyp = 2; % 1=time match based; 2=correlation based
 corrThr = 0.6;
 %%%
 
@@ -174,23 +175,38 @@ for i = 1:size(data,1)
         newEv = maxIdx + aboveThr(1);
         
         if refVal~=0
-            win = 0.1*fs;
+            winSize = 0.1*fs;
 
-            if newEv-win < 1
-%                 refWin = refdets(1:newEv+win);
-                refWin = refdogged(1:newEv+win);
-                chanWin = dogged(i,1:newEv+win);
-            elseif newEv+win > length(refdets)
-%                 refWin = refdets(newEv-win:end);
-                refWin = refdogged(newEv-win:end);
-                chanWin = dogged(i,newEv-win:end);
+            if newEv-winSize < 1
+                winInds = 1:newEv+winsize;
+%                 refWin = refdets(1:newEv+winSize);
+%                 refWin = refdogged(1:newEv+win);
+%                 chanWin = dogged(i,1:newEv+win);
+            elseif newEv+winSize > length(refdets)
+                winInds = newEv-winSize:length(taxis);
+%                 refWin = refdets(newEv-winSize:end);
+%                 refWin = refdogged(newEv-win:end);
+%                 chanWin = dogged(i,newEv-win:end);
             else
-%                 refWin = refdets(newEv-win:newEv+win);
-                refWin = refdogged(newEv-win:newEv+win);
-                chanWin = dogged(i,newEv-win:newEv+win);
+                winInds = newEv-winSize:newEv+winSize;
+%                 refWin = refdets(newEv-winSize:newEv+winSize);
+%                 refWin = refdogged(newEv-win:newEv+win);
+%                 chanWin = dogged(i,newEv-win:newEv+win);
             end
+            
+            if valTyp == 1
+                refWin = refdets(winInds);
+                condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+            elseif valTyp == 2
+                refWin = refdogged(winInds);
+                chanWin = dogged(i,winInds);
+                
+                r = corrcoef(refWin,chanWin);
+                condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
+            end
+            
 %             condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
-            r = corrcoef(refWin,chanWin);
+%             r = corrcoef(refWin,chanWin);
             
 %             figure;
 %             subplot(211)
@@ -201,7 +217,7 @@ for i = 1:size(data,1)
 %             title(['Refchan window, corr = ',num2str(r(2))])
 %             waitforbuttonpress
             
-            condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
+%             condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
             if condit
                 vEvents = [vEvents, newEv];
             end
@@ -244,7 +260,7 @@ for i = 1:size(data,1)
             end
             
             if ~isempty(newEv) & (refVal~=0)
-                win = 0.1*fs;
+                winSize = 0.1*fs;
                 
 %                 vEvCount = vEvCount +1;
 %                 %%% testing interchannel correlation
@@ -252,28 +268,33 @@ for i = 1:size(data,1)
 %                 corrcoef(instPowd(:,newEv-win:newEv+win)')
 %                 %%%
                 
-%                 if newEv-win < 1
-%                     refWin = refdets(1:newEv+win);
-%                 elseif newEv+win > length(refdets)
-%                     refWin = refdets(newEv-win:end);
-%                 else
-%                     refWin = refdets(newEv-win:newEv+win);
-%                 end
-%                 condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
-                if newEv-win < 1
-    %                 refWin = refdets(1:newEv+win);
-                    refWin = refdogged(1:newEv+win);
-                    chanWin = dogged(i,1:newEv+win);
-                elseif newEv+win > length(refdets)
-    %                 refWin = refdets(newEv-win:end);
-                    refWin = refdogged(newEv-win:end);
-                    chanWin = dogged(i,newEv-win:end);
+                if newEv-winSize < 1
+                    winInds = 1:newEv+winSize;
+%                     refWin = refdets(1:newEv+winSize);
+%                     refWin = refdogged(1:newEv+win);
+%                     chanWin = dogged(i,1:newEv+win);
+                elseif newEv+winSize > length(refdets)
+                    winInds = newEv-winSize:length(taxis);
+%                     refWin = refdets(newEv-winSize:end);
+%                     refWin = refdogged(newEv-win:end);
+%                     chanWin = dogged(i,newEv-win:end);
                 else
-    %                 refWin = refdets(newEv-win:newEv+win);
-                    refWin = refdogged(newEv-win:newEv+win);
-                    chanWin = dogged(i,newEv-win:newEv+win);
+                    winInds = newEv-winSize:newEv+winSize;
+%                     refWin = refdets(newEv-winSize:newEv+winSize);
+%                     refWin = refdogged(newEv-win:newEv+win);
+%                     chanWin = dogged(i,newEv-win:newEv+win);
                 end
-                r = corrcoef(refWin,chanWin);
+                
+                if valTyp == 1
+                    refWin = refdets(winInds);
+                    condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+                elseif valTyp == 2
+                    refWin = refdogged(winInds);
+                    chanWin = dogged(i,winInds);
+
+                    r = corrcoef(refWin,chanWin);
+                    condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
+                end
                 
 %                 subplot(211)
 %                 plot(chanWin)
@@ -283,8 +304,7 @@ for i = 1:size(data,1)
 %                 plot(refWin)
 %                 title(['Refchan window, corr = ',num2str(r(2))])
 %                 waitforbuttonpress
-                
-                condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
+
                 if condit
                     vEvents = [vEvents, newEv];
                 end
