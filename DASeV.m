@@ -233,8 +233,25 @@ classdef DASeV < handle
         function ephysPlot(gO,ax)
             currDetNum = gO.ephysCurrDetNum;
             currDetRow = gO.ephysCurrDetRow;
+            
+            currDetRows = 1:length(gO.ephysDetInfo);
+            emptyChans = [];
+            % Filtering out channels with no detections
+            for j = 1:length(currDetRows)
+                if isempty(find(~isnan(gO.ephysDets(currDetRows(j),:)),1))
+                    emptyChans = [emptyChans, j];
+                end
+            end
+            
+            currDetRows(emptyChans) = [];
+            currDetRow = currDetRows(currDetRow);
+            
             numDets = length(find(~isnan(gO.ephysDets(currDetRow,:))));
             chan = gO.ephysDetInfo(currDetRow).Channel;
+            
+            if numDets == 0
+                return
+            end
             
             if ~gO.plotFull
                 gO.ephysDetUpButt.Enable = 'on';
@@ -390,8 +407,24 @@ classdef DASeV < handle
         function imagingPlot(gO,ax)
             currDetNum = gO.imagingCurrDetNum;
             currDetRow = gO.imagingCurrDetRow;
+            
+            currDetRows = 1:length(gO.imagingDetInfo);
+            emptyChans = [];
+            % Filtering out channels with no detections
+            for j = 1:length(currDetRows)
+                if isempty(find(~isnan(gO.imagingDets(currDetRows(j),:)),1))
+                    emptyChans = [emptyChans, j];
+                end
+            end
+            currDetRows(emptyChans) = [];
+            currDetRow = currDetRows(currDetRow);
+            
             numDets = length(find(~isnan(gO.imagingDets(currDetRow,:))));
             chan = gO.imagingDetInfo(currDetRow).Roi;
+            
+            if numDets == 0
+                return
+            end
             
             if ~gO.plotFull
                 gO.imagingDetUpButt.Enable = 'on';
@@ -456,8 +489,10 @@ classdef DASeV < handle
         %% 
         function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypSelected)-1))
-%             axVisSwitch(gO,4)
-            
+            %%%
+%             axVisSwitch(gO,5)
+%             gO.loaded = [1,1,2];
+            %%%
             switch sum(gO.loaded)
                 case 1
                     if gO.loaded(1)
@@ -469,9 +504,11 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax31, gO.ax32, gO.ax33];
                         end
+                        linkaxes(ax,'x')
                         ephysPlot(gO,ax)
                     elseif gO.loaded(2)
                         ax = [gO.ax11];
+                        linkaxes(ax,'x')
                         imagingPlot(gO,ax)
                     elseif gO.loaded(3)
                         
@@ -490,6 +527,7 @@ classdef DASeV < handle
                                 ax = [gO.ax41, gO.ax42, gO.ax43];
                                 ephysAxCount = 3;
                         end
+                        linkaxes(ax,'x')
                         ephysPlot(gO,ax)
                     end
                     if gO.loaded(2)
@@ -503,6 +541,7 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax44];
                         end
+                        linkaxes(ax,'x')
                         imagingPlot(gO,ax)
                     end
                 case 3
@@ -519,6 +558,7 @@ classdef DASeV < handle
                                 ephysAxCount = 3;
                                 ax = [gO.ax51, gO.ax52, gO.ax53];
                         end
+                        linkaxes(ax,'x')
                         ephysPlot(gO,ax)
                     end
                     if gO.loaded(2)
@@ -532,6 +572,7 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax54];
                         end
+                        linkaxes(ax,'x')
                         imagingPlot(gO,ax)
                     end
             end
@@ -628,13 +669,26 @@ classdef DASeV < handle
                 gO.ephysYlabel = ephysSaveData.YLabel;
                 gO.ephysDets = ephysSaveData.Dets;
                 gO.ephysDetInfo = ephysSaveInfo;
+                
+                gO.ephysDetUpButt.Enable = 'on';
+                gO.ephysDetDwnButt.Enable = 'on';
+                gO.ephysChanUpButt.Enable = 'on';
+                gO.ephysChanDwnButt.Enable = 'on';
             else
 %             catch
                 gO.loaded(1) = 0;
+                
+                gO.ephysDetUpButt.Enable = 'off';
+                gO.ephysDetDwnButt.Enable = 'off';
+                gO.ephysChanUpButt.Enable = 'off';
+                gO.ephysChanDwnButt.Enable = 'off';
             end
             
             if exist('ephysSaveData','var')
                 gO.loaded(1) = 1;
+                
+                axButtPress(gO,1,0,0)
+                
                 gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
                 gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
             end
@@ -650,19 +704,30 @@ classdef DASeV < handle
                 gO.imagingYlabel = imagingSaveData.YLabel;
                 gO.imagingDets = imagingSaveData.Dets;
                 gO.imagingDetInfo = imagingSaveInfo;
+                
+                gO.imagingDetUpButt.Enable = 'on';
+                gO.imagingDetDwnButt.Enable = 'on';
+                gO.imagingRoiUpButt.Enable = 'on';
+                gO.imagingRoiDwnButt.Enable = 'on';
 %             catch
             else
                 gO.loaded(2) = 0;
+                
+                gO.imagingDetUpButt.Enable = 'off';
+                gO.imagingDetDwnButt.Enable = 'off';
+                gO.imagingRoiUpButt.Enable = 'off';
+                gO.imagingRoiDwnButt.Enable = 'off';
             end
             
             if exist('imagingSaveData','var')
                 gO.loaded(2) = 1;
+                axButtPress(gO,2,0,0)
             end
             
             if ~isempty(find(gO.loaded, 1))
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
 
-                smartplot(gO)
+%                 smartplot(gO)
             end
         end
         
@@ -730,47 +795,46 @@ classdef DASeV < handle
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
             switch dTyp
                 case 1
+                    currDetRows = 1:length(gO.ephysDetInfo);
+%                     currChans = [gO.ephysDetInfo.Channel];
+                    
                     currDetNum = gO.ephysCurrDetNum;
                     currDetRow = gO.ephysCurrDetRow;
                     detMat = gO.ephysDets;
-%                     if chanUpDwn ~= 0
-%                         gO.ephysCurrDetNum = 1;
-%                     end
-%                     
-%                     switch detUpDwn
-%                         case 1
-%                             if gO.ephysCurrDetNum < length(find(~isnan(gO.ephysDets(gO.ephysCurrDetRow,:))))
-%                                 gO.ephysCurrDetNum = gO.ephysCurrDetNum + 1;
-%                             end
-%                         case -1
-%                             if gO.ephysCurrDetNum > 1
-%                                 gO.ephysCurrDetNum = gO.ephysCurrDetNum - 1;
-%                             end
-%                     end
-%                     switch chanUpDwn
-%                         case 1
-%                             if gO.ephysCurrDetRow < min(size(gO.ephysDets))
-%                                 gO.ephysCurrDetRow = gO.ephysCurrDetRow + 1;
-%                             end
-%                         case -1
-%                             if gO.ephysCurrDetRow > 1
-%                                 gO.ephysCurrDetRow = gO.ephysCurrDetRow -1;
-%                             end
-%                     end
                 case 2
+                    currDetRows = 1:length(gO.imagingDetInfo);
+%                     currChans = [gO.imagingDetInfo.Roi];
+                    
                     currDetNum = gO.imagingCurrDetNum;
                     currDetRow = gO.imagingCurrDetRow;
                     detMat = gO.imagingDets;
                 case 3
+                    
             end
+            
+            emptyChans = [];
+            % Filtering out channels with no detections
+            for j = 1:length(currDetRows)
+                if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
+                    emptyChans = [emptyChans, j];
+                end
+            end
+%             currChans(emptyChans) = [];
+            currDetRows(emptyChans) = [];
             
             if chanUpDwn ~= 0
                 currDetNum = 1;
             end
 
+            if (chanUpDwn == 0) & (detUpDwn == 0)
+                currDetNum = 1;
+                currDetRow = 1;
+            end
+            
             switch detUpDwn
                 case 1
-                    if currDetNum < length(find(~isnan(detMat(currDetRow,:))))
+                    temp = currDetRows(currDetRow);
+                    if currDetNum < length(find(~isnan(detMat(temp,:))))
                         currDetNum = currDetNum + 1;
                     end
                 case -1
@@ -780,7 +844,7 @@ classdef DASeV < handle
             end
             switch chanUpDwn
                 case 1
-                    if currDetRow < min(size(detMat))
+                    if currDetRow < length(currDetRows)
                         currDetRow = currDetRow + 1;
                     end
                 case -1
@@ -986,56 +1050,56 @@ classdef DASeV < handle
             gO.ax11 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.6],...
                 'Visible','off');
             gO.ax11.Toolbar.Visible = 'on';
-            gO.ax21 = axes(gO.plotPanel,'Position',[0.1, 0.5, 0.85, 0.4],...
+            gO.ax21 = axes(gO.plotPanel,'Position',[0.1, 0.55, 0.85, 0.4],...
                 'Visible','off');
             gO.ax21.Toolbar.Visible = 'on';
-            gO.ax22 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.4],...
+            gO.ax22 = axes(gO.plotPanel,'Position',[0.1, 0.06, 0.85, 0.4],...
                 'Visible','off');
             gO.ax22.Toolbar.Visible = 'on';
-            align([gO.ax21,gO.ax22],'Distribute','Distribute')
-            linkaxes([gO.ax21,gO.ax22],'x')
-            gO.ax31 = axes(gO.plotPanel,'Position',[0.1, 0.7, 0.85, 0.25],...
+%             align([gO.ax21,gO.ax22],'Distribute','Distribute')
+%             linkaxes([gO.ax21,gO.ax22],'x')
+            gO.ax31 = axes(gO.plotPanel,'Position',[0.1, 0.71, 0.85, 0.25],...
                 'Visible','off');
             gO.ax31.Toolbar.Visible = 'on';
-            gO.ax32 = axes(gO.plotPanel,'Position',[0.1, 0.4, 0.85, 0.25],...
+            gO.ax32 = axes(gO.plotPanel,'Position',[0.1, 0.38, 0.85, 0.25],...
                 'Visible','off');
             gO.ax32.Toolbar.Visible = 'on';
             gO.ax33 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.25],...
                 'Visible','off');
             gO.ax33.Toolbar.Visible = 'on';
-            align([gO.ax31,gO.ax32,gO.ax33],'Distribute','Distribute')
-            linkaxes([gO.ax31,gO.ax32,gO.ax33],'x')
-            gO.ax41 = axes(gO.plotPanel,'Position',[0.1, 0.75, 0.85, 0.2],...
+%             align([gO.ax31,gO.ax32,gO.ax33],'Distribute','Distribute')
+%             linkaxes([gO.ax31,gO.ax32,gO.ax33],'x')
+            gO.ax41 = axes(gO.plotPanel,'Position',[0.2, 0.8, 0.7, 0.175],...
                 'Visible','off');
             gO.ax41.Toolbar.Visible = 'on';
-            gO.ax42 = axes(gO.plotPanel,'Position',[0.1, 0.55, 0.85, 0.2],...
+            gO.ax42 = axes(gO.plotPanel,'Position',[0.2, 0.55, 0.7, 0.175],...
                 'Visible','off');
             gO.ax42.Toolbar.Visible = 'on';
-            gO.ax43 = axes(gO.plotPanel,'Position',[0.1, 0.35, 0.85, 0.2],...
+            gO.ax43 = axes(gO.plotPanel,'Position',[0.2, 0.3, 0.7, 0.175],...
                 'Visible','off');
             gO.ax43.Toolbar.Visible = 'on';
-            gO.ax44 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.2],...
+            gO.ax44 = axes(gO.plotPanel,'Position',[0.2, 0.05, 0.7, 0.175],...
                 'Visible','off');
             gO.ax44.Toolbar.Visible = 'on';
-            align([gO.ax41,gO.ax42,gO.ax43,gO.ax44],'Distribute','Distribute')
-            linkaxes([gO.ax41,gO.ax42,gO.ax43,gO.ax44],'x')
-            gO.ax51 = axes(gO.plotPanel,'Position',[0.1, 0.8, 0.85, 0.18],...
+%             align([gO.ax41,gO.ax42,gO.ax43,gO.ax44],'Center','Top')
+%             linkaxes([gO.ax41,gO.ax42,gO.ax43,gO.ax44],'x')
+            gO.ax51 = axes(gO.plotPanel,'Position',[0.25, 0.85, 0.6, 0.135],...
                 'Visible','off');
             gO.ax51.Toolbar.Visible = 'on';
-            gO.ax52 = axes(gO.plotPanel,'Position',[0.1, 0.6, 0.85, 0.18],...
+            gO.ax52 = axes(gO.plotPanel,'Position',[0.25, 0.65, 0.6, 0.135],...
                 'Visible','off');
             gO.ax52.Toolbar.Visible = 'on';
-            gO.ax53 = axes(gO.plotPanel,'Position',[0.1, 0.4, 0.85, 0.18],...
+            gO.ax53 = axes(gO.plotPanel,'Position',[0.25, 0.45, 0.6, 0.135],...
                 'Visible','off');
             gO.ax53.Toolbar.Visible = 'on';
-            gO.ax54 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.18],...
+            gO.ax54 = axes(gO.plotPanel,'Position',[0.25, 0.25, 0.6, 0.135],...
                 'Visible','off');
             gO.ax54.Toolbar.Visible = 'on';
-            gO.ax55 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.18],...
+            gO.ax55 = axes(gO.plotPanel,'Position',[0.25, 0.05, 0.6, 0.135],...
                 'Visible','off');
             gO.ax55.Toolbar.Visible = 'on';
-            align([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'Distribute','Distribute')
-            linkaxes([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'x')
+%             align([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'Distribute','Distribute')
+%             linkaxes([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'x')
         end
     end
 end
