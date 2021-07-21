@@ -3194,7 +3194,7 @@ classdef DAS < handle
                     return
                 end
                 
-                if~isempty(find(ismember(idx,currDetRows)==false, 1))
+                if ~isempty(find(ismember(indx,currDetRows)==false, 1))
                     warndlg('Please only select from same detection run!')
                     return
                 end
