@@ -40,6 +40,7 @@ classdef DASeV < handle
         statPanel
         
         plotPanel
+        fixWinSwitch
         ephysDetUpButt
         ephysDetDwnButt
         ephysChanUpButt
@@ -78,6 +79,7 @@ classdef DASeV < handle
         
         %% ephys stuff
         highPassRawEphys = 0;
+        ephysRefCh = 0;
         ephysTypSelected = [1,0,0]; % raw-dog-instpow
         ephysData
         ephysDoGGed
@@ -275,8 +277,14 @@ classdef DASeV < handle
                         winIdx = detIdx-win:length(gO.ephysTaxis);
                         tWin = gO.ephysTaxis(winIdx);
                 end
-                axTitle = ['Channel #',num2str(chan),'      Detection #',...
-                                num2str(currDetNum),'/',num2str(numDets)];
+                if chan == gO.ephysRefCh
+                    axTitle = ['Channel #',num2str(chan), ' (Ref)',...
+                        '      Detection #',...
+                        num2str(currDetNum),'/',num2str(numDets)];
+                else
+                    axTitle = ['Channel #',num2str(chan),'      Detection #',...
+                        num2str(currDetNum),'/',num2str(numDets)];
+                end
             elseif gO.plotFull
                 gO.ephysDetUpButt.Enable = 'off';
                 gO.ephysDetDwnButt.Enable = 'off';
@@ -289,8 +297,13 @@ classdef DASeV < handle
                 winIdx = 1:length(gO.ephysTaxis);
                 tWin = gO.ephysTaxis;
                 
-                axTitle = ['Channel #',num2str(chan),'      #Detections = ',...
-                    num2str(numDets)];
+                if chan == gO.ephysRefCh
+                    axTitle = ['Channel #',num2str(chan),' (Ref)',...
+                        '      #Detections = ',num2str(numDets)];
+                else
+                    axTitle = ['Channel #',num2str(chan),'      #Detections = ',...
+                        num2str(numDets)];
+                end
             end
             
             data = [];
@@ -668,7 +681,7 @@ classdef DASeV < handle
             if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
                 load(fname,'ephysSaveData','ephysSaveInfo')
-                
+
                 if ~isempty(ephysSaveData) & ~isempty(ephysSaveInfo)
                     gO.ephysData = ephysSaveData.RawData;
                     gO.ephysFs = ephysSaveData.Fs;
@@ -676,6 +689,11 @@ classdef DASeV < handle
                     gO.ephysYlabel = ephysSaveData.YLabel;
                     gO.ephysDets = ephysSaveData.Dets;
                     gO.ephysDetInfo = ephysSaveInfo;
+                    if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
+                        if gO.ephysDetInfo(1).Params.RefCh ~= 0
+                            gO.ephysRefCh = gO.ephysDetInfo(1).Params.RefCh;
+                        end
+                    end
 
                     gO.ephysDetUpButt.Enable = 'on';
                     gO.ephysDetDwnButt.Enable = 'on';
@@ -684,10 +702,12 @@ classdef DASeV < handle
 
                     gO.loaded(1) = 1;
 
-                    axButtPress(gO,1,0,0)
-
                     gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
                     gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
+                    
+                    axButtPress(gO,1,0,0)
+
+                    
                 end
             end
             
@@ -863,6 +883,10 @@ classdef DASeV < handle
             smartplot(gO)
         end
         
+        function axButtPressKeepWin(gO,dTyp,chanUpDwn)
+            
+        end
+        
     end
     
     %% gui component initialization and construction
@@ -993,28 +1017,33 @@ classdef DASeV < handle
             
             gO.plotPanel = uipanel(gO.viewerTab,...
                 'Position',[0.3, 0, 0.7, 1]);
+            gO.fixWinSwitch = uicontrol(gO.plotPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.965, 0.95, 0.035, 0.05],...
+                'String','FixWin');
             gO.ephysDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.95, 0.035, 0.05],...
+                'Position',[0.965, 0.9, 0.035, 0.05],...
                 'String','<HTML>Det&uarr',...
                 'Callback',@(h,e) gO.axButtPress(1,1,0));
             gO.ephysDetDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.9, 0.035, 0.05],...
+                'Position',[0.965, 0.85, 0.035, 0.05],...
                 'String','<HTML>Det&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,-1,0));
             gO.ephysChanUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.85, 0.035, 0.05],...
+                'Position',[0.965, 0.8, 0.035, 0.05],...
                 'String','<HTML>Chan&uarr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,1));
             gO.ephysChanDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.8, 0.035, 0.05],...
+                'Position',[0.965, 0.75, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,-1));
             
