@@ -2920,11 +2920,13 @@ classdef DAS < handle
         %%
         function mainFigOpenFcn(guiobj,~,~)
             % Check if logfile exists
-            fID = fopen('DAS_LOG.mat');
+            DASlocation = mfilename('fullpath');
+            DASlocation = DASlocation(1:end-3);
+            fID = fopen([DASlocation,'DAS_LOG.mat']);
             % If it does, load it, if it doesnt create it
             if fID >= 3
                 try
-                    load('DAS_LOG.mat')
+                    load([DASlocation,'DAS_LOG.mat'])
                     disp('Log file found and loaded.')
 
                     temp = DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow;
@@ -3003,7 +3005,9 @@ classdef DAS < handle
             
             DAS_LOG.presets.ephys = guiobj.ephys_presets;
             
-            save('DAS_LOG.mat','DAS_LOG')
+            DASlocation = mfilename('fullpath');
+            DASlocation = DASlocation(1:end-3);
+            save([DASlocation,'DAS_LOG.mat'],'DAS_LOG')
             
             delete(guiobj)
         end
