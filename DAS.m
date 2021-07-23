@@ -1246,13 +1246,30 @@ classdef DAS < handle
             plot(ax,tWin,dataWin)
             hold(ax,'on')
             xline(ax,tStamp,'Color','r','LineWidth',1);
-            hold(ax,'off')
+%             hold(ax,'off')
             axis(ax,'tight')
             ylim(ax,axYMinMax)
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,yAxLbl);
             title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detInd),...
                 '/',num2str(numDets)])
+            
+            %%% testing FWHM
+            halfmax = data(chan,tInd)/2
+            yline(ax,halfmax,'Color','g','LineWidth',1);
+            hold(ax,'off')
+            aboveHM = find(data(chan,:)>halfmax);
+            assignin('base','aboveHM',aboveHM)
+            assignin('base','tInd',tInd)
+            aboveHMtInd = find(aboveHM==tInd);
+            steps = diff(aboveHM);
+            steps = [0,steps,length(data)];
+            disconts = find(steps~=1);
+            lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last')))
+            highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1))-1)
+            FWHM = (highbord-lowbord)/20
+
+            display('----------------------------------------')
         end
         
         %%
