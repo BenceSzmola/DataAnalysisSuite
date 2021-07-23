@@ -3284,6 +3284,11 @@ classdef DAS < handle
         end
         
         %%
+        function keyboardPressFcn(guiobj,~,kD)
+            
+        end
+        
+        %%
         function testcallback(varargin)
             display(varargin)
             assignin('base','testinput',varargin)
@@ -3306,7 +3311,8 @@ classdef DAS < handle
                 'MenuBar','none',...
                 'IntegerHandle','off',...
                 'HandleVisibility','Callback',...
-                'DeleteFcn',@(h,e) guiobj.mainFigCloseFcn);
+                'DeleteFcn',@(h,e) guiobj.mainFigCloseFcn,...
+                'KeyPressFcn',@ guiobj.keyboardPressFcn);
 
             % Create OptionsMenu
             guiobj.MainTabOptionsMenu = uimenu(guiobj.mainfig,...

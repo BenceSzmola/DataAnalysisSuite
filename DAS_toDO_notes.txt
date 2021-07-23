@@ -46,5 +46,5 @@ DAS toDo notes
 		kiemelni a threshold feletti részt színnel
 -detectiokat egymásra vetítve megmutatni
 -lehetőség a detectio színnel kiemelésére
--DASeV: egy csatornán nézed egyes detekciokat, és közben megmutatni többi csatornán uazt az ablakot
--billentyuzet iranyitast bevezetni
++DASeV: egy csatornán nézed egyes detekciokat, és közben megmutatni többi csatornán uazt az ablakot <- DONE
++billentyuzet iranyitast bevezetni <- DONE

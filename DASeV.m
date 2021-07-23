@@ -45,10 +45,14 @@ classdef DASeV < handle
         ephysDetDwnButt
         ephysChanUpButt
         ephysChanDwnButt
+        ephysFixWinChanUpButt
+        ephysFixWinChanDwnButt
         imagingDetUpButt
         imagingDetDwnButt
         imagingRoiUpButt
         imagingRoiDwnButt
+        imagingFixWinRoiUpButt
+        imagingFixWinRoiDwnButt
         
         
         % all the axes
@@ -76,6 +80,8 @@ classdef DASeV < handle
         loaded = [0,0,0]; % ephys-imaging-running (0-1)
         prevNumAx = 1;
         plotFull = 0;
+        fixWin = 0;
+        keyboardPressDtyp = 1;
         
         %% ephys stuff
         highPassRawEphys = 0;
@@ -93,6 +99,7 @@ classdef DASeV < handle
         ephysDetInfo
         ephysCurrDetNum = 1;
         ephysCurrDetRow = 1;
+        ephysFixWinDetRow = 1;
         
         %% imaging
         imagingData
@@ -104,6 +111,7 @@ classdef DASeV < handle
         
         imagingCurrDetNum = 1;
         imagingCurrDetRow = 1;
+        imagingFixWinDetRow = 1;
     end
     
     %% Constructor part
@@ -277,13 +285,24 @@ classdef DASeV < handle
                         winIdx = detIdx-win:length(gO.ephysTaxis);
                         tWin = gO.ephysTaxis(winIdx);
                 end
-                if chan == gO.ephysRefCh
-                    axTitle = ['Channel #',num2str(chan), ' (Ref)',...
-                        '      Detection #',...
-                        num2str(currDetNum),'/',num2str(numDets)];
-                else
-                    axTitle = ['Channel #',num2str(chan),'      Detection #',...
-                        num2str(currDetNum),'/',num2str(numDets)];
+                
+                if gO.fixWin == 1
+                    chan = gO.ephysDetInfo(gO.ephysFixWinDetRow).Channel;
+                    if chan == gO.ephysRefCh
+                        axTitle = ['Channel #',num2str(chan), ' (Ref)'];
+                    else
+                        axTitle = ['Channel #',num2str(chan)];
+                    end
+                elseif gO.fixWin == 0
+                    if chan == gO.ephysRefCh
+                        axTitle = ['Channel #',num2str(chan), ' (Ref)',...
+                            '      Detection #',...
+                            num2str(currDetNum),'/',num2str(numDets)];
+                    else
+                        axTitle = ['Channel #',num2str(chan),'      Detection #',...
+                            num2str(currDetNum),'/',num2str(numDets)];
+                    end
+                    
                 end
             elseif gO.plotFull
                 gO.ephysDetUpButt.Enable = 'off';
@@ -305,7 +324,7 @@ classdef DASeV < handle
                         num2str(numDets)];
                 end
             end
-            
+                        
             data = [];
             axLims = [];
             yLabels = [];
@@ -461,8 +480,17 @@ classdef DASeV < handle
                         winIdx = detIdx-win:length(gO.imagingTaxis);
                         tWin = gO.imagingTaxis(winIdx);
                 end
-                axTitle = ['ROI #',num2str(chan),'      Detection #',...
-                                num2str(currDetNum),'/',num2str(numDets)];
+%                 axTitle = ['ROI #',num2str(chan),'      Detection #',...
+%                                 num2str(currDetNum),'/',num2str(numDets)];
+                
+                if gO.fixWin == 1
+                    chan = gO.imagingDetInfo(gO.imagingFixWinDetRow).Roi;
+                    axTitle = ['ROI #',num2str(chan)];
+                elseif gO.fixWin == 0
+                    axTitle = ['ROI #',num2str(chan),'      Detection #',...
+                        num2str(currDetNum),'/',num2str(numDets)];
+                end
+                
             elseif gO.plotFull
                 gO.imagingDetUpButt.Enable = 'off';
                 gO.imagingDetDwnButt.Enable = 'off';
@@ -627,6 +655,8 @@ classdef DASeV < handle
                 gO.plotFull = 0;
             elseif gO.plotFull == 0
                 gO.plotFull = 1;
+                gO.fixWinSwitch.Value = 0;
+                fixWinSwitchPress(gO)
             end
             smartplot(gO)
         end
@@ -721,7 +751,7 @@ classdef DASeV < handle
                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
                 load(fname,'imagingSaveData','imagingSaveInfo')
                 
-                if ~isempty(imagingSaveData) & ~isempty(imagingSaveinfo)
+                if ~isempty(imagingSaveData) & ~isempty(imagingSaveInfo)
                     gO.imagingData = imagingSaveData.RawData;
                     gO.imagingFs = imagingSaveData.Fs;
                     gO.imagingTaxis = imagingSaveData.TAxis;
@@ -808,6 +838,7 @@ classdef DASeV < handle
             end
         end
         
+        %%
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
             switch dTyp
                 case 1
@@ -847,17 +878,20 @@ classdef DASeV < handle
                 currDetRow = 1;
             end
             
-            switch detUpDwn
-                case 1
-                    temp = currDetRows(currDetRow);
-                    if currDetNum < length(find(~isnan(detMat(temp,:))))
-                        currDetNum = currDetNum + 1;
-                    end
-                case -1
-                    if currDetNum > 1
-                        currDetNum = currDetNum - 1;
-                    end
+            if gO.plotFull == 0
+                switch detUpDwn
+                    case 1
+                        temp = currDetRows(currDetRow);
+                        if currDetNum < length(find(~isnan(detMat(temp,:))))
+                            currDetNum = currDetNum + 1;
+                        end
+                    case -1
+                        if currDetNum > 1
+                            currDetNum = currDetNum - 1;
+                        end
+                end
             end
+                
             switch chanUpDwn
                 case 1
                     if currDetRow < length(currDetRows)
@@ -873,9 +907,11 @@ classdef DASeV < handle
                 case 1
                     gO.ephysCurrDetNum = currDetNum;
                     gO.ephysCurrDetRow = currDetRow;
+                    gO.ephysFixWinDetRow = currDetRow;
                 case 2
                     gO.imagingCurrDetNum = currDetNum;
                     gO.imagingCurrDetRow = currDetRow;
+                    gO.imagingFixWinDetRow = currDetRow;
                 case 3
                     
             end
@@ -883,10 +919,156 @@ classdef DASeV < handle
             smartplot(gO)
         end
         
-        function axButtPressKeepWin(gO,dTyp,chanUpDwn)
+        %%
+        function axButtPressFixWin(gO,dTyp,chanUpDwn)
+            switch dTyp
+                case 1
+                    currDetRows = 1:length(gO.ephysDetInfo);
+                    
+                    fixWinCurrDetRow = gO.ephysFixWinDetRow;
+                case 2
+                    currDetRows = 1:length(gO.imagingDetInfo);
+                    
+                    fixWinCurrDetRow = gO.imagingFixWinDetRow;
+                case 3
+                    
+            end
+            
+            switch chanUpDwn
+                case 1
+                    if fixWinCurrDetRow < length(currDetRows)
+                        fixWinCurrDetRow = fixWinCurrDetRow + 1;
+                    end
+                case -1
+                    if fixWinCurrDetRow > 1
+                        fixWinCurrDetRow = fixWinCurrDetRow -1;
+                    end
+            end
+            
+            switch dTyp
+                case 1
+                    gO.ephysFixWinDetRow = fixWinCurrDetRow;
+                case 2
+                    gO.imagingFixWinDetRow = fixWinCurrDetRow;
+                case 3
+                    
+            end
+
+            smartplot(gO)
             
         end
         
+        %%
+        function fixWinSwitchPress(gO,~,~)
+            gO.fixWin = gO.fixWinSwitch.Value;
+            
+            switch gO.fixWin
+                case 0
+                    if gO.loaded(1)
+                        gO.ephysDetUpButt.Enable = 'on';
+                        gO.ephysDetUpButt.Visible = 'on';
+                        gO.ephysDetDwnButt.Enable = 'on';
+                        gO.ephysDetDwnButt.Visible = 'on';
+                        gO.ephysChanUpButt.Enable = 'on';
+                        gO.ephysChanUpButt.Visible = 'on';
+                        gO.ephysChanDwnButt.Enable = 'on';
+                        gO.ephysChanDwnButt.Visible = 'on';
+
+                        gO.ephysFixWinChanUpButt.Enable = 'off';
+                        gO.ephysFixWinChanUpButt.Visible = 'off';
+                        gO.ephysFixWinChanDwnButt.Enable = 'off';
+                        gO.ephysFixWinChanDwnButt.Visible = 'off';
+                    end
+                    
+                    if gO.loaded(2)
+                        gO.imagingDetUpButt.Enable = 'on';
+                        gO.imagingDetUpButt.Visible = 'on';
+                        gO.imagingDetDwnButt.Enable = 'on';
+                        gO.imagingDetDwnButt.Visible = 'on';
+                        gO.imagingRoiUpButt.Enable = 'on';
+                        gO.imagingRoiUpButt.Visible = 'on';
+                        gO.imagingRoiDwnButt.Enable = 'on';
+                        gO.imagingRoiDwnButt.Visible = 'on';
+
+                        gO.imagingFixWinRoiUpButt.Enable = 'off';
+                        gO.imagingFixWinRoiUpButt.Visible = 'off';
+                        gO.imagingFixWinRoiDwnButt.Enable = 'off';
+                        gO.imagingFixWinRoiDwnButt.Visible = 'off';
+                    end
+                case 1
+                    gO.plotFull = 0;
+                    
+                    if gO.loaded(1)
+                        gO.ephysDetUpButt.Enable = 'off';
+                        gO.ephysDetUpButt.Visible = 'off';
+                        gO.ephysDetDwnButt.Enable = 'off';
+                        gO.ephysDetDwnButt.Visible = 'off';
+                        gO.ephysChanUpButt.Enable = 'off';
+                        gO.ephysChanUpButt.Visible = 'off';
+                        gO.ephysChanDwnButt.Enable = 'off';
+                        gO.ephysChanDwnButt.Visible = 'off';
+
+                        gO.ephysFixWinChanUpButt.Enable = 'on';
+                        gO.ephysFixWinChanUpButt.Visible = 'on';
+                        gO.ephysFixWinChanDwnButt.Enable = 'on';
+                        gO.ephysFixWinChanDwnButt.Visible = 'on';
+                    end
+                    
+                    if gO.loaded(2)
+                        gO.imagingDetUpButt.Enable = 'off';
+                        gO.imagingDetUpButt.Visible = 'off';
+                        gO.imagingDetDwnButt.Enable = 'off';
+                        gO.imagingDetDwnButt.Visible = 'off';
+                        gO.imagingRoiUpButt.Enable = 'off';
+                        gO.imagingRoiUpButt.Visible = 'off';
+                        gO.imagingRoiDwnButt.Enable = 'off';
+                        gO.imagingRoiDwnButt.Visible = 'off';
+
+                        gO.imagingFixWinRoiUpButt.Enable = 'on';
+                        gO.imagingFixWinRoiUpButt.Visible = 'on';
+                        gO.imagingFixWinRoiDwnButt.Enable = 'on';
+                        gO.imagingFixWinRoiDwnButt.Visible = 'on';
+                    end
+            end
+            
+            smartplot(gO)
+            
+        end
+        
+        %%
+        function keyboardPressFcn(gO,~,kD)
+            if gO.tabgrp.SelectedTab == gO.tabgrp.Children(2)
+                if strcmp(kD.Key,'d') & (sum(gO.loaded) > 1)
+                    switch gO.keyboardPressDtyp
+                        case 1
+                            gO.keyboardPressDtyp = 2;
+                        case 2
+                            gO.keyboardPressDtyp = 1;
+    %                     case 3
+
+                    end
+                else
+
+                    detChanUpDwn = [0,0];
+                    switch kD.Key
+                        case 'rightarrow'
+                            detChanUpDwn = [1,0];
+                        case 'leftarrow'
+                            detChanUpDwn = [-1,0];
+                        case 'uparrow'
+                            detChanUpDwn = [0,1];
+                        case 'downarrow'
+                            detChanUpDwn = [0,-1];
+                    end
+
+                    if gO.fixWin == 1
+                        axButtPressFixWin(gO,gO.keyboardPressDtyp,detChanUpDwn(2))
+                    else
+                        axButtPress(gO,gO.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
+                    end
+                end
+            end
+        end
     end
     
     %% gui component initialization and construction
@@ -899,7 +1081,8 @@ classdef DASeV < handle
                 'Name','DAS Event Viewer',...
                 'IntegerHandle','off',...
                 'HandleVisibility','Callback',...
-                'MenuBar','none');
+                'MenuBar','none',...
+                'KeyPressFcn',@ gO.keyboardPressFcn);
             
             %% Menus
             gO.optMenu = uimenu(gO.mainFig,...
@@ -1020,8 +1203,9 @@ classdef DASeV < handle
             gO.fixWinSwitch = uicontrol(gO.plotPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.965, 0.95, 0.035, 0.05],...
-                'String','FixWin');
+                'Position',[0.95, 0.965, 0.05, 0.05],...
+                'String','FixWin',...
+                'Callback',@ gO.fixWinSwitchPress);
             gO.ephysDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -1046,6 +1230,22 @@ classdef DASeV < handle
                 'Position',[0.965, 0.75, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,-1));
+            gO.ephysFixWinChanUpButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.965, 0.8, 0.035, 0.05],...
+                'String','<HTML>Chan&uarr',...
+                'Callback',@(h,e) gO.axButtPressFixWin(1,1),...
+                'Visible','off',...
+                'Enable','off');
+            gO.ephysFixWinChanDwnButt = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.965, 0.75, 0.035, 0.05],...
+                'String','<HTML>Chan&darr',...
+                'Callback',@(h,e) gO.axButtPressFixWin(1,-1),...
+                'Visible','off',...
+                'Enable','off');
             
             gO.imagingDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
