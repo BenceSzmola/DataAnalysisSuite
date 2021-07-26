@@ -232,6 +232,7 @@ classdef DAS < handle
         % Stores which proc type is which 
         ephys_procTypes = ["DoG"; "Periodic"];
         ephys_detections                    % Location of detections on time axis
+        ephys_detBorders
         ephys_detectionsInfo = struct('DetType',[],'Channel',[],'Params',[],'DetRun',[]);
         ephys_detStats = struct('Amplitude',[],'Length',[],'Frequency',[],...
             'AOC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
@@ -252,6 +253,7 @@ classdef DAS < handle
         imaging_proccedInfo
         imaging_procTypes = ["GaussAvg"];
         imaging_detections
+        imaging_detBorders
         imaging_detectionsInfo = struct('DetType',[],'Roi',[],'Params',[],'DetRun',[]);
         imaging_detMarkerSelection
         imaging_detRunsNum = 0;             % Number of detection runs
@@ -1199,6 +1201,7 @@ classdef DAS < handle
                     taxis = guiobj.ephys_taxis;
                     fs = guiobj.ephys_fs;
                     detMat = guiobj.ephys_detections;
+                    detBorders = guiobj.ephys_detBorders;
                     
                     currChanNum = guiobj.eventDet1CurrChan;
                     currDetNum = guiobj.eventDet1CurrDet;
@@ -1212,6 +1215,7 @@ classdef DAS < handle
                     taxis = guiobj.imaging_taxis;
                     fs = guiobj.imaging_fs;
                     detMat = guiobj.imaging_detections;
+                    detBorders = guiobj.imaging_detBorders;
                     
                     currChanNum = guiobj.eventDet2CurrRoi;
                     currDetNum = guiobj.eventDet2CurrDet;
@@ -1225,6 +1229,12 @@ classdef DAS < handle
             axYMinMax = [min(data(chan,:)), max(data(chan,:))];
             currDetRow = currDetRows(currChanNum);
             numDets = length(find(~isnan(detMat(currDetRow,:))));
+            
+            currDetBorders = detBorders{currDetRow};
+            if ~isempty(currDetBorders)
+                currDetBorders = currDetBorders(currDetNum,:);
+            end
+            
             detInd = currDetNum;
             %%%
             %%%
@@ -1233,20 +1243,41 @@ classdef DAS < handle
             tStamp = taxis(tInd);
             win = guiobj.eventDet1Win/2000;
             win = round(win*fs,0);
-            if (tInd-win > 0) & (tInd+win <= length(taxis))
-                tWin = taxis(tInd-win:tInd+win);
-                dataWin = data(chan,tInd-win:tInd+win);
-            elseif tInd-win <= 0
-                tWin = taxis(1:tInd+win);
-                dataWin = data(chan,1:tInd+win);
-            elseif tInd+win > length(taxis)
-                tWin = taxis(tInd-win:end);
-                dataWin = data(chan,tInd-win:end);
+            
+            if ~isempty(currDetBorders)
+                winStart = currDetBorders(1)-win;
+                winEnd = currDetBorders(2)+win;
+                if (winStart>0) & (winEnd <= length(taxis))
+                    tWin = taxis(winStart:winEnd);
+                    dataWin = data(chan,winStart:winEnd);
+                elseif winStart <= 0
+                    tWin = taxis(1:winEnd);
+                    dataWin = data(chan,1:winEnd);
+                elseif winEnd > length(taxis)
+                    tWin = taxis(winStart:end);
+                    dataWin = data(chan,winStart:end);
+                end
+            else
+                if (tInd-win > 0) & (tInd+win <= length(taxis))
+                    tWin = taxis(tInd-win:tInd+win);
+                    dataWin = data(chan,tInd-win:tInd+win);
+                elseif tInd-win <= 0
+                    tWin = taxis(1:tInd+win);
+                    dataWin = data(chan,1:tInd+win);
+                elseif tInd+win > length(taxis)
+                    tWin = taxis(tInd-win:end);
+                    dataWin = data(chan,tInd-win:end);
+                end
             end
+            
             plot(ax,tWin,dataWin)
             hold(ax,'on')
             xline(ax,tStamp,'Color','r','LineWidth',1);
-%             hold(ax,'off')
+            if ~isempty(currDetBorders)
+                xline(ax,taxis(currDetBorders(1)),'Color','g','LineWidth',1);
+                xline(ax,taxis(currDetBorders(2)),'Color','g','LineWidth',1);
+            end
+            hold(ax,'off')
             axis(ax,'tight')
             ylim(ax,axYMinMax)
             xlabel(ax,guiobj.xtitle)
@@ -1255,21 +1286,21 @@ classdef DAS < handle
                 '/',num2str(numDets)])
             
             %%% testing FWHM
-            halfmax = data(chan,tInd)/2
-            yline(ax,halfmax,'Color','g','LineWidth',1);
-            hold(ax,'off')
-            aboveHM = find(data(chan,:)>halfmax);
-            assignin('base','aboveHM',aboveHM)
-            assignin('base','tInd',tInd)
-            aboveHMtInd = find(aboveHM==tInd);
-            steps = diff(aboveHM);
-            steps = [0,steps,length(data)];
-            disconts = find(steps~=1);
-            lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last')))
-            highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1))-1)
-            FWHM = (highbord-lowbord)/20
-
-            display('----------------------------------------')
+%             halfmax = data(chan,tInd)/2
+% %             yline(ax,halfmax,'Color','g','LineWidth',1);
+% %             hold(ax,'off')
+%             aboveHM = find(data(chan,:)>halfmax);
+%             assignin('base','aboveHM',aboveHM)
+%             assignin('base','tInd',tInd)
+%             aboveHMtInd = find(aboveHM==tInd);
+%             steps = diff(aboveHM);
+%             steps = [0,steps,length(data)];
+%             disconts = find(steps~=1);
+%             lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last')))
+%             highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1))-1)
+%             FWHM = (highbord-lowbord)/20
+% 
+%             display('----------------------------------------')
         end
         
         %%
@@ -2479,11 +2510,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        dets = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
+                        [dets,detBorders] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
                     elseif refVal & (chan > min(size(guiobj.ephys_data)))
-                        dets = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
+                        [dets,detBorders] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
                     elseif refVal & (chan < min(size(guiobj.ephys_data)))
-                        dets = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;                    
                     
@@ -2531,6 +2562,7 @@ classdef DAS < handle
                     end
                     
                     dets = adaptive_thresh(data,tAxis,fs,step,minLen,mindist,ratio,showFigs);
+                    detBorders = cell(min(size(data)),1);
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
 %                     detinfo = [chan, 2];
@@ -2618,11 +2650,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        dets = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
+                        [dets,detBorders] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
                     elseif refVal && (size(data,1)>1)
-                        dets = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
+                        [dets,detBorders] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
                     elseif refVal && (size(data,1)==1)
-                        dets = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
@@ -2668,6 +2700,12 @@ classdef DAS < handle
 %             detStatMiner(guiobj,1,dettype,dets)
             
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
+            
+            if ~isempty(guiobj.ephys_detBorders)
+                guiobj.ephys_detBorders = [guiobj.ephys_detBorders; detBorders];
+            else
+                guiobj.ephys_detBorders = detBorders;
+            end
 %             guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo;...
 %                 detinfo];
             if isempty(guiobj.ephys_detectionsInfo(1).DetType)
@@ -3225,6 +3263,7 @@ classdef DAS < handle
                 ephysSaveData.Fs = guiobj.ephys_fs;
                 ephysSaveData.RawData = guiobj.ephys_data;
                 ephysSaveData.Dets = guiobj.ephys_detections(indx,:);
+                ephysSaveData.DetBorders = guiobj.ephys_detBorders(indx);
                 ephysSaveInfo = guiobj.ephys_detectionsInfo(indx);
                  
             else
@@ -3270,6 +3309,7 @@ classdef DAS < handle
                 imagingSaveData.Fs = guiobj.imaging_fs;
                 imagingSaveData.RawData = guiobj.imaging_data;
                 imagingSaveData.Dets = guiobj.imaging_detections(indx,:);
+                imagingSaveData.DetBorders = guiobj.imaging_detBorders(indx);
                 imagingSaveInfo = guiobj.imaging_detectionsInfo(indx);
             else
                 imagingSaveData = [];

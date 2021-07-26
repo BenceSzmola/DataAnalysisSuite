@@ -95,6 +95,7 @@ classdef DASeV < handle
         ephysParams
         ephysStats
         ephysDets
+        ephysDetBorders
         ephysYlabel
         ephysDetInfo
         ephysCurrDetNum = 1;
@@ -107,6 +108,7 @@ classdef DASeV < handle
         imagingTaxis
         imagingYlabel
         imagingDets
+        imagingDetBorders
         imagingDetInfo
         
         imagingCurrDetNum = 1;
@@ -259,6 +261,8 @@ classdef DASeV < handle
             numDets = length(find(~isnan(gO.ephysDets(currDetRow,:))));
             chan = gO.ephysDetInfo(currDetRow).Channel;
             
+            currDetBorders = gO.ephysDetBorders{currDetRow};
+            
             if numDets == 0
                 return
             end
@@ -266,6 +270,11 @@ classdef DASeV < handle
             if ~gO.plotFull
                 gO.ephysDetUpButt.Enable = 'on';
                 gO.ephysDetDwnButt.Enable = 'on';
+                
+%                 currDetBorders = gO.ephysDetBorders{currDetRow};
+                if ~isempty(currDetBorders)
+                    currDetBorders = currDetBorders(currDetNum,:);
+                end
                 
                 detIdx = gO.ephysDets(currDetRow,:);
                 detIdx = find(~isnan(detIdx));
@@ -275,7 +284,21 @@ classdef DASeV < handle
                 win = 0.5;
                 win = round(win*gO.ephysFs,4);
                 
-                if (detIdx-win > 0) & (detIdx+win <= length(gO.ephysTaxis))
+                if ~isempty(currDetBorders)
+                    winStart = currDetBorders(1)-win;
+                    winEnd = currDetBorders(2)+win;
+                    if (winStart > 0) & (winEnd <= length(gO.ephysTaxis))
+                        winIdx = winStart:winEnd;
+                        tWin = gO.ephysTaxis(winIdx);
+                    elseif winStart <= 0
+                        winIdx = 1:winEnd;
+                        tWin = gO.ephysTaxis(winIdx);
+                    elseif winEnd > length(gO.ephysTaxis)
+                        winIdx = winStart:length(gO.ephysTaxis);
+                        tWin = gO.ephysTaxis(winIdx);
+                    end
+                else
+                    if (detIdx-win > 0) & (detIdx+win <= length(gO.ephysTaxis))
                         winIdx = detIdx-win:detIdx+win;
                         tWin = gO.ephysTaxis(winIdx);
                     elseif detIdx-win <= 0
@@ -284,8 +307,9 @@ classdef DASeV < handle
                     elseif detIdx+win > length(gO.ephysTaxis)
                         winIdx = detIdx-win:length(gO.ephysTaxis);
                         tWin = gO.ephysTaxis(winIdx);
+                    end
                 end
-                
+            
                 if gO.fixWin == 1
                     chan = gO.ephysDetInfo(gO.ephysFixWinDetRow).Channel;
                     if chan == gO.ephysRefCh
@@ -315,7 +339,7 @@ classdef DASeV < handle
                 
                 winIdx = 1:length(gO.ephysTaxis);
                 tWin = gO.ephysTaxis;
-                
+                                
                 if chan == gO.ephysRefCh
                     axTitle = ['Channel #',num2str(chan),' (Ref)',...
                         '      #Detections = ',num2str(numDets)];
@@ -418,6 +442,10 @@ classdef DASeV < handle
 %                 else
                     for j = 1:length(tDetInds)
                         xline(ax(i),tDetInds(j),'Color','r','LineWidth',1);
+                        if ~isempty(currDetBorders)
+                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'Color','g','LineWidth',1);
+                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'Color','g','LineWidth',1);
+                        end
                     end
 %                 end
                 hold(ax(i),'off')
@@ -454,6 +482,8 @@ classdef DASeV < handle
             numDets = length(find(~isnan(gO.imagingDets(currDetRow,:))));
             chan = gO.imagingDetInfo(currDetRow).Roi;
             
+            currDetBorders = gO.imagingDetBorders{currDetRow};
+            
             if numDets == 0
                 return
             end
@@ -470,15 +500,33 @@ classdef DASeV < handle
                 win = 0.5;
                 win = round(win*gO.imagingFs,0);
                 
-                if (detIdx-win > 0) & (detIdx+win <= length(gO.imagingTaxis))
-                        winIdx = detIdx-win:detIdx+win;
+                
+                if ~isempty(currDetBorders)
+                    currDetBorders = currDetBorders(currDetNum,:);
+                    
+                    winStart = currDetBorders(1)-win;
+                    winEnd = currDetBorders(2)+win;
+                    if (winStart > 0) & (winEnd <= length(gO.imagingTaxis))
+                        winIdx = winStart:winEnd;
                         tWin = gO.imagingTaxis(winIdx);
-                    elseif detIdx-win <= 0
-                        winIdx = 1:detIdx+win;
+                    elseif winStart <= 0
+                        winIdx = 1:winEnd;
                         tWin = gO.imagingTaxis(winIdx);
-                    elseif detIdx+win > length(gO.imagingTaxis)
-                        winIdx = detIdx-win:length(gO.imagingTaxis);
+                    elseif winEnd > length(gO.imagingTaxis)
+                        winIdx = winStart:length(gO.imagingTaxis);
                         tWin = gO.imagingTaxis(winIdx);
+                    end
+                else
+                    if (detIdx-win > 0) & (detIdx+win <= length(gO.imagingTaxis))
+                            winIdx = detIdx-win:detIdx+win;
+                            tWin = gO.imagingTaxis(winIdx);
+                        elseif detIdx-win <= 0
+                            winIdx = 1:detIdx+win;
+                            tWin = gO.imagingTaxis(winIdx);
+                        elseif detIdx+win > length(gO.imagingTaxis)
+                            winIdx = detIdx-win:length(gO.imagingTaxis);
+                            tWin = gO.imagingTaxis(winIdx);
+                    end
                 end
 %                 axTitle = ['ROI #',num2str(chan),'      Detection #',...
 %                                 num2str(currDetNum),'/',num2str(numDets)];
@@ -516,6 +564,10 @@ classdef DASeV < handle
                 hold(ax(i),'on')
                 for j = 1:length(tDetInds)
                     xline(ax(i),tDetInds(j),'Color','r','LineWidth',1);
+                    if ~isempty(currDetBorders)
+                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,1)),'Color','g','LineWidth',1);
+                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,2)),'Color','g','LineWidth',1);
+                    end
                 end
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
@@ -718,6 +770,11 @@ classdef DASeV < handle
                     gO.ephysTaxis = ephysSaveData.TAxis;
                     gO.ephysYlabel = ephysSaveData.YLabel;
                     gO.ephysDets = ephysSaveData.Dets;
+                    try
+                        gO.ephysDetBorders = ephysSaveData.DetBorders;
+                    catch
+                        gO.ephysDetBorders = cell(min(size(gO.ephysData)),1);
+                    end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
                         if gO.ephysDetInfo(1).Params.RefCh ~= 0
@@ -757,6 +814,11 @@ classdef DASeV < handle
                     gO.imagingTaxis = imagingSaveData.TAxis;
                     gO.imagingYlabel = imagingSaveData.YLabel;
                     gO.imagingDets = imagingSaveData.Dets;
+                    try
+                        gO.imagingDetBorders = imagingSaveData.DetBorders;
+                    catch
+                        gO.imagingDetBorders = cell(min(size(gO.imagingData)),1);
+                    end
                     gO.imagingDetInfo = imagingSaveInfo;
 
                     gO.imagingDetUpButt.Enable = 'on';
