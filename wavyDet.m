@@ -1,4 +1,4 @@
-function [dets,detBorders] = wavyDet(data,taxis,fs,minLen,sdmult,w1,w2,refch,showFigs)
+function [dets,detBorders,detStats] = wavyDet(data,taxis,fs,minLen,sdmult,w1,w2,refch,showFigs)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -51,6 +51,8 @@ end
 
 dets = nan(size(data));
 detBorders = cell(min(size(data)),1);
+detStats = cell(min(size(data)),1);
+
 dogged = DoG(data,fs,w1,w2);
 
 % Finding above threshold segments on refchan
@@ -100,6 +102,7 @@ for i = 1:min(size(data))
         
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
+    detStats{i} = detStatMiner(dets(i,:),detBorders{i},fs,data(i,:),instE,dogged(i,:));
 
     %% Plotting
     if showFigs

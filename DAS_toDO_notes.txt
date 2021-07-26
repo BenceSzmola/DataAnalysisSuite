@@ -25,7 +25,7 @@ DAS toDo notes
 +eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional <- DONE
 -lehetőség arra h a felhasznalo manualisan megadja h melyik ido intervallumot nem kéne thresholdhoz használni
 +preseteket rendesen megcsinalni <- kb DONE
--statisztika panel
+-statisztika panel <- alakul
 	ampl
 	hossz
 	gorbe alatti
@@ -48,3 +48,4 @@ DAS toDo notes
 -lehetőség a detectio színnel kiemelésére
 +DASeV: egy csatornán nézed egyes detekciokat, és közben megmutatni többi csatornán uazt az ablakot <- DONE
 +billentyuzet iranyitast bevezetni <- DONE
+-statisztika dolgokat befejezni, rendesen letesztelni

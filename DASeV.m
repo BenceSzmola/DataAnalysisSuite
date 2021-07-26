@@ -38,6 +38,8 @@ classdef DASeV < handle
         
         %% viewerTab members
         statPanel
+        ephysDetStatTable
+        imagingStatTable
         
         plotPanel
         fixWinSwitch
@@ -93,7 +95,7 @@ classdef DASeV < handle
         ephysFs
         ephysTaxis
         ephysParams
-        ephysStats
+        ephysDetStats
         ephysDets
         ephysDetBorders
         ephysYlabel
@@ -110,6 +112,7 @@ classdef DASeV < handle
         imagingDets
         imagingDetBorders
         imagingDetInfo
+        imagingDetStats
         
         imagingCurrDetNum = 1;
         imagingCurrDetRow = 1;
@@ -265,6 +268,17 @@ classdef DASeV < handle
             
             if numDets == 0
                 return
+            end
+            
+            
+            currDetStatRows = gO.ephysDetStats{currDetRow};
+            if ~isempty(currDetStatRows)
+                currDetStats = currDetStatRows(currDetNum);
+                assignin('base','currDetStats',currDetStats)
+                temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
+                gO.ephysDetStatTable.Data = temp;
+                gO.ephysDetStatTable.RowName = [];
+                gO.ephysDetStatTable.ColumnName = {'','Values'};
             end
             
             if ~gO.plotFull
@@ -775,6 +789,11 @@ classdef DASeV < handle
                     catch
                         gO.ephysDetBorders = cell(min(size(gO.ephysData)),1);
                     end
+                    try 
+                        gO.ephysDetStats = ephysSaveData.DetStats;
+                    catch
+                        gO.ephysDetStats = cell(min(size(gO.ephysData)),1);
+                    end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
                         if gO.ephysDetInfo(1).Params.RefCh ~= 0
@@ -818,6 +837,11 @@ classdef DASeV < handle
                         gO.imagingDetBorders = imagingSaveData.DetBorders;
                     catch
                         gO.imagingDetBorders = cell(min(size(gO.imagingData)),1);
+                    end
+                    try
+                        gO.imagingDetStats = imagingSaveData.DetStats;
+                    catch
+                        gO.imagingDetStats = cell(min(size(gO.imagingData)),1);
                     end
                     gO.imagingDetInfo = imagingSaveInfo;
 
@@ -1259,6 +1283,10 @@ classdef DASeV < handle
             %% viewerTab members
             gO.statPanel = uipanel(gO.viewerTab,...
                 'Position',[0, 0, 0.3, 1]);
+            gO.ephysDetStatTable = uitable(gO.statPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.6, 0.98, 0.39],...
+                'ColumnWidth',{200,150});
             
             gO.plotPanel = uipanel(gO.viewerTab,...
                 'Position',[0.3, 0, 0.7, 1]);

@@ -1,4 +1,4 @@
-function [dets,detBorders] = DoGInstPowDet(data,taxis,fs,w1,w2,sdmult,minLen,refch,showFigs)
+function [dets,detBorders,detStats] = DoGInstPowDet(data,taxis,fs,w1,w2,sdmult,minLen,refch,showFigs)
 
 if size(data,1) > size(data,2)
     data = data';
@@ -40,6 +40,7 @@ end
 
 dets = nan(size(data));
 detBorders = cell(min(size(data)),1);
+detStats = cell(min(size(data)),1);
 
 if (refVal ~= 0)
     refThr = mean(refInstPowd) + 3*std(refInstPowd);
@@ -66,6 +67,9 @@ for i = 1:size(data,1)
         refch,refDogged,refDets,fs,thr,refVal,minLen);
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
+    
+    % det stats
+    detStats{i} = detStatMiner(dets(i,:),detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
     
     % plotting part mainly for bugfixing
     if showFigs

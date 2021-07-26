@@ -178,6 +178,8 @@ classdef DAS < handle
         ephysDoGInstPowDetPresetDelButt
         
         ephysDetStatPanel
+        ephysDetStatTable
+        
         ephysDetRunButt
         ephysDetStatusLabel
         
@@ -234,8 +236,8 @@ classdef DAS < handle
         ephys_detections                    % Location of detections on time axis
         ephys_detBorders
         ephys_detectionsInfo = struct('DetType',[],'Channel',[],'Params',[],'DetRun',[]);
-        ephys_detStats = struct('Amplitude',[],'Length',[],'Frequency',[],...
-            'AOC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
+        ephys_detStats %= struct('Amplitude',[],'Length',[],'Frequency',[],...
+            %'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
         ephys_detMarkerSelection
         ephys_detRunsNum = 0;               % Number of detection runs
         ephys_currDetRun                       % Detection run currently active in detection tab
@@ -254,6 +256,7 @@ classdef DAS < handle
         imaging_procTypes = ["GaussAvg"];
         imaging_detections
         imaging_detBorders
+        imaging_detStats
         imaging_detectionsInfo = struct('DetType',[],'Roi',[],'Params',[],'DetRun',[]);
         imaging_detMarkerSelection
         imaging_detRunsNum = 0;             % Number of detection runs
@@ -1235,6 +1238,13 @@ classdef DAS < handle
                 currDetBorders = currDetBorders(currDetNum,:);
             end
             
+            currDetStatRows = guiobj.ephys_detStats{currDetRow};
+            currDetStats = currDetStatRows(currDetNum);
+            temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
+            guiobj.ephysDetStatTable.Data = temp;
+            guiobj.ephysDetStatTable.RowName = [];
+            guiobj.ephysDetStatTable.ColumnName = {'','Values'};
+            
             detInd = currDetNum;
             %%%
             %%%
@@ -1334,23 +1344,23 @@ classdef DAS < handle
         end
         
         %%
-        function detStatMiner(guiobj,dtyp,dettype,dets)
-            if isempty(dets) | isnan(dets)
-                return
-            end
-            
-            if size(dets,1) > size(dets,2)
-                dets = dets';
-            end
-            
-            detStats = guiobj.ephys_detStats;
-            for i = 1:size(dets,1)
-                for j = 1:length(find(~isnan(dets(i,:))))
-                    
-                end
-            end
-            
-        end
+%         function detStatMiner(guiobj,dtyp,dettype,dets)
+%             if isempty(dets) | isnan(dets)
+%                 return
+%             end
+%             
+%             if size(dets,1) > size(dets,2)
+%                 dets = dets';
+%             end
+%             
+%             detStats = guiobj.ephys_detStats;
+%             for i = 1:size(dets,1)
+%                 for j = 1:length(find(~isnan(dets(i,:))))
+%                     
+%                 end
+%             end
+%             
+%         end
     end
     
     %% Callback functions
@@ -2510,11 +2520,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
+                        [dets,detBorders,detStats] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
                     elseif refVal & (chan > min(size(guiobj.ephys_data)))
-                        [dets,detBorders] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
+                        [dets,detBorders,detStats] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
                     elseif refVal & (chan < min(size(guiobj.ephys_data)))
-                        [dets,detBorders] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders,detStats] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;                    
                     
@@ -2563,6 +2573,7 @@ classdef DAS < handle
                     
                     dets = adaptive_thresh(data,tAxis,fs,step,minLen,mindist,ratio,showFigs);
                     detBorders = cell(min(size(data)),1);
+                    detStats = cell(min(size(data)),1);
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
 %                     detinfo = [chan, 2];
@@ -2650,11 +2661,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
+                        [dets,detBorders,detStats] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
                     elseif refVal && (size(data,1)>1)
-                        [dets,detBorders] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
+                        [dets,detBorders,detStats] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
                     elseif refVal && (size(data,1)==1)
-                        [dets,detBorders] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders,detStats] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
@@ -2697,7 +2708,9 @@ classdef DAS < handle
                 return                
             end
             
-%             detStatMiner(guiobj,1,dettype,dets)
+%             for i = 1:min(size(dets))
+%                 detStatMiner(dets(i,:),detBorders,fs,data(i,:),)
+%             end
             
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
             
@@ -2706,6 +2719,13 @@ classdef DAS < handle
             else
                 guiobj.ephys_detBorders = detBorders;
             end
+            
+            if ~isempty(guiobj.ephys_detStats)
+                guiobj.ephys_detStats = [guiobj.ephys_detStats; detStats];
+            else
+                guiobj.ephys_detStats = detStats;
+            end
+            
 %             guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo;...
 %                 detinfo];
             if isempty(guiobj.ephys_detectionsInfo(1).DetType)
@@ -3264,6 +3284,7 @@ classdef DAS < handle
                 ephysSaveData.RawData = guiobj.ephys_data;
                 ephysSaveData.Dets = guiobj.ephys_detections(indx,:);
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders(indx);
+                ephysSaveData.DetStats = guiobj.ephys_detStats(indx);
                 ephysSaveInfo = guiobj.ephys_detectionsInfo(indx);
                  
             else
@@ -3310,6 +3331,7 @@ classdef DAS < handle
                 imagingSaveData.RawData = guiobj.imaging_data;
                 imagingSaveData.Dets = guiobj.imaging_detections(indx,:);
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders(indx);
+                imagingSaveData.DetStats = guiobj.imaging_detStats(indx);
                 imagingSaveInfo = guiobj.imaging_detectionsInfo(indx);
             else
                 imagingSaveData = [];
@@ -4183,6 +4205,10 @@ classdef DAS < handle
                 'Position',[0.325, 0.65, 0.125, 0.3],...
                 'Title','Event statistics',...
                 'Visible','on');
+            guiobj.ephysDetStatTable = uitable(guiobj.ephysDetStatPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.98, 0.98],...
+                'ColumnWidth',{100,75});
                           
             guiobj.ephysDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
