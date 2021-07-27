@@ -49,3 +49,4 @@ DAS toDo notes
 +DASeV: egy csatornán nézed egyes detekciokat, és közben megmutatni többi csatornán uazt az ablakot <- DONE
 +billentyuzet iranyitast bevezetni <- DONE
 -statisztika dolgokat befejezni, rendesen letesztelni <- kb DONE, egyeztetni még kellhet
+-detectiok osszevonasa, duplet,triplet,... kezelés

@@ -9,16 +9,20 @@ else
     corrThr = 0.6;
 end
 
-minSepar = round(0.015*fs);
+minSepar = round(0.1*fs);
 minLen = round(minLen*fs);
 %%%
 
 allDets = nan(size(rawData));
 validDets = nan(size(rawData));
+validDetsStartStop = [];
 
 detData(detData < thr) = 0;
 [~,aboveThr] = find(detData);
 aboveThr = unique(aboveThr);
+if isempty(aboveThr)
+    return
+end
 steps = diff(aboveThr);
 steps = [0,steps];
 events = find(steps ~= 1);
@@ -77,3 +81,22 @@ allDets(eventsPeak) = 0;
 allDetsStartStop = eventsStartStop;
 validDets(eventsPeak(vEvents)) = 0;
 validDetsStartStop = eventsStartStop(vEvents,:);
+
+tempValidDetSS = validDetsStartStop;
+merged = false(1,length(validDetsStartStop));
+if min(size(validDetsStartStop)) > 1
+    for i = 1:(length(validDetsStartStop)-1)
+        for j = i:(length(validDetsStartStop)-1)
+            if (validDetsStartStop(j+1,1) - validDetsStartStop(j,2)) < minSepar
+                tempValidDetSS(i,2) = validDetsStartStop(j+1,2);
+                merged(j+1) = true;
+            else
+                break
+            end
+        end
+    end
+end
+
+validDetsStartStop = tempValidDetSS(~merged,:);
+temp = eventsPeak(vEvents);
+validDets(temp(merged)) = nan;
