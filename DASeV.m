@@ -353,7 +353,7 @@ classdef DASeV < handle
                         mat2cell(currDetStatAvg,ones(1,length(currDetStatAvg)))];
                     gO.ephysDetStatTable.Data = temp;
                     gO.ephysDetStatTable.RowName = [];
-                    gO.ephysDetStatTable.ColumnName = {'','Values'};
+                    gO.ephysDetStatTable.ColumnName = {'','Mean values'};
                 end
                 
                 detInds = gO.ephysDets(currDetRow,:);
@@ -584,7 +584,7 @@ classdef DASeV < handle
                         mat2cell(currDetStatAvg,ones(1,length(currDetStatAvg)))];
                     gO.imagingDetStatTable.Data = temp;
                     gO.imagingDetStatTable.RowName = [];
-                    gO.imagingDetStatTable.ColumnName = {'','Values'};
+                    gO.imagingDetStatTable.ColumnName = {'','Mean values'};
                 end
                 
                 detInds = gO.imagingDets(currDetRow,:);
@@ -917,8 +917,8 @@ classdef DASeV < handle
 %                     gO.fnameTxt.String = fname;
                     gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
                     gO.ephysChanTxt.String = num2str([ephysSaveInfo.Channel]);
-                    gO.ephysParamTable.Data = squeeze(struct2cell([ephysSaveInfo.Params]))';
-                    gO.ephysParamTable.ColumnName = fieldnames([ephysSaveInfo.Params]);
+                    gO.ephysParamTable.Data = squeeze(struct2cell(ephysSaveInfo(1).Params))';
+                    gO.ephysParamTable.ColumnName = fieldnames(ephysSaveInfo(1).Params);
                 else
                     gO.ephysDetTypeTxt.String = '';
                     gO.ephysChanTxt.String = '';
@@ -937,8 +937,8 @@ classdef DASeV < handle
                 if ~isempty(imagingSaveInfo)
                     gO.imagingDetTypeTxt.String = imagingSaveInfo.DetType;
                     gO.imagingRoiTxt.String = num2str([imagingSaveInfo.Roi]);
-                    gO.imagingParamTable.Data = squeeze(struct2cell([imagingSaveInfo.Params]))';
-                    gO.imagingParamTable.ColumnName = fieldnames([imagingSaveInfo.Params]);
+                    gO.imagingParamTable.Data = squeeze(struct2cell(imagingSaveInfo(1).Params))';
+                    gO.imagingParamTable.ColumnName = fieldnames(imagingSaveInfo(1).Params);
                 else
                     gO.imagingDetTypeTxt.String = '';
                     gO.imagingRoiTxt.String = '';
@@ -1284,7 +1284,8 @@ classdef DASeV < handle
                 'Position',[0.215, 0.575, 0.1, 0.1]);
             gO.ephysParamTable = uitable(gO.fileInfoPanel,...
                 'Units','normalized',...
-                'Position',[0.01, 0.37, 0.45, 0.2]);
+                'Position',[0.01, 0.37, 0.45, 0.2],...
+                'RowName','');
             
             gO.imagingDetTypeLabel = uicontrol(gO.fileInfoPanel,...
                 'Style','text',...
@@ -1306,7 +1307,8 @@ classdef DASeV < handle
                 'Position',[0.705, 0.575, 0.1, 0.1]);
             gO.imagingParamTable = uitable(gO.fileInfoPanel,...
                 'Units','normalized',...
-                'Position',[0.5, 0.37, 0.45, 0.2]);
+                'Position',[0.5, 0.37, 0.45, 0.2],...
+                'RowName','');
            
             
             %% viewerTab members

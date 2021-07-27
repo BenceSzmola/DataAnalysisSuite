@@ -64,7 +64,7 @@ for j = 1:length(events)
             condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
         end
 
-        if condit && vEvents(j)
+        if condit & vEvents(j)
             vEvents(j) = true;
         else
             vEvents(j) = false;

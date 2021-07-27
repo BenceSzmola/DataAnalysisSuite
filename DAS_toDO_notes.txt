@@ -18,8 +18,8 @@ DAS toDo notes
 -sok detekcio/processing utan mintha meghibbanna:
 	nem sikerult még reprodukálni
 +detection mutatásnál a time window ha kifut negativ vagy pozitiv iranyba az nincs kezelve <- DONE
--visszakövethetővé tenni a detectio/processing paramtereket
--mutatni h hány detectio volt meg a statokat
++visszakövethetővé tenni a detectio/processing paramtereket
++mutatni h hány detectio volt meg a statokat
 -quiet threshold ujra bevezetni: DoGInstPow-hoz megvan
 +parameter preset mentés/utoljára használt paraméterek megjegyzése
 +eventdetTab: amikor váltok adattipust maradjon ugyanannal a detectional <- DONE
@@ -48,4 +48,4 @@ DAS toDo notes
 -lehetőség a detectio színnel kiemelésére
 +DASeV: egy csatornán nézed egyes detekciokat, és közben megmutatni többi csatornán uazt az ablakot <- DONE
 +billentyuzet iranyitast bevezetni <- DONE
--statisztika dolgokat befejezni, rendesen letesztelni
+-statisztika dolgokat befejezni, rendesen letesztelni <- kb DONE, egyeztetni még kellhet
