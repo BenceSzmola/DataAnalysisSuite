@@ -1,7 +1,13 @@
-function detStats = detStatMiner(dets,detBorders,fs,rawData,detData,dogData)
+function detStats = detStatMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData)
 
-detStats = struct('RawAmplitude',[],'BpAmplitude',[],'Length',[],'Frequency',[],...
-            'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
+switch dTyp
+    case 1
+        detStats = struct('RawAmplitude',[],'BpAmplitude',[],'Length',[],'Frequency',[],...
+                'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
+    case 2
+        detStats = struct('RawAmplitude',[],'Length',[],'Frequency',[],...
+                'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
+end
         
        
 numDets = length(find(~isnan(dets)));
@@ -9,7 +15,9 @@ detInds = find(~isnan(dets));
 for i = 1:numDets
     detStats(i).Length = (detBorders(i,2)-detBorders(i,1))/fs;
     detStats(i).RawAmplitude = max(abs(rawData(detBorders(i,1):detBorders(i,2))));
-    detStats(i).BpAmplitude = max(abs(dogData(detBorders(i,1):detBorders(i,2))));
+    if dTyp == 1
+        detStats(i).BpAmplitude = max(abs(dogData(detBorders(i,1):detBorders(i,2))));
+    end
     detStats(i).AUC = trapz(detData(detBorders(i,1):detBorders(i,2)));
     detStats(i).RiseTime = (detInds(i) - detBorders(i,1))/fs;
     detStats(i).DecayTime = (detBorders(i,2) - detInds(i))/fs;

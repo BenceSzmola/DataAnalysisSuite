@@ -40,7 +40,7 @@ for j = 1:length(events)
     end
 
     [~,maxIdx] = max(detData(eventsStartStop(j,1):eventsStartStop(j,2)));
-    eventsPeak(j) = maxIdx + eventsStartStop(j,1);
+    eventsPeak(j) = maxIdx + eventsStartStop(j,1) - 1;
 
     if refVal~=0
         winSize = 0.1*fs;

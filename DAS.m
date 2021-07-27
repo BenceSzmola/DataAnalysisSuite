@@ -20,7 +20,9 @@ classdef DAS < handle
         EvDetTabOptionsMenu
         ephysEventDetTabDataTypeMenu
         ephysEventDetTabFiltCutoffMenu
+        imagingEventDetTabDataTypeMenu
         showXtraDetFigsMenu
+        
         MakewindowlargerMenu
         MakewindowsmallerMenu
         
@@ -190,6 +192,9 @@ classdef DAS < handle
         imagingMeanSdDetSdmultLabel
         imagingMeanSdDetSdmultEdit
         
+        imagingDetStatPanel
+        imagingDetStatTable
+        
         imagingDetRunButt
         imagingDetStatusLabel
         
@@ -251,6 +256,7 @@ classdef DAS < handle
         ephys_presets
         
         imaging_data                        % Currently imported imaging data
+        imaging_smoothed
         imaging_procced
         imaging_proccedInfo
         imaging_procTypes = ["GaussAvg"];
@@ -291,6 +297,7 @@ classdef DAS < handle
         eventDet2CurrIdx = 1;
         eventDet2CurrDet = 1;
         eventDet2CurrRoi = 1;
+        eventDet2DataType = 1;
         
 %         winsizes = [1280,780;1600,900;1920,1080;2560,1440;3840,2160];
     end
@@ -1214,7 +1221,12 @@ classdef DAS < handle
                 case 2
                     ax = guiobj.axesEventDet2;
                     
-                    data = guiobj.imaging_data;
+                    switch guiobj.eventDet2DataType
+                        case 1    
+                            data = guiobj.imaging_data;
+                        case 2
+                            data = guiobj.imaging_smoothed;     
+                    end
                     taxis = guiobj.imaging_taxis;
                     fs = guiobj.imaging_fs;
                     detMat = guiobj.imaging_detections;
@@ -1238,12 +1250,26 @@ classdef DAS < handle
                 currDetBorders = currDetBorders(currDetNum,:);
             end
             
-            currDetStatRows = guiobj.ephys_detStats{currDetRow};
-            currDetStats = currDetStatRows(currDetNum);
-            temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
-            guiobj.ephysDetStatTable.Data = temp;
-            guiobj.ephysDetStatTable.RowName = [];
-            guiobj.ephysDetStatTable.ColumnName = {'','Values'};
+            switch dTyp
+                case 1
+                    currDetStatRows = guiobj.ephys_detStats{currDetRow};
+                    if ~isempty(currDetStatRows)
+                        currDetStats = currDetStatRows(currDetNum);
+                        temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
+                        guiobj.ephysDetStatTable.Data = temp;
+                        guiobj.ephysDetStatTable.RowName = [];
+                        guiobj.ephysDetStatTable.ColumnName = {'','Values'};
+                    end
+                case 2
+                    currDetStatRows = guiobj.imaging_detStats{currDetRow};
+                    if ~isempty(currDetStatRows)
+                        currDetStats = currDetStatRows(currDetNum);
+                        temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
+                        guiobj.imagingDetStatTable.Data = temp;
+                        guiobj.imagingDetStatTable.RowName = [];
+                        guiobj.imagingDetStatTable.ColumnName = {'','Values'};
+                    end
+            end
             
             detInd = currDetNum;
             %%%
@@ -2781,10 +2807,12 @@ classdef DAS < handle
             dettype = guiobj.imagingDetPopMenu.String{dettype};
             
             data = guiobj.imaging_data;
-%             fs = guiobj.imaging_fs;
+            fs = guiobj.imaging_fs;
             sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
             
             dets = nan(size(data));
+            detBorders = cell(min(size(data)),1);
+            detStats = cell(min(size(data)),1);
             switch dettype
                 case 'Mean+SD'
                     
@@ -2794,8 +2822,13 @@ classdef DAS < handle
                         thr = mean(smoothd) + sdmult*std(smoothd);
 %                         aboveThrInds = smoothd(smoothd > thr);
 %                         aboveThrInd_diff = diff(aboveThrInds);
-                        [~,locs,~,~] = findpeaks(smoothd,'MinPeakHeight',thr);
-                        dets(i,locs) = 0;
+%                         [~,locs,~,~] = findpeaks(smoothd,'MinPeakHeight',thr);
+                        [validDets,validDetBorders] = commDetAlg(data(i,:),smoothd,...
+                            [],0,[],[],fs,thr,0,0.025);
+                        dets(i,:) = validDets;
+                        detBorders{i} = validDetBorders;
+                        detStats{i} = detStatMiner(2,dets(i,:),detBorders{i},fs,...
+                            data(i,:),smoothd,[]);
                         
                         detinfo(i).Roi = i;
                         detinfo(i).DetType = 'Mean+SD';
@@ -2818,6 +2851,18 @@ classdef DAS < handle
             else
                 guiobj.imaging_detectionsInfo = [guiobj.imaging_detectionsInfo,...
                     detinfo];
+            end
+            
+            if isempty(guiobj.imaging_detBorders)
+                guiobj.imaging_detBorders = detBorders;
+            else
+                guiobj.imaging_detBorders = [guiobj.imaging_detBorders; detBorders];
+            end
+            
+            if isempty(guiobj.imaging_detStats)
+                guiobj.imaging_detStats = detStats;
+            else
+                guiobj.imaging_detStats = [guiobj.imaging_detStats; detStats];
             end
             
             guiobj.imaging_currDetRun = guiobj.imaging_detRunsNum;
@@ -2947,23 +2992,40 @@ classdef DAS < handle
         end
         
         %%
-        function changeEventDetTabDataType(guiobj,event)
-            list = {'RawData','DoG','InstPow'};
-            [idx,tf] = listdlg('ListString',list,...
-                'InitialValue',guiobj.eventDet1DataType);
-            if ~tf
-                return
-            end
-            guiobj.eventDet1DataType = idx;
-            switch idx
+        function changeEventDetTabDataType(guiobj,dTyp)
+            switch dTyp
+                case 1
+                    list = {'RawData','DoG','InstPow'};
+                    [idx,tf] = listdlg('ListString',list,...
+                        'InitialValue',guiobj.eventDet1DataType);
+                    if ~tf
+                        return
+                    end
+                    guiobj.eventDet1DataType = idx;
+                    switch idx
+                        case 2
+                            guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
+                                guiobj.eventDet1W1,guiobj.eventDet1W2);
+                        case 3
+                            guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
+                                guiobj.eventDet1W1,guiobj.eventDet1W2);
+                    end
+                    eventDetAxesButtFcn(guiobj,1,-1,0)
                 case 2
-                    guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
-                        guiobj.eventDet1W1,guiobj.eventDet1W2);
-                case 3
-                    guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
-                        guiobj.eventDet1W1,guiobj.eventDet1W2);
+                    list = {'RawData','Gauss smoothed'};
+                    [idx,tf] = listdlg('ListString',list,...
+                        'InitialValue',guiobj.eventDet2DataType);
+                    if ~tf
+                        return
+                    end
+                    guiobj.eventDet2DataType = idx;
+                    switch idx
+                        case 2
+                            guiobj.imaging_smoothed = smoothdata(guiobj.imaging_data,...
+                                2,'gaussian',10);
+                    end
+                    eventDetAxesButtFcn(guiobj,2,-1,0)
             end
-            eventDetAxesButtFcn(guiobj,1,-1,0)
         end
         
         %%
@@ -3431,10 +3493,13 @@ classdef DAS < handle
                 'Text','EventDetTab Options');
             guiobj.ephysEventDetTabDataTypeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Ephys data type in EventDetTab',...
-                'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabDataType);
+                'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabDataType(1));
             guiobj.ephysEventDetTabFiltCutoffMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','EventDetTab - change cutoff frequencies',...
                 'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabCutoff);
+            guiobj.imagingEventDetTabDataTypeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
+                'Text','Imaging data type in EventDetTab',...
+                'MenuSelectedFcn', @(h,e) guiobj.changeEventDetTabDataType(2));
             guiobj.showXtraDetFigsMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show extra detection figures',...
                 'Checked','off',...
@@ -4239,7 +4304,7 @@ classdef DAS < handle
 %                 'String',{'--Select ROI--'});
             
             guiobj.imagingMeanSdDetPanel = uipanel(guiobj.eventDetTab,...
-                'Position',[0.12, 0.33, 0.3, 0.3],...
+                'Position',[0.12, 0.33, 0.2, 0.3],...
                 'Title','Parameters for mean+sd based detection',...
                 'Visible','off');
             guiobj.imagingMeanSdDetSdmultLabel = uicontrol(guiobj.imagingMeanSdDetPanel,...
@@ -4252,6 +4317,15 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.41, 0.85, 0.1, 0.1],...
                 'String','3');
+            
+            guiobj.imagingDetStatPanel = uipanel(guiobj.eventDetTab,...
+                'Position',[0.325, 0.33, 0.125, 0.3],...
+                'Title','Event statistics',...
+                'Visible','on');
+            guiobj.imagingDetStatTable = uitable(guiobj.imagingDetStatPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.98, 0.98],...
+                'ColumnWidth',{100,75});
             
             guiobj.imagingDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...

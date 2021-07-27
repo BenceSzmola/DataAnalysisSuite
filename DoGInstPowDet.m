@@ -69,7 +69,7 @@ for i = 1:size(data,1)
     detBorders{i} = validDetBorders;
     
     % det stats
-    detStats{i} = detStatMiner(dets(i,:),detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
+    detStats{i} = detStatMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
     
     % plotting part mainly for bugfixing
     if showFigs

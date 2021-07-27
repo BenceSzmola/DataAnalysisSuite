@@ -102,7 +102,7 @@ for i = 1:min(size(data))
         
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
-    detStats{i} = detStatMiner(dets(i,:),detBorders{i},fs,data(i,:),instE,dogged(i,:));
+    detStats{i} = detStatMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE,dogged(i,:));
 
     %% Plotting
     if showFigs
