@@ -8,8 +8,8 @@ switch dTyp
         detStats = struct('RawAmplitude',[],'Length',[],'Frequency',[],...
                 'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
 end
-        
-       
+
+
 numDets = length(find(~isnan(dets)));
 detInds = find(~isnan(dets));
 for i = 1:numDets

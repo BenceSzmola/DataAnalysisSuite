@@ -49,4 +49,9 @@ DAS toDo notes
 +DASeV: egy csatornán nézed egyes detekciokat, és közben megmutatni többi csatornán uazt az ablakot <- DONE
 +billentyuzet iranyitast bevezetni <- DONE
 -statisztika dolgokat befejezni, rendesen letesztelni <- kb DONE, egyeztetni még kellhet
--detectiok osszevonasa, duplet,triplet,... kezelés
+-detectiok osszevonasa, duplet,triplet,... kezelés <- elkezdtem
++gorobj importnál nem jol kezeli ha rossz adattipust importálok
++ha tobb adattipus van egyszerre maintabban, akkor az axis xlimit beragad a kesobb importalt xlimitjére
+	firstplot tesztnél volt a problema, mostmár azt nézi hogy az adott plot panelen van e már ábra
+-simultan detectiont megcsinálni rendesen
+	elkezdtem de még nincs meg a koncepcio

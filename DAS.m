@@ -20,6 +20,7 @@ classdef DAS < handle
         EvDetTabOptionsMenu
         ephysEventDetTabDataTypeMenu
         ephysEventDetTabFiltCutoffMenu
+        eventDetTabWinSizeMenu
         imagingEventDetTabDataTypeMenu
         showXtraDetFigsMenu
         
@@ -331,7 +332,8 @@ classdef DAS < handle
                 return
             end
             
-            if isempty(findobj(ax,'Type','line'))
+            axParent = ax.Parent;
+            if isempty(findobj(axParent,'Type','line'))
                 ax.NextPlot = 'replace';
                 firstplot = true;
             else
@@ -430,7 +432,8 @@ classdef DAS < handle
                 return
             end
             
-            if isempty(findobj(ax,'Type','line'))
+            axParent = ax.Parent;
+            if isempty(findobj(axParent,'Type','line'))
                 ax.NextPlot = 'replace';
                 firstplot = true;
             else
@@ -1526,6 +1529,15 @@ classdef DAS < handle
                     ie = ie+1;
                 end
                 datanames{i} = get(wsgors(i),'name');
+            end
+            
+            if (guiobj.datatyp(1) & ~guiobj.datatyp(2)) & isempty(find(dtyp==1,1))
+                errordlg('Selected file does not include any electrophysiology data!')
+                return
+            end
+            if (~guiobj.datatyp(1) & guiobj.datatyp(2)) & isempty(find(dtyp==2,1))
+                errordlg('Selected file does not inclue any imaging data!')
+                return
             end
             
             if isempty(find(dtyp,1))
@@ -2846,6 +2858,8 @@ classdef DAS < handle
             if isempty(dets)
                 warndlg('No detections!')
                 guiobj.imaging_detRunsNum = guiobj.imaging_detRunsNum - 1;
+                guiobj.imagingDetStatusLabel.String = '--IDLE--';
+                guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
                 return
             end
             
@@ -2917,15 +2931,37 @@ classdef DAS < handle
             ephys_detInds = find(~isnan(guiobj.ephys_detections(indx,:)));
             ephys_tAx = guiobj.ephys_taxis;
             
+            detList = [];
+            detInfo = guiobj.imaging_detectionsInfo;
+            for i = 1:length(detInfo)
+                temp = [];
+                pnames = fieldnames(detInfo(i).Params);
+                vals = struct2cell(detInfo(i).Params);
+                for k = 1:length(fieldnames(detInfo(i).Params))
+                    temp = [temp, pnames{k},':',num2str(vals{k}),' '];
+                end
+                detList = [detList; strcat(detInfo(i).DetType,' | ',temp,...
+                    ' | ROI#',num2str(detInfo(i).Roi),' | ',...
+                    'Run#',num2str(detInfo(i).DetRun))];
+            end
+            [indx,tf] = listdlg('ListString',detList,...
+                'PromptString','Select imaging detection!',...
+                'SelectionMode','single');
+            if ~tf
+                return
+            end
+            
+            imaging_selROIs = indx
             imaging_tAx = guiobj.imaging_taxis;
             
             simult_dets = nan(size(guiobj.imaging_data,1),length(guiobj.ephys_taxis));
             switch dettype
                 case 'Standard'
                     delay = str2double(guiobj.simultDetStandardDelayEdit.String)/1000;
-                    for roi = 1:size(guiobj.imaging_data,1)
-                        imaging_detInds = find(~isnan(guiobj.imaging_detections(roi,:)));
+                    for imDetRow = imaging_selROIs
+                        imaging_detInds = find(~isnan(guiobj.imaging_detections(imDetRow,:)));
 %                         temp = [];
+                        roi = guiobj.imaging_detectionsInfo(imDetRow).Roi;
                         for i = 1:length(imaging_detInds)
                             for j = 1:length(ephys_detInds)
                                 tDiff = imaging_tAx(imaging_detInds(i))...
@@ -2999,6 +3035,10 @@ classdef DAS < handle
         function changeEventDetTabDataType(guiobj,dTyp)
             switch dTyp
                 case 1
+                    if isempty(guiobj.ephys_data)
+                        warndlg('No electrophysiological data loaded!')
+                        return
+                    end
                     list = {'RawData','DoG','InstPow'};
                     [idx,tf] = listdlg('ListString',list,...
                         'InitialValue',guiobj.eventDet1DataType);
@@ -3016,6 +3056,10 @@ classdef DAS < handle
                     end
                     eventDetAxesButtFcn(guiobj,1,-1,0)
                 case 2
+                    if isempty(guiobj.imaging_data)
+                        warndlg('No imaging data loaded!')
+                        return
+                    end
                     list = {'RawData','Gauss smoothed'};
                     [idx,tf] = listdlg('ListString',list,...
                         'InitialValue',guiobj.eventDet2DataType);
@@ -3034,18 +3078,22 @@ classdef DAS < handle
         
         %%
         function changeEventDetTabCutoff(guiobj,event)
-            prompt = {'Lower cutoff [Hz]','Upper cutoff [Hz]','Event window [ms]'};
-            title = 'Frequency band for EventDetTab graphs';
+            if isempty(guiobj.ephys_data)
+                warndlg('No electrophysiological data loaded!')
+                return
+            end
+            
+            prompt = {'Lower cutoff [Hz]','Upper cutoff [Hz]'};
+            title = 'Frequency band for EventDetTab electrophysiology graphs';
             dims = [1, 15];
             definput = {num2str(guiobj.eventDet1W1),...
-                num2str(guiobj.eventDet1W2),num2str(guiobj.eventDet1Win)};
+                num2str(guiobj.eventDet1W2)};
             answer = inputdlg(prompt,title,dims,definput);
             if isempty(answer)
                 return
             end
             guiobj.eventDet1W1 = str2double(answer{1});
             guiobj.eventDet1W2 = str2double(answer{2});
-            guiobj.eventDet1Win = str2double(answer{3});
             
             if ~isempty(find(guiobj.eventDet1DataType==2,1))
                     guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
@@ -3056,6 +3104,25 @@ classdef DAS < handle
             end
             
             eventDetAxesButtFcn(guiobj,1,-1,0)
+        end
+        
+        %%
+        function changeEventDetTabWinSize(guiobj,~,~)
+            prompt = {'Window size of graphs [ms]'};
+            title = 'Window size';
+            dims = [1,15];
+            definput = {num2str(guiobj.eventDet1Win)};
+            answer = inputdlg(prompt,title,dims,definput);
+            if isempty(answer)
+                return
+            end
+            guiobj.eventDet1Win = str2double(answer{1});
+            if guiobj.datatyp(1)
+                eventDetAxesButtFcn(guiobj,1,-1,0)
+            end
+            if guiobj.datatyp(2)
+                eventDetAxesButtFcn(guiobj,2,-1,0)
+            end
         end
         
         %%
@@ -3528,6 +3595,9 @@ classdef DAS < handle
             guiobj.ephysEventDetTabFiltCutoffMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','EventDetTab - change cutoff frequencies',...
                 'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabCutoff);
+            guiobj.eventDetTabWinSizeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
+                'Text','EventDetTab - change window size',...
+                'MenuSelectedFcn',@ guiobj.changeEventDetTabWinSize);
             guiobj.imagingEventDetTabDataTypeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Imaging data type in EventDetTab',...
                 'MenuSelectedFcn', @(h,e) guiobj.changeEventDetTabDataType(2));

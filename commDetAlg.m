@@ -9,7 +9,7 @@ else
     corrThr = 0.6;
 end
 
-minSepar = round(0.1*fs);
+minSepar = round(0.03*fs);
 minLen = round(minLen*fs);
 %%%
 
@@ -83,10 +83,10 @@ validDets(eventsPeak(vEvents)) = 0;
 validDetsStartStop = eventsStartStop(vEvents,:);
 
 tempValidDetSS = validDetsStartStop;
-merged = false(1,length(validDetsStartStop));
-if min(size(validDetsStartStop)) > 1
-    for i = 1:(length(validDetsStartStop)-1)
-        for j = i:(length(validDetsStartStop)-1)
+merged = false(1,size(validDetsStartStop,1));
+if size(validDetsStartStop,1) > 1
+    for i = 1:(size(validDetsStartStop,1)-1)
+        for j = i:(size(validDetsStartStop,1)-1)
             if (validDetsStartStop(j+1,1) - validDetsStartStop(j,2)) < minSepar
                 tempValidDetSS(i,2) = validDetsStartStop(j+1,2);
                 merged(j+1) = true;
