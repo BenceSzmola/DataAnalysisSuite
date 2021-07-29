@@ -1379,6 +1379,38 @@ classdef DAS < handle
         end
         
         %%
+        function simEventDetAxesButtFcn(guiobj,chanUpDwn,detUpDwn)
+            temp = find([guiobj.simult_detectionsInfo.DetRun]==...
+                guiobj.simult_detRunsNum);
+            currSimDets = guiobj.simult_detections(temp);
+            emptycells = cellfun('isempty',currSimDets);
+            currSimDets(emptycells) = [];
+            simDetInfo = guiobj.simult_detectionsInfo(temp);
+            ephysDetRun = simDetInfo(1).EphysDetRun;
+            ephysChans = unique([simDetInfo.EphysChannel]);
+            imagingDetRun = simDetInfo(1).ImagingDetRun;
+            imagingRois = [simDetInfo.ROI];
+            
+            switch chanUpDwn
+                case 0
+                    
+                case 1
+                    
+                case -1
+                    
+            end
+            
+            switch detUpDwn
+                case 0
+                    
+                case 1
+                    
+                case -1
+                    
+            end
+        end
+        
+        %%
         function simEventDetPlotFcn(guiobj,currChans,currDetRows)
             ax1 = guiobj.axesEventDet1;
             ax2 = guiobj.axesEventDet2;
@@ -3579,9 +3611,9 @@ classdef DAS < handle
                         case 1
                             guiobj.keyboardPressDtyp = 2;
                         case 2
+                            guiobj.keyboardPressDtyp = 3;
+                        case 3
                             guiobj.keyboardPressDtyp = 1;
-    %                     case 3
-
                     end
                 else
 
