@@ -1,4 +1,4 @@
-function [dets,detBorders,detStats] = wavyDet(data,taxis,fs,minLen,sdmult,w1,w2,refch,showFigs)
+function [dets,detBorders,detParams] = wavyDet(data,taxis,fs,minLen,sdmult,w1,w2,refch,showFigs)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -51,7 +51,7 @@ end
 
 dets = nan(size(data));
 detBorders = cell(min(size(data)),1);
-detStats = cell(min(size(data)),1);
+detParams = cell(min(size(data)),1);
 
 dogged = DoG(data,fs,w1,w2);
 
@@ -102,7 +102,7 @@ for i = 1:min(size(data))
         
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
-    detStats{i} = detStatMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE,dogged(i,:));
+    detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE,dogged(i,:));
 
     %% Plotting
     if showFigs

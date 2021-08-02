@@ -38,8 +38,8 @@ classdef DASeV < handle
         
         %% viewerTab members
         statPanel
-        ephysDetStatTable
-        imagingDetStatTable
+        ephysDetParamsTable
+        imagingDetParamsTable
         
         plotPanel
         fixWinSwitch
@@ -95,7 +95,7 @@ classdef DASeV < handle
         ephysFs
         ephysTaxis
         ephysParams
-        ephysDetStats
+        ephysDetParams
         ephysDets
         ephysDetBorders
         ephysYlabel
@@ -112,7 +112,7 @@ classdef DASeV < handle
         imagingDets
         imagingDetBorders
         imagingDetInfo
-        imagingDetStats
+        imagingDetParams
         
         imagingCurrDetNum = 1;
         imagingCurrDetRow = 1;
@@ -274,14 +274,14 @@ classdef DASeV < handle
                 gO.ephysDetUpButt.Enable = 'on';
                 gO.ephysDetDwnButt.Enable = 'on';
                 
-                currDetStatRows = gO.ephysDetStats{currDetRow};
-                if ~isempty(currDetStatRows)
-                    currDetStats = currDetStatRows(currDetNum);
-                    assignin('base','currDetStats',currDetStats)
-                    temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
-                    gO.ephysDetStatTable.Data = temp;
-                    gO.ephysDetStatTable.RowName = [];
-                    gO.ephysDetStatTable.ColumnName = {'','Values'};
+                currDetParamsRows = gO.ephysDetParams{currDetRow};
+                if ~isempty(currDetParamsRows)
+                    currDetParams = currDetParamsRows(currDetNum);
+                    assignin('base','currDetParams',currDetParams)
+                    temp = [fieldnames([currDetParams]), squeeze(struct2cell([currDetParams]))];
+                    gO.ephysDetParamsTable.Data = temp;
+                    gO.ephysDetParamsTable.RowName = [];
+                    gO.ephysDetParamsTable.ColumnName = {'Electrophysiology','Values'};
                 end
                 
 %                 currDetBorders = gO.ephysDetBorders{currDetRow};
@@ -346,14 +346,14 @@ classdef DASeV < handle
                 gO.ephysDetDwnButt.Enable = 'off';
                 gO.ephysCurrDetNum = 1;
                 
-                currDetStatRows = gO.ephysDetStats{currDetRow};
-                if ~isempty(currDetStatRows)
-                    currDetStatAvg = mean(cell2mat(struct2cell(currDetStatRows)),3);
-                    temp = [fieldnames([currDetStatRows(1)]),...
-                        mat2cell(currDetStatAvg,ones(1,length(currDetStatAvg)))];
-                    gO.ephysDetStatTable.Data = temp;
-                    gO.ephysDetStatTable.RowName = [];
-                    gO.ephysDetStatTable.ColumnName = {'','Mean values'};
+                currDetParamsRows = gO.ephysDetParams{currDetRow};
+                if ~isempty(currDetParamsRows)
+                    currDetParamsAvg = mean(cell2mat(struct2cell(currDetParamsRows)),3);
+                    temp = [fieldnames([currDetParamsRows(1)]),...
+                        mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
+                    gO.ephysDetParamsTable.Data = temp;
+                    gO.ephysDetParamsTable.RowName = [];
+                    gO.ephysDetParamsTable.ColumnName = {'','Mean values'};
                 end
                 
                 detInds = gO.ephysDets(currDetRow,:);
@@ -515,14 +515,14 @@ classdef DASeV < handle
                 gO.imagingDetUpButt.Enable = 'on';
                 gO.imagingDetDwnButt.Enable = 'on';
                 
-                currDetStatRows = gO.imagingDetStats{currDetRow};
-                if ~isempty(currDetStatRows)
-                    currDetStats = currDetStatRows(currDetNum);
-                    assignin('base','currDetStats',currDetStats)
-                    temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
-                    gO.imagingDetStatTable.Data = temp;
-                    gO.imagingDetStatTable.RowName = [];
-                    gO.imagingDetStatTable.ColumnName = {'','Values'};
+                currDetParamsRows = gO.imagingDetParams{currDetRow};
+                if ~isempty(currDetParamsRows)
+                    currDetParams = currDetParamsRows(currDetNum);
+                    assignin('base','currDetParams',currDetParams)
+                    temp = [fieldnames([currDetParams]), squeeze(struct2cell([currDetParams]))];
+                    gO.imagingDetParamsTable.Data = temp;
+                    gO.imagingDetParamsTable.RowName = [];
+                    gO.imagingDetParamsTable.ColumnName = {'Imaging','Values'};
                 end
                 
                 detIdx = gO.imagingDets(currDetRow,:);
@@ -577,14 +577,14 @@ classdef DASeV < handle
                 gO.imagingDetDwnButt.Enable = 'off';
                 gO.imagingCurrDetNum = 1;
                 
-                currDetStatRows = gO.imagingDetStats{currDetRow};
-                if ~isempty(currDetStatRows)
-                    currDetStatAvg = mean(cell2mat(struct2cell(currDetStatRows)),3);
-                    temp = [fieldnames([currDetStatRows(1)]),...
-                        mat2cell(currDetStatAvg,ones(1,length(currDetStatAvg)))];
-                    gO.imagingDetStatTable.Data = temp;
-                    gO.imagingDetStatTable.RowName = [];
-                    gO.imagingDetStatTable.ColumnName = {'','Mean values'};
+                currDetParamsRows = gO.imagingDetParams{currDetRow};
+                if ~isempty(currDetParamsRows)
+                    currDetParamsAvg = mean(cell2mat(struct2cell(currDetParamsRows)),3);
+                    temp = [fieldnames([currDetParamsRows(1)]),...
+                        mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
+                    gO.imagingDetParamsTable.Data = temp;
+                    gO.imagingDetParamsTable.RowName = [];
+                    gO.imagingDetParamsTable.ColumnName = {'','Mean values'};
                 end
                 
                 detInds = gO.imagingDets(currDetRow,:);
@@ -819,9 +819,9 @@ classdef DASeV < handle
                         gO.ephysDetBorders = cell(min(size(gO.ephysData)),1);
                     end
                     try 
-                        gO.ephysDetStats = ephysSaveData.DetStats;
+                        gO.ephysDetParams = ephysSaveData.DetParams;
                     catch
-                        gO.ephysDetStats = cell(min(size(gO.ephysData)),1);
+                        gO.ephysDetParams = cell(min(size(gO.ephysData)),1);
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
@@ -868,9 +868,9 @@ classdef DASeV < handle
                         gO.imagingDetBorders = cell(min(size(gO.imagingData)),1);
                     end
                     try
-                        gO.imagingDetStats = imagingSaveData.DetStats;
+                        gO.imagingDetParams = imagingSaveData.DetParams;
                     catch
-                        gO.imagingDetStats = cell(min(size(gO.imagingData)),1);
+                        gO.imagingDetParams = cell(min(size(gO.imagingData)),1);
                     end
                     gO.imagingDetInfo = imagingSaveInfo;
 
@@ -1313,12 +1313,13 @@ classdef DASeV < handle
             
             %% viewerTab members
             gO.statPanel = uipanel(gO.viewerTab,...
-                'Position',[0, 0, 0.3, 1]);
-            gO.ephysDetStatTable = uitable(gO.statPanel,...
+                'Position',[0, 0, 0.3, 1],...
+                'Title','Event parameters');
+            gO.ephysDetParamsTable = uitable(gO.statPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.7, 0.98, 0.3],...
                 'ColumnWidth',{200,150});
-            gO.imagingDetStatTable = uitable(gO.statPanel,...
+            gO.imagingDetParamsTable = uitable(gO.statPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.35, 0.98, 0.3],...
                 'ColumnWidth',{200,150});

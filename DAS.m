@@ -23,6 +23,7 @@ classdef DAS < handle
         eventDetTabWinSizeMenu
         imagingEventDetTabDataTypeMenu
         showXtraDetFigsMenu
+        showEventSpectroMenu
         
         MakewindowlargerMenu
         MakewindowsmallerMenu
@@ -180,8 +181,8 @@ classdef DAS < handle
         ephysDoGInstPowDetPresetSaveButt
         ephysDoGInstPowDetPresetDelButt
         
-        ephysDetStatPanel
-        ephysDetStatTable
+        ephysDetParamsPanel
+        ephysDetParamsTable
         
         ephysDetRunButt
         ephysDetStatusLabel
@@ -193,8 +194,8 @@ classdef DAS < handle
         imagingMeanSdDetSdmultLabel
         imagingMeanSdDetSdmultEdit
         
-        imagingDetStatPanel
-        imagingDetStatTable
+        imagingDetParamsPanel
+        imagingDetParamsTable
         
         imagingDetRunButt
         imagingDetStatusLabel
@@ -243,7 +244,7 @@ classdef DAS < handle
         ephys_detections                    % Location of detections on time axis
         ephys_detBorders
         ephys_detectionsInfo = struct('DetType',[],'Channel',[],'Params',[],'DetRun',[]);
-        ephys_detStats %= struct('Amplitude',[],'Length',[],'Frequency',[],...
+        ephys_detParams %= struct('Amplitude',[],'Length',[],'Frequency',[],...
             %'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
         ephys_detMarkerSelection
         ephys_detRunsNum = 0;               % Number of detection runs
@@ -264,7 +265,7 @@ classdef DAS < handle
         imaging_procTypes = ["GaussAvg"];
         imaging_detections
         imaging_detBorders
-        imaging_detStats
+        imaging_detParams
         imaging_detectionsInfo = struct('DetType',[],'Roi',[],'Params',[],'DetRun',[]);
         imaging_detMarkerSelection
         imaging_detRunsNum = 0;             % Number of detection runs
@@ -288,7 +289,7 @@ classdef DAS < handle
         simult_detections
         simult_detectionsInfo %= struct('DetType',[],'EphysChannel',[],...
             %'ROI',[],'Params',[],'DetRun',[]);
-        simult_detStats
+        simult_detParams
         simult_detRunsNum = 0;
         simult_detMarkerSelection
         
@@ -306,8 +307,10 @@ classdef DAS < handle
         eventDet2CurrRoi = 1;
         eventDet2DataType = 1;
         
-        eventDetSimCurrDet = 1;
-        eventDetSimCurrRoi = 1;
+        eventDetSim1CurrDet = 1;
+        eventDetSim1CurrChan = 1;
+        eventDetSim2CurrDet = 1;
+        eventDetSim2CurrRoi = 1;
         
 %         winsizes = [1280,780;1600,900;1920,1080;2560,1440;3840,2160];
     end
@@ -1238,19 +1241,19 @@ classdef DAS < handle
             end
             
             if (dTyp==1) | (dTyp==2)
-                eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows)
+                eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows,0)
             elseif dTyp==3
                 ephysChan = guiobj.simult_detectionsInfo(currDetRows(1)).EphysChannel;
                 ephysCurrDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==...
                     guiobj.simult_detectionsInfo(currDetRows(1)).EphysDetRun);
-                eventDetPlotFcn(guiobj,1,ephysChan,ephysCurrDetRows)
-                eventDetPlotFcn(guiobj,2,currChans,currDetRows)
+                eventDetPlotFcn(guiobj,1,ephysChan,ephysCurrDetRows,0)
+                eventDetPlotFcn(guiobj,2,currChans,currDetRows,0)
             end
             
         end
         
         %%
-        function eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows)
+        function eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows,forSpectro)
             switch dTyp
                 case 1
                     ax = guiobj.axesEventDet1;
@@ -1307,22 +1310,22 @@ classdef DAS < handle
             
             switch dTyp
                 case 1
-                    currDetStatRows = guiobj.ephys_detStats{currDetRow};
-                    if ~isempty(currDetStatRows)
-                        currDetStats = currDetStatRows(currDetNum);
-                        temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
-                        guiobj.ephysDetStatTable.Data = temp;
-                        guiobj.ephysDetStatTable.RowName = [];
-                        guiobj.ephysDetStatTable.ColumnName = {'','Values'};
+                    currDetParamsRows = guiobj.ephys_detParams{currDetRow};
+                    if ~isempty(currDetParamsRows)
+                        currDetParams = currDetParamsRows(currDetNum);
+                        temp = [fieldnames([currDetParams]), squeeze(struct2cell([currDetParams]))];
+                        guiobj.ephysDetParamsTable.Data = temp;
+                        guiobj.ephysDetParamsTable.RowName = [];
+                        guiobj.ephysDetParamsTable.ColumnName = {'','Values'};
                     end
                 case 2
-                    currDetStatRows = guiobj.imaging_detStats{currDetRow};
-                    if ~isempty(currDetStatRows)
-                        currDetStats = currDetStatRows(currDetNum);
-                        temp = [fieldnames([currDetStats]), squeeze(struct2cell([currDetStats]))];
-                        guiobj.imagingDetStatTable.Data = temp;
-                        guiobj.imagingDetStatTable.RowName = [];
-                        guiobj.imagingDetStatTable.ColumnName = {'','Values'};
+                    currDetParamsRows = guiobj.imaging_detParams{currDetRow};
+                    if ~isempty(currDetParamsRows)
+                        currDetParams = currDetParamsRows(currDetNum);
+                        temp = [fieldnames([currDetParams]), squeeze(struct2cell([currDetParams]))];
+                        guiobj.imagingDetParamsTable.Data = temp;
+                        guiobj.imagingDetParamsTable.RowName = [];
+                        guiobj.imagingDetParamsTable.ColumnName = {'','Values'};
                     end
             end
             
@@ -1361,35 +1364,70 @@ classdef DAS < handle
                 end
             end
             
-            plot(ax,tWin,dataWin)
-            hold(ax,'on')
-            xline(ax,tStamp,'Color','r','LineWidth',1);
-            if ~isempty(currDetBorders)
-                xline(ax,taxis(currDetBorders(1)),'Color','g','LineWidth',1);
-                xline(ax,taxis(currDetBorders(2)),'Color','g','LineWidth',1);
+            if forSpectro
+                try
+                    w1 = guiobj.ephys_detectionsInfo(currDetRows(1)).Params.W1;
+                    w2 = guiobj.ephys_detectionsInfo(currDetRows(1)).Params.W2;
+                catch
+                    w1 = 150;
+                    w2 = 250;
+                    warning('Cutoff frequencies set to default 150-250')
+                end
+                
+                spectrogramMacher(dataWin,fs,w1,w2)
+                
+            elseif ~forSpectro
+                plot(ax,tWin,dataWin)
+                hold(ax,'on')
+                xline(ax,tStamp,'Color','r','LineWidth',1);
+                if ~isempty(currDetBorders)
+                    xline(ax,taxis(currDetBorders(1)),'Color','g','LineWidth',1);
+                    xline(ax,taxis(currDetBorders(2)),'Color','g','LineWidth',1);
+                end
+                hold(ax,'off')
+                axis(ax,'tight')
+                ylim(ax,axYMinMax)
+                xlabel(ax,guiobj.xtitle)
+                ylabel(ax,yAxLbl);
+                title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detInd),...
+                    '/',num2str(numDets)])
             end
-            hold(ax,'off')
-            axis(ax,'tight')
-            ylim(ax,axYMinMax)
-            xlabel(ax,guiobj.xtitle)
-            ylabel(ax,yAxLbl);
-            title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detInd),...
-                '/',num2str(numDets)])
             
         end
         
         %%
-        function simEventDetAxesButtFcn(guiobj,chanUpDwn,detUpDwn)
+        function simEventDetAxesButtFcn(guiobj,dTyp,chanUpDwn,detUpDwn)
             temp = find([guiobj.simult_detectionsInfo.DetRun]==...
                 guiobj.simult_detRunsNum);
-            currSimDets = guiobj.simult_detections(temp);
-            emptycells = cellfun('isempty',currSimDets);
-            currSimDets(emptycells) = [];
-            simDetInfo = guiobj.simult_detectionsInfo(temp);
+            currSimDetRows = guiobj.simult_detections(temp,:);
+            emptycells = cellfun('isempty',currSimDetRows);
+            [detR,detC] = find(emptycells == 0);
+            currSimDets = [detR,detC];
+            
+            simDetInfo = guiobj.simult_detectionsInfo(temp(detR));
             ephysDetRun = simDetInfo(1).EphysDetRun;
             ephysChans = unique([simDetInfo.EphysChannel]);
             imagingDetRun = simDetInfo(1).ImagingDetRun;
             imagingRois = [simDetInfo.ROI];
+            
+            switch dTyp
+                case 1
+                    currChanNum = guiobj.eventDetSim1CurrChan;
+                    currDetNum = guiobj.eventDetSim1CurrDet;
+                    
+                    currChans = unique([simDetInfo.EphysChannel]);
+                    currDets = {unique(detC)};
+                case 2
+                    currChanNum = guiobj.eventDetSim2CurrRoi;
+                    currDetNum = guiobj.eventDetSim2CurrDet;
+                    
+                    currChans = unique([simDetInfo.ROI]);
+                    currDets = cell(length(detR),1);
+                    for i = 1:length(detR)
+%                         currDets{i} = 
+                    end
+                    
+            end
             
             switch chanUpDwn
                 case 0
@@ -1456,7 +1494,7 @@ classdef DAS < handle
         end
         
         %%
-%         function detStatMiner(guiobj,dtyp,dettype,dets)
+%         function DetParamsMiner(guiobj,dtyp,dettype,dets)
 %             if isempty(dets) | isnan(dets)
 %                 return
 %             end
@@ -1465,7 +1503,7 @@ classdef DAS < handle
 %                 dets = dets';
 %             end
 %             
-%             detStats = guiobj.ephys_detStats;
+%             detParams = guiobj.ephys_detParams;
 %             for i = 1:size(dets,1)
 %                 for j = 1:length(find(~isnan(dets(i,:))))
 %                     
@@ -2641,11 +2679,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detStats] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
                     elseif refVal & (chan > min(size(guiobj.ephys_data)))
-                        [dets,detBorders,detStats] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
                     elseif refVal & (chan < min(size(guiobj.ephys_data)))
-                        [dets,detBorders,detStats] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;                    
                     
@@ -2694,7 +2732,7 @@ classdef DAS < handle
                     
                     dets = adaptive_thresh(data,tAxis,fs,step,minLen,mindist,ratio,showFigs);
                     detBorders = cell(min(size(data)),1);
-                    detStats = cell(min(size(data)),1);
+                    detParams = cell(min(size(data)),1);
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
 %                     detinfo = [chan, 2];
@@ -2782,11 +2820,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detStats] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
+                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
                     elseif refVal && (size(data,1)>1)
-                        [dets,detBorders,detStats] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
+                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
                     elseif refVal && (size(data,1)==1)
-                        [dets,detBorders,detStats] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
@@ -2830,7 +2868,7 @@ classdef DAS < handle
             end
             
 %             for i = 1:min(size(dets))
-%                 detStatMiner(dets(i,:),detBorders,fs,data(i,:),)
+%                 DetParamsMiner(dets(i,:),detBorders,fs,data(i,:),)
 %             end
             
             guiobj.ephys_detections = [guiobj.ephys_detections; dets];
@@ -2841,10 +2879,10 @@ classdef DAS < handle
                 guiobj.ephys_detBorders = detBorders;
             end
             
-            if ~isempty(guiobj.ephys_detStats)
-                guiobj.ephys_detStats = [guiobj.ephys_detStats; detStats];
+            if ~isempty(guiobj.ephys_detParams)
+                guiobj.ephys_detParams = [guiobj.ephys_detParams; detParams];
             else
-                guiobj.ephys_detStats = detStats;
+                guiobj.ephys_detParams = detParams;
             end
             
 %             guiobj.ephys_detectionsInfo = [guiobj.ephys_detectionsInfo;...
@@ -2907,7 +2945,7 @@ classdef DAS < handle
             
             dets = nan(size(data));
             detBorders = cell(min(size(data)),1);
-            detStats = cell(min(size(data)),1);
+            detParams = cell(min(size(data)),1);
             switch dettype
                 case 'Mean+SD'
                     
@@ -2922,7 +2960,7 @@ classdef DAS < handle
                             [],0,[],[],fs,thr,0,0.025);
                         dets(i,:) = validDets;
                         detBorders{i} = validDetBorders;
-                        detStats{i} = detStatMiner(2,dets(i,:),detBorders{i},fs,...
+                        detParams{i} = detParamMiner(2,dets(i,:),detBorders{i},fs,...
                             data(i,:),smoothd,[]);
                         
                         detinfo(i).Roi = i;
@@ -2956,10 +2994,10 @@ classdef DAS < handle
                 guiobj.imaging_detBorders = [guiobj.imaging_detBorders; detBorders];
             end
             
-            if isempty(guiobj.imaging_detStats)
-                guiobj.imaging_detStats = detStats;
+            if isempty(guiobj.imaging_detParams)
+                guiobj.imaging_detParams = detParams;
             else
-                guiobj.imaging_detStats = [guiobj.imaging_detStats; detStats];
+                guiobj.imaging_detParams = [guiobj.imaging_detParams; detParams];
             end
             
             guiobj.imaging_currDetRun = guiobj.imaging_detRunsNum;
@@ -3030,7 +3068,8 @@ classdef DAS < handle
             imagingDetRun = guiobj.imaging_detectionsInfo(indx(1)).DetRun;
             imaging_tAx = guiobj.imaging_taxis;
             
-            simult_dets = cell(length(imaging_selROIs),1);
+%             simult_dets = cell(length(imaging_selROIs),1);
+            simult_dets = cell(length(imaging_selROIs),length(ephys_detInds));
             
             detInfo = struct('DetType',cell(length(imaging_selROIs),1),...
                         'EphysChannel',cell(length(imaging_selROIs),1),...
@@ -3050,17 +3089,21 @@ classdef DAS < handle
                         imDetRow = imaging_selROIs(rowNum);
                         imaging_detInds = find(~isnan(guiobj.imaging_detections(imDetRow,:)));
                         roi = guiobj.imaging_detectionsInfo(imDetRow).Roi;
-                        temp = [];
-                        for i = 1:length(imaging_detInds)
-                            for j = 1:length(ephys_detInds)
-                                tDiff = imaging_tAx(imaging_detInds(i))...
-                                    - ephys_tAx(ephys_detInds(j));
+%                         temp = [];
+                        for i = 1:length(ephys_detInds)
+                            temp = [];
+                            for j = 1:length(imaging_detInds)
+                                tDiff = imaging_tAx(imaging_detInds(j))...
+                                    - ephys_tAx(ephys_detInds(i));
                                 if (tDiff < delay) && (tDiff >= 0)
-                                    temp = [temp; [j,i]];
+%                                     temp = [temp; [j,i]];
+                                    temp = [temp, j];
                                 end
                             end
+                            simult_dets{rowNum,i} = temp;
                         end
-                        simult_dets{rowNum} = temp;
+%                         simult_dets{rowNum} = temp;
+                        
                         detInfo(rowNum).DetType = dettype;
                         detInfo(rowNum).EphysChannel = ephysSelChan;
                         detInfo(rowNum).EphysDetRun = ephysDetRun;
@@ -3093,7 +3136,10 @@ classdef DAS < handle
             
             guiobj.simult_detRunsNum = currDetRun;
             
-            eventDetAxesButtFcn(guiobj,3,0,0)
+            assignin('base','simDets',guiobj.simult_detections)
+            assignin('base','simDetInfo',guiobj.simult_detectionsInfo)
+            
+%             eventDetAxesButtFcn(guiobj,3,0,0)
 
             guiobj.simultDetStatusLabel.String = '--IDLE--';
             guiobj.simultDetStatusLabel.BackgroundColor = 'g';
@@ -3525,7 +3571,7 @@ classdef DAS < handle
                 ephysSaveData.RawData = guiobj.ephys_data;
                 ephysSaveData.Dets = guiobj.ephys_detections(indx,:);
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders(indx);
-                ephysSaveData.DetStats = guiobj.ephys_detStats(indx);
+                ephysSaveData.DetParams = guiobj.ephys_detParams(indx);
                 ephysSaveInfo = guiobj.ephys_detectionsInfo(indx);
                  
             else
@@ -3572,7 +3618,7 @@ classdef DAS < handle
                 imagingSaveData.RawData = guiobj.imaging_data;
                 imagingSaveData.Dets = guiobj.imaging_detections(indx,:);
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders(indx);
-                imagingSaveData.DetStats = guiobj.imaging_detStats(indx);
+                imagingSaveData.DetParams = guiobj.imaging_detParams(indx);
                 imagingSaveInfo = guiobj.imaging_detectionsInfo(indx);
             else
                 imagingSaveData = [];
@@ -3632,6 +3678,31 @@ classdef DAS < handle
                     eventDetAxesButtFcn(guiobj,guiobj.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
                 end
             end
+        end
+        
+        %%
+        function showEventSpectro(guiobj,~,~)
+            if isempty(guiobj.ephys_detections)
+                return
+            end
+
+            detMat = guiobj.ephys_detections;
+
+            currDetRun = guiobj.ephys_currDetRun;
+            currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
+            currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
+            emptyChans = [];
+
+            % Filtering out channels with no detections
+            for j = 1:length(currDetRows)
+                if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
+                    emptyChans = [emptyChans, j];
+                end
+            end
+            currChans(emptyChans) = [];
+            currDetRows(emptyChans) = [];
+            
+            eventDetPlotFcn(guiobj,1,currChans,currDetRows,1)
         end
         
         %%
@@ -3713,6 +3784,9 @@ classdef DAS < handle
                 'Text','Show extra detection figures',...
                 'Checked','off',...
                 'MenuSelectedFcn',@ guiobj.showXtraDetFigsMenuSel);
+            guiobj.showEventSpectroMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
+                'Text','Show event spectrogram',...
+                'MenuSelectedFcn',@ guiobj.showEventSpectro);
 
             guiobj.SaveMenu = uimenu(guiobj.mainfig,...
                 'Text','Saving options');
@@ -4046,7 +4120,7 @@ classdef DAS < handle
             % Create ephysFiltParamPanel
             guiobj.ephysFiltParamPanel = uipanel(guiobj.ephysProcTab,...
                 'Position',[0.01, 0.5, 0.3, 0.4],...
-                'Title','Filtering parameters',...
+                'Title','Filtering settings',...
                 'Visible','off');
             
             % Create components of FiltParamPanel
@@ -4216,7 +4290,7 @@ classdef DAS < handle
             % Create imagingFiltParamPanel
             guiobj.imagingFiltParamPanel = uipanel(guiobj.imagingProcTab,...
                 'Position',[0.01, 0.5, 0.3, 0.4],...
-                'Title','Filtering parameters',...
+                'Title','Filtering settings',...
                 'Visible','off');
             
             % Create components of FiltParamPanel
@@ -4279,7 +4353,7 @@ classdef DAS < handle
             
             guiobj.ephysCwtDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...
-                'Title','Parameters for CWT based detection',...
+                'Title','Settings for CWT based detection',...
                 'Visible','off');
             guiobj.ephysCwtDetMinlenLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
@@ -4354,7 +4428,7 @@ classdef DAS < handle
             
             guiobj.ephysAdaptDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...
-                'Title','Parameters for adaptive threshold detection',...
+                'Title','Settings for adaptive threshold detection',...
                 'Visible','off');
             guiobj.ephysAdaptDetStepLabel = uicontrol(guiobj.ephysAdaptDetPanel,...
                 'Style','text',...
@@ -4399,7 +4473,7 @@ classdef DAS < handle
             
             guiobj.ephysDoGInstPowDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...
-                'Title','Parameters for DoG+InstPow based detection',...
+                'Title','Settings for DoG+InstPow based detection',...
                 'Visible','off');
             guiobj.ephysDoGInstPowDetFreqBandLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','text',...
@@ -4475,11 +4549,11 @@ classdef DAS < handle
                 'String','Delete',...
                 'Callback',@(h,e) guiobj.presetDel(1,3));
             
-            guiobj.ephysDetStatPanel = uipanel(guiobj.eventDetTab,...
+            guiobj.ephysDetParamsPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.325, 0.65, 0.125, 0.3],...
-                'Title','Event statistics',...
+                'Title','Event parameters',...
                 'Visible','on');
-            guiobj.ephysDetStatTable = uitable(guiobj.ephysDetStatPanel,...
+            guiobj.ephysDetParamsTable = uitable(guiobj.ephysDetParamsPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
                 'ColumnWidth',{100,75});
@@ -4514,7 +4588,7 @@ classdef DAS < handle
             
             guiobj.imagingMeanSdDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.33, 0.2, 0.3],...
-                'Title','Parameters for mean+sd based detection',...
+                'Title','Settings for mean+sd based detection',...
                 'Visible','off');
             guiobj.imagingMeanSdDetSdmultLabel = uicontrol(guiobj.imagingMeanSdDetPanel,...
                 'Style','text',...
@@ -4527,11 +4601,11 @@ classdef DAS < handle
                 'Position',[0.41, 0.85, 0.1, 0.1],...
                 'String','3');
             
-            guiobj.imagingDetStatPanel = uipanel(guiobj.eventDetTab,...
+            guiobj.imagingDetParamsPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.325, 0.33, 0.125, 0.3],...
-                'Title','Event statistics',...
+                'Title','Event parameters',...
                 'Visible','on');
-            guiobj.imagingDetStatTable = uitable(guiobj.imagingDetStatPanel,...
+            guiobj.imagingDetParamsTable = uitable(guiobj.imagingDetParamsPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
                 'ColumnWidth',{100,75});
@@ -4571,7 +4645,7 @@ classdef DAS < handle
             
             guiobj.simultDetStandardPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.01, 0.3, 0.3],...
-                'Title','Parameters for simultan detection',...
+                'Title','Settings for simultan detection',...
                 'Visible','off');
             guiobj.simultDetStandardDelayLabel = uicontrol(guiobj.simultDetStandardPanel,...
                 'Style','text',...

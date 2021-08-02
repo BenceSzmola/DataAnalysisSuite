@@ -55,3 +55,5 @@ DAS toDo notes
 	firstplot tesztnél volt a problema, mostmár azt nézi hogy az adott plot panelen van e már ábra
 -simultan detectiont megcsinálni rendesen
 	elkezdtem de még nincs meg a koncepcio
++mostani amplitudo ertek helyett peak2peak
++spektrogram, esetleg ráplottolt elfizzel <- DONE, még esetleg lehet rajta eztazt tökéletesíteni
