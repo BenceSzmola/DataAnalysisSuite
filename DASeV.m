@@ -8,6 +8,7 @@ classdef DASeV < handle
         ephysTypMenu
         highPassRawEphysMenu
         plotFullMenu
+        showEventSpectroMenu
         
         %% tabs
         tabgrp
@@ -245,7 +246,11 @@ classdef DASeV < handle
         end
         
         %%
-        function ephysPlot(gO,ax)
+        function ephysPlot(gO,ax,forSpectro)
+            if nargin < 3
+                forSpectro = 0;
+            end
+            
             currDetNum = gO.ephysCurrDetNum;
             currDetRow = gO.ephysCurrDetRow;
             
@@ -322,6 +327,7 @@ classdef DASeV < handle
                         tWin = gO.ephysTaxis(winIdx);
                     end
                 end
+                
             
                 if gO.fixWin == 1
                     chan = gO.ephysDetInfo(gO.ephysFixWinDetRow).Channel;
@@ -370,6 +376,19 @@ classdef DASeV < handle
                     axTitle = ['Channel #',num2str(chan),'      #Detections = ',...
                         num2str(numDets)];
                 end
+            end
+            
+            if forSpectro
+                try
+                    w1 = gO.ephysDetInfo(currDetRow).Params.W1;
+                    w2 = gO.ephysDetInfo(currDetRow).Params.W2;
+                catch
+                    w1 = 150;
+                    w2 = 250;
+                    warning('Cutoff set to default 150-250 Hz')
+                end
+                spectrogramMacher(gO.ephysData(chan,winIdx),gO.ephysFs,w1,w2)
+                return
             end
                         
             data = [];
@@ -748,12 +767,19 @@ classdef DASeV < handle
         function plotFullMenuSel(gO,~,~)
             if gO.plotFull == 1
                 gO.plotFull = 0;
+                gO.showEventSpectroMenu.Enable = 'on';
             elseif gO.plotFull == 0
                 gO.plotFull = 1;
                 gO.fixWinSwitch.Value = 0;
+                gO.showEventSpectroMenu.Enable = 'off';
                 fixWinSwitchPress(gO)
             end
             smartplot(gO)
+        end
+        
+        %%
+        function showEventSpectro(gO,~,~)
+            ephysPlot(gO,[],1)
         end
         
         %%
@@ -802,6 +828,8 @@ classdef DASeV < handle
             gO.ephysDetDwnButt.Enable = 'off';
             gO.ephysChanUpButt.Enable = 'off';
             gO.ephysChanDwnButt.Enable = 'off';
+            gO.ephysDetParamsTable.Data = {};
+            gO.ephysDetParamsTable.ColumnName = {};
 
             if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
@@ -850,7 +878,9 @@ classdef DASeV < handle
             gO.imagingDetUpButt.Enable = 'off';
             gO.imagingDetDwnButt.Enable = 'off';
             gO.imagingRoiUpButt.Enable = 'off';
-            gO.imagingRoiDwnButt.Enable = 'off';            
+            gO.imagingRoiDwnButt.Enable = 'off';
+            gO.imagingDetParamsTable.Data = {};
+            gO.imagingDetParamsTable.ColumnName = {};
 
             if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
@@ -1212,6 +1242,9 @@ classdef DASeV < handle
             gO.plotFullMenu = uimenu(gO.optMenu,...
                 'Text','Plot full data / Plot individual detections',...
                 'MenuSelectedFcn',@ gO.plotFullMenuSel);
+            gO.showEventSpectroMenu = uimenu(gO.optMenu,...
+                'Text','Show event spectrogram',...
+                'MenuSelectedFcn',@ gO.showEventSpectro);
             
             %% Tabgroup
             gO.tabgrp = uitabgroup(gO.mainFig,...

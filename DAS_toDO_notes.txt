@@ -53,7 +53,9 @@ DAS toDo notes
 +gorobj importnál nem jol kezeli ha rossz adattipust importálok
 +ha tobb adattipus van egyszerre maintabban, akkor az axis xlimit beragad a kesobb importalt xlimitjére
 	firstplot tesztnél volt a problema, mostmár azt nézi hogy az adott plot panelen van e már ábra
--simultan detectiont megcsinálni rendesen
-	elkezdtem de még nincs meg a koncepcio
+-simultan detectiont megcsinálni rendesen!!!!!!!!!!!!!!!!
+	elkezdtem de még nincs meg a koncepcio!!!!!!!!!!!!!
 +mostani amplitudo ertek helyett peak2peak
 +spektrogram, esetleg ráplottolt elfizzel <- DONE, még esetleg lehet rajta eztazt tökéletesíteni
+-végig tesztelni a frekvencia paraméter meghatározását
+	pl hogy nem lehet e baj abbol hogy fixen adom meg a cwt hívásánál a frekvencia limiteket

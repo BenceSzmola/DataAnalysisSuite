@@ -1344,12 +1344,15 @@ classdef DAS < handle
                 if (winStart>0) & (winEnd <= length(taxis))
                     tWin = taxis(winStart:winEnd);
                     dataWin = data(chan,winStart:winEnd);
+                    winInds = winStart:winEnd;
                 elseif winStart <= 0
                     tWin = taxis(1:winEnd);
                     dataWin = data(chan,1:winEnd);
+                    winInds = 1:winEnd;
                 elseif winEnd > length(taxis)
                     tWin = taxis(winStart:end);
                     dataWin = data(chan,winStart:end);
+                    winInds = winStart:length(taxis);
                 end
             else
                 if (tInd-win > 0) & (tInd+win <= length(taxis))
@@ -1366,15 +1369,15 @@ classdef DAS < handle
             
             if forSpectro
                 try
-                    w1 = guiobj.ephys_detectionsInfo(currDetRows(1)).Params.W1;
-                    w2 = guiobj.ephys_detectionsInfo(currDetRows(1)).Params.W2;
+                    w1 = guiobj.ephys_detectionsInfo(currDetRow).Params.W1;
+                    w2 = guiobj.ephys_detectionsInfo(currDetRow).Params.W2;
                 catch
                     w1 = 150;
                     w2 = 250;
                     warning('Cutoff frequencies set to default 150-250')
                 end
                 
-                spectrogramMacher(dataWin,fs,w1,w2)
+                spectrogramMacher(guiobj.ephys_data(chan,winInds),fs,w1,w2)
                 
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
