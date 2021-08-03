@@ -483,10 +483,16 @@ classdef DASeV < handle
 %                     end
 %                 else
                     for j = 1:length(tDetInds)
-                        xline(ax(i),tDetInds(j),'Color','r','LineWidth',1);
+                        xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
                         if ~isempty(currDetBorders)
-                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'Color','g','LineWidth',1);
-                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'Color','g','LineWidth',1);
+                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'--b','LineWidth',1);
+                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'--b','LineWidth',1);
+                            hL = data(i,:);
+                            temp1 = find(tWin==gO.ephysTaxis(currDetBorders(j,1)));
+                            temp2 = find(tWin==gO.ephysTaxis(currDetBorders(j,2)));
+                            hL(1:temp1-1) = nan;
+                            hL(temp2+1:end) = nan;
+                            plot(ax(i),tWin,hL,'-r','LineWidth',0.75)
                         end
                     end
 %                 end
@@ -627,8 +633,14 @@ classdef DASeV < handle
                 for j = 1:length(tDetInds)
                     xline(ax(i),tDetInds(j),'Color','r','LineWidth',1);
                     if ~isempty(currDetBorders)
-                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,1)),'Color','g','LineWidth',1);
-                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,2)),'Color','g','LineWidth',1);
+                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,1)),'--b','LineWidth',1);
+                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,2)),'--b','LineWidth',1);
+                        hL = data(i,:);
+                        temp1 = find(tWin==gO.imagingTaxis(currDetBorders(j,1)));
+                        temp2 = find(tWin==gO.imagingTaxis(currDetBorders(j,2)));
+                        hL(1:temp1-1) = nan;
+                        hL(temp2+1:end) = nan;
+                        plot(ax(i),tWin,hL,'-r','LineWidth',0.75)
                     end
                 end
                 hold(ax(i),'off')
