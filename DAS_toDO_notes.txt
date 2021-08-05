@@ -59,3 +59,7 @@ DAS toDo notes
 +spektrogram, esetleg ráplottolt elfizzel <- DONE, még esetleg lehet rajta eztazt tökéletesíteni
 -végig tesztelni a frekvencia paraméter meghatározását
 	pl hogy nem lehet e baj abbol hogy fixen adom meg a cwt hívásánál a frekvencia limiteket
+	
+-ca detectionhoz jovo/oopsi matlab fileexchangen
+-event spectrogram cutoff bemenetét elrontottam átrendezésekkel, azt meg kéne csinálni
+-alaposan letesztelni az egybevont axes button kezelést a DAS-ban meg az eventdetplot
