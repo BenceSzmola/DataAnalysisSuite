@@ -53,8 +53,8 @@ DAS toDo notes
 +gorobj importnál nem jol kezeli ha rossz adattipust importálok
 +ha tobb adattipus van egyszerre maintabban, akkor az axis xlimit beragad a kesobb importalt xlimitjére
 	firstplot tesztnél volt a problema, mostmár azt nézi hogy az adott plot panelen van e már ábra
--simultan detectiont megcsinálni rendesen!!!!!!!!!!!!!!!!
-	elkezdtem de még nincs meg a koncepcio!!!!!!!!!!!!!
++simultan detectiont megcsinálni rendesen <- DONE
+	elkezdtem de még nincs meg a koncepcio
 +mostani amplitudo ertek helyett peak2peak
 +spektrogram, esetleg ráplottolt elfizzel <- DONE, még esetleg lehet rajta eztazt tökéletesíteni
 -végig tesztelni a frekvencia paraméter meghatározását
@@ -63,3 +63,7 @@ DAS toDo notes
 -ca detectionhoz jovo/oopsi matlab fileexchangen
 -event spectrogram cutoff bemenetét elrontottam átrendezésekkel, azt meg kéne csinálni
 -alaposan letesztelni az egybevont axes button kezelést a DAS-ban meg az eventdetplot
+	van valami bug a simult det léptetésben amikor már több detekcio van (tobb sima ephys meg imaging is) és csak egy
+	csatornabol kerek szimultant
+-simultan detek kimentése
+-DASeV-ben simultan mod kialakitasa
