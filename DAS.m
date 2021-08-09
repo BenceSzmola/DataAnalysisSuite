@@ -1371,6 +1371,15 @@ classdef DAS < handle
             end
             
             if nargin > 2
+                if (chanUpDwn==0) & (detUpDwn==0)
+                    currDet = 1;
+                    currChan = 1;
+                end
+
+                if chanUpDwn ~= 0
+                    currDet = 1;
+                end
+                
                 [numDets,numChans] = extractDetStructs(guiobj,dTyp);
 
                 switch chanUpDwn
@@ -1399,14 +1408,14 @@ classdef DAS < handle
                         end
                 end
 
-                if (chanUpDwn==0) & (detUpDwn==0)
-                    currDet = 1;
-                    currChan = 1;
-                end
-
-                if chanUpDwn ~= 0
-                    currDet = 1;
-                end
+%                 if (chanUpDwn==0) & (detUpDwn==0)
+%                     currDet = 1;
+%                     currChan = 1;
+%                 end
+% 
+%                 if chanUpDwn ~= 0
+%                     currDet = 1;
+%                 end
             end
             
             switch guiobj.evDetTabSimultMode
@@ -3291,12 +3300,22 @@ classdef DAS < handle
         
         %%
         function simultDetRun(guiobj,event)
+            if (isempty(guiobj.ephys_detections)) | (isempty(guiobj.imaging_detections)) 
+                errordlg('Both electrophysiology and imaging detections are needed!')
+                return
+            end
+            
             guiobj.simultDetStatusLabel.String = 'Detection running';
             guiobj.simultDetStatusLabel.BackgroundColor = 'r';
             drawnow
             
             dettype = guiobj.simultDetPopMenu.Value;
             dettype = guiobj.simultDetPopMenu.String{dettype};
+            
+            if strcmp(dettype,'--Simultan detection methods--')
+                warndlg('Choose detection type!')
+                return 
+            end
             
             detList = [];
             detInfo = guiobj.ephys_detectionsInfo;
@@ -3326,7 +3345,7 @@ classdef DAS < handle
                 guiobj.simultDetStatusLabel.BackgroundColor = 'g';
                 return
             end
-            
+                        
             ephysSelChans = indx;
             ephysDetRun = guiobj.ephys_detectionsInfo(indx).DetRun;
 %             ephys_detInds = find(~isnan(guiobj.ephys_detections(indx,:)));
@@ -3360,7 +3379,7 @@ classdef DAS < handle
                 guiobj.simultDetStatusLabel.BackgroundColor = 'g';
                 return
             end
-            
+                        
             imaging_selROIs = indx;
             imagingDetRun = guiobj.imaging_detectionsInfo(indx(1)).DetRun;
             imaging_tAx = guiobj.imaging_taxis;
@@ -3435,8 +3454,8 @@ classdef DAS < handle
                         detInfo.DetRun = currDetRun;
                     end
             end
-
-            if isempty(simult_dets)
+            
+            if isempty(find(~cellfun('isempty',[simult_dets.DetInds]),1))
                 warndlg('No simultaneous events found!')
                 guiobj.simultDetStatusLabel.String = '--IDLE--';
                 guiobj.simultDetStatusLabel.BackgroundColor = 'g';
@@ -3987,7 +4006,7 @@ classdef DAS < handle
                     return
                 end
                 
-                selRows = find([guiobj.simult_detections.DetRun]==detInfo(indx).DetRun);
+                selRows = [guiobj.simult_detections.DetRun]==detInfo(indx).DetRun;
                 
                 simultSaveData.Dets = guiobj.simult_detections(selRows);
                 simultSaveInfo = guiobj.imaging_detectionsInfo(indx);

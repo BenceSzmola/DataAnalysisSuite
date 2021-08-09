@@ -67,3 +67,4 @@ DAS toDo notes
 	csatornabol kerek szimultant
 -simultan detek kimentése
 -DASeV-ben simultan mod kialakitasa
+-simultan eventek megjeleniteshez: imaging ábra is az elfizre legyen centrálva
