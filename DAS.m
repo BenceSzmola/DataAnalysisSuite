@@ -3869,7 +3869,7 @@ classdef DAS < handle
         
         %%
         function saveDets(guiobj,event)
-            [idx,tf] = listdlg('PromptString','Which detection do you want to save?',...
+            [detTypeToSave,tf] = listdlg('PromptString','Which detection do you want to save?',...
                 'Name','Saving detections',...
                 'ListString',{'Ephys','Imaging','Simultaneous'},...
                 'ListSize',[500, 200]);
@@ -3877,9 +3877,12 @@ classdef DAS < handle
                 return
             end
             
+            if (length(detTypeToSave) > 1) & (~isempty(find(detTypeToSave==3,1)))
+                detTypeToSave = 3;
+            end
 %             saveStruct = struct('ephys',[],'imaging',[],'simult',[]);
             
-            if ~isempty(find(idx==1,1)) % ephys save
+            if ~isempty(find(detTypeToSave==1,1)) % ephys save
                 if isempty(guiobj.ephys_detectionsInfo(1).DetType)
                     warndlg('No detections!')
                     return
@@ -3925,7 +3928,7 @@ classdef DAS < handle
                 ephysSaveInfo = [];
             end
             
-            if ~isempty(find(idx==2,1)) % imaging save
+            if ~isempty(find(detTypeToSave==2,1)) % imaging save
                 if isempty(guiobj.imaging_detectionsInfo(1).DetType)
                     warndlg('No detections!')
                     return
@@ -3971,12 +3974,8 @@ classdef DAS < handle
                 imagingSaveInfo = [];
             end
             
-            if ~isempty(find(idx==3,1)) % simult save
-                if isempty(find(idx==1,1)) | isempty(find(idx==2,1))
-                    errordlg('You can not save simultan detection without ephys&imaging detections!')
-                    return
-                end
-                
+            if ~isempty(find(detTypeToSave==3,1)) % simult save
+                                
                 if isempty(guiobj.simult_detections)
                     errordlg('No simultan detections!')
                     return
@@ -4008,8 +4007,26 @@ classdef DAS < handle
                 
                 selRows = [guiobj.simult_detections.DetRun]==detInfo(indx).DetRun;
                 
-                simultSaveData.Dets = guiobj.simult_detections(selRows);
-                simultSaveInfo = guiobj.imaging_detectionsInfo(indx);
+                simultSaveData = guiobj.simult_detections(selRows);
+                simultSaveInfo = detInfo(indx);
+                
+                ephysSaveData.TAxis = guiobj.ephys_taxis;
+                ephysSaveData.YLabel = guiobj.ephys_ylabel;
+                ephysSaveData.Fs = guiobj.ephys_fs;
+                ephysSaveData.RawData = guiobj.ephys_data;
+                ephysSaveData.Dets = guiobj.ephys_detections(simultSaveInfo.EphysChannels,:);
+                ephysSaveData.DetBorders = guiobj.ephys_detBorders(simultSaveInfo.EphysChannels);
+                ephysSaveData.DetParams = guiobj.ephys_detParams(simultSaveInfo.EphysChannels);
+                ephysSaveInfo = guiobj.ephys_detectionsInfo(simultSaveInfo.EphysChannels);
+                
+                imagingSaveData.TAxis = guiobj.imaging_taxis;
+                imagingSaveData.YLabel = guiobj.imaging_ylabel;
+                imagingSaveData.Fs = guiobj.imaging_fs;
+                imagingSaveData.RawData = guiobj.imaging_data;
+                imagingSaveData.Dets = guiobj.imaging_detections(simultSaveInfo.ROI,:);
+                imagingSaveData.DetBorders = guiobj.imaging_detBorders(simultSaveInfo.ROI);
+                imagingSaveData.DetParams = guiobj.imaging_detParams(simultSaveInfo.ROI);
+                imagingSaveInfo = guiobj.imaging_detectionsInfo(simultSaveInfo.ROI);
             else
                 simultSaveData = [];
                 simultSaveInfo = [];
