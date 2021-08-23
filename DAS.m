@@ -1622,7 +1622,7 @@ classdef DAS < handle
                     
                 case 1
                     detStruct = guiobj.simult_detections;
-                    currDetRun = guiobj.simult_detRunsNum
+                    currDetRun = guiobj.simult_detRunsNum;
                     currDetRows = find([detStruct.DetRun]==currDetRun);
                     detStruct = detStruct(currDetRows);
                     
@@ -1637,11 +1637,11 @@ classdef DAS < handle
                         end
                     end
                     detStruct(emptyRows) = [];
-                    currDetRows(emptyRows) = []
+                    currDetRows(emptyRows) = [];
 
                     numEphysChans = length(detStruct);
-                    currEphysChan = guiobj.eventDetSim1CurrChan
-                    detStruct
+                    currEphysChan = guiobj.eventDetSim1CurrChan;
+%                     detStruct
                     [r,~] = find([detStruct(currEphysChan).DetInds{:}]);
                     r = unique(r);
                     
@@ -1654,7 +1654,7 @@ classdef DAS < handle
                                 return
                             end
                             
-                            currChan = guiobj.eventDetSim1CurrChan
+                            currChan = guiobj.eventDetSim1CurrChan;
                             currDet = guiobj.eventDetSim1CurrDet;
                             
                             detMat = guiobj.ephys_detections;
@@ -1673,8 +1673,10 @@ classdef DAS < handle
                                 detBorders = detBorders(r(currDet),:);
                             end
                             
+%                             currDetRowsRel
+%                             assignin('base','detParams',guiobj.ephys_detParams)
                             detParams = guiobj.ephys_detParams;
-                            detParams = detParams{detInfo.EphysChannels(currDetRowsRel)};
+                            detParams = detParams{detInfo.EphysChannels(currDetRowsRel(currChan))};
                             if ~isempty(detParams)
                                 detParams = detParams(r(currDet));
                             end
