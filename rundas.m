@@ -1,5 +1,0 @@
-function rundas
-
-DAS;
-
-end
