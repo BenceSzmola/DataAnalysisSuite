@@ -69,3 +69,4 @@ DAS toDo notes
 -DASeV-ben simultan mod kialakitasa <- close to DONE
 	végig kell még tesztelni
 -simultan eventek megjeleniteshez: imaging ábra is az elfizre legyen centrálva
+-tooltip az event parameterekhez, vagy valami magyarazat (akar vizualis) hogy melyik param mit jelent

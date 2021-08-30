@@ -16,6 +16,7 @@ classdef DAS < handle
         showEphysDetLegendMenu
         showImagingDetMarkersMenu
         showSimultMarkersMenu
+        runPosModeMenu
         
         EvDetTabOptionsMenu
         ephysEventDetTabDataTypeMenu
@@ -71,15 +72,12 @@ classdef DAS < handle
         axes31
         axes32
         
-        axesAbsPos1
-        axesLapPos1
-        axesAbsPos2
-        axesLapPos2
-        axesAbsPos3
-        axesLapPos3
-        axesveloc1
-        axesveloc2
-        axesveloc3
+        axesPos1
+        axesPos2
+        axesPos3
+        axesVeloc1
+        axesVeloc2
+        axesVeloc3
         
         %% Members of ephysProcTab
         ephysProcListBox
@@ -228,6 +226,7 @@ classdef DAS < handle
         showXtraDetFigs = 0;
         keyboardPressDtyp = 1;
         evDetTabSimultMode = 0;
+        mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
         
         xtitle = 'Time [s]';
         
@@ -280,11 +279,15 @@ classdef DAS < handle
         imag_proc_datanames = {};
         imaging_presets
         
-        run_pos                             % Currently imported running data
+        run_absPos                          % absolute position
+        run_lap
+        run_relPos
         run_veloc                           % Running velocity
+        run_licks
         run_taxis                           % Time axis for running data
         run_fs                              % Sampling frequency of running data
-        run_pos_ylabel = 'Pos [%]';
+        run_absPos_ylabel = 'Pos [cm]';
+        run_relPos_ylabel = 'Pos [Lap%]';
         run_veloc_ylabel = 'Velocity [cm/s]';
         
         simult_detections
@@ -504,38 +507,42 @@ classdef DAS < handle
         function runposplot(guiobj)
             switch sum(guiobj.datatyp)
                 case 1
-                    AbsAx = guiobj.axesAbsPos1;
-                    LapAx = guiobj.axesLapPos1;
+                    ax = guiobj.axesPos1;
                 case 2
-                    AbsAx = guiobj.axesAbsPos2;
-                    LapAx = guiobj.axesLapPos2;
+                    ax = guiobj.axesPos2;
                 case 3 
-                    AbsAx = guiobj.axesAbsPos3;
-                    LapAx = guiobj.axesLapPos3;
+                    ax = guiobj.axesPos3;
             end
-%             plot(AbsAx,guiobj.run_pos,zeros(size(guiobj.run_pos)))
-%             axis(AbsAx,'tight')
-%             xlabel(AbsAx,'Absolute position')
-%             
-%             plot(LapAx,guiobj.
+            
+            switch guiobj.mainTabPosPlotMode 
+                case 0
+                    plot(ax,guiobj.run_taxis,guiobj.run_absPos)
+                    ylabel(ax,guiobj.run_absPos_ylabel)
+                    title(ax,'Absolute position')
+                case 1
+                    plot(ax,guiobj.run_taxis,guiobj.run_relPos)
+                    ylabel(ax,guiobj.run_relPos_ylabel)
+                    title(ax,'Relative position')
+            end
+            xlabel(ax,guiobj.xtitle)
+            
         end
         
         %%
         function runvelocplot(guiobj)
             switch sum(guiobj.datatyp)
                 case 1
-                    ax = guiobj.axesveloc1;
+                    ax = guiobj.axesVeloc1;
                 case 2
-                    ax = guiobj.axesveloc2;
+                    ax = guiobj.axesVeloc2;
                 case 3 
-                    ax = guiobj.axesveloc3;
+                    ax = guiobj.axesVeloc3;
             end
             plot(ax,guiobj.run_taxis,guiobj.run_veloc)
             axis(ax,'tight')
             title(ax,'Running velocity','Interpreter','none')
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.run_veloc_ylabel)
-            xlimLink(guiobj)
         end
         
         %%
@@ -551,9 +558,8 @@ classdef DAS < handle
                         guiobj.Panel3Plot.Visible = 'off';
                         cla(guiobj.axes11)
                         guiobj.axes11.Visible = 'off';
-                        guiobj.axesAbsPos1.Visible = 'on';
-                        guiobj.axesLapPos1.Visible = 'on';
-                        guiobj.axesveloc1.Visible = 'on';
+                        guiobj.axesPos1.Visible = 'on';
+                        guiobj.axesVeloc1.Visible = 'on';
                         
                         runposplot(guiobj)
                         runvelocplot(guiobj)
@@ -561,9 +567,8 @@ classdef DAS < handle
                         guiobj.Panel1Plot.Visible = 'off';
                         cla(guiobj.axes22)
                         guiobj.axes22.Visible = 'off';
-                        guiobj.axesAbsPos2.Visible = 'on';
-                        guiobj.axesLapPos2.Visible = 'on';
-                        guiobj.axesveloc2.Visible = 'on';
+                        guiobj.axesPos2.Visible = 'on';
+                        guiobj.axesVeloc2.Visible = 'on';
                         guiobj.Panel2Plot.Visible = 'on';
                         guiobj.Panel3Plot.Visible = 'off';
                         
@@ -599,12 +604,10 @@ classdef DAS < handle
                         guiobj.Panel1Plot.Visible = 'on';
                         guiobj.Panel2Plot.Visible = 'off';
                         guiobj.Panel3Plot.Visible = 'off';
-                        cla(guiobj.axesAbsPos1)
-                        guiobj.axesAbsPos1.Visible = 'off';
-                        cla(guiobj.axesLapPos1)
-                        guiobj.axesLapPos1.Visible = 'off';
-                        cla(guiobj.axesveloc1)
-                        guiobj.axesveloc1.Visible = 'off';
+                        cla(guiobj.axesPos1)
+                        guiobj.axesPos1.Visible = 'off';
+                        cla(guiobj.axesVeloc1)
+                        guiobj.axesVeloc1.Visible = 'off';
                         guiobj.axes11.Visible = 'on';
                         
                         if guiobj.datatyp(1)
@@ -618,12 +621,10 @@ classdef DAS < handle
                         end
                     case 2
                         guiobj.Panel1Plot.Visible = 'off';
-                        cla(guiobj.axesAbsPos2)
-                        guiobj.axesAbsPos2.Visible = 'off';
-                        cla(guiobj.axesLapPos2)
-                        guiobj.axesLapPos2.Visible = 'off';
-                        cla(guiobj.axesveloc2)
-                        guiobj.axesveloc2.Visible = 'off';
+                        cla(guiobj.axesPos2)
+                        guiobj.axesPos2.Visible = 'off';
+                        cla(guiobj.axesVeloc2)
+                        guiobj.axesVeloc2.Visible = 'off';
                         guiobj.axes22.Visible = 'on';
                         guiobj.Panel2Plot.Visible = 'on';
                         guiobj.Panel3Plot.Visible = 'off';
@@ -2241,10 +2242,12 @@ classdef DAS < handle
                 'CSV type','Treadmill','Gramophone','Cancel','Cancel');
             switch csvtype
                 case 'Treadmill'
-                    guiobj.run_pos = rundata(1:end-1,2);
-                    guiobj.run_veloc = diff(rundata(:,2))./diff(rundata(:,1));
-                    guiobj.run_taxis = rundata(1:end-1,1)*(10^-3)/guiobj.timedim;
-                    guiobj.run_fs = mean(gradient(rundata(:,1)));
+                    guiobj.run_taxis = rundata(:,1)*(10^-3);
+                    guiobj.run_veloc = rundata(:,2);
+                    guiobj.run_absPos = rundata(:,3);
+                    guiobj.run_lap = rundata(:,4);
+                    guiobj.run_relPos = rundata(:,5);
+                    guiobj.run_licks = rundata(:,6);
                 case 'Gramophone'
                     guiobj.run_veloc = rundata(:,2);
                     guiobj.run_taxis = rundata(:,1)*(10^-3)/guiobj.timedim;
@@ -2395,44 +2398,44 @@ classdef DAS < handle
 
         %% Value changed function: InputLickEditField
         function InputLickEditFieldValueChanged(guiobj, event)
-            value = guiobj.InputLickEditField.String;
-            temp = guiobj.LickTimesListBox.String;
-            if isempty(temp)
-                temp = {value};
-            else
-                temp = cat(1,temp,{value});
-            end
-            guiobj.LickTimesListBox.String = temp;
-            lickplot(guiobj)
-            guiobj.InputLickEditField.String = '';
+%             value = guiobj.InputLickEditField.String;
+%             temp = guiobj.LickTimesListBox.String;
+%             if isempty(temp)
+%                 temp = {value};
+%             else
+%                 temp = cat(1,temp,{value});
+%             end
+%             guiobj.LickTimesListBox.String = temp;
+%             lickplot(guiobj)
+%             guiobj.InputLickEditField.String = '';
         end
 
         %% Value changed function: LickTimesListBox
         function LickTimesListBoxValueChanged(guiobj, event)
-            if ~isscalar(guiobj.LickTimesListBox.Value)
-                guiobj.LickTimesListBox.Value = 1;
-                return
-            end
-            idx = guiobj.LickTimesListBox.Value;
-            value = guiobj.LickTimesListBox.String{idx};
-            numvalue = str2double(value);
-            del = questdlg('Delete selected lick time?');
-            if strcmp(del,'Yes')
-                temp = findobj(guiobj.mainfig,'Type','line');
-                for i = 1:length(temp)
-                    if (length(temp(i).XData)==2) &...
-                            (temp(i).XData == [numvalue numvalue])
-                        delete(temp(i))
-                    end
-                end
-                guiobj.LickTimesListBox.String(idx) = [];
-            end
-            
-            lickplot(guiobj)
-            
-            % Set listbox to have no selection (otherwise might be unable
-            % to delete 1 remaining lick)
-            guiobj.LickTimesListBox.Value = 1;
+%             if ~isscalar(guiobj.LickTimesListBox.Value)
+%                 guiobj.LickTimesListBox.Value = 1;
+%                 return
+%             end
+%             idx = guiobj.LickTimesListBox.Value;
+%             value = guiobj.LickTimesListBox.String{idx};
+%             numvalue = str2double(value);
+%             del = questdlg('Delete selected lick time?');
+%             if strcmp(del,'Yes')
+%                 temp = findobj(guiobj.mainfig,'Type','line');
+%                 for i = 1:length(temp)
+%                     if (length(temp(i).XData)==2) &...
+%                             (temp(i).XData == [numvalue numvalue])
+%                         delete(temp(i))
+%                     end
+%                 end
+%                 guiobj.LickTimesListBox.String(idx) = [];
+%             end
+%             
+%             lickplot(guiobj)
+%             
+%             % Set listbox to have no selection (otherwise might be unable
+%             % to delete 1 remaining lick)
+%             guiobj.LickTimesListBox.Value = 1;
         end
 
          %% Menu selected function: MakewindowlargerMenu
@@ -4034,6 +4037,25 @@ classdef DAS < handle
                 simultSaveInfo = [];
             end
             
+            runData = [];
+            if ~isempty(guiobj.run_taxis)
+                saveRun = questdlg('Do you want to save running data?',...
+                    'Save running data');
+                if ~tf
+                    return
+                end
+                if strcmp(saveRun,'Yes')
+                    runData.taxis = guiobj.run_taxis;
+                    runData.veloc = guiobj.run_veloc;
+                    runData.absPos = guiobj.run_absPos;
+                    runData.relPos = guiobj.run_relPos;
+                    runData.lapNum = guiobj.run_lap;
+                    runData.licks = guiobj.run_licks;
+%                 else
+%                     runData = [];
+                end
+            end
+            
             comments = inputdlg('Enter comment on detection:','Comments',...
                 [10,100]);
             
@@ -4051,7 +4073,8 @@ classdef DAS < handle
             
             save(fname,'ephysSaveData','ephysSaveInfo','comments',...
                 'imagingSaveData','imagingSaveInfo',...
-                'simultSaveData','simultSaveInfo')
+                'simultSaveData','simultSaveInfo',...
+                'runData')
             cd(oldpath)
         end
         
@@ -4109,6 +4132,17 @@ classdef DAS < handle
             eventDetPlotFcn(guiobj,1,1)
         end
         
+        %%
+        function runPosModeMenuSelected(guiobj,~,~)
+            switch guiobj.mainTabPosPlotMode
+                case 0
+                    guiobj.mainTabPosPlotMode = 1;
+                case 1
+                    guiobj.mainTabPosPlotMode = 0;
+            end
+            runposplot(guiobj)
+        end
+            
         %%
         function testcallback(varargin)
             display(varargin)
@@ -4169,6 +4203,10 @@ classdef DAS < handle
             guiobj.showSimultMarkersMenu = uimenu(guiobj.showDetMarkersMenu,...
                 'Text','Show simultaneous detection markers',...
                 'MenuSelectedFcn',@(h,e) guiobj.showSimultDetMarkers);
+            
+            guiobj.runPosModeMenu = uimenu(guiobj.MainTabOptionsMenu,...
+                'MenuSelectedFcn',@ guiobj.runPosModeMenuSelected,...
+                'Text','Switch position axes mode (absolute/relative)');
             
             guiobj.EvDetTabOptionsMenu = uimenu(guiobj.mainfig,...
                 'Text','EventDetTab Options');
@@ -4359,33 +4397,33 @@ classdef DAS < handle
                 'Visible','off',...
                 'Position',[0, 0, 0.4, 0.2]);
 
-            % Create InputlicktimemsEditFieldLabel
-            guiobj.InputlicktimemsEditFieldLabel = uicontrol(guiobj.runParamsPanel,...
-                'Style','text',...
-                'Units','normalized',...
-                'Position',[0, 0.7, 0.2, 0.25],...
-                'String','Input lick time [ms]');
-
-            % Create InputLickEditField
-            guiobj.InputLickEditField = uicontrol(guiobj.runParamsPanel,...
-                'Style','edit',...
-                'Units','normalized',...
-                'Position',[0.2, 0.7, 0.1, 0.25],...
-                'Callback',@(h,e) guiobj.InputLickEditFieldValueChanged);
-
-            % Create LicksmsListBoxLabel
-            guiobj.LicksmsListBoxLabel = uicontrol(guiobj.runParamsPanel,...
-                'Style','text',...
-                'Units','normalized',...
-                'Position',[0, 0.5, 0.2, 0.25],...
-                'String','Licks [ms]');
-
-            % Create LickTimesListBox
-            guiobj.LickTimesListBox = uicontrol(guiobj.runParamsPanel,...
-                'Style','listbox',...
-                'Units','normalized',...
-                'Position',[0.2, 0, 0.8, 0.65],...
-                'Callback',@(h,e) guiobj.LickTimesListBoxValueChanged);
+%             % Create InputlicktimemsEditFieldLabel
+%             guiobj.InputlicktimemsEditFieldLabel = uicontrol(guiobj.runParamsPanel,...
+%                 'Style','text',...
+%                 'Units','normalized',...
+%                 'Position',[0, 0.7, 0.2, 0.25],...
+%                 'String','Input lick time [ms]');
+% 
+%             % Create InputLickEditField
+%             guiobj.InputLickEditField = uicontrol(guiobj.runParamsPanel,...
+%                 'Style','edit',...
+%                 'Units','normalized',...
+%                 'Position',[0.2, 0.7, 0.1, 0.25],...
+%                 'Callback',@(h,e) guiobj.InputLickEditFieldValueChanged);
+% 
+%             % Create LicksmsListBoxLabel
+%             guiobj.LicksmsListBoxLabel = uicontrol(guiobj.runParamsPanel,...
+%                 'Style','text',...
+%                 'Units','normalized',...
+%                 'Position',[0, 0.5, 0.2, 0.25],...
+%                 'String','Licks [ms]');
+% 
+%             % Create LickTimesListBox
+%             guiobj.LickTimesListBox = uicontrol(guiobj.runParamsPanel,...
+%                 'Style','listbox',...
+%                 'Units','normalized',...
+%                 'Position',[0.2, 0, 0.8, 0.65],...
+%                 'Callback',@(h,e) guiobj.LickTimesListBoxValueChanged);
             
             guiobj.axes11 = axes(guiobj.Panel1Plot,...
                 'Position',[0.1,0.2,0.85,0.6],...
@@ -4411,60 +4449,41 @@ classdef DAS < handle
                 'NextPlot','replacechildren');
             guiobj.axes32.Toolbar.Visible = 'on';
             
-            guiobj.axesAbsPos1 = axes(guiobj.Panel1Plot,...
-                'Position',[0.1,0.1,0.85,0.1],...
-                'Visible','off',...
-                'YTick',[],...
-                'NextPlot','replacechildren');
-            guiobj.axesAbsPos1.Toolbar.Visible = 'on';
-            guiobj.axesLapPos1 = axes(guiobj.Panel1Plot,...
-                'Position',[0.1,0.3,0.85,0.1],...
-                'Visible','off',...
-                'YTick',[],...
-                'NextPlot','replacechildren');
-            guiobj.axesLapPos1.Toolbar.Visible = 'on';
-            guiobj.axesveloc1 = axes(guiobj.Panel1Plot,...
-                'Position',[0.1,0.6,0.85,0.3],...
+            guiobj.axesPos1 = axes(guiobj.Panel1Plot,...
+                'Position',[0.1,0.2,0.85,0.2],...
                 'Visible','off',...
                 'NextPlot','replacechildren');
-            guiobj.axesveloc1.Toolbar.Visible = 'on';
+            guiobj.axesPos1.Toolbar.Visible = 'on';
+            guiobj.axesVeloc1 = axes(guiobj.Panel1Plot,...
+                'Position',[0.1,0.5,0.85,0.2],...
+                'Visible','off',...
+                'NextPlot','replacechildren');
+            guiobj.axesVeloc1.Toolbar.Visible = 'on';
             
-            guiobj.axesAbsPos2 = axes(guiobj.Panel2Plot,...
+            guiobj.axesPos2 = axes(guiobj.Panel2Plot,...
                 'Position',[0.1,0.1,0.85,0.1],...
                 'Visible','off',...
-                'YTick',[],...
                 'NextPlot','replacechildren');
-            guiobj.axesAbsPos2.Toolbar.Visible = 'on';
-            guiobj.axesLapPos2 = axes(guiobj.Panel2Plot,...
-                'Position',[0.1,0.2,0.85,0.1],...
-                'Visible','off',...
-                'YTick',[],...
-                'NextPlot','replacechildren');
-            guiobj.axesLapPos2.Toolbar.Visible = 'on';
-            guiobj.axesveloc2 = axes(guiobj.Panel2Plot,...
+            guiobj.axesPos2.Toolbar.Visible = 'on';
+            guiobj.axesVeloc2 = axes(guiobj.Panel2Plot,...
                 'Position',[0.1,0.3,0.85,0.2],...
                 'Visible','off',...
                 'NextPlot','replacechildren');
-            guiobj.axesveloc2.Toolbar.Visible = 'on';
+            guiobj.axesVeloc2.Toolbar.Visible = 'on';
             
-            guiobj.axesAbsPos3 = axes(guiobj.Panel3Plot,...
+            guiobj.axesPos3 = axes(guiobj.Panel3Plot,...
                 'Position',[0.1,0.05,0.85,0.05],...
-                'YTick',[],...
                 'NextPlot','replacechildren');
-            guiobj.axesAbsPos3.Toolbar.Visible = 'on';
-            guiobj.axesLapPos3 = axes(guiobj.Panel3Plot,...
-                'Position',[0.1,0.1,0.85,0.05],...
-                'YTick',[],...
-                'NextPlot','replacechildren');
-            guiobj.axesLapPos3.Toolbar.Visible = 'on';
-            guiobj.axesveloc3 = axes(guiobj.Panel3Plot,...
+            guiobj.axesPos3.Toolbar.Visible = 'on';
+            guiobj.axesVeloc3 = axes(guiobj.Panel3Plot,...
                 'Position',[0.1,0.2,0.85,0.1],...
                 'NextPlot','replacechildren');
-            guiobj.axesveloc3.Toolbar.Visible = 'on';
+            guiobj.axesVeloc3.Toolbar.Visible = 'on';
             
             linkaxes([guiobj.axes11,guiobj.axes21,guiobj.axes22,...
-                guiobj.axes31,guiobj.axes32,guiobj.axesveloc1,...
-                guiobj.axesveloc2,guiobj.axesveloc3],'x')
+                guiobj.axes31,guiobj.axes32,guiobj.axesPos1,...
+                guiobj.axesPos2,guiobj.axesPos3,guiobj.axesVeloc1,...
+                guiobj.axesVeloc2,guiobj.axesVeloc3],'x')
             
             %% Elements of ephys proc tab %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
