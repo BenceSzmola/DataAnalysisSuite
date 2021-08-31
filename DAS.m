@@ -352,6 +352,7 @@ classdef DAS < handle
                 ax.NextPlot = 'replace';
                 firstplot = true;
             else
+                ax.NextPlot = 'replacechildren';
                 firstplot = false;
             end
             
@@ -373,7 +374,7 @@ classdef DAS < handle
                         dataname = guiobj.ephysProcListBox2.String{procInds};
                     end
 %                     hold(ax,'off')
-                    ax.NextPlot = 'replacechildren';
+%                     ax.NextPlot = 'replacechildren';
                 case 'Electrophysiology data processing'
                     if ax == guiobj.axesEphysProc1
                         plot(ax,guiobj.ephys_taxis,...
@@ -407,10 +408,12 @@ classdef DAS < handle
                 return
             end
             
-            if isempty(findobj(ax,'Type','line'))
+            axParent = ax.Parent;
+            if isempty(findobj(axParent,'Type','line'))
                 firstplot = true;
                 ax.NextPlot = 'replace';
             else
+                ax.NextPlot = 'replacechildren';
                 firstplot = false;
             end
             
@@ -452,6 +455,7 @@ classdef DAS < handle
                 ax.NextPlot = 'replace';
                 firstplot = true;
             else
+                ax.NextPlot = 'replacechildren';
                 firstplot = false;
             end
             
@@ -473,7 +477,7 @@ classdef DAS < handle
                         dataname = guiobj.imagingProcListBox2.String{procInds};
                     end
 %                     hold(ax,'off')
-                    ax.NextPlot = 'replacechildren';
+%                     ax.NextPlot = 'replacechildren';
 
                 case 'Imaging data processing'
                     if ax == guiobj.axesImagingProc1
@@ -514,6 +518,15 @@ classdef DAS < handle
                     ax = guiobj.axesPos3;
             end
             
+            axParent = ax.Parent;
+            if isempty(findobj(axParent,'Type','line'))
+                firstplot = true;
+                ax.NextPlot = 'replace';
+            else
+                ax.NextPlot = 'replacechildren';
+                firstplot = false;
+            end
+            
             switch guiobj.mainTabPosPlotMode 
                 case 0
                     plot(ax,guiobj.run_taxis,guiobj.run_absPos)
@@ -525,6 +538,10 @@ classdef DAS < handle
                     title(ax,'Relative position')
             end
             xlabel(ax,guiobj.xtitle)
+            
+            if firstplot
+                ax.NextPlot = 'replacechildren';
+            end
             
         end
         
@@ -538,11 +555,24 @@ classdef DAS < handle
                 case 3 
                     ax = guiobj.axesVeloc3;
             end
+            
+            axParent = ax.Parent;
+            if isempty(findobj(axParent,'Type','line'))
+                firstplot = true;
+                ax.NextPlot = 'replace';
+            else
+                ax.NextPlot = 'replacechildren';
+                firstplot = false;
+            end
+            
             plot(ax,guiobj.run_taxis,guiobj.run_veloc)
-            axis(ax,'tight')
             title(ax,'Running velocity','Interpreter','none')
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.run_veloc_ylabel)
+            
+            if firstplot
+                ax.NextPlot = 'replacechildren';
+            end
         end
         
         %%
@@ -637,7 +667,7 @@ classdef DAS < handle
                         warndlg('Something isn''t right')
                 end
             end
-           
+            
             allAx = findobj(guiobj.mainfig,'Type','axes');
             actAx = findobj(allAx,'Visible','on');
             actAx = findobj(actAx,'Type','axes');
@@ -647,6 +677,50 @@ classdef DAS < handle
             setAllowAxesZoom(zum,inactAx,false)
             setAllowAxesPan(panobj,actAx,true)
             setAllowAxesPan(panobj,inactAx,false)
+            
+            if ~isempty(findobj(allAx,'Type','line'))
+                setXlims(guiobj)
+            end
+        end
+        
+        %% 
+        function setXlims(guiobj)
+            
+            if ~isempty(guiobj.ephys_taxis)
+                eLen = guiobj.ephys_taxis(end)-guiobj.ephys_taxis(1);
+            else
+                eLen = 0;
+            end
+            if ~isempty(guiobj.imaging_taxis)
+                iLen = guiobj.imaging_taxis(end)-guiobj.imaging_taxis(1);
+            else
+                iLen = 0;
+            end
+            if ~isempty(guiobj.run_taxis)
+                rLen = guiobj.run_taxis(end)-guiobj.run_taxis(1);
+            else
+                rLen = 0;
+            end
+            [~,ind] = max([eLen,iLen,rLen]);
+            switch ind
+                case 1
+                    xlimits = [guiobj.ephys_taxis(1), guiobj.ephys_taxis(end)];
+                case 2
+                    xlimits = [guiobj.imaging_taxis(1), guiobj.imaging_taxis(end)];
+                case 3
+                    xlimits = [guiobj.run_taxis(1), guiobj.run_taxis(end)];
+            end
+            switch sum(guiobj.datatyp)
+                case 1
+                    ax = findobj(guiobj.Panel1Plot,'Type','axes');
+                    set(ax,'XLim',xlimits)
+                case 2
+                    ax = findobj(guiobj.Panel2Plot,'Type','axes');
+                    set(ax,'XLim',xlimits)
+                case 3
+                    ax = findobj(guiobj.Panel3Plot,'Type','axes');
+                    set(ax,'XLim',xlimits)
+            end
         end
         
         %%

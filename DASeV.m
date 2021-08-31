@@ -6,6 +6,7 @@ classdef DASeV < handle
         %% menus
         optMenu
         ephysTypMenu
+        runTypMenu
         highPassRawEphysMenu
         plotFullMenu
         showEventSpectroMenu
@@ -113,6 +114,7 @@ classdef DASeV < handle
         ephysFixWinDetRow = 1;
         
         %% imaging
+        imagingTypSelected = [1,0];         % Raw-Gauss
         imagingData
         imagingFs
         imagingTaxis
@@ -127,6 +129,7 @@ classdef DASeV < handle
         imagingFixWinDetRow = 1;
         
         %% running
+        runDataTypSelected = [1,0,0];       % Velocity-AbsPos-RelPos
         runTaxis
         runAbsPos
         runRelPos
@@ -916,6 +919,29 @@ classdef DASeV < handle
             end
         end
         
+        %%
+        function runPlot(gO,ax)
+            if gO.runDataTypSelected(1)
+                data = gO.runVeloc;
+                axTitle = 'Running velocity';
+                axYlabel = 'Velocity [cm/s]';
+            elseif gO.runDataTypSelected(2)
+                data = gO.runAbsPos;
+                axTitle = 'Running - Absolute position';
+                axYlabel = 'Absolute position [cm]';
+            elseif gO.runDataTypSelected(3)
+                data = gO.runRelPos;
+                axTitle = 'Running - Relative position';
+                axYlabel = 'Relative position [%]';
+            end
+            
+            plot(ax,gO.runTaxis,data)
+            title(ax,axTitle)
+            ylabel(ax,axYlabel)
+            xlabel(ax,'Time [s]')
+            
+        end
+        
         %% 
         function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypSelected)-1))
@@ -941,7 +967,9 @@ classdef DASeV < handle
                         linkaxes(ax,'x')
                         imagingPlot(gO,ax)
                     elseif gO.loaded(3)
-                        
+                        ax = [gO.ax11];
+                        linkaxes(ax,'x')
+                        runPlot(gO,ax)
                     end
                 case 2
                     ephysAxCount = 0;
@@ -974,6 +1002,20 @@ classdef DASeV < handle
                         linkaxes(ax,'x')
                         imagingPlot(gO,ax)
                     end
+                    if gO.loaded(3)
+                        switch ephysAxCount
+                            case 0
+                                ax = [gO.ax22];
+                            case 1
+                                ax = [gO.ax22];
+                            case 2
+                                ax = [gO.ax33];
+                            case 3
+                                ax = [gO.ax44];
+                        end
+                        linkaxes(ax,'x')
+                        runPlot(gO,ax)                        
+                    end
                 case 3
                     ephysAxCount = 0;
                     if gO.loaded(1)
@@ -1005,6 +1047,20 @@ classdef DASeV < handle
                         linkaxes(ax,'x')
                         imagingPlot(gO,ax)
                     end
+                    if gO.loaded(3)
+                        switch ephysAxCount
+                            case 0
+                                
+                            case 1
+                                ax = [gO.ax33];
+                            case 2
+                                ax = [gO.ax44];
+                            case 3
+                                ax = [gO.ax55];
+                        end
+                        linkaxes(ax,'x')
+                        runPlot(gO,ax)
+                    end
             end
         end
     end
@@ -1022,6 +1078,21 @@ classdef DASeV < handle
             
             gO.ephysTypSelected(:) = 0;
             gO.ephysTypSelected(idx) = 1;
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function runTypMenuSel(gO,~,~)
+            [idx,tf] = listdlg('ListString',{'Velocity','Absolute position','Relative position'},...
+                'PromptString','Select data type to show detections on!',...
+                'SelectionMode','single');
+            if ~tf
+                return
+            end
+            
+            gO.runDataTypSelected(:) = 0;
+            gO.runDataTypSelected(idx) = 1;
             
             smartplot(gO)
         end
@@ -1187,6 +1258,23 @@ classdef DASeV < handle
                     gO.loaded(2) = 1;
 %                     axButtPress(gO,2,0,0)
                 end
+            end
+            
+            gO.loaded(3) = 0;
+            if (~isempty(find(strcmp(fieldnames(testload),'runData'),1)))
+                load(fname,'runData')
+                
+                if ~isempty(runData)
+                    gO.runTaxis = runData.taxis;
+                    gO.runAbsPos = runData.absPos;
+                    gO.runRelPos = runData.relPos;
+                    gO.runLap = runData.lapNum;
+                    gO.runLicks = runData.licks;
+                    gO.runVeloc = runData.veloc;
+                    
+                    gO.loaded(3) = 1;
+                end
+                
             end
             
             gO.simultMode = 0;
@@ -1666,6 +1754,9 @@ classdef DASeV < handle
             gO.ephysTypMenu = uimenu(gO.optMenu,...
                 'Text','Ephys data type selection',...
                 'MenuSelectedFcn',@ gO.ephysTypMenuSel);
+            gO.runTypMenu = uimenu(gO.optMenu,...
+                'Text','Running data type selection',...
+                'MenuSelectedFcn',@ gO.runTypMenuSel);
             gO.highPassRawEphysMenu = uimenu(gO.optMenu,...
                 'Text','Apply high pass filter to displayed raw ephys data',...
                 'Checked','off',...
