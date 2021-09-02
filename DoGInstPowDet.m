@@ -28,6 +28,8 @@ if refVal == 2
     refDogged = DoG(refch,fs,w1,w2);
 elseif refVal == 1
     refDogged = dogged(refch,:);
+else
+    refDogged = [];
 end
 
 % Instant Power
@@ -36,6 +38,8 @@ if refVal == 2
     refInstPowd = instPow(refch,fs,w1,w2);
 elseif refVal == 1
     refInstPowd = instPowd(refch,:);
+else
+    refInstPowd = [];
 end
 
 dets = nan(size(data));
@@ -45,7 +49,11 @@ detParams = cell(min(size(data)),1);
 if (refVal ~= 0)
     refThr = mean(refInstPowd) + 3*std(refInstPowd);
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
-    
+else
+    refDets = [];
+    refDetMarks = [];
+    aboveRefThr = [];
+    belowRefThr = [];
 end
 
 for i = 1:size(data,1)
