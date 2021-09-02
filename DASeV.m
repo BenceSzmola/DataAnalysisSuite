@@ -6,6 +6,7 @@ classdef DASeV < handle
         %% menus
         optMenu
         ephysTypMenu
+        imagingTypMenu
         runTypMenu
         highPassRawEphysMenu
         plotFullMenu
@@ -116,6 +117,7 @@ classdef DASeV < handle
         %% imaging
         imagingTypSelected = [1,0];         % Raw-Gauss
         imagingData
+        imagingSmoothed
         imagingFs
         imagingTaxis
         imagingYlabel
@@ -889,8 +891,14 @@ classdef DASeV < handle
                     num2str(numDets)];
             end
             
-            data = gO.imagingData(chan,winIdx);
-            axLims = [min(gO.imagingData(chan,:)), max(gO.imagingData(chan,:))];
+            if gO.imagingTypSelected(1)
+                data = gO.imagingData(chan,winIdx);
+                axLims = [min(gO.imagingData(chan,:)), max(gO.imagingData(chan,:))];
+            elseif gO.imagingTypSelected(2)
+                data = gO.imagingSmoothed(chan,winIdx);
+                axLims = [min(gO.imagingSmoothed(chan,:)), max(gO.imagingSmoothed(chan,:))];
+            end
+            
             yLabels = string(gO.imagingYlabel);
             
             for i = 1:min(size(data))
@@ -1063,6 +1071,7 @@ classdef DASeV < handle
                     end
             end
         end
+        
     end
     
     %% Callback functions
@@ -1078,6 +1087,20 @@ classdef DASeV < handle
             
             gO.ephysTypSelected(:) = 0;
             gO.ephysTypSelected(idx) = 1;
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function imagingTypMenuSel(gO,~,~)
+            [idx,tf] = listdlg('ListString',{'Raw','Gauss smoothed'},...
+                'PromptString','Select data type(s) to show detections on!');
+            if ~tf
+                return
+            end
+            
+            gO.imagingTypSelected(:) = 0;
+            gO.imagingTypSelected(idx) = 1;
             
             smartplot(gO)
         end
@@ -1254,6 +1277,9 @@ classdef DASeV < handle
                     gO.imagingDetDwnButt.Enable = 'on';
                     gO.imagingRoiUpButt.Enable = 'on';
                     gO.imagingRoiDwnButt.Enable = 'on';
+                    
+                    gO.imagingSmoothed = smoothdata(gO.imagingData,...
+                        2,'gaussian',10);
                     
                     gO.loaded(2) = 1;
 %                     axButtPress(gO,2,0,0)
@@ -1754,6 +1780,9 @@ classdef DASeV < handle
             gO.ephysTypMenu = uimenu(gO.optMenu,...
                 'Text','Ephys data type selection',...
                 'MenuSelectedFcn',@ gO.ephysTypMenuSel);
+            gO.imagingTypMenu = uimenu(gO.optMenu,...
+                'Text','Imaging data type selection',...
+                'MenuSelectedFcn',@ gO.imagingTypMenuSel);
             gO.runTypMenu = uimenu(gO.optMenu,...
                 'Text','Running data type selection',...
                 'MenuSelectedFcn',@ gO.runTypMenuSel);
@@ -1882,8 +1911,8 @@ classdef DASeV < handle
             gO.simultIndicator = uicontrol(gO.fileInfoPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.05, 0.3, 0.1, 0.05],...
-                'String','Simultan',...
+                'Position',[0.05, 0.3, 0.15, 0.05],...
+                'String','with simultan',...
                 'Enable','inactive');
             gO.simultSettingTable = uitable(gO.fileInfoPanel,...
                 'Units','normalized',...
@@ -1895,8 +1924,8 @@ classdef DASeV < handle
             gO.runIndicator = uicontrol(gO.fileInfoPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.05, 0.2, 0.1, 0.05],...
-                'String','Run data',...
+                'Position',[0.05, 0.2, 0.15, 0.05],...
+                'String','with run data',...
                 'Enable','inactive');
             
             kids = findobj(gO.fileInfoPanel,'Type','uicontrol','-or',...
