@@ -965,7 +965,7 @@ classdef DAS < handle
                             if dtyp(2) && dtyp(1)
                                 imagingplot(guiobj,guiobj.axes22,guiobj.imag_select,...
                                     [])
-                            else
+                            elseif dtyp(2) && ~dtyp(1)
                                 imagingplot(guiobj,guiobj.axes21,guiobj.imag_select,...
                                     [])
                             end
@@ -1355,14 +1355,14 @@ classdef DAS < handle
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
                         guiobj.ephysDetParamsTable.Data = temp;
                         guiobj.ephysDetParamsTable.RowName = [];
-                        guiobj.ephysDetParamsTable.ColumnName = {'','Values'};
+                        guiobj.ephysDetParamsTable.ColumnName = {'Electrophysiology','Values'};
                     end
                 case 2
                     if ~isempty(detParams)
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
                         guiobj.imagingDetParamsTable.Data = temp;
                         guiobj.imagingDetParamsTable.RowName = [];
-                        guiobj.imagingDetParamsTable.ColumnName = {'','Values'};
+                        guiobj.imagingDetParamsTable.ColumnName = {'Imaging','Values'};
                     end
             end
 
@@ -1747,7 +1747,7 @@ classdef DAS < handle
                             currDet = guiobj.eventDetSim1CurrDet;
                             
                             detMat = guiobj.ephys_detections;
-                            assignin('base','detMat',detMat)
+%                             assignin('base','detMat',detMat)
                             detMat = detMat(detInfo.EphysChannels,:);
                             detMat = detMat(currChan,:);
                             
@@ -1756,7 +1756,7 @@ classdef DAS < handle
                             detInd = detInd(detNum);
                             
                             detBorders = guiobj.ephys_detBorders;
-                            assignin('base','detBorders',detBorders)
+%                             assignin('base','detBorders',detBorders)
                             detBorders = detBorders{detInfo.EphysChannels(currDetRowsRel(currChan))};
                             if ~isempty(detBorders)
                                 detBorders = detBorders(r(currDet),:);
@@ -1860,24 +1860,6 @@ classdef DAS < handle
             end
         end
         
-        %%
-%         function DetParamsMiner(guiobj,dtyp,dettype,dets)
-%             if isempty(dets) | isnan(dets)
-%                 return
-%             end
-%             
-%             if size(dets,1) > size(dets,2)
-%                 dets = dets';
-%             end
-%             
-%             detParams = guiobj.ephys_detParams;
-%             for i = 1:size(dets,1)
-%                 for j = 1:length(find(~isnan(dets(i,:))))
-%                     
-%                 end
-%             end
-%             
-%         end
     end
     
     %% Callback functions
@@ -2107,8 +2089,6 @@ classdef DAS < handle
                 end
             end
             smartplot(guiobj)
-
-            lickplot(guiobj)
             
             ephysDetMarkerPlot(guiobj)
             
@@ -2415,10 +2395,12 @@ classdef DAS < handle
             elseif value && ~guiobj.ephysCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
                 guiobj.DatasetListBox.String = guiobj.imag_datanames;
+                guiobj.DataSetListBox.Value = 1;
                 guiobj.Dataselection2Panel.Visible = 'off';
             elseif ~value && guiobj.ephysCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
                 guiobj.DatasetListBox.String = guiobj.ephys_datanames;
+                guiobj.DatasetListBox.Value = 1;
                 guiobj.Dataselection2Panel.Visible = 'off';
             elseif ~value && ~guiobj.ephysCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
@@ -3571,8 +3553,8 @@ classdef DAS < handle
             
             guiobj.simult_detRunsNum = currDetRun;
             
-            assignin('base','simDets',guiobj.simult_detections)
-            assignin('base','simDetInfo',guiobj.simult_detectionsInfo)
+%             assignin('base','simDets',guiobj.simult_detections)
+%             assignin('base','simDetInfo',guiobj.simult_detectionsInfo)
             
 %             eventDetAxesButtFcn(guiobj,3,0,0)
             guiobj.evDetTabSimultMode = 1;
@@ -4230,7 +4212,79 @@ classdef DAS < handle
             end
             runposplot(guiobj)
         end
+        
+        %%
+        function ephysEventParamTableCallback(guiobj,h,e)
+            tableInd = e.Indices;
             
+            if isempty(tableInd)
+                return
+            end
+            
+            msg = '';
+            switch tableInd(1)
+                case 1
+                    msg = 'Peak to peak amplitude of the raw event';
+                case 2
+                    msg = 'Peak to peak amplitude of the band pass filtered event';
+                case 3
+                    msg = 'Length of the event';
+                case 4
+                    msg = 'Frequency of the event, computed using continuous wavelet transform';
+                case 5
+                    msg = 'Area under curve, computed from the power of the event';
+                case 6
+                    msg = 'Time it takes the event to reach peak power';
+                case 7
+                    msg = 'Duration from the peak power until the end of the event';
+                case 8
+                    msg = 'Full width at half of the maximal amplitude';
+            end
+            
+            if ~isempty(msg)
+                msgbox(msg,'modal')
+            end
+            
+            temp = get(h,'Data');
+            set(h,'Data',{ '' });
+            set(h,'Data', temp );
+            
+        end
+        
+        %%
+        function imagingEventParamTableCallback(guiobj,h,e)
+            tableInd = e.Indices;
+            
+            if isempty(tableInd)
+                return
+            end
+            
+            msg = '';
+            switch tableInd(1)
+                case 1
+                    msg = 'Peak to peak amplitude of the raw event';
+                case 2
+                    msg = 'Length of the event';
+                case 3
+                    msg = 'Area under curve, computed from the power of the event';
+                case 4
+                    msg = 'Time it takes the event to reach peak power';
+                case 5
+                    msg = 'Duration from the peak power until the end of the event';
+                case 6
+                    msg = 'Full width at half of the maximal amplitude';
+            end
+            
+            if ~isempty(msg)
+                msgbox(msg,'modal')
+            end
+            
+            temp = get(h,'Data');
+            set(h,'Data',{ '' });
+            set(h,'Data', temp );
+            
+        end
+        
         %%
         function testcallback(varargin)
             display(varargin)
@@ -4582,7 +4636,8 @@ classdef DAS < handle
                 'Position',[0.01, 0.26, 0.3, 0.2],...
                 'Min',1,...
                 'Max',10,...
-                'Callback',@(h,e) guiobj.ephysProcListBoxValueChanged);
+                'Callback',@(h,e) guiobj.ephysProcListBoxValueChanged,...
+                'Tooltip','List of raw electrophysiology data');
             
             % Create ephysProcListBox2 for processed curves
             guiobj.ephysProcListBox2 = uicontrol(guiobj.ephysProcTab,...
@@ -4591,7 +4646,8 @@ classdef DAS < handle
                 'Position',[0.01, 0.06, 0.3, 0.2],...
                 'Min',1,...
                 'Max',10,...
-                'Callback',@(h,e) guiobj.ephysProcListBox2ValueChanged);
+                'Callback',@(h,e) guiobj.ephysProcListBox2ValueChanged,...
+                'Tooltip','List of processed electrophysiology data');
             
 %             % Create button to push processed data to main tab
 %             guiobj.pushEphysProcDataButton = uicontrol(guiobj.ephysProcTab,...
@@ -4651,12 +4707,14 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.8, 0.85, 0.1, 0.1],...
-                'Visible','off');
+                'Visible','off',...
+                'Tooltip','Lower cutoff frequency [Hz]');
             guiobj.w2Edit = uicontrol(guiobj.ephysFiltParamPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.9, 0.85, 0.1, 0.1],...
-                'Visible','off');
+                'Visible','off',...
+                'Tooltip','Upper cutoff frequency [Hz]');
             guiobj.fmaxLabel = uicontrol(guiobj.ephysFiltParamPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -4752,7 +4810,8 @@ classdef DAS < handle
                 'Position',[0.01, 0.26, 0.3, 0.2],...
                 'Min',1,...
                 'Max',10,...
-                'Callback',@(h,e) guiobj.imagingProcListBoxValueChanged);
+                'Callback',@(h,e) guiobj.imagingProcListBoxValueChanged,...
+                'Tooltip','List of raw imaging data');
             
             % Create imagingProcListBox2 for processed curves
             guiobj.imagingProcListBox2 = uicontrol(guiobj.imagingProcTab,...
@@ -4761,7 +4820,8 @@ classdef DAS < handle
                 'Position',[0.01, 0.06, 0.3, 0.2],...
                 'Min',1,...
                 'Max',10,...
-                'Callback',@(h,e) guiobj.imagingProcListBox2ValueChanged);
+                'Callback',@(h,e) guiobj.imagingProcListBox2ValueChanged,...
+                'Tooltip','List of processed imaging data');
             
 %             % Create button to push processed data to main tab
 %             guiobj.pushEphysProcDataButton = uicontrol(guiobj.ephysProcTab,...
@@ -5067,7 +5127,8 @@ classdef DAS < handle
             guiobj.ephysDetParamsTable = uitable(guiobj.ephysDetParamsPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
-                'ColumnWidth',{100,75});
+                'ColumnWidth',{100,75},...
+                'CellSelectionCallback',@ guiobj.ephysEventParamTableCallback);
                           
             guiobj.ephysDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
@@ -5119,7 +5180,8 @@ classdef DAS < handle
             guiobj.imagingDetParamsTable = uitable(guiobj.imagingDetParamsPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
-                'ColumnWidth',{100,75});
+                'ColumnWidth',{100,75},...
+                'CellSelectionCallback',@ guiobj.imagingEventParamTableCallback);
             
             guiobj.imagingDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
