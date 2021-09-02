@@ -686,29 +686,39 @@ classdef DAS < handle
         %% 
         function setXlims(guiobj)
             
-            if ~isempty(guiobj.ephys_taxis)
-                eLen = guiobj.ephys_taxis(end)-guiobj.ephys_taxis(1);
+            if isempty(guiobj.ephys_taxis)
+                eTaxis = [0,0];
             else
-                eLen = 0;
+                eTaxis = [guiobj.ephys_taxis(1),guiobj.ephys_taxis(end)];
             end
-            if ~isempty(guiobj.imaging_taxis)
-                iLen = guiobj.imaging_taxis(end)-guiobj.imaging_taxis(1);
+            if isempty(guiobj.imaging_taxis)
+                iTaxis = [0,0];
             else
-                iLen = 0;
+                iTaxis = [guiobj.imaging_taxis(1),guiobj.imaging_taxis(end)];
             end
-            if ~isempty(guiobj.run_taxis)
-                rLen = guiobj.run_taxis(end)-guiobj.run_taxis(1);
+            if isempty(guiobj.run_taxis)
+                rTaxis = [0,0];
             else
-                rLen = 0;
+                rTaxis = [guiobj.run_taxis(1),guiobj.run_taxis(end)];
             end
-            [~,ind] = max([eLen,iLen,rLen]);
-            switch ind
+            [~,minInd] = min([eTaxis(1),iTaxis(1),rTaxis(1)]);
+            [~,maxInd] = max([eTaxis(2),iTaxis(2),rTaxis(2)]);
+            xlimits = [0,0];
+            switch minInd
                 case 1
-                    xlimits = [guiobj.ephys_taxis(1), guiobj.ephys_taxis(end)];
+                    xlimits(1) = eTaxis(1);
                 case 2
-                    xlimits = [guiobj.imaging_taxis(1), guiobj.imaging_taxis(end)];
+                    xlimits(1) = iTaxis(1);
                 case 3
-                    xlimits = [guiobj.run_taxis(1), guiobj.run_taxis(end)];
+                    xlimits(1) = rTaxis(1);
+            end
+            switch maxInd
+                case 1
+                    xlimits(2) = eTaxis(2);
+                case 2
+                    xlimits(2) = iTaxis(2);
+                case 3
+                    xlimits(2) = rTaxis(2);
             end
             switch sum(guiobj.datatyp)
                 case 1
@@ -952,8 +962,11 @@ classdef DAS < handle
                                 ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select,...
                                     [])
                             end
-                            if dtyp(2)
+                            if dtyp(2) && dtyp(1)
                                 imagingplot(guiobj,guiobj.axes22,guiobj.imag_select,...
+                                    [])
+                            else
+                                imagingplot(guiobj,guiobj.axes21,guiobj.imag_select,...
                                     [])
                             end
                             if dtyp(3)
@@ -973,7 +986,8 @@ classdef DAS < handle
                         guiobj.ephys_select,...
                         [])
             end
-            xlimLink(guiobj)
+            
+            setXlims(guiobj)
         end
         
         %%
@@ -1192,103 +1206,103 @@ classdef DAS < handle
         
         %%
         function eventDetAxesButtFcnOld2(guiobj,dTyp,detRoi,upDwn)
-            switch dTyp
-                case 1 % ephys
-                    if isempty(guiobj.ephys_detections)
-                        return
-                    end
-                    
-                    detMat = guiobj.ephys_detections;
-                    
-                    currDetRun = guiobj.ephys_currDetRun;
-                    currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
-                    currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
-                    emptyChans = [];
-                    
-                    % Filtering out channels with no detections
-                    for j = 1:length(currDetRows)
-                        if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
-                            emptyChans = [emptyChans, j];
-                        end
-                    end
-                    currChans(emptyChans) = [];
-                    currDetRows(emptyChans) = [];
-                    
-                    currDetNum = guiobj.eventDet1CurrDet;
-                    currChanNum = guiobj.eventDet1CurrChan;
-                    
-                case 2 % imaging
-                    if isempty(guiobj.imaging_detections)
-                        return
-                    end
-                    
-                    data = guiobj.imaging_data;
-                    
-                    detMat = guiobj.imaging_detections;
-                    
-                    currDetRun = guiobj.imaging_currDetRun;
-                    currDetRows = find([guiobj.imaging_detectionsInfo.DetRun]==currDetRun);
-                    currChans = [guiobj.imaging_detectionsInfo(currDetRows).Roi];
-                    emptyChans = [];
-                    
-                    % Filtering out channels with no detections
-                    for j = 1:length(currDetRows)
-                        if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
-                            emptyChans = [emptyChans, j];
-                        end
-                    end
-                    currChans(emptyChans) = [];
-                    currDetRows(emptyChans) = [];
-                    
-                    currDetNum = guiobj.eventDet2CurrDet;
-                    currChanNum = guiobj.eventDet2CurrRoi;
-                    
-            end
-            
-            switch detRoi
-                case 0
-                    currDetNum = 1;
-                    currChanNum = 1;
-                case 1
-                    switch upDwn
-                        case 1
-                            temp = currDetRows(currChanNum);
-                            if currDetNum < length(find(~isnan(detMat(temp,:))))
-                                currDetNum = currDetNum + 1;
-                            end
-                        case 2
-                            if currDetNum > 1
-                                currDetNum = currDetNum - 1;
-                            end
-                    end
-                case 2
-                    currDetNum = 1;
-                    switch upDwn
-                        case 1
-                            if currChanNum < length(currChans)
-                                currChanNum = currChanNum + 1;
-                            end
-                        case 2
-                            if currChanNum > 1
-                                currChanNum = currChanNum - 1;
-                            end
-
-                    end
-            end
-            
-            switch dTyp
-                case 1
-                    guiobj.eventDet1CurrDet = currDetNum;
-                    guiobj.eventDet1CurrChan = currChanNum;
-                case 2
-                    guiobj.eventDet2CurrDet = currDetNum;
-                    guiobj.eventDet2CurrRoi = currChanNum;
-            end
-            
-            if (dTyp==1) | (dTyp==2)
-                eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows,0)
-            end
-            
+%             switch dTyp
+%                 case 1 % ephys
+%                     if isempty(guiobj.ephys_detections)
+%                         return
+%                     end
+%                     
+%                     detMat = guiobj.ephys_detections;
+%                     
+%                     currDetRun = guiobj.ephys_currDetRun;
+%                     currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
+%                     currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
+%                     emptyChans = [];
+%                     
+%                     % Filtering out channels with no detections
+%                     for j = 1:length(currDetRows)
+%                         if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
+%                             emptyChans = [emptyChans, j];
+%                         end
+%                     end
+%                     currChans(emptyChans) = [];
+%                     currDetRows(emptyChans) = [];
+%                     
+%                     currDetNum = guiobj.eventDet1CurrDet;
+%                     currChanNum = guiobj.eventDet1CurrChan;
+%                     
+%                 case 2 % imaging
+%                     if isempty(guiobj.imaging_detections)
+%                         return
+%                     end
+%                     
+%                     data = guiobj.imaging_data;
+%                     
+%                     detMat = guiobj.imaging_detections;
+%                     
+%                     currDetRun = guiobj.imaging_currDetRun;
+%                     currDetRows = find([guiobj.imaging_detectionsInfo.DetRun]==currDetRun);
+%                     currChans = [guiobj.imaging_detectionsInfo(currDetRows).Roi];
+%                     emptyChans = [];
+%                     
+%                     % Filtering out channels with no detections
+%                     for j = 1:length(currDetRows)
+%                         if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
+%                             emptyChans = [emptyChans, j];
+%                         end
+%                     end
+%                     currChans(emptyChans) = [];
+%                     currDetRows(emptyChans) = [];
+%                     
+%                     currDetNum = guiobj.eventDet2CurrDet;
+%                     currChanNum = guiobj.eventDet2CurrRoi;
+%                     
+%             end
+%             
+%             switch detRoi
+%                 case 0
+%                     currDetNum = 1;
+%                     currChanNum = 1;
+%                 case 1
+%                     switch upDwn
+%                         case 1
+%                             temp = currDetRows(currChanNum);
+%                             if currDetNum < length(find(~isnan(detMat(temp,:))))
+%                                 currDetNum = currDetNum + 1;
+%                             end
+%                         case 2
+%                             if currDetNum > 1
+%                                 currDetNum = currDetNum - 1;
+%                             end
+%                     end
+%                 case 2
+%                     currDetNum = 1;
+%                     switch upDwn
+%                         case 1
+%                             if currChanNum < length(currChans)
+%                                 currChanNum = currChanNum + 1;
+%                             end
+%                         case 2
+%                             if currChanNum > 1
+%                                 currChanNum = currChanNum - 1;
+%                             end
+% 
+%                     end
+%             end
+%             
+%             switch dTyp
+%                 case 1
+%                     guiobj.eventDet1CurrDet = currDetNum;
+%                     guiobj.eventDet1CurrChan = currChanNum;
+%                 case 2
+%                     guiobj.eventDet2CurrDet = currDetNum;
+%                     guiobj.eventDet2CurrRoi = currChanNum;
+%             end
+%             
+%             if (dTyp==1) | (dTyp==2)
+%                 eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows,0)
+%             end
+%             
         end
         
         %%
@@ -2435,16 +2449,16 @@ classdef DAS < handle
         %% Value changed function: EphysListBox
         function EphysListBoxValueChanged(guiobj, event)
             index = guiobj.EphysListBox.Value;
-            names = guiobj.EphysListBox.String;
+%             names = guiobj.EphysListBox.String;
 %             [~, index] = ismember(value, guiobj.EphysListBox.Items);
             guiobj.ephys_select = index;
-            if sum(guiobj.datatyp) == 2
-                ephysplot(guiobj,guiobj.axes21,index,names(index))
-            elseif sum(guiobj.datatyp) == 3
-                ephysplot(guiobj,guiobj.axes31,index,names(index))
-            end
+%             if sum(guiobj.datatyp) == 2
+%                 ephysplot(guiobj,guiobj.axes21,index,names(index))
+%             elseif sum(guiobj.datatyp) == 3
+%                 ephysplot(guiobj,guiobj.axes31,index,names(index))
+%             end
             
-            lickplot(guiobj)
+            smartplot(guiobj)
             
             ephysDetMarkerPlot(guiobj)
             
@@ -2454,16 +2468,16 @@ classdef DAS < handle
         %% Value changed function: ImagingListBox
         function ImagingListBoxValueChanged(guiobj, event)
             index = guiobj.ImagingListBox.Value;
-            names = guiobj.ImagingListBox.String;
+%             names = guiobj.ImagingListBox.String;
 %             [~, index] = ismember(value, guiobj.ImagingListBox.Items);
             guiobj.imag_select = index;
-            if sum(guiobj.datatyp) == 2
-                imagingplot(guiobj,guiobj.axes22,index,names(index))
-            elseif sum(guiobj.datatyp) == 3
-                imagingplot(guiobj,guiobj.axes32,index,names(index))
-            end
+%             if sum(guiobj.datatyp) == 2
+%                 imagingplot(guiobj,guiobj.axes22,index,names(index))
+%             elseif sum(guiobj.datatyp) == 3
+%                 imagingplot(guiobj,guiobj.axes32,index,names(index))
+%             end
             
-            lickplot(guiobj)
+            smartplot(guiobj)
             
             imagingDetMarkerPlot(guiobj)
             
