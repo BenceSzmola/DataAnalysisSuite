@@ -374,7 +374,11 @@ classdef DAS < handle
                         dataname = guiobj.ephysProcListBox2.String{procInds};
                     end
 %                     hold(ax,'off')
-%                     ax.NextPlot = 'replacechildren';
+                    ax.NextPlot = 'replacechildren';
+                    
+                    if firstplot
+                        setXlims(guiobj)
+                    end
                 case 'Electrophysiology data processing'
                     if ax == guiobj.axesEphysProc1
                         plot(ax,guiobj.ephys_taxis,...
@@ -385,12 +389,17 @@ classdef DAS < handle
                             guiobj.ephys_procced(index,:))
                         dataname = guiobj.ephys_procdatanames(index);
                     end
+                    
+                    if firstplot
+                        axis(ax,'tight')
+                    end
             end
 
-            if firstplot
-                axis(ax,'tight')
-                ax.NextPlot = 'replacechildren';
-            end
+%             if firstplot
+% %                 axis(ax,'tight')
+% %                 ax.NextPlot = 'replacechildren';
+%                 setXlims(guiobj)
+%             end
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
             elseif length(index) > 1
@@ -399,7 +408,6 @@ classdef DAS < handle
             end
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.ephys_ylabel)
-            xlimLink(guiobj)
         end
         
         %%
@@ -477,7 +485,7 @@ classdef DAS < handle
                         dataname = guiobj.imagingProcListBox2.String{procInds};
                     end
 %                     hold(ax,'off')
-%                     ax.NextPlot = 'replacechildren';
+                    ax.NextPlot = 'replacechildren';
 
                 case 'Imaging data processing'
                     if ax == guiobj.axesImagingProc1
@@ -492,8 +500,9 @@ classdef DAS < handle
             end
             
             if firstplot
-                axis(ax,'tight')
-                ax.NextPlot = 'replacechildren';
+%                 axis(ax,'tight')
+%                 ax.NextPlot = 'replacechildren';
+                setXlims(guiobj)
             end
             
             if length(index) == 1
@@ -504,7 +513,6 @@ classdef DAS < handle
             end
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.imaging_ylabel);
-            xlimLink(guiobj)
         end
         
         %%
@@ -678,13 +686,17 @@ classdef DAS < handle
             setAllowAxesPan(panobj,actAx,true)
             setAllowAxesPan(panobj,inactAx,false)
             
-            if ~isempty(findobj(allAx,'Type','line'))
-                setXlims(guiobj)
-            end
+%             if ~isempty(findobj(allAx,'Type','line'))
+%                 setXlims(guiobj)
+%             end
         end
         
         %% 
         function setXlims(guiobj)
+                        
+            if sum(guiobj.datatyp)==0
+                return
+            end
             
             if isempty(guiobj.ephys_taxis)
                 eTaxis = [0,0];
@@ -723,14 +735,24 @@ classdef DAS < handle
             switch sum(guiobj.datatyp)
                 case 1
                     ax = findobj(guiobj.Panel1Plot,'Type','axes');
-                    set(ax,'XLim',xlimits)
+%                     set(ax,'XLim',xlimits)
+%                     set(ax,'XLim','replacechildren')
                 case 2
                     ax = findobj(guiobj.Panel2Plot,'Type','axes');
-                    set(ax,'XLim',xlimits)
+%                     set(ax,'XLim',xlimits)
+%                     set(ax,'XLim','replacechildren')
                 case 3
                     ax = findobj(guiobj.Panel3Plot,'Type','axes');
-                    set(ax,'XLim',xlimits)
+%                     set(ax,'XLim',xlimits)
+%                     set(ax,'XLim','replacechildren')
             end
+            
+            axis(ax,'tight')
+%             set(ax,'YLimMode','auto')
+%             set(ax,'ZLimMode','auto')
+            set(ax,'XLim',xlimits)
+            set(ax,'NextPlot','replacechildren')
+            
         end
         
         %%
@@ -987,7 +1009,7 @@ classdef DAS < handle
                         [])
             end
             
-            setXlims(guiobj)
+%             setXlims(guiobj)
         end
         
         %%
@@ -1837,27 +1859,62 @@ classdef DAS < handle
             showXtraFigs = guiobj.showXtraDetFigs;
             close(guiobj.mainfig)
             delete(guiobj)
+            
+            mbox = msgbox('Resetting GUI please wait...');
+            
             guiobj = DAS;
+            toRun = [0,0,0,0,0,0];
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
-                ephysCheckBoxValueChanged(guiobj)
+%                 ephysCheckBoxValueChanged(guiobj)
+                toRun(1) = 1;
                 if rhdORgor == 1
-                    ImportRHDButtonPushed(guiobj)
+%                     ImportRHDButtonPushed(guiobj)
+                    toRun(4) = 1;
                 elseif rhdORgor == 2
-                    ImportgorobjButtonPushed(guiobj)
+%                     ImportgorobjButtonPushed(guiobj)
+                    toRun(5) = 1;
                 end
-            elseif dtyp(2) == 1
+            end
+            if dtyp(2) == 1
                 guiobj.imagingCheckBox.Value = 1;
-                imagingCheckBoxValueChanged(guiobj)
-                ImportgorobjButtonPushed(guiobj)
-            elseif dtyp(3) == 1
+%                 imagingCheckBoxValueChanged(guiobj)
+                toRun(2) = 1;
+%                 ImportgorobjButtonPushed(guiobj)
+                toRun(5) = 1;
+            end
+            if dtyp(3) == 1
                 guiobj.runCheckBox.Value = 1;
+%                 runCheckBoxValueChanged(guiobj)
+                toRun(3) = 1;
+%                 ImportruncsvButtonPushed(guiobj)
+                toRun(6) = 1;
+            end
+            
+            if toRun(1)
+                ephysCheckBoxValueChanged(guiobj)
+            end
+            if toRun(2)
+                imagingCheckBoxValueChanged(guiobj)
+            end
+            if toRun(3)
                 runCheckBoxValueChanged(guiobj)
+            end
+            if toRun(4)
+                ImportRHDButtonPushed(guiobj)
+            end
+            if toRun(5)
+                ImportgorobjButtonPushed(guiobj)
+            end
+            if toRun (6)
                 ImportruncsvButtonPushed(guiobj)
             end
+            
             if showXtraFigs
                 showXtraDetFigsMenuSel(guiobj)                
             end
+            
+            delete(mbox)
         end
         
     end
@@ -1932,6 +1989,8 @@ classdef DAS < handle
 %             elseif guiobj.datatyp(2) == 1
                 guiobj.EphysListBox.String = datanames;
 %             end
+
+            setXlims(guiobj)
         end
 
         %% Button pushed function: ImportgorobjButton
@@ -2064,6 +2123,9 @@ classdef DAS < handle
                         length(guiobj.imaging_data));
                 end
             end
+            
+            setXlims(guiobj)
+            
         end
 
         %% Value changed function: DatasetListBox
@@ -2326,7 +2388,10 @@ classdef DAS < handle
             
             runposplot(guiobj)
             runvelocplot(guiobj)
-            lickplot(guiobj)
+%             lickplot(guiobj)
+            
+            setXlims(guiobj)
+            
         end
 
         %% Value changed function: ephysCheckBox
@@ -2395,7 +2460,7 @@ classdef DAS < handle
             elseif value && ~guiobj.ephysCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
                 guiobj.DatasetListBox.String = guiobj.imag_datanames;
-                guiobj.DataSetListBox.Value = 1;
+                guiobj.DatasetListBox.Value = 1;
                 guiobj.Dataselection2Panel.Visible = 'off';
             elseif ~value && guiobj.ephysCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
