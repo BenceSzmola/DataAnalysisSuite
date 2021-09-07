@@ -1,4 +1,4 @@
-function csillag = adaptive_thresh(data,taxis,fs,step,minwidth,mindist,ratio,showFigs)
+function [dets,detBorders] = adaptive_thresh(data,taxis,fs,step,minwidth,mindist,ratio,showFigs)
 %%
 % srate = 20000;
 fs = round(fs,4);
@@ -6,8 +6,8 @@ dt = 1/fs;
 % step = 0.05;
 step = round(step,4);
 win = step*2;
-upthr = 2.5;
-lowthr = 1.5;%1.6;
+upthr = 2.7;
+lowthr = 1.8;%1.6;
 % minwidth = 0.01;
 minwidth = round(minwidth,4);
 % mindist = 0.03;
@@ -182,7 +182,7 @@ for i = 1:length(sliding_avg)
 end
 while (biggs/sum(sum(histo))) < ratio
     biggs = 0;
-    lowthr = lowthr + 0.01;
+    lowthr = lowthr + 0.05;
     for i = 1:length(sliding_avg)
         range = find(vbins <= sliding_avg(i)*lowthr);
         biggs = biggs + sum(histo(range,i));
@@ -202,7 +202,11 @@ for i = 2:length(smoothie)-1
         detettione = [detettione; i];
     end
 end
+
+detBorders = zeros(length(detettione),2);
+
 for i = 1:length(detettione)
+    
     %search lower intersection
     j = 1;
     while smoothie(detettione(i)-j) > sliding_avg(detettione(i)-j)*lowthr
@@ -217,8 +221,11 @@ for i = 1:length(detettione)
     highend = detettione(i)+j;
     if (highend-lowend) < minwidth*fs
         detettione(i) = 0;
+    else
+        detBorders(i,:) = [lowend, highend];
     end
 end
+detBorders(detettione==0,:) = [];
 detettione(detettione==0) = [];
 
 for i = 1:length(detettione)-1
@@ -226,20 +233,25 @@ for i = 1:length(detettione)-1
         detettione(i) = 0;
     end
 end
+detBorders(detettione==0,:) = [];
 detettione(detettione==0) = [];
 
 % assignin('base','detettione',detettione)
 
+detBorders = {detBorders};
+
+dets = zeros(1,length(smoothie));
+dets(:) = nan;
+dets(detettione) = 0;
+
 %% Show detecitons on dog
 if showFigs
-    csillag = zeros(1,length(smoothie));
-    csillag(:) = nan;
-    csillag(detettione) = 0;
+    
     % figure
     % plot(taxis,z_dog)
     % hold on
     hold(sp2,'on')
-    plot(taxis,csillag,'r*','MarkerSize',12)
+    plot(taxis,dets,'r*','MarkerSize',12)
     legend('DoG','Detections')
     axis tight
     hold off

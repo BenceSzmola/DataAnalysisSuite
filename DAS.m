@@ -3146,8 +3146,12 @@ classdef DAS < handle
                         return
                     end
                     
-                    dets = adaptive_thresh(data,tAxis,fs,step,minLen,mindist,ratio,showFigs);
-                    detBorders = cell(min(size(data)),1);
+                    for i = 1:min(size(data))
+                        [detsTemp,detBordersTemp] = adaptive_thresh(data(i,:),tAxis,fs,step,minLen,mindist,ratio,showFigs);
+                        dets(i,:) = detsTemp;
+                        detBorders(i) = detBordersTemp;
+                    end
+%                     detBorders = cell(min(size(data)),1);
                     detParams = cell(min(size(data)),1);
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
                     
@@ -3243,7 +3247,7 @@ classdef DAS < handle
                         [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
                     end
                     guiobj.ephys_detRunsNum = guiobj.ephys_detRunsNum +1;
-                    
+                                        
 %                     detinfo = [chan, 3];
                     
                     if chan < min(size(guiobj.ephys_data))
@@ -3373,7 +3377,7 @@ classdef DAS < handle
                     
                     guiobj.imaging_detRunsNum = guiobj.imaging_detRunsNum + 1;
                     for i = 1:size(data,1)
-                        smoothd = smoothdata(data(i,:),'gaussian',10);
+                        smoothd = smoothdata(data(i,:),'gaussian',5);
                         thr = mean(smoothd) + sdmult*std(smoothd);
 %                         aboveThrInds = smoothd(smoothd > thr);
 %                         aboveThrInd_diff = diff(aboveThrInds);
@@ -3710,7 +3714,7 @@ classdef DAS < handle
                     switch idx
                         case 2
                             guiobj.imaging_smoothed = smoothdata(guiobj.imaging_data,...
-                                2,'gaussian',10);
+                                2,'gaussian',5);
                     end
                     eventDetAxesButtFcn(guiobj,2)
             end
