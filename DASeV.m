@@ -16,6 +16,7 @@ classdef DASeV < handle
         tabgrp
         loadTab
         viewerTab
+        eventDbTab
         
         %% loadTab members
         selDirButt
@@ -48,6 +49,13 @@ classdef DASeV < handle
         statPanel
         ephysDetParamsTable
         imagingDetParamsTable
+        
+        save2DbPanel
+        save2DbEphysCheckBox
+        save2DbImagingCheckBox
+        save2DbSimultCheckBox
+        save2DbRunningChechBox
+        save2DbButton
         
         plotPanel
         fixWinSwitch
@@ -94,6 +102,9 @@ classdef DASeV < handle
         fixWin = 0;
         simultMode = 0;
         keyboardPressDtyp = 1;
+        save2DbEphysSelection
+        save2DbImagingSelection
+        save2DbSimultSelection
         
         %% ephys stuff
         highPassRawEphys = 0;
@@ -1320,6 +1331,20 @@ classdef DASeV < handle
                     gO.fixWinSwitch.Enable = 'off';
                 end
             end
+                        
+            %Preparing selection vectors for database saving
+            if gO.loaded(1)
+                gO.save2DbEphysSelection = cell(length(gO.ephysDetBorders));
+                for i = 1:length(gO.ephysDetBorders)
+                    gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
+                end
+            end
+            if gO.loaded(2)
+                gO.save2DbImagingSelection = cell(length(gO.imagingDetBorders));
+                for i = 1:length(gO.imagingDetBorders)
+                    gO.save2DbImagingSelection{i} = false(size(gO.imagingDetBorders{i},1),1);
+                end
+            end
             
             for i = 1:2
                 if gO.loaded(i)
@@ -1572,11 +1597,19 @@ classdef DASeV < handle
                             gO.ephysCurrDetNum = currDet;
                             gO.ephysCurrDetRow = currChan;
                             gO.ephysFixWinDetRow = currChan;
+                            
                         case 2
                             gO.imagingCurrDetNum = currDet;
                             gO.imagingCurrDetRow = currChan;
                             gO.imagingFixWinDetRow = currChan;
+                            
                     end
+                    
+                    val = gO.save2DbEphysSelection{gO.ephysCurrDetRow}(gO.ephysCurrDetNum);
+                    gO.save2DbEphysCheckBox.Value = val;
+
+                    val = gO.save2DbImagingSelection{gO.imagingCurrDetRow}(gO.imagingCurrDetNum);
+                    gO.save2DbImagingCheckBox.Value = val;
                 case 1
                     switch dTyp
                         case 1
@@ -1590,7 +1623,14 @@ classdef DASeV < handle
                             gO.simultImagingCurrDetRow = currChan;
                             
                     end
+                    
+                    val = gO.save2DbEphysSelection{gO.simultEphysCurrDetRow}(gO.simultEphysCurrDetNum);
+                    gO.save2DbEphysCheckBox.Value = val;
+
+                    val = gO.save2DbImagingSelection{gO.simultImagingCurrDetRow}(gO.simultImagingCurrDetNum);
+                    gO.save2DbImagingCheckBox.Value = val;
             end
+            
             smartplot(gO)
         end
         
@@ -1758,6 +1798,53 @@ classdef DASeV < handle
                 end
             end
         end
+        
+        %%
+        function save2DbCheckBoxPress(gO,checkboxID)
+            
+            switch checkboxID
+                case 1
+                    val = gO.save2DbEphysCheckBox.Value;
+                    gO.save2DbEphysSelection{gO.ephysCurrDetRow}(gO.ephysCurrDetNum) = val;
+                case 2
+                    val = gO.save2DbImagingCheckBox.Value;
+                    gO.save2DbImagingSelection{gO.imagingCurrDetRow}(gO.imagingCurrDetNum) = val;
+                case 4
+                    return
+            end
+        end
+        
+        %%
+        function save2DbButtonPress(gO,~,~)
+            DASloc = mfilename('fullpath');
+%             oldpath = cd(DASloc);
+            dbFiles = dir([DASloc(1:end-5),'DASeventDB*.mat']);
+            
+            dbFiles = {dbFiles.name};
+            dbFiles = ['Start a new database entry', dbFiles];
+            
+            [ind,tf] = listdlg('ListString',dbFiles,...
+                'PromptString','Select DB to save in','SelectionMode','single');
+            if ~tf
+                return
+            end
+            ind = ind-1;
+            if ind == 0
+                dbName = inputdlg('Input name of new database entry!');
+                if isempty(dbName)
+                    return
+                end
+                
+            end
+            
+            if gO.save2DbEphysCheckBox.Value
+                saveStruct.
+            else
+                
+            end
+            
+        end
+        
     end
     
     %% gui component initialization and construction
@@ -1808,6 +1895,8 @@ classdef DASeV < handle
             gO.viewerTab = uitab(gO.tabgrp,...
                 'Title','Event viewer');%,...
                 %'BackgroundColor',[252,194,0]/255);
+            gO.eventDbTab = uitab(gO.tabgrp,...
+                'Title','Event Database');
             
             %% loadTab members
             gO.selDirButt = uicontrol(gO.loadTab,...
@@ -1937,7 +2026,7 @@ classdef DASeV < handle
             
             %% viewerTab members
             gO.statPanel = uipanel(gO.viewerTab,...
-                'Position',[0, 0, 0.3, 1],...
+                'Position',[0, 0.2, 0.3, 0.8],...
                 'Title','Event parameters',...
                 'BorderType','beveledout');
                 %'BackgroundColor',[65,105,225]/255,...
@@ -1951,6 +2040,41 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.35, 0.98, 0.3],...
                 'ColumnWidth',{200,150});
+            
+            gO.save2DbPanel = uipanel(gO.viewerTab,...
+                'Position',[0, 0, 0.3, 0.15],...
+                'Title','Saving to database',...
+                'BorderType','beveledout');
+            gO.save2DbEphysCheckBox = uicontrol(gO.save2DbPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.01, 0.75, 0.4, 0.15],...
+                'String','Select current ephys event',...
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(1));
+            gO.save2DbImagingCheckBox = uicontrol(gO.save2DbPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.5, 0.75, 0.4, 0.15],...
+                'String','Select current imaging event',...
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(2));
+%             gO.save2DbSimultCheckBox = uicontrol(gO.save2DbPanel,...
+%                 'Style','checkbox',...
+%                 'Units','normalized',...
+%                 'Position',[0.01, 0.65, 0.4, 0.15],...
+%                 'String','Select current simult. event pair',...
+%                 'Callback',@(h,e) gO.save2DbCheckBoxPress(3));
+            gO.save2DbRunningChechBox = uicontrol(gO.save2DbPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.5, 0.55, 0.4, 0.15],...
+                'String','Save running data',...
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(4));
+            gO.save2DbButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.1, 0.1, 0.8, 0.2],...
+                'String','Save this event to DB',...
+                'Callback',@ gO.save2DbButtonPress);
             
             gO.plotPanel = uipanel(gO.viewerTab,...
                 'Position',[0.3, 0, 0.7, 1],...
