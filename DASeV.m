@@ -1828,20 +1828,101 @@ classdef DASeV < handle
             if ~tf
                 return
             end
-            ind = ind-1;
-            if ind == 0
-                dbName = inputdlg('Input name of new database entry!');
+            
+            if ind == 1
+                dbName = inputdlg('Input name of new database entry!',...
+                    'New DB entry',[1,35]);
                 if isempty(dbName)
                     return
+                else
+                    saveFname = ['DASeventDB_',dbName{:},'.mat'];
+                    saveStruct = [];
                 end
-                
+            else
+                dbName = dbFiles{ind}(12:end-4);
+                saveFname = dbFiles{ind};
+                load(saveFname,'saveStruct')
             end
             
             if gO.save2DbEphysCheckBox.Value
-                saveStruct.
-            else
+                currDet = gO.ephysCurrDetNum;
+                currChan = gO.ephysCurrDetRow;
                 
+                dets = gO.ephysDets(currChan,:);
+                dets = find(~isnan(dets));
+                detInd = dets(currDet);
+                
+                winLen = round(gO.ephysFs*0.25);
+                if (detInd-winLen) > 1
+                    winStart = detInd-winLen;
+                else
+                    winStart = 1;
+                end
+                if (detInd+winLen) <= length(gO.ephysData)
+                    winEnd = detInd+winLen;
+                else
+                    winEnd = length(gO.ephysData);
+                end
+                win = winStart:winEnd;
+                
+                newSaveStruct.ephysTaxis = gO.ephysTaxis(win);
+                newSaveStruct.ephysDataWin.Raw = gO.ephysData(currChan,win);
+                newSaveStruct.ephysDataWin.BP = gO.ephysDoGGed(currChan,win);
+                newSaveStruct.ephysDataWin.Power = gO.ephysInstPow(currChan,win);
+                newSaveStruct.ephysParams = gO.ephysDetParams{currChan}(currDet);
+            else
+                newSaveStruct.ephysTaxis = [];
+                newSaveStruct.ephysDataWin.Raw = [];
+                newSaveStruct.ephysDataWin.BP = [];
+                newSaveStruct.ephysDataWin.Power = [];
+                newSaveStruct.ephysParams = [];
             end
+            
+            if gO.save2DbImagingCheckBox.Value
+                currDet = gO.imagingCurrDetNum;
+                currChan = gO.imagingCurrDetRow;
+                
+                dets = gO.imagingDets(currChan,:);
+                dets = find(~isnan(dets));
+                detInd = dets(currDet);
+                
+                winLen = round(gO.imagingFs*0.25);
+                if (detInd-winLen) > 1
+                    winStart = detInd-winLen;
+                else
+                    winStart = 1;
+                end
+                if (detInd+winLen) <= length(gO.imagingData)
+                    winEnd = detInd+winLen;
+                else
+                    winEnd = length(gO.imagingData);
+                end
+                win = winStart:winEnd;
+                
+                newSaveStruct.imagingTaxis = gO.imagingTaxis(win);
+                newSaveStruct.imagingDataWin.Raw = gO.imagingData(currChan,win);
+                newSaveStruct.imagingDataWin.Smoothed = gO.imagingSmoothed(currChan,win);
+                newSaveStruct.imagingParams = gO.imagingDetParams{currChan}(currDet);
+            else
+                newSaveStruct.imagingTaxis = [];
+                newSaveStruct.imagingDataWin.Raw = [];
+                newSaveStruct.imagingDataWin.Smoothed = [];
+                newSaveStruct.imagingParams = [];
+            end
+            
+            if gO.save2DbRunningChechBox.Value &&...
+                    (gO.save2DbEphysCheckBox.Value || gO.save2DbImagingCheckBox.Value)
+                newSaveStruct.runDataWin.Velocity = gO.runVeloc;
+            else
+                newSaveStruct.runTaxis = [];
+                newSaveStruct.runDataWin.Velocity = [];
+                newSaveStruct.runDataWin.AbsPos = [];
+                newSaveStruct.runDataWin.RelPos = [];
+            end
+            
+            saveStruct = [saveStruct; newSaveStruct];
+                        
+            save(saveFname,'saveStruct')
             
         end
         
@@ -2216,6 +2297,9 @@ classdef DASeV < handle
             gO.ax55.Toolbar.Visible = 'on';
 %             align([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'Distribute','Distribute')
 %             linkaxes([gO.ax51,gO.ax52,gO.ax53,gO.ax54,gO.ax55],'x')
+
+            %% Database tab elements
+            
         end
     end
 end
