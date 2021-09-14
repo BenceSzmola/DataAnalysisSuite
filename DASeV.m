@@ -292,7 +292,7 @@ classdef DASeV < handle
         end
         
         %%
-        function [numDets,numChans,chan,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp)
+        function [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp)
             
             switch gO.simultMode
                 case 0
@@ -341,14 +341,15 @@ classdef DASeV < handle
                     end
                     
                     if dTyp == 1
-                        chan = detInfo(currChan).Channel;
+                        chanOgNum = detInfo(currChan).Channel;
                     elseif dTyp == 2
-                        chan = detInfo(currChan).Roi;
+                        chanOgNum = detInfo(currChan).Roi;
                     end
                     
+                    chanNum = currChan;
                     detNum = currDet;
                     
-                    if nargout == 4
+                    if nargout == 5
                         return
                     end
                     
@@ -424,9 +425,11 @@ classdef DASeV < handle
                             nonSimDetInfo = gO.ephysDetInfo;
                             nonSimDetInfo = nonSimDetInfo(currDetRowsRel(currChan));
 %                             nonSimDetInfo = nonSimDetInfo(currChan);
-                            chan = nonSimDetInfo.Channel;
+                            chanOgNum = nonSimDetInfo.Channel;
                             
-                            if nargout == 4
+                            chanNum = currDetRowsRel(currChan);
+                            
+                            if nargout == 5
                                 return
                             end
                             
@@ -485,9 +488,11 @@ classdef DASeV < handle
                             nonSimDetInfo = gO.imagingDetInfo;
                             nonSimDetInfo = nonSimDetInfo(currChansRel(currChan));
 %                             nonSimDetInfo = nonSimDetInfo(currChan);
-                            chan = nonSimDetInfo.Roi;
+                            chanOgNum = nonSimDetInfo.Roi;
                             
-                            if nargout == 4
+                            chanNum = currChansRel(currChan);
+                            
+                            if nargout == 5
                                 return
                             end
                             
@@ -511,7 +516,7 @@ classdef DASeV < handle
                 forSpectro = 0;
             end
             
-            [numDets,numChans,chan,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
+            [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
             
 %             currDetNum = gO.ephysCurrDetNum;
 %             currDetRow = gO.ephysCurrDetRow;
@@ -600,19 +605,20 @@ classdef DASeV < handle
                 
             
                 if gO.fixWin == 1
-                    chan = gO.ephysDetInfo(gO.ephysFixWinDetRow).Channel;
-                    if chan == gO.ephysRefCh
-                        axTitle = ['Channel #',num2str(chan), ' (Ref)'];
+                    chanOgNum = gO.ephysDetInfo(gO.ephysFixWinDetRow).Channel;
+                    chanNum = gO.ephysFixWinDetRow;
+                    if chanOgNum == gO.ephysRefCh
+                        axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)'];
                     else
-                        axTitle = ['Channel #',num2str(chan)];
+                        axTitle = ['Channel #',num2str(chanOgNum)];
                     end
                 elseif gO.fixWin == 0
-                    if chan == gO.ephysRefCh
-                        axTitle = ['Channel #',num2str(chan), ' (Ref)',...
+                    if chanOgNum == gO.ephysRefCh
+                        axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)',...
                             '      Detection #',...
                             num2str(detNum),'/',num2str(numDets)];
                     else
-                        axTitle = ['Channel #',num2str(chan),'      Detection #',...
+                        axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
                             num2str(detNum),'/',num2str(numDets)];
                     end
                     
@@ -647,11 +653,11 @@ classdef DASeV < handle
                 winIdx = 1:length(gO.ephysTaxis);
                 tWin = gO.ephysTaxis;
                                 
-                if chan == gO.ephysRefCh
-                    axTitle = ['Channel #',num2str(chan),' (Ref)',...
+                if chanOgNum == gO.ephysRefCh
+                    axTitle = ['Channel #',num2str(chanOgNum),' (Ref)',...
                         '      #Detections = ',num2str(numDets)];
                 else
-                    axTitle = ['Channel #',num2str(chan),'      #Detections = ',...
+                    axTitle = ['Channel #',num2str(chanOgNum),'      #Detections = ',...
                         num2str(numDets)];
                 end
             end
@@ -665,7 +671,7 @@ classdef DASeV < handle
                     w2 = 250;
                     warning('Cutoff set to default 150-250 Hz')
                 end
-                spectrogramMacher(gO.ephysData(chan,winIdx),gO.ephysFs,w1,w2)
+                spectrogramMacher(gO.ephysData(chanNum,winIdx),gO.ephysFs,w1,w2)
                 return
             end
                         
@@ -677,25 +683,25 @@ classdef DASeV < handle
                 case 1
                     if gO.ephysTypSelected(1)
                         if gO.highPassRawEphys == 1
-                            temp = filtfilt(b,a,gO.ephysData(chan,:));
+                            temp = filtfilt(b,a,gO.ephysData(chanNum,:));
                             data = temp(winIdx);
 %                             axLims = [tWin(1), tWin(end), min(temp), max(temp)];
                             axLims = [min(temp), max(temp)];
                         elseif gO.highPassRawEphys == 0
-                            data = gO.ephysData(chan,winIdx);
+                            data = gO.ephysData(chanNum,winIdx);
 %                             axLims = [tWin(1), tWin(end),...
-                            axLims = [min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+                            axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
                         end
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(2)
-                        data = gO.ephysDoGGed(chan,winIdx);
+                        data = gO.ephysDoGGed(chanNum,winIdx);
 %                         axLims = [tWin(1), tWin(end),...
-                        axLims = [min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
+                        axLims = [min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(3)
-                        data = gO.ephysInstPow(chan,winIdx);
+                        data = gO.ephysInstPow(chanNum,winIdx);
 %                         axLims = [tWin(1), tWin(end),...
-                        axLims = [min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+                        axLims = [min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]']);
@@ -703,49 +709,49 @@ classdef DASeV < handle
                 case 2
                     if gO.ephysTypSelected(1)
                         if gO.highPassRawEphys == 1
-                            tempfull = filtfilt(b,a,gO.ephysData(chan,:));
+                            tempfull = filtfilt(b,a,gO.ephysData(chanNum,:));
                             temp = tempfull(winIdx);
 %                             axLims = [axLims; tWin(1), tWin(end),...
                             axLims = [axLims; min(tempfull), max(tempfull)];
                         elseif gO.highPassRawEphys == 0
-                            temp = gO.ephysData(chan,winIdx);
+                            temp = gO.ephysData(chanNum,winIdx);
 %                             axLims = [axLims; tWin(1), tWin(end),...
-                            axLims = [axLims; min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+                            axLims = [axLims; min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
                         end
                         data = [data; temp];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(2)
-                        data = [data; gO.ephysDoGGed(chan,winIdx)];
+                        data = [data; gO.ephysDoGGed(chanNum,winIdx)];
 %                         axLims = [axLims; tWin(1), tWin(end),...
-                        axLims = [axLims; min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:))];
+                        axLims = [axLims; min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(3)
-                        data = [data; gO.ephysInstPow(chan,winIdx)];
+                        data = [data; gO.ephysInstPow(chanNum,winIdx)];
 %                         axLims = [axLims; tWin(1), tWin(end),...
-                        axLims = [axLims; min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+                        axLims = [axLims; min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = [string(yLabels); string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]'])];
                     end
                 case 3
                     if gO.highPassRawEphys == 1
-                        tempfull = filtfilt(b,a,gO.ephysData(chan,:));
+                        tempfull = filtfilt(b,a,gO.ephysData(chanNum,:));
                         temp = tempfull(winIdx);
 %                         axLims = [tWin(1), tWin(end),...
                         axLims = [min(tempfull), max(tempfull)];
                     elseif gO.highPassRawEphys == 0
-                        temp = gO.ephysData(chan,winIdx);
+                        temp = gO.ephysData(chanNum,winIdx);
 %                         axLims = [tWin(1), tWin(end),...
-                        axLims = [min(gO.ephysData(chan,:)), max(gO.ephysData(chan,:))];
+                        axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
                     end
                     data = [temp;...
-                        gO.ephysDoGGed(chan,winIdx);...
-                        gO.ephysInstPow(chan,winIdx)];
+                        gO.ephysDoGGed(chanNum,winIdx);...
+                        gO.ephysInstPow(chanNum,winIdx)];
                     axLims = [axLims;... %axLims(1:2), ...
-                        min(gO.ephysDoGGed(chan,:)), max(gO.ephysDoGGed(chan,:));
-                        min(gO.ephysInstPow(chan,:)), max(gO.ephysInstPow(chan,:))];
+                        min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:));
+                        min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
                     temp = find(gO.ephysYlabel=='[');
                     yLabels = [string(gO.ephysYlabel); string(gO.ephysYlabel);...
                         string(['Power ',gO.ephysYlabel(temp:end-1),...
@@ -792,7 +798,7 @@ classdef DASeV < handle
         %%
         function imagingPlot(gO,ax)
             
-            [numDets,numChans,chan,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
+            [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
 %             currDetNum = gO.imagingCurrDetNum;
 %             currDetRow = gO.imagingCurrDetRow;
             
@@ -877,10 +883,11 @@ classdef DASeV < handle
 %                                 num2str(currDetNum),'/',num2str(numDets)];
                 
                 if gO.fixWin == 1
-                    chan = gO.imagingDetInfo(gO.imagingFixWinDetRow).Roi;
-                    axTitle = ['ROI #',num2str(chan)];
+                    chanOgNum = gO.imagingDetInfo(gO.imagingFixWinDetRow).Roi;
+                    chanNum = gO.imagingFixWinDetRow;
+                    axTitle = ['ROI #',num2str(chanOgNum)];
                 elseif gO.fixWin == 0
-                    axTitle = ['ROI #',num2str(chan),'      Detection #',...
+                    axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
                         num2str(detNum),'/',num2str(numDets)];
                 end
                 
@@ -915,16 +922,16 @@ classdef DASeV < handle
                 winIdx = 1:length(gO.imagingTaxis);
                 tWin = gO.imagingTaxis;
                 
-                axTitle = ['ROI #',num2str(chan),'      #Detections = ',...
+                axTitle = ['ROI #',num2str(chanOgNum),'      #Detections = ',...
                     num2str(numDets)];
             end
             
             if gO.imagingTypSelected(1)
-                data = gO.imagingData(chan,winIdx);
-                axLims = [min(gO.imagingData(chan,:)), max(gO.imagingData(chan,:))];
+                data = gO.imagingData(chanNum,winIdx);
+                axLims = [min(gO.imagingData(chanNum,:)), max(gO.imagingData(chanNum,:))];
             elseif gO.imagingTypSelected(2)
-                data = gO.imagingSmoothed(chan,winIdx);
-                axLims = [min(gO.imagingSmoothed(chan,:)), max(gO.imagingSmoothed(chan,:))];
+                data = gO.imagingSmoothed(chanNum,winIdx);
+                axLims = [min(gO.imagingSmoothed(chanNum,:)), max(gO.imagingSmoothed(chanNum,:))];
             end
             
             yLabels = string(gO.imagingYlabel);
@@ -1110,12 +1117,10 @@ classdef DASeV < handle
                     detArray = gO.ephysDets;
                     fs = gO.ephysFs;
                     lenData = length(gO.ephysData);
-                    chanNum = find(gO.simultDetInfo.EphysChannels==chanNum)
                 case 2
                     detArray = gO.imagingDets;
                     fs = gO.imagingFs;
                     lenData = length(gO.imagingData);
-                    chanNum = find(gO.simultDetInfo.ROI==chanNum)
             end
             
             dets = detArray(chanNum,:);
@@ -1694,9 +1699,9 @@ classdef DASeV < handle
                             gO.simultImagingCurrDetRow = currChan;
                             
                     end
-                    [~,~,chan,ephysDetNum] = extractDetStruct(gO,1);
-                    [~,~,roi,imagingDetNum] = extractDetStruct(gO,2);
-                    [~,r,~] = intersect(gO.save2DbSimultSelection,[chan,ephysDetNum,roi,imagingDetNum],'rows');
+                    [~,~,chanNum,~,ephysDetNum] = extractDetStruct(gO,1);
+                    [~,~,roiNum,~,imagingDetNum] = extractDetStruct(gO,2);
+                    [~,r,~] = intersect(gO.save2DbSimultSelection,[chanNum,ephysDetNum,roiNum,imagingDetNum],'rows');
                     if ~isempty(r)
                         gO.save2DbSimultCheckBox.Value = 1;
                     else
@@ -1891,9 +1896,9 @@ classdef DASeV < handle
                 case 3
                     val = gO.save2DbSimultCheckBox.Value;
                     
-                    [~,~,chan,ephysDetNum] = extractDetStruct(gO,1);
-                    [~,~,roi,imagingDetNum] = extractDetStruct(gO,2);
-                    temp = [chan,ephysDetNum,roi,imagingDetNum];
+                    [~,~,chanNum,~,ephysDetNum] = extractDetStruct(gO,1);
+                    [~,~,roiNum,~,imagingDetNum] = extractDetStruct(gO,2);
+                    temp = [chanNum,ephysDetNum,roiNum,imagingDetNum];
                     
                     if val
                         gO.save2DbSimultSelection = [gO.save2DbSimultSelection; temp];

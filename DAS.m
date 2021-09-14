@@ -4061,7 +4061,8 @@ classdef DAS < handle
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
-                ephysSaveData.RawData = guiobj.ephys_data;
+                chans2Save = [guiobj.ephys_detectionsInfo(indx).Channel];
+                ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
                 ephysSaveData.Dets = guiobj.ephys_detections(indx,:);
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders(indx);
                 ephysSaveData.DetParams = guiobj.ephys_detParams(indx);
@@ -4108,7 +4109,8 @@ classdef DAS < handle
                 imagingSaveData.TAxis = guiobj.imaging_taxis;
                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
                 imagingSaveData.Fs = guiobj.imaging_fs;
-                imagingSaveData.RawData = guiobj.imaging_data;
+                rois2save = [guiobj.imaging_detectionsInfo(indx).Roi];
+                imagingSaveData.RawData = guiobj.imaging_data(rois2save,:);
                 imagingSaveData.Dets = guiobj.imaging_detections(indx,:);
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders(indx);
                 imagingSaveData.DetParams = guiobj.imaging_detParams(indx);
@@ -4157,7 +4159,8 @@ classdef DAS < handle
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
-                ephysSaveData.RawData = guiobj.ephys_data;
+                chans2save = [guiobj.ephys_detectionsInfo(simultSaveInfo.EphysChannels).Channel];
+                ephysSaveData.RawData = guiobj.ephys_data(chans2save,:);
                 ephysSaveData.Dets = guiobj.ephys_detections(simultSaveInfo.EphysChannels,:);
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders(simultSaveInfo.EphysChannels);
                 ephysSaveData.DetParams = guiobj.ephys_detParams(simultSaveInfo.EphysChannels);
@@ -4166,7 +4169,8 @@ classdef DAS < handle
                 imagingSaveData.TAxis = guiobj.imaging_taxis;
                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
                 imagingSaveData.Fs = guiobj.imaging_fs;
-                imagingSaveData.RawData = guiobj.imaging_data;
+                rois2save = [guiobj.imaging_detectionsInfo(simultSaveInfo.ROI).Roi];
+                imagingSaveData.RawData = guiobj.imaging_data(rois2save,:);
                 imagingSaveData.Dets = guiobj.imaging_detections(simultSaveInfo.ROI,:);
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders(simultSaveInfo.ROI);
                 imagingSaveData.DetParams = guiobj.imaging_detParams(simultSaveInfo.ROI);
