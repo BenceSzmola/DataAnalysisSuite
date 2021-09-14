@@ -2037,7 +2037,6 @@ classdef DASeV < handle
 %                 newSaveStruct.imagingParams = [];
             end
             
-            assignin('base','simSel',gO.save2DbSimultSelection)
             if (size(gO.save2DbSimultSelection,1)~=1) && gO.simultMode
                 for i = 2:size(gO.save2DbSimultSelection,1)
                     currRow = gO.save2DbSimultSelection(i,:);
@@ -2059,19 +2058,17 @@ classdef DASeV < handle
                 end
             end
             
-            if gO.save2DbRunningChechBox.Value &&...
-                    (gO.save2DbEphysCheckBox.Value || gO.save2DbImagingCheckBox.Value)
+            if gO.save2DbRunningChechBox.Value && ~isempty(newSaveStruct)
+                
                 newSaveStruct.runDataWin.Velocity = gO.runVeloc;
-%             else
-%                 newSaveStruct.runTaxis = [];
-%                 newSaveStruct.runDataWin.Velocity = [];
-%                 newSaveStruct.runDataWin.AbsPos = [];
-%                 newSaveStruct.runDataWin.RelPos = [];
+%               
             end
             
             DASloc = mfilename('fullpath');
-%             oldpath = cd(DASloc);
-            dbFiles = dir([DASloc(1:end-5),'DASeventDB*.mat']);
+            if ~exist([DASloc(1:end-5),'DASeventDBdir\'],'dir')
+                mkdir([DASloc(1:end-5),'DASeventDBdir\'])
+            end
+            dbFiles = dir([DASloc(1:end-5),'DASeventDBdir\','DASeventDB*.mat']);
             
             dbFiles = {dbFiles.name};
             dbFiles = ['Start a new database entry', dbFiles];
@@ -2088,7 +2085,7 @@ classdef DASeV < handle
                 if isempty(dbName)
                     return
                 else
-                    saveFname = [DASloc(1:end-5),'DASeventDB_',dbName{:},'.mat'];
+                    saveFname = [DASloc(1:end-5),'DASeventDBdir\','DASeventDB_',dbName{:},'.mat'];
                     saveStruct = [];
                 end
             else
@@ -2099,8 +2096,14 @@ classdef DASeV < handle
             
             if ~isempty(newSaveStruct)
                 saveStruct = [saveStruct; newSaveStruct];
-
-                save(saveFname,'saveStruct')
+                
+                try
+                    save(saveFname,'saveStruct')
+                catch
+                    errordlg(['Error while saving! Probably caused by missing folder.'...
+                        'Make sure DASeventDBdir folder is in the same location as DASeV.m file!'])
+                    return
+                end
             else
                 errordlg('No selected events!')
             end
@@ -2157,8 +2160,8 @@ classdef DASeV < handle
             gO.viewerTab = uitab(gO.tabgrp,...
                 'Title','Event viewer');%,...
                 %'BackgroundColor',[252,194,0]/255);
-            gO.eventDbTab = uitab(gO.tabgrp,...
-                'Title','Event Database');
+%             gO.eventDbTab = uitab(gO.tabgrp,...
+%                 'Title','Event Database');
             
             %% loadTab members
             gO.selDirButt = uicontrol(gO.loadTab,...
