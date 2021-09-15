@@ -301,6 +301,7 @@ classdef DASeV < handle
                             currChan = gO.ephysCurrDetRow;
                             currDet = gO.ephysCurrDetNum;
                             
+                            allChans = 1:size(gO.ephysData,1);
                             dets = gO.ephysDets;
                             detInfo = gO.ephysDetInfo;
                             detBorders = gO.ephysDetBorders;
@@ -309,6 +310,7 @@ classdef DASeV < handle
                             currChan = gO.imagingCurrDetRow;
                             currDet = gO.imagingCurrDetNum;
                             
+                            allChans = 1:size(gO.imagingData,1);
                             dets = gO.imagingDets;
                             detInfo = gO.imagingDetInfo;
                             detBorders = gO.imagingDetBorders;
@@ -323,6 +325,7 @@ classdef DASeV < handle
                             emptyRows = [emptyRows; i];
                         end
                     end
+                    allChans(emptyRows) = [];
                     dets(emptyRows,:) = [];
                     currDetRows(emptyRows) = [];
                     detInfo(emptyRows) = [];
@@ -346,7 +349,7 @@ classdef DASeV < handle
                         chanOgNum = detInfo(currChan).Roi;
                     end
                     
-                    chanNum = currChan;
+                    chanNum = allChans(currChan);
                     detNum = currDet;
                     
                     if nargout == 5
@@ -1452,6 +1455,10 @@ classdef DASeV < handle
             
             gO.fnameTxt.String = fname;
             
+            gO.ephysDetTypeTxt.String = '';
+            gO.ephysChanTxt.String = '';
+            gO.ephysParamTable.Data = [];
+            gO.ephysParamTable.ColumnName = '';
             if ~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1))
                 load(fname,'ephysSaveInfo')
                 if ~isempty(ephysSaveInfo)
@@ -1460,19 +1467,23 @@ classdef DASeV < handle
                     gO.ephysChanTxt.String = sprintf('%d ',[ephysSaveInfo.Channel]);
                     gO.ephysParamTable.Data = squeeze(struct2cell(ephysSaveInfo(1).Params))';
                     gO.ephysParamTable.ColumnName = fieldnames(ephysSaveInfo(1).Params);
-                else
-                    gO.ephysDetTypeTxt.String = '';
-                    gO.ephysChanTxt.String = '';
-                    gO.ephysParamTable.Data = [];
-                    gO.ephysParamTable.ColumnName = '';
+%                 else
+%                     gO.ephysDetTypeTxt.String = '';
+%                     gO.ephysChanTxt.String = '';
+%                     gO.ephysParamTable.Data = [];
+%                     gO.ephysParamTable.ColumnName = '';
                 end
-            else
-                gO.ephysDetTypeTxt.String = '';
-                gO.ephysChanTxt.String = '';
-                gO.ephysParamTable.Data = [];
-                gO.ephysParamTable.ColumnName = '';
+%             else
+%                 gO.ephysDetTypeTxt.String = '';
+%                 gO.ephysChanTxt.String = '';
+%                 gO.ephysParamTable.Data = [];
+%                 gO.ephysParamTable.ColumnName = '';
             end
             
+            gO.imagingDetTypeTxt.String = '';
+            gO.imagingRoiTxt.String = '';
+            gO.imagingParamTable.Data = [];
+            gO.imagingParamTable.ColumnName = '';
             if ~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1))
                 load(fname,'imagingSaveInfo')
                 if ~isempty(imagingSaveInfo)
@@ -1480,17 +1491,17 @@ classdef DASeV < handle
                     gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
                     gO.imagingParamTable.Data = squeeze(struct2cell(imagingSaveInfo(1).Params))';
                     gO.imagingParamTable.ColumnName = fieldnames(imagingSaveInfo(1).Params);
-                else
-                    gO.imagingDetTypeTxt.String = '';
-                    gO.imagingRoiTxt.String = '';
-                    gO.imagingParamTable.Data = [];
-                    gO.imagingParamTable.ColumnName = '';
+%                 else
+%                     gO.imagingDetTypeTxt.String = '';
+%                     gO.imagingRoiTxt.String = '';
+%                     gO.imagingParamTable.Data = [];
+%                     gO.imagingParamTable.ColumnName = '';
                 end
-            else
-                gO.imagingDetTypeTxt.String = '';
-                gO.imagingRoiTxt.String = '';
-                gO.imagingParamTable.Data = [];
-                gO.imagingParamTable.ColumnName = '';
+%             else
+%                 gO.imagingDetTypeTxt.String = '';
+%                 gO.imagingRoiTxt.String = '';
+%                 gO.imagingParamTable.Data = [];
+%                 gO.imagingParamTable.ColumnName = '';
             end
             
             if ~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1))
@@ -1514,12 +1525,17 @@ classdef DASeV < handle
                 gO.simultSettingTable.ColumnName = '';
             end
             
+            gO.runIndicator.Value = 0;
             if ~isempty(find(strcmp(fieldnames(testload),'runData'),1))
-                gO.runIndicator.Value = 1;
-            else
-                gO.runIndicator.Value = 0;
+                load(fname,'runData')
+                if ~isempty(runData)
+                    gO.runIndicator.Value = 1;
+%                 else
+%                     gO.runIndicator.Value = 0;
+                end
+%             else
+%                 gO.runIndicator.Value = 0;
             end
-            
         end
         
         %%
@@ -1674,18 +1690,23 @@ classdef DASeV < handle
                             gO.ephysCurrDetRow = currChan;
                             gO.ephysFixWinDetRow = currChan;
                             
+                            temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
+                            temp = temp(gO.ephysCurrDetRow);
+                            val = gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum);
+                            gO.save2DbEphysCheckBox.Value = val;
+                            
                         case 2
                             gO.imagingCurrDetNum = currDet;
                             gO.imagingCurrDetRow = currChan;
                             gO.imagingFixWinDetRow = currChan;
                             
+                            temp = find(~cellfun('isempty',gO.save2DbImagingSelection));
+                            temp = temp(gO.imagingCurrDetRow);
+                            val = gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum);
+                            gO.save2DbImagingCheckBox.Value = val;
+                            
                     end
                     
-                    val = gO.save2DbEphysSelection{gO.ephysCurrDetRow}(gO.ephysCurrDetNum);
-                    gO.save2DbEphysCheckBox.Value = val;
-
-                    val = gO.save2DbImagingSelection{gO.imagingCurrDetRow}(gO.imagingCurrDetNum);
-                    gO.save2DbImagingCheckBox.Value = val;
                 case 1
                     switch dTyp
                         case 1
