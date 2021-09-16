@@ -95,6 +95,7 @@ classdef DASeV < handle
     %% Initializing data stored in GUI
     properties (Access = private)
         %% general
+        selDir = cd;
         xLabel = 'Time [s]';
         loaded = [0,0,0]; % ephys-imaging-running (0-1)
         prevNumAx = 1;
@@ -102,8 +103,8 @@ classdef DASeV < handle
         fixWin = 0;
         simultMode = 0;
         keyboardPressDtyp = 1;
-        save2DbEphysSelection
-        save2DbImagingSelection
+        save2DbEphysSelection = cell(1,1);
+        save2DbImagingSelection = cell(1,1);
 %         save2DbSimultEphysSelection
 %         save2DbSimultImagingSelection
         save2DbSimultSelection = [0,0,0,0];
@@ -1238,15 +1239,16 @@ classdef DASeV < handle
             if newdir == 0
                 return
             end
-            cd(newdir)
-            newdir = [newdir,'\*DASsave*.mat'];
-            newlist = dir(newdir);
-            if isempty(newdir)
+%             cd(newdir)
+            
+            newlist = dir([newdir,'\*DASsave*.mat']);
+            if isempty(newlist)
                 warndlg('Selected directory does not include any save files!')
                 return
             end
             newlist = {newlist.name};
             gO.fileList.String = newlist;
+            gO.selDir = newdir;
         end
         
         %%
@@ -1254,6 +1256,7 @@ classdef DASeV < handle
             val = gO.fileList.Value;
             if ~isempty(gO.fileList.String)
                 fname = gO.fileList.String{val};
+                fnameFull = [gO.selDir,'\',fname];
             else
                 warndlg('No file selected!')
                 return
@@ -1262,7 +1265,7 @@ classdef DASeV < handle
             gO.ephysCurrDetNum = 1;
             gO.ephysCurrDetRow = 1;
             
-            testload = matfile(fname);
+            testload = matfile(fnameFull);
 
             gO.loaded(1) = 0;
             gO.ephysDetUpButt.Enable = 'off';
@@ -1275,7 +1278,7 @@ classdef DASeV < handle
 
             if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
-                load(fname,'ephysSaveData','ephysSaveInfo')
+                load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
                 if ~isempty(ephysSaveData) & ~isempty(ephysSaveInfo)
                     gO.ephysData = ephysSaveData.RawData;
@@ -1328,7 +1331,7 @@ classdef DASeV < handle
 
             if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
-                load(fname,'imagingSaveData','imagingSaveInfo')
+                load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
                 if ~isempty(imagingSaveData) & ~isempty(imagingSaveInfo)
                     gO.imagingData = imagingSaveData.RawData;
@@ -1364,7 +1367,7 @@ classdef DASeV < handle
             
             gO.loaded(3) = 0;
             if (~isempty(find(strcmp(fieldnames(testload),'runData'),1)))
-                load(fname,'runData')
+                load(fnameFull,'runData')
                 
                 if ~isempty(runData)
                     gO.runTaxis = runData.taxis;
@@ -1385,7 +1388,7 @@ classdef DASeV < handle
             gO.save2DbSimultCheckBox.Enable = 'off';
             if (~isempty(find(strcmp(fieldnames(testload),'simultSaveData'),1)))...
                     & (~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1)))
-                load(fname,'simultSaveData','simultSaveInfo')
+                load(fnameFull,'simultSaveData','simultSaveInfo')
                 
                 if ~isempty(simultSaveData) & ~isempty(simultSaveInfo)
                     gO.simultDets = simultSaveData;
@@ -1402,12 +1405,19 @@ classdef DASeV < handle
             end
                         
             %Preparing selection vectors for database saving
+            gO.save2DbEphysCheckBox.Value = 0;
+            gO.save2DbImagingCheckBox.Value = 0;
+            gO.save2DbSimultCheckBox.Value = 0;
+            gO.save2DbRunningChechBox.Value = 0;
+            gO.save2DbSimultSelection = [0,0,0,0];
+            gO.save2DbEphysSelection = cell(1,1);
             if gO.loaded(1)
                 gO.save2DbEphysSelection = cell(length(gO.ephysDetBorders),1);
                 for i = 1:length(gO.ephysDetBorders)
                     gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
                 end
             end
+            gO.save2DbImagingSelection = cell(1,1);
             if gO.loaded(2)
                 gO.save2DbImagingSelection = cell(length(gO.imagingDetBorders),1);
                 for i = 1:length(gO.imagingDetBorders)
@@ -1441,15 +1451,16 @@ classdef DASeV < handle
             val = gO.fileList.Value;
             if ~isempty(gO.fileList.String)
                 fname = gO.fileList.String{val};
+                fnameFull = [gO.selDir,'\',fname];
             else
                 warndlg('No DAS save files in current directory!')
                 return
             end
             
-            testload = matfile(fname);
+            testload = matfile(fnameFull);
             
             if ~isempty(find(strcmp(fieldnames(testload),'comments'),1))
-                load(fname,'comments')
+                load(fnameFull,'comments')
                 gO.commentsTxt.String = comments;
             end
             
@@ -1460,7 +1471,7 @@ classdef DASeV < handle
             gO.ephysParamTable.Data = [];
             gO.ephysParamTable.ColumnName = '';
             if ~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1))
-                load(fname,'ephysSaveInfo')
+                load(fnameFull,'ephysSaveInfo')
                 if ~isempty(ephysSaveInfo)
 %                     gO.fnameTxt.String = fname;
                     gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
@@ -1485,7 +1496,7 @@ classdef DASeV < handle
             gO.imagingParamTable.Data = [];
             gO.imagingParamTable.ColumnName = '';
             if ~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1))
-                load(fname,'imagingSaveInfo')
+                load(fnameFull,'imagingSaveInfo')
                 if ~isempty(imagingSaveInfo)
                     gO.imagingDetTypeTxt.String = imagingSaveInfo.DetType;
                     gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
@@ -1505,7 +1516,7 @@ classdef DASeV < handle
             end
             
             if ~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1))
-                load(fname,'simultSaveInfo')
+                load(fnameFull,'simultSaveInfo')
                 if ~isempty(simultSaveInfo)
                     gO.simultIndicator.Value = 1;
                     temp = squeeze(struct2cell(simultSaveInfo(1).Settings))';
@@ -1527,7 +1538,7 @@ classdef DASeV < handle
             
             gO.runIndicator.Value = 0;
             if ~isempty(find(strcmp(fieldnames(testload),'runData'),1))
-                load(fname,'runData')
+                load(fnameFull,'runData')
                 if ~isempty(runData)
                     gO.runIndicator.Value = 1;
 %                 else
@@ -1910,10 +1921,14 @@ classdef DASeV < handle
             switch checkboxID
                 case 1
                     val = gO.save2DbEphysCheckBox.Value;
-                    gO.save2DbEphysSelection{gO.ephysCurrDetRow}(gO.ephysCurrDetNum) = val;
+                    temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
+                    temp = temp(gO.ephysCurrDetRow);
+                    gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum) = val;
                 case 2
                     val = gO.save2DbImagingCheckBox.Value;
-                    gO.save2DbImagingSelection{gO.imagingCurrDetRow}(gO.imagingCurrDetNum) = val;
+                    temp = find(~cellfun('isempty',gO.save2DbImagingSelection));
+                    temp = temp(gO.imagingCurrDetRow);
+                    gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum) = val;
                 case 3
                     val = gO.save2DbSimultCheckBox.Value;
                     

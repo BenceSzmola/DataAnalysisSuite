@@ -266,7 +266,13 @@ classdef DASevDB < handle
                 
             end
             
-%             temp = 
+            temp = {'imagingTaxis';'imagingDataWin';'imagingParams'}; 
+            if sum(strcmp(fieldnames(saveStruct),temp)) == 3
+                
+            end
+            
+            temp = {'simultEphysTaxis';'simultEphysDataWin';'simultEphysParams';...
+                'simultImagingTaxis';'simultImagingDataWin';'simultImagingParams'};
         end
     end
     
