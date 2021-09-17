@@ -31,12 +31,12 @@ classdef DASeV < handle
         ephysDetTypeTxt
         ephysChanLabel
         ephysChanTxt
-        ephysParamTable
+        ephysDetSettingsTable
         imagingDetTypeLabel
         imagingDetTypeTxt
         imagingRoiLabel
         imagingRoiTxt
-        imagingParamTable
+        imagingDetSettingsTable
         
         simultIndicator
         simultSettingTable
@@ -96,6 +96,7 @@ classdef DASeV < handle
     properties (Access = private)
         %% general
         selDir = cd;
+        path2loadedSave
         xLabel = 'Time [s]';
         loaded = [0,0,0]; % ephys-imaging-running (0-1)
         prevNumAx = 1;
@@ -118,7 +119,7 @@ classdef DASeV < handle
         ephysInstPow
         ephysFs
         ephysTaxis
-        ephysParams
+        ephysDetSettings
         ephysDetParams
         ephysDets
         ephysDetBorders
@@ -668,8 +669,8 @@ classdef DASeV < handle
             
             if forSpectro
                 try
-                    w1 = gO.ephysDetInfo(1).Params.W1;
-                    w2 = gO.ephysDetInfo(1).Params.W2;
+                    w1 = gO.ephysDetInfo(1).DetSettings.W1;
+                    w2 = gO.ephysDetInfo(1).DetSettings.W2;
                 catch
                     w1 = 150;
                     w2 = 250;
@@ -1298,8 +1299,8 @@ classdef DASeV < handle
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
-                        if gO.ephysDetInfo(1).Params.RefCh ~= 0
-                            gO.ephysRefCh = gO.ephysDetInfo(1).Params.RefCh;
+                        if gO.ephysDetInfo(1).DetSettings.RefCh ~= 0
+                            gO.ephysRefCh = gO.ephysDetInfo(1).DetSettings.RefCh;
                         end
                     end
 
@@ -1443,6 +1444,7 @@ classdef DASeV < handle
             
             if ~isempty(find(gO.loaded, 1))
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
+                gO.path2loadedSave = fnameFull;
             end
         end
         
@@ -1468,16 +1470,16 @@ classdef DASeV < handle
             
             gO.ephysDetTypeTxt.String = '';
             gO.ephysChanTxt.String = '';
-            gO.ephysParamTable.Data = [];
-            gO.ephysParamTable.ColumnName = '';
+            gO.ephysDetSettingsTable.Data = [];
+            gO.ephysDetSettingsTable.ColumnName = '';
             if ~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1))
                 load(fnameFull,'ephysSaveInfo')
                 if ~isempty(ephysSaveInfo)
 %                     gO.fnameTxt.String = fname;
                     gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
                     gO.ephysChanTxt.String = sprintf('%d ',[ephysSaveInfo.Channel]);
-                    gO.ephysParamTable.Data = squeeze(struct2cell(ephysSaveInfo(1).Params))';
-                    gO.ephysParamTable.ColumnName = fieldnames(ephysSaveInfo(1).Params);
+                    gO.ephysDetSettingsTable.Data = squeeze(struct2cell(ephysSaveInfo(1).DetSettings))';
+                    gO.ephysDetSettingsTable.ColumnName = fieldnames(ephysSaveInfo(1).DetSettings);
 %                 else
 %                     gO.ephysDetTypeTxt.String = '';
 %                     gO.ephysChanTxt.String = '';
@@ -1493,15 +1495,15 @@ classdef DASeV < handle
             
             gO.imagingDetTypeTxt.String = '';
             gO.imagingRoiTxt.String = '';
-            gO.imagingParamTable.Data = [];
-            gO.imagingParamTable.ColumnName = '';
+            gO.imagingDetSettingsTable.Data = [];
+            gO.imagingDetSettingsTable.ColumnName = '';
             if ~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1))
                 load(fnameFull,'imagingSaveInfo')
                 if ~isempty(imagingSaveInfo)
                     gO.imagingDetTypeTxt.String = imagingSaveInfo.DetType;
                     gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
-                    gO.imagingParamTable.Data = squeeze(struct2cell(imagingSaveInfo(1).Params))';
-                    gO.imagingParamTable.ColumnName = fieldnames(imagingSaveInfo(1).Params);
+                    gO.imagingDetSettingsTable.Data = squeeze(struct2cell(imagingSaveInfo(1).DetSettings))';
+                    gO.imagingDetSettingsTable.ColumnName = fieldnames(imagingSaveInfo(1).DetSettings);
 %                 else
 %                     gO.imagingDetTypeTxt.String = '';
 %                     gO.imagingRoiTxt.String = '';
@@ -1952,33 +1954,6 @@ classdef DASeV < handle
         
         %%
         function save2DbButtonPress(gO,~,~)
-%             DASloc = mfilename('fullpath');
-% %             oldpath = cd(DASloc);
-%             dbFiles = dir([DASloc(1:end-5),'DASeventDB*.mat']);
-%             
-%             dbFiles = {dbFiles.name};
-%             dbFiles = ['Start a new database entry', dbFiles];
-%             
-%             [ind,tf] = listdlg('ListString',dbFiles,...
-%                 'PromptString','Select DB to save in','SelectionMode','single');
-%             if ~tf
-%                 return
-%             end
-%             
-%             if ind == 1
-%                 dbName = inputdlg('Input name of new database entry!',...
-%                     'New DB entry',[1,35]);
-%                 if isempty(dbName)
-%                     return
-%                 else
-%                     saveFname = ['DASeventDB_',dbName{:},'.mat'];
-%                     saveStruct = [];
-%                 end
-%             else
-%                 dbName = dbFiles{ind}(12:end-4);
-%                 saveFname = dbFiles{ind};
-%                 load(saveFname,'saveStruct')
-%             end
             
             newSaveStruct = [];
             if ~isempty(find(vertcat(gO.save2DbEphysSelection{:}),1)) && ~gO.simultMode
@@ -1991,42 +1966,24 @@ classdef DASeV < handle
                         if ~gO.save2DbEphysSelection{i}(j)
                             continue
                         end
-%                         dets = gO.ephysDets(i,:);
-%                         dets = find(~isnan(dets));
-%                         detInd = dets(j);
-% 
-%                         winLen = round(gO.ephysFs*0.25);
-%                         if (detInd-winLen) > 1
-%                             winStart = detInd-winLen;
-%                         else
-%                             winStart = 1;
-%                         end
-%                         if (detInd+winLen) <= length(gO.ephysData)
-%                             winEnd = detInd+winLen;
-%                         else
-%                             winEnd = length(gO.ephysData);
-%                         end
-%                         win = winStart:winEnd;
 
                         win = windowMacher(gO,1,i,j,0.25);
-
-                        tempStruct.ephysTaxis = gO.ephysTaxis(win);
-                        tempStruct.ephysDataWin.Raw = gO.ephysData(i,win);
-                        tempStruct.ephysDataWin.BP = gO.ephysDoGGed(i,win);
-                        tempStruct.ephysDataWin.Power = gO.ephysInstPow(i,win);
-                        tempStruct.ephysParams = gO.ephysDetParams{i}(j);
+                        
+                        tempStruct.simult = 0;
+                        tempStruct.parallel = 0;
+                        tempStruct.source = gO.path2loadedSave;
+                        
+                        tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
+                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(i,win);
+                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(i,win);
+                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(i,win);
+                        tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
                         
                         newSaveStruct = [newSaveStruct; tempStruct];
                     end
                     
                 end
                 
-%             else
-%                 newSaveStruct.ephysTaxis = [];
-%                 newSaveStruct.ephysDataWin.Raw = [];
-%                 newSaveStruct.ephysDataWin.BP = [];
-%                 newSaveStruct.ephysDataWin.Power = [];
-%                 newSaveStruct.ephysParams = [];
             end
             
             if ~isempty(find(vertcat(gO.save2DbImagingSelection{:}),1)) && ~gO.simultMode
@@ -2040,37 +1997,23 @@ classdef DASeV < handle
                         if ~gO.save2DbImagingSelection{i}(j)
                             continue
                         end
-%                         dets = gO.imagingDets(currChan,:);
-%                         dets = find(~isnan(dets));
-%                         detInd = dets(currDet);
-% 
-%                         winLen = round(gO.imagingFs*0.25);
-%                         if (detInd-winLen) > 1
-%                             winStart = detInd-winLen;
-%                         else
-%                             winStart = 1;
-%                         end
-%                         if (detInd+winLen) <= length(gO.imagingData)
-%                             winEnd = detInd+winLen;
-%                         else
-%                             winEnd = length(gO.imagingData);
-%                         end
-%                         win = winStart:winEnd;
+                        
                         win = windowMacher(gO,2,i,j,0.25);
-
-                        tempStruct.imagingTaxis = gO.imagingTaxis(win);
-                        tempStruct.imagingDataWin.Raw = gO.imagingData(i,win);
-                        tempStruct.imagingDataWin.Smoothed = gO.imagingSmoothed(i,win);
-                        tempStruct.imagingParams = gO.imagingDetParams{i}(j);
+                        
+                        tempStruct.source = gO.path2loadedSave;
+                        tempStruct.simult = 0;
+                        tempStruct.parallel = 0;
+%                         tempStruct.detSettings =                         
+                        
+                        tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
+                        tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i,win);
+                        tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i,win);
+                        tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
                         
                         newSaveStruct = [newSaveStruct; tempStruct];
                     end
                 end
-%             else
-%                 newSaveStruct.imagingTaxis = [];
-%                 newSaveStruct.imagingDataWin.Raw = [];
-%                 newSaveStruct.imagingDataWin.Smoothed = [];
-%                 newSaveStruct.imagingParams = [];
+%             
             end
             
             if (size(gO.save2DbSimultSelection,1)~=1) && gO.simultMode
@@ -2079,16 +2022,20 @@ classdef DASeV < handle
                     ephysWin = windowMacher(gO,1,currRow(1),currRow(2),0.25);
                     imagingWin = windowMacher(gO,2,currRow(3),currRow(4),0.25);
                     
-                    tempStruct.simultEphysTaxis = gO.ephysTaxis(ephysWin);
-                    tempStruct.simultEphysDataWin.Raw = gO.ephysData(currRow(1),ephysWin);
-                    tempStruct.simultEphysDataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
-                    tempStruct.simultEphysDataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
-                    tempStruct.simultEphysParams = gO.ephysDetParams{currRow(1)}(currRow(2));
+                    tempStruct.simult = 1;
+                    tempStruct.parallel = 0;
+                    tempStruct.source = gO.path2loadedSave;
                     
-                    tempStruct.simultImagingTaxis = gO.imagingTaxis(imagingWin);
-                    tempStruct.simultImagingDataWin.Raw = gO.imagingData(currRow(3),imagingWin);
-                    tempStruct.simultImagingDataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
-                    tempStruct.simultImagingParams = gO.imagingDetParams{currRow(3)}(currRow(4));
+                    tempStruct.ephysEvents.Taxis = gO.ephysTaxis(ephysWin);
+                    tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
+                    tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
+                    tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
+                    tempStruct.ephysEvents.Params = gO.ephysDetParams{currRow(1)}(currRow(2));
+                    
+                    tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
+                    tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
+                    tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
+                    tempStruct.imagingEvents.Params = gO.imagingDetParams{currRow(3)}(currRow(4));
                     
                     newSaveStruct = [newSaveStruct; tempStruct];
                 end
@@ -2266,7 +2213,7 @@ classdef DASeV < handle
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.25, 0.55, 0.2, 0.075]);
-            gO.ephysParamTable = uitable(gO.fileInfoPanel,...
+            gO.ephysDetSettingsTable = uitable(gO.fileInfoPanel,...
                 'Units','normalized',...
                 'Position',[0.025, 0.425, 0.45, 0.1],...
                 'RowName','',...
@@ -2291,7 +2238,7 @@ classdef DASeV < handle
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.775, 0.55, 0.2, 0.075]);
-            gO.imagingParamTable = uitable(gO.fileInfoPanel,...
+            gO.imagingDetSettingsTable = uitable(gO.fileInfoPanel,...
                 'Units','normalized',...
                 'Position',[0.525, 0.425, 0.45, 0.1],...
                 'RowName','',...

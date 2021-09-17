@@ -60,7 +60,7 @@ classdef DAS < handle
         EphysListBox
         ImagingListBoxLabel
         ImagingListBox
-        runParamsPanel
+        runSettingsPanel
         InputlicktimemsEditFieldLabel
         InputLickEditField
         LicksmsListBoxLabel
@@ -99,7 +99,7 @@ classdef DAS < handle
         ephysArtSuppRefChanEdit
         ephysArtSuppRunButt
         
-        ephysFiltParamPanel
+        ephysFiltSettingsPanel
         filterTypePopMenu
         cutoffLabel
         w1Edit
@@ -125,7 +125,7 @@ classdef DAS < handle
         imagingProcRawRadioButt
         imagingProcProcdRadioButt
         
-        imagingFiltParamPanel
+        imagingFiltSettingsPanel
         imagingFilterTypePopMenu
         imagingFiltWinSizeText
         imagingFiltWinSizeEdit
@@ -243,7 +243,7 @@ classdef DAS < handle
         ephys_procTypes = ["DoG"; "Periodic"];
         ephys_detections                    % Location of detections on time axis
         ephys_detBorders
-        ephys_detectionsInfo = struct('DetType',[],'Channel',[],'Params',[],'DetRun',[]);
+        ephys_detectionsInfo = struct('DetType',[],'Channel',[],'DetSettings',[],'DetRun',[]);
         ephys_detParams %= struct('Amplitude',[],'Length',[],'Frequency',[],...
             %'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
         ephys_detMarkerSelection
@@ -266,7 +266,7 @@ classdef DAS < handle
         imaging_detections
         imaging_detBorders
         imaging_detParams
-        imaging_detectionsInfo = struct('DetType',[],'Roi',[],'Params',[],'DetRun',[]);
+        imaging_detectionsInfo = struct('DetType',[],'Roi',[],'DetSettings',[],'DetRun',[]);
         imaging_detMarkerSelection
         imaging_detRunsNum = 0;             % Number of detection runs
         imaging_currDetRun
@@ -1423,8 +1423,8 @@ classdef DAS < handle
             
             if forSpectro
                 try
-                    w1 = guiobj.ephys_detectionsInfo(currDetRow).Params.W1;
-                    w2 = guiobj.ephys_detectionsInfo(currDetRow).Params.W2;
+                    w1 = guiobj.ephys_detectionsInfo(currDetRow).DetSettings.W1;
+                    w2 = guiobj.ephys_detectionsInfo(currDetRow).DetSettings.W2;
                 catch
                     w1 = 150;
                     w2 = 250;
@@ -2263,9 +2263,9 @@ classdef DAS < handle
 %                         num2str(guiobj.ephys_detectionsInfo(i,3)));
 %                     temprows = [];
                     temp = [];
-                    pnames = fieldnames(detInfo(i).Params);
-                    vals = struct2cell(detInfo(i).Params);
-                    for k = 1:length(fieldnames(detInfo(i).Params))
+                    pnames = fieldnames(detInfo(i).DetSettings);
+                    vals = struct2cell(detInfo(i).DetSettings);
+                    for k = 1:length(fieldnames(detInfo(i).DetSettings))
                         temp = [temp, pnames{k},':',num2str(vals{k}),' '];
                     end
 %                     temprows = [temprows; strcat(detInfo(i).DetType,' | ',temp,...
@@ -2481,10 +2481,10 @@ classdef DAS < handle
             % Import buttons
             if value 
                 guiobj.ImportruncsvButton.Enable = 'on';
-                guiobj.runParamsPanel.Visible = 'on';
+%                 guiobj.runParamsPanel.Visible = 'on';
             elseif ~value
                 guiobj.ImportruncsvButton.Enable = 'off';
-                guiobj.runParamsPanel.Visible = 'off';
+%                 guiobj.runParamsPanel.Visible = 'off';
             end
             
             % Plot panel switching
@@ -2652,11 +2652,11 @@ classdef DAS < handle
             
             switch procType
                 case 2
-                    guiobj.ephysFiltParamPanel.Visible = 'on';
+                    guiobj.ephysFiltSettingsPanel.Visible = 'on';
                     guiobj.ephysArtSuppPanel.Visible = 'off';
                 case 3
                     guiobj.ephysArtSuppPanel.Visible = 'on';
-                    guiobj.ephysFiltParamPanel.Visible = 'off';
+                    guiobj.ephysFiltSettingsPanel.Visible = 'off';
             end
         end
         
@@ -2895,9 +2895,9 @@ classdef DAS < handle
             
             switch procType
                 case 2
-                    guiobj.imagingFiltParamPanel.Visible = 'on';
+                    guiobj.imagingFiltSettingsPanel.Visible = 'on';
                 otherwise
-                    guiobj.imagingFiltParamPanel.Visible = 'off';
+                    guiobj.imagingFiltSettingsPanel.Visible = 'off';
             end
         end
         
@@ -3108,12 +3108,12 @@ classdef DAS < handle
                         detinfo.Channel = chan;
                         detinfo.DetType = "CWT";
                         detinfo.DetRun = guiobj.ephys_detRunsNum;
-                        detinfo.Params.W1 = w1;
-                        detinfo.Params.W2 = w2;
-                        detinfo.Params.MinLen = minLen*1000;
-                        detinfo.Params.SdMult = sdmult;
-                        detinfo.Params.RefVal = refVal;
-                        detinfo.Params.RefCh = refch;
+                        detinfo.DetSettings.W1 = w1;
+                        detinfo.DetSettings.W2 = w2;
+                        detinfo.DetSettings.MinLen = minLen*1000;
+                        detinfo.DetSettings.SdMult = sdmult;
+                        detinfo.DetSettings.RefVal = refVal;
+                        detinfo.DetSettings.RefCh = refch;
                     else
 %                         detinfo = [(1:min(size(guiobj.ephys_data)))',...
 %                             1*ones(min(size(guiobj.ephys_data)),1),...
@@ -3122,12 +3122,12 @@ classdef DAS < handle
                             detinfo(i).Channel = i;
                             detinfo(i).DetType = "CWT";
                             detinfo(i).DetRun = guiobj.ephys_detRunsNum;
-                            detinfo(i).Params.W1 = w1;
-                            detinfo(i).Params.W2 = w2;
-                            detinfo(i).Params.MinLen = minLen*1000;
-                            detinfo(i).Params.SdMult = sdmult;
-                            detinfo(i).Params.RefVal = refVal;
-                            detinfo(i).Params.RefCh = refch;
+                            detinfo(i).DetSettings.W1 = w1;
+                            detinfo(i).DetSettings.W2 = w2;
+                            detinfo(i).DetSettings.MinLen = minLen*1000;
+                            detinfo(i).DetSettings.SdMult = sdmult;
+                            detinfo(i).DetSettings.RefVal = refVal;
+                            detinfo(i).DetSettings.RefCh = refch;
                         end
                     end
                     
@@ -3166,10 +3166,10 @@ classdef DAS < handle
                         detinfo.Channel = chan;
                         detinfo.DetType = "Adapt";
                         detinfo.DetRun = guiobj.ephys_detRunsNum;
-                        detinfo.Params.Step = step*1000;
-                        detinfo.Params.MinLen = minLen*1000;
-                        detinfo.Params.MinDist = mindist*1000;
-                        detinfo.Params.Ratio = ratio;
+                        detinfo.DetSettings.Step = step*1000;
+                        detinfo.DetSettings.MinLen = minLen*1000;
+                        detinfo.DetSettings.MinDist = mindist*1000;
+                        detinfo.DetSettings.Ratio = ratio;
                         
 %                         detinfo = [chan, 2, guiobj.ephys_detRunsNum];
                     else
@@ -3177,10 +3177,10 @@ classdef DAS < handle
                             detinfo(i).Channel = i;
                             detinfo(i).DetType = "Adapt";
                             detinfo(i).DetRun = guiobj.ephys_detRunsNum;
-                            detinfo(i).Params.Step = step*1000;
-                            detinfo(i).Params.MinLen = minLen*1000;
-                            detinfo(i).Params.MinDist = mindist*1000;
-                            detinfo(i).Params.Ratio = ratio;
+                            detinfo(i).DetSettings.Step = step*1000;
+                            detinfo(i).DetSettings.MinLen = minLen*1000;
+                            detinfo(i).DetSettings.MinDist = mindist*1000;
+                            detinfo(i).DetSettings.Ratio = ratio;
                         end
 %                         detinfo = [(1:min(size(guiobj.ephys_data)))',...
 %                             2*ones(min(size(guiobj.ephys_data)),1),...
@@ -3254,24 +3254,24 @@ classdef DAS < handle
                         detinfo.Channel = chan;
                         detinfo.DetType = "DoGInstPow";
                         detinfo.DetRun = guiobj.ephys_detRunsNum;
-                        detinfo.Params.W1 = w1;
-                        detinfo.Params.W2 = w2;
-                        detinfo.Params.MinLen = minLen*1000;
-                        detinfo.Params.SdMult = sdmult;
-                        detinfo.Params.RefVal = refVal;
-                        detinfo.Params.RefCh = refch;
+                        detinfo.DetSettings.W1 = w1;
+                        detinfo.DetSettings.W2 = w2;
+                        detinfo.DetSettings.MinLen = minLen*1000;
+                        detinfo.DetSettings.SdMult = sdmult;
+                        detinfo.DetSettings.RefVal = refVal;
+                        detinfo.DetSettings.RefCh = refch;
 %                         detinfo = [chan, 3, guiobj.ephys_detRunsNum];
                     else
                         for i = 1:min(size(dets))
                             detinfo(i).Channel = i;
                             detinfo(i).DetType = "DoGInstPow";
                             detinfo(i).DetRun = guiobj.ephys_detRunsNum;
-                            detinfo(i).Params.W1 = w1;
-                            detinfo(i).Params.W2 = w2;
-                            detinfo(i).Params.MinLen = minLen*1000;
-                            detinfo(i).Params.SdMult = sdmult;
-                            detinfo(i).Params.RefVal = refVal;
-                            detinfo(i).Params.RefCh = refch;
+                            detinfo(i).DetSettings.W1 = w1;
+                            detinfo(i).DetSettings.W2 = w2;
+                            detinfo(i).DetSettings.MinLen = minLen*1000;
+                            detinfo(i).DetSettings.SdMult = sdmult;
+                            detinfo(i).DetSettings.RefVal = refVal;
+                            detinfo(i).DetSettings.RefCh = refch;
                         end
 %                         detinfo = [(1:min(size(guiobj.ephys_data)))',...
 %                             3*ones(min(size(guiobj.ephys_data)),1),...
@@ -3392,9 +3392,9 @@ classdef DAS < handle
                         detinfo(i).Roi = i;
                         detinfo(i).DetType = 'Mean+SD';
                         detinfo(i).DetRun = guiobj.imaging_detRunsNum;
-                        detinfo(i).Params.WinType = 'Gaussian';
-                        detinfo(i).Params.WinLen = 10;
-                        detinfo(i).Params.SdMult = sdmult;
+                        detinfo(i).DetSettings.WinType = 'Gaussian';
+                        detinfo(i).DetSettings.WinLen = 10;
+                        detinfo(i).DetSettings.SdMult = sdmult;
                     end
                     
             end
@@ -3465,9 +3465,9 @@ classdef DAS < handle
             detInfo = guiobj.ephys_detectionsInfo;
             for i = 1:length(detInfo)
                 temp = [];
-                pnames = fieldnames(detInfo(i).Params);
-                vals = struct2cell(detInfo(i).Params);
-                for k = 1:length(fieldnames(detInfo(i).Params))
+                pnames = fieldnames(detInfo(i).DetSettings);
+                vals = struct2cell(detInfo(i).DetSettings);
+                for k = 1:length(fieldnames(detInfo(i).DetSettings))
                     temp = [temp, pnames{k},':',num2str(vals{k}),' '];
                 end
                 detList = [detList; string(strcat(detInfo(i).DetType,' | ',temp,...
@@ -3499,9 +3499,9 @@ classdef DAS < handle
             detInfo = guiobj.imaging_detectionsInfo;
             for i = 1:length(detInfo)
                 temp = [];
-                pnames = fieldnames(detInfo(i).Params);
-                vals = struct2cell(detInfo(i).Params);
-                for k = 1:length(fieldnames(detInfo(i).Params))
+                pnames = fieldnames(detInfo(i).DetSettings);
+                vals = struct2cell(detInfo(i).DetSettings);
+                for k = 1:length(fieldnames(detInfo(i).DetSettings))
                     temp = [temp, pnames{k},':',num2str(vals{k}),' '];
                 end
                 detList = [detList; string(strcat(detInfo(i).DetType,' | ',temp,...
@@ -4036,9 +4036,9 @@ classdef DAS < handle
                 detInfo = guiobj.ephys_detectionsInfo;
                 for i = 1:length(detInfo)
                     temp = [];
-                    pnames = fieldnames(detInfo(i).Params);
-                    vals = struct2cell(detInfo(i).Params);
-                    for k = 1:length(fieldnames(detInfo(i).Params))
+                    pnames = fieldnames(detInfo(i).DetSettings);
+                    vals = struct2cell(detInfo(i).DetSettings);
+                    for k = 1:length(fieldnames(detInfo(i).DetSettings))
                         temp = [temp, pnames{k},':',num2str(vals{k}),' '];
                     end
                     detList = [detList; string(strcat(detInfo(i).DetType,' | ',temp,...
@@ -4084,9 +4084,9 @@ classdef DAS < handle
 %                 assignin('base','imdetinfo',detInfo)
                 for i = 1:length(detInfo)
                     temp = [];
-                    pnames = fieldnames(detInfo(i).Params);
-                    vals = struct2cell(detInfo(i).Params);
-                    for k = 1:length(fieldnames(detInfo(i).Params))
+                    pnames = fieldnames(detInfo(i).DetSettings);
+                    vals = struct2cell(detInfo(i).DetSettings);
+                    for k = 1:length(fieldnames(detInfo(i).DetSettings))
                         temp = [temp, pnames{k},':',num2str(vals{k}),' '];
                     end
                     detList = [detList; string(strcat(detInfo(i).DetType,' | ',temp,...
@@ -4607,10 +4607,10 @@ classdef DAS < handle
                 'Max',10,...
                 'Callback',@(h,e) guiobj.ImagingListBoxValueChanged);
 
-            % Create runParamsPanel
-            guiobj.runParamsPanel = uipanel(guiobj.maintab,...
-                'Visible','off',...
-                'Position',[0, 0, 0.4, 0.2]);
+%             % Create runParamsPanel
+%             guiobj.runSettingsPanel = uipanel(guiobj.maintab,...
+%                 'Visible','off',...
+%                 'Position',[0, 0, 0.4, 0.2]);
 
 %             % Create InputlicktimemsEditFieldLabel
 %             guiobj.InputlicktimemsEditFieldLabel = uicontrol(guiobj.runParamsPanel,...
@@ -4757,66 +4757,66 @@ classdef DAS < handle
             
             
             
-            % Create ephysFiltParamPanel
-            guiobj.ephysFiltParamPanel = uipanel(guiobj.ephysProcTab,...
+            % Create ephysFiltSettingsPanel
+            guiobj.ephysFiltSettingsPanel = uipanel(guiobj.ephysProcTab,...
                 'Position',[0.01, 0.5, 0.3, 0.4],...
                 'Title','Filtering settings',...
                 'Visible','off');
             
-            % Create components of FiltParamPanel
-            guiobj.filterTypePopMenu = uicontrol(guiobj.ephysFiltParamPanel,...
+            % Create components of FiltSettingsPanel
+            guiobj.filterTypePopMenu = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
                 'String',{'--Select filter type--','DoG','Periodic'},...
                 'Callback',@(h,e) guiobj.fiterTypePopMenuCallback);
-            guiobj.cutoffLabel = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.cutoffLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.3, 0.85, 0.5, 0.1],...
                 'String','Lower - Upper cutoff [Hz]',...
                 'Visible','off');
-            guiobj.w1Edit = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.w1Edit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.8, 0.85, 0.1, 0.1],...
                 'Visible','off',...
                 'Tooltip','Lower cutoff frequency [Hz]');
-            guiobj.w2Edit = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.w2Edit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.9, 0.85, 0.1, 0.1],...
                 'Visible','off',...
                 'Tooltip','Upper cutoff frequency [Hz]');
-            guiobj.fmaxLabel = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.fmaxLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.3, 0.85, 0.5, 0.1],...
                 'String','Max frequency [Hz]',...
                 'Visible','off');
-            guiobj.fmaxEdit = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.fmaxEdit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.8, 0.85, 0.1, 0.1],...
                 'Visible','off');
-            guiobj.ffundLabel = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.ffundLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.3, 0.75, 0.5, 0.1],...
                 'String','Fundamental frequency [Hz]',...
                 'Visible','off');
-            guiobj.ffundEdit = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.ffundEdit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.8, 0.75, 0.1, 0.1],...
                 'Visible','off');
-            guiobj.stopbandwidthLabel = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.stopbandwidthLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.3, 0.65, 0.5, 0.1],...
                 'String','Stopband width [Hz]',...
                 'Visible','off');
-            guiobj.stopbandwidthEdit = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.stopbandwidthEdit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.8, 0.65, 0.1, 0.1],...
@@ -4824,7 +4824,7 @@ classdef DAS < handle
             
             
 %             guiobj.
-            guiobj.runFiltButton = uicontrol(guiobj.ephysFiltParamPanel,...
+            guiobj.runFiltButton = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.85, 0.01, 0.1, 0.1],...
@@ -4931,31 +4931,31 @@ classdef DAS < handle
             
             
             
-            % Create imagingFiltParamPanel
-            guiobj.imagingFiltParamPanel = uipanel(guiobj.imagingProcTab,...
+            % Create imagingFiltSettingsPanel
+            guiobj.imagingFiltSettingsPanel = uipanel(guiobj.imagingProcTab,...
                 'Position',[0.01, 0.5, 0.3, 0.4],...
                 'Title','Filtering settings',...
                 'Visible','off');
             
-            % Create components of FiltParamPanel
-            guiobj.imagingFilterTypePopMenu = uicontrol(guiobj.imagingFiltParamPanel,...
+            % Create components of FiltSettingsPanel
+            guiobj.imagingFilterTypePopMenu = uicontrol(guiobj.imagingFiltSettingsPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
                 'String',{'--Filter type--','Gauss average'},...
                 'Callback',@(h,e) guiobj.imagingFilterTypePopMenuSelected);
-            guiobj.imagingFiltWinSizeText = uicontrol(guiobj.imagingFiltParamPanel,...
+            guiobj.imagingFiltWinSizeText = uicontrol(guiobj.imagingFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.3, 0.85, 0.15, 0.1],...
                 'String','Window size in samples',...
                 'Visible','off');
-            guiobj.imagingFiltWinSizeEdit = uicontrol(guiobj.imagingFiltParamPanel,...
+            guiobj.imagingFiltWinSizeEdit = uicontrol(guiobj.imagingFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.45, 0.85, 0.1, 0.1],...
                 'Visible','off');
-            guiobj.imagingRunFiltButton = uicontrol(guiobj.imagingFiltParamPanel,...
+            guiobj.imagingRunFiltButton = uicontrol(guiobj.imagingFiltSettingsPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.85, 0.01, 0.1, 0.1],...
