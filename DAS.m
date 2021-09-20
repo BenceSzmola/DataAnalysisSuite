@@ -1485,13 +1485,15 @@ classdef DAS < handle
                 if (chanUpDwn==0) & (detUpDwn==0)
                     currDet = 1;
                     currChan = 1;
+                else
+                    [numDets,numChans] = extractDetStructs(guiobj,dTyp);
                 end
 
                 if chanUpDwn ~= 0
                     currDet = 1;
                 end
                 
-                [numDets,numChans] = extractDetStructs(guiobj,dTyp);
+%                 [numDets,numChans] = extractDetStructs(guiobj,dTyp);
 
                 switch chanUpDwn
                     case 0
