@@ -1955,8 +1955,30 @@ classdef DASeV < handle
         %%
         function save2DbButtonPress(gO,~,~)
             
+            selected = [(~isempty(find(vertcat(gO.save2DbEphysSelection{:}),1))&&~gO.simultMode),...
+                (~isempty(find(vertcat(gO.save2DbImagingSelection{:}),1))&&~gO.simultMode),...
+                ((size(gO.save2DbSimultSelection,1)~=1) && gO.simultMode)];
+            
+            if sum(selected)==2
+                answer = questdlg('Which selection do you want to save?',...
+                    'Choose data to save','Electrophysiology','Imaging',...
+                    'Cancel','Electrophysiology');
+                if strcmp(answer,'Electrophysiology')
+                    selected(:) = 0;
+                    selected(1) = 1;
+                elseif strcmp(answer,'Imaging')
+                    selected(:) = 0;
+                    selected(2) = 1;
+                else
+                    return
+                end
+            elseif sum(selected)==3
+                errordlg('There is an error! Try restarting the GUI!')
+                return
+            end
+            
             newSaveStruct = [];
-            if ~isempty(find(vertcat(gO.save2DbEphysSelection{:}),1)) && ~gO.simultMode
+            if selected(1)
                 for i = 1:length(gO.save2DbEphysSelection)
                     if isempty(find(gO.save2DbEphysSelection{i},1))
                         continue
@@ -1969,15 +1991,18 @@ classdef DASeV < handle
 
                         win = windowMacher(gO,1,i,j,0.25);
                         
+                        tempStruct.source = gO.path2loadedSave;
                         tempStruct.simult = 0;
                         tempStruct.parallel = 0;
-                        tempStruct.source = gO.path2loadedSave;
-                        
+                                                
                         tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
                         tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(i,win);
                         tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(i,win);
                         tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(i,win);
                         tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
+                        tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo(i).DetSettings;
+                        tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo(i).Channel;
+                        tempStruct.ephysEvents.DetNum = j;
                         
                         newSaveStruct = [newSaveStruct; tempStruct];
                     end
@@ -1986,7 +2011,7 @@ classdef DASeV < handle
                 
             end
             
-            if ~isempty(find(vertcat(gO.save2DbImagingSelection{:}),1)) && ~gO.simultMode
+            if selected(2)
                 
                 for i = 1:length(gO.save2DbImagingSelection)
                     if isempty(find(gO.save2DbImagingSelection{i},1))
@@ -2002,13 +2027,15 @@ classdef DASeV < handle
                         
                         tempStruct.source = gO.path2loadedSave;
                         tempStruct.simult = 0;
-                        tempStruct.parallel = 0;
-%                         tempStruct.detSettings =                         
+                        tempStruct.parallel = 0;                         
                         
                         tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
                         tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i,win);
                         tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i,win);
                         tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
+                        tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo(i).DetSettings;
+                        tempStruct.imagingEvents.ROINum = gO.imagingDetInfo(i).Roi;
+                        tempStruct.imagingEvents.DetNum = j;
                         
                         newSaveStruct = [newSaveStruct; tempStruct];
                     end
@@ -2016,26 +2043,32 @@ classdef DASeV < handle
 %             
             end
             
-            if (size(gO.save2DbSimultSelection,1)~=1) && gO.simultMode
+            if selected(3)
                 for i = 2:size(gO.save2DbSimultSelection,1)
                     currRow = gO.save2DbSimultSelection(i,:);
                     ephysWin = windowMacher(gO,1,currRow(1),currRow(2),0.25);
                     imagingWin = windowMacher(gO,2,currRow(3),currRow(4),0.25);
                     
+                    tempStruct.source = gO.path2loadedSave;
                     tempStruct.simult = 1;
                     tempStruct.parallel = 0;
-                    tempStruct.source = gO.path2loadedSave;
                     
                     tempStruct.ephysEvents.Taxis = gO.ephysTaxis(ephysWin);
                     tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
                     tempStruct.ephysEvents.Params = gO.ephysDetParams{currRow(1)}(currRow(2));
+                    tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo(currRow(1)).DetSettings;
+                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo(currRow(1)).Channel;
+                    tempStruct.ephysEvents.DetNum = currRow(2);
                     
                     tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
                     tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
                     tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
                     tempStruct.imagingEvents.Params = gO.imagingDetParams{currRow(3)}(currRow(4));
+                    tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo(currRow(3)).DetSettings;
+                    tempStruct.imagingEvents.ROINum = gO.imagingDetInfo(currRow(3)).Roi;
+                    tempStruct.imagingEvents.DetNum = currRow(4);
                     
                     newSaveStruct = [newSaveStruct; tempStruct];
                 end
