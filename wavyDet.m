@@ -95,10 +95,16 @@ for i = 1:min(size(data))
 
     % Instantaneous energy integral approach
     instE = trapz(abs(coeffs).^2);
-    thr = mean(instE) + sdmult*std(instE);
+%     thr = mean(instE) + sdmult*std(instE);
+    quietThr = mean(instE) + std(instE);
+    quietSegs = instE(instE < quietThr);
+    qSegsInds = instE;
+    qSegsInds(instE>=quietThr) = nan;
+    
+    thr = mean(quietSegs) + sdmult*std(quietSegs);
     
     [validDets,validDetBorders] = commDetAlg(data(i,:),instE,dogged(i,:),refch,refDogged,refDets,fs,...
-        thr,refVal,minLen);
+        thr,refVal,minLen,quietThr);
         
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;

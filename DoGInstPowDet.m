@@ -57,22 +57,23 @@ else
 end
 
 for i = 1:size(data,1)
-
+    
     if i == refch
         continue
     end
     
     % Determining background noise segments
     currInstPow = instPowd(i,:);
-    quietthr = mean(currInstPow) + std(currInstPow);
-    quietSegs = currInstPow(currInstPow < quietthr);
+    quietThr = mean(currInstPow) + std(currInstPow);
+    quietSegs = currInstPow(currInstPow < quietThr);
     qSegsInds = currInstPow;
-    qSegsInds(currInstPow>=quietthr) = nan;
+    qSegsInds(currInstPow>=quietThr) = nan;
     
     thr = mean(quietSegs) + sdmult*std(quietSegs);
+%     thr = mean(currInstPow) + sdmult*std(currInstPow);
     
     [validDets,validDetBorders] = commDetAlg(data(i,:),instPowd(i,:),dogged(i,:),...
-        refch,refDogged,refDets,fs,thr,refVal,minLen);
+        refch,refDogged,refDets,fs,thr,refVal,minLen,quietThr);
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
     
@@ -116,7 +117,7 @@ for i = 1:size(data,1)
         hold(sp2,'on')
         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
         plot(sp2,taxis,thr*ones(1,length(taxis)),'-g')
-        plot(sp2,taxis,quietthr*ones(1,length(taxis)),'-k')
+        plot(sp2,taxis,quietThr*ones(1,length(taxis)),'-k')
         plot(sp2,taxis,qSegsInds,'-m')
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
