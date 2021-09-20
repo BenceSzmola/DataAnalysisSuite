@@ -43,16 +43,16 @@ classdef DASevDB < handle
     properties (Access = private)
         loaded = [0,0,0];
         dbFileNames
+        currEvent = 1;
+        source
         
-        ephysTypeSelected
+        ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
-        ephysParams
         
-        imagingTypeSelected
+        imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
-        imagingParams
         
-        runTypeSelected
+        runTypeSelected = [1,0]; % 1==Velocity; 2==AbsPos; 3==RelPos
         runData
     end
     
@@ -74,6 +74,7 @@ classdef DASevDB < handle
         function axVisSwitch(gO,numAx)
             zum = zoom(gO.mainFig);
             panobj = pan(gO.mainFig);
+
             switch numAx
                 case 1
                     actAxes = findobj(gO.plotPanel,'Tag','axGroup1');
@@ -104,8 +105,8 @@ classdef DASevDB < handle
             setAllowAxesZoom(zum,inactAxes,false)
             setAllowAxesPan(panobj,actAxes,true)
             setAllowAxesPan(panobj,inactAxes,false)
-            for i = 1:length(inactAx)
-                cla(inactAx(i))
+            for i = 1:length(inactAxes)
+                cla(inactAxes(i))
             end
             
             drawnow
@@ -231,17 +232,46 @@ classdef DASevDB < handle
         end
         
         %%
-        function ephysPlot(gO)
+        function ephysPlot(gO,ax)
+            type = gO.ephysTypeSelected;
+            currEv = gO.currEvent;
             
+            dataWin = [];
+            if type(1)
+                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Raw];
+            end
+            if type(2)
+                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.BP];
+            end
+            if type(3)
+                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Power];                
+            end
+            taxisWin = gO.ephysEvents(currEv).Taxis;
+            
+            for i = 1:length(ax)
+                plot(ax(i),taxisWin,dataWin(i,:))
+            end
         end
         
         %%
-        function imagingPlot(gO)
+        function imagingPlot(gO,ax)
+            type = gO.imagingTypeSelected;
+            currEv = gO.currEvent;
             
+            if type(1)
+                dataWin = gO.imagingEvents(currEv).DataWin.Raw;
+            end
+            if type(2)
+                dataWin = gO.imagingEvents(currEv).DataWin.Smoothed;
+            end
+            
+            taxisWin = gO.imagingEvents(currEv).Taxis;
+            
+            plot(ax,taxisWin,dataWin)
         end
         
         %%
-        function runPlot(gO)
+        function runPlot(gO,ax)
             
         end
     end
@@ -256,28 +286,98 @@ classdef DASevDB < handle
         %%
         function loadEntryButtonPress(gO,~,~)
             selInd = gO.entryListBox.Value;
+            gO.currEvent = 1;
+            gO.ephysEvents = [];
+            gO.imagingEvents = [];
             
             DASloc = mfilename('fullpath');
             file2load = [DASloc(1:end-7),'DASeventDBdir\',gO.dbFileNames{selInd}];
             load(file2load,'saveStruct');
-            
-            temp = {'ephysTaxis';'ephysDataWin';'ephysParams'};
-            if sum(strcmp(fieldnames(saveStruct),temp)) == 3
-                
+            if isempty(saveStruct)
+                errordlg('Selected entry is empty!')
+                return
             end
             
-            temp = {'imagingTaxis';'imagingDataWin';'imagingParams'}; 
-            if sum(strcmp(fieldnames(saveStruct),temp)) == 3
-                
+            gO.source = vertcat(saveStruct.source);
+            if size(gO.source,1) ~= length(saveStruct)
+                gO.source = horzcat(saveStruct.source);
             end
             
-            temp = {'simultEphysTaxis';'simultEphysDataWin';'simultEphysParams';...
-                'simultImagingTaxis';'simultImagingDataWin';'simultImagingParams'};
+%             temp = {'ephysTaxis';'ephysDataWin';'ephysParams';'imagingTaxis';...
+%                 'imagingDataWin';'imagingParams';'simultEphysTaxis';...
+%                 'simultEphysDataWin';'simultEphysParams';...
+%                 'simultImagingTaxis';'simultImagingDataWin';'simultImagingParams'};
+%             nameMatch = ismember(temp,string(fieldnames(saveStruct)))
+            if isempty(find([saveStruct.simult],1)) && ...
+                    ismember('ephysEvents',string(fieldnames(saveStruct)))
+                
+                gO.loaded(1) = 1;
+                gO.ephysEvents = [saveStruct.ephysEvents];
+            end
+            
+            if isempty(find([saveStruct.simult],1)) && ...
+                ismember('imagingEvents',string(fieldnames(saveStruct)))
+
+                gO.loaded(2) = 1;
+                gO.imagingEvents = [saveStruct.imagingEvents];
+            end
+            
+            if ~isempty(find([saveStruct.simult],1))
+                gO.loaded(1:2) = 1;
+                gO.ephysEvents = [saveStruct.ephysEvents];
+                gO.imagingEvents = [saveStruct.imagingEvents];
+            end
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function ephysTypeMenuSel(gO,~,~)
+            [idx,tf] = listdlg('ListString',{'Raw','DoG','InstPow'},...
+                'PromptString','Select data type(s) to show detections on!');
+            if ~tf
+                return
+            end
+            
+            gO.ephysTypeSelected(:) = 0;
+            gO.ephysTypeSelected(idx) = 1;
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function imagingTypeMenuSel(gO,~,~)
+            [idx,tf] = listdlg('ListString',{'Raw','Gauss smoothed'},...
+                'PromptString','Select data type(s) to show detections on!');
+            if ~tf
+                return
+            end
+            
+            gO.imagingTypeSelected(:) = 0;
+            gO.imagingTypeSelected(idx) = 1;
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function runTypeMenuSel(gO,~,~)
+            [idx,tf] = listdlg('ListString',{'Velocity','Absolute position','Relative position'},...
+                'PromptString','Select data type to show detections on!',...
+                'SelectionMode','single');
+            if ~tf
+                return
+            end
+            
+            gO.runTypeSelected(:) = 0;
+            gO.runTypeSelected(idx) = 1;
+            
+            smartplot(gO)
         end
     end
     
     %% gui component initialization and construction
     methods (Access = private)
+        %%
         function createComponents(gO)
             %% Create figure
             gO.mainFig = figure('Units','normalized',...
@@ -294,11 +394,14 @@ classdef DASevDB < handle
             gO.optionsMenu = uimenu(gO.mainFig,...
                 'Text','Options Menu');
             gO.ephysTypeChangeMenu = uimenu(gO.optionsMenu,...
-                'Text','Change displayed ephys data');
+                'Text','Change displayed ephys data',...
+                'Callback',@ gO.ephysTypeMenuSel);
             gO.imagingTypeChangeMenu = uimenu(gO.optionsMenu,...
-                'Text','Change displayed imaging data');
+                'Text','Change displayed imaging data',...
+                'Callback',@ gO.imagingTypeMenuSel);
             gO.runTypeChangeMenu = uimenu(gO.optionsMenu,...
-                'Text','Change displayed running data');
+                'Text','Change displayed running data',...
+                'Callback',@ gO.runTypeMenuSel);
                 
             %% load panel
             gO.loadEntryPanel = uipanel(gO.mainFig,...
