@@ -3034,7 +3034,7 @@ classdef DAS < handle
             numofdetchans = size(guiobj.ephys_detections,1);
             
             chan = guiobj.ephysDetChSelPopMenu.Value;
-            if chan < min(size(guiobj.ephys_data))
+            if chan <= min(size(guiobj.ephys_data))
                 data = guiobj.ephys_data(chan,:);
             else
                 data = guiobj.ephys_data;
@@ -3077,10 +3077,17 @@ classdef DAS < handle
                         return
                     end
                     
+                    if (refVal || (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1)) && (chan == refch)
+                        errordlg('Requested channel and the reference channel are the same!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            if chan < min(size(guiobj.ephys_data))
+                            if chan <= min(size(guiobj.ephys_data))
                                 data = data_cl(chan,:);
                             else
                                 data = data_cl;
@@ -3088,7 +3095,7 @@ classdef DAS < handle
 %                             data = data_cl(chan,:);
                         case 3 % ref chan subtract
                             data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            if chan < min(size(guiobj.ephys_data))
+                            if chan <= min(size(guiobj.ephys_data))
                                 data = data_cl(chan,:);
                             else
                                 data = data_cl;
@@ -3222,10 +3229,17 @@ classdef DAS < handle
                         return
                     end
                     
+                    if (refVal || (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1)) && (chan == refch)
+                        errordlg('Requested channel and the reference channel are the same!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     switch guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            if chan < min(size(guiobj.ephys_data))
+                            if chan <= min(size(guiobj.ephys_data))
                                 data = data_cl(chan,:);
                             else
                                 data = data_cl;
@@ -3233,7 +3247,7 @@ classdef DAS < handle
 %                             data = data_cl(chan,:);
                         case 3 % ref chan subtract
                             data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            if chan < min(size(guiobj.ephys_data))
+                            if chan <= min(size(guiobj.ephys_data))
                                 data = data_cl(chan,:);
                             else
                                 data = data_cl;
