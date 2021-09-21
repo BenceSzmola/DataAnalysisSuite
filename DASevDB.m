@@ -22,6 +22,8 @@ classdef DASevDB < handle
         
         %% plotPanel
         plotPanel
+        eventUpButton
+        eventDwnButton
         ax11
         ax21
         ax22
@@ -44,6 +46,7 @@ classdef DASevDB < handle
         loaded = [0,0,0];
         dbFileNames
         currEvent = 1;
+        numEvents = 0;
         source
         
         ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
@@ -52,7 +55,7 @@ classdef DASevDB < handle
         imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
         
-        runTypeSelected = [1,0]; % 1==Velocity; 2==AbsPos; 3==RelPos
+        runTypeSelected = [1,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos
         runData
     end
     
@@ -98,18 +101,17 @@ classdef DASevDB < handle
                         '-and','Type','axes');
             end
             
-            set(actAxes,'Visible','on')
+            for i = 1:length(inactAxes)
+                cla(inactAxes(i))
+            end
+            
             set(inactAxes,'Visible','off')
+            set(actAxes,'Visible','on')
             
             setAllowAxesZoom(zum,actAxes,true)
             setAllowAxesZoom(zum,inactAxes,false)
             setAllowAxesPan(panobj,actAxes,true)
             setAllowAxesPan(panobj,inactAxes,false)
-            for i = 1:length(inactAxes)
-                cla(inactAxes(i))
-            end
-            
-            drawnow
         end
         
         %% 
@@ -235,22 +237,40 @@ classdef DASevDB < handle
         function ephysPlot(gO,ax)
             type = gO.ephysTypeSelected;
             currEv = gO.currEvent;
+            axTag = cell(length(ax),1);
+            for i = 1:length(ax)
+                axTag{i} = ax.Tag;
+            end
             
             dataWin = [];
+            yLabels = [];
+            plotTitle = [];
             if type(1)
                 dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Raw];
+                yLabels = [yLabels; "Voltage [\muV]"];
+                plotTitle = [plotTitle; "Raw data"];
             end
             if type(2)
                 dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.BP];
+                yLabels = [yLabels; "Voltage [\muV]"];
+                plotTitle = [plotTitle; "Bandpass filtered data"];
             end
             if type(3)
-                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Power];                
+                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Power];
+                yLabels = [yLabels; "Power [\muV^2]"];
+                plotTitle = [plotTitle; "Instantaneous power of data"];
             end
             taxisWin = gO.ephysEvents(currEv).Taxis;
             
             for i = 1:length(ax)
                 plot(ax(i),taxisWin,dataWin(i,:))
+                ylabel(ax(i),yLabels(i))
+                title(ax(i),plotTitle(i))
+                xlabel(ax(i),'Time [s]')
+                axis(ax(i),'tight')
+                ax(i).Tag = axTag{i};
             end
+            
             
             temp = [fieldnames([gO.ephysEvents(currEv).Params]),...
                 squeeze(struct2cell([gO.ephysEvents(currEv).Params]))];
@@ -261,22 +281,77 @@ classdef DASevDB < handle
         function imagingPlot(gO,ax)
             type = gO.imagingTypeSelected;
             currEv = gO.currEvent;
+            axTag = ax.Tag;
             
             if type(1)
                 dataWin = gO.imagingEvents(currEv).DataWin.Raw;
+                yLabels = '\DeltaF/F';
+                plotTitle = 'Raw imaging data';
             end
             if type(2)
                 dataWin = gO.imagingEvents(currEv).DataWin.Smoothed;
+                yLabels = '\DeltaF/F';
+                plotTitle = 'Smoothed imaging data';
             end
             
             taxisWin = gO.imagingEvents(currEv).Taxis;
             
             plot(ax,taxisWin,dataWin)
+            ylabel(ax,yLabels)
+            title(ax,plotTitle)
+            xlabel(ax,'Time [s]')
+            axis(ax,'tight')
+            ax.Tag = axTag;
+            
+            temp = [fieldnames([gO.imagingEvents(currEv).Params]),...
+                squeeze(struct2cell([gO.imagingEvents(currEv).Params]))];
+            gO.imagingParamTable.Data = temp;
         end
         
         %%
         function runPlot(gO,ax)
+            type = gO.runTypeSelected;
+            currEv = gO.currEvent;
+            axTag = ax.Tag;
             
+            if type(1)
+                dataWin = gO.runData(currEv).DataWin.Velocity;
+                yLabels = 'Velocity [cm/s]';
+                plotTitle = 'Velocity on treadmill';
+            elseif type(2)
+                dataWin = gO.runData(currEv).DataWin.AbsPos;
+                yLabels = 'Absolute position [cm]';
+                plotTitle = 'Absolute position on treadmill';
+            elseif type(3)
+                dataWin = gO.runData(currEv).DataWin.RelPos;
+                yLabels = 'Relative position [%]';
+                plotTitle = 'Relative position on treadmill';
+            end
+            
+            plot(ax,gO.runData(currEv).Taxis,dataWin)
+            xlabel(ax,'Time [s]')
+            ylabel(ax,yLabels)
+            title(ax,plotTitle)
+            axis(ax,'tight')
+            ax.Tag = axTag;
+        end
+        
+        %%
+        function changeCurrEv(gO,upDwn) 
+            numEvs = gO.numEvents;
+            currEv = gO.currEvent;
+            switch upDwn
+                case 1
+                    if currEv < numEvs
+                        currEv = currEv + 1;
+                    end
+                case -1
+                    if currEv > 1
+                        currEv = currEv - 1;
+                    end
+            end
+            gO.currEvent = currEv;
+            smartplot(gO)
         end
     end
     
@@ -284,7 +359,17 @@ classdef DASevDB < handle
     methods (Access = private)
         %%
         function keyboardPressFcn(gO,~,kD)
-            
+            switch kD.Key
+                case 'rightarrow'
+                    upDwn = 1;
+                case 'leftarrow'
+                    upDwn = -1;
+                case 'uparrow'
+                    upDwn = 1;
+                case 'downarrow'
+                    upDwn = -1;
+            end
+            changeCurrEv(gO,upDwn)
         end
         
         %%
@@ -293,6 +378,11 @@ classdef DASevDB < handle
             gO.currEvent = 1;
             gO.ephysEvents = [];
             gO.imagingEvents = [];
+            gO.loaded = [0,0,0];
+            gO.ephysParamTable.Data = {};
+            gO.ephysParamTable.Visible = 'off';
+            gO.imagingParamTable.Data = {};
+            gO.imagingParamTable.Visible = 'off';
             
             DASloc = mfilename('fullpath');
             file2load = [DASloc(1:end-7),'DASeventDBdir\',gO.dbFileNames{selInd}];
@@ -314,22 +404,33 @@ classdef DASevDB < handle
 %             nameMatch = ismember(temp,string(fieldnames(saveStruct)))
             if isempty(find([saveStruct.simult],1)) && ...
                     ismember('ephysEvents',string(fieldnames(saveStruct)))
-                
+                gO.numEvents = length(saveStruct);
                 gO.loaded(1) = 1;
                 gO.ephysEvents = [saveStruct.ephysEvents];
+                gO.ephysParamTable.Visible = 'on';
             end
             
             if isempty(find([saveStruct.simult],1)) && ...
-                ismember('imagingEvents',string(fieldnames(saveStruct)))
-
+                    ismember('imagingEvents',string(fieldnames(saveStruct)))
+                
+                gO.numEvents = length(saveStruct);
                 gO.loaded(2) = 1;
                 gO.imagingEvents = [saveStruct.imagingEvents];
+                gO.imagingParamTable.Visible = 'on';
             end
             
             if ~isempty(find([saveStruct.simult],1))
+                gO.numEvents = length(saveStruct);
                 gO.loaded(1:2) = 1;
                 gO.ephysEvents = [saveStruct.ephysEvents];
                 gO.imagingEvents = [saveStruct.imagingEvents];
+                gO.ephysParamTable.Visible = 'on';
+                gO.imagingParamTable.Visible = 'on';
+            end
+            
+            if ismember('runData',string(fieldnames(saveStruct)))
+                gO.loaded(3) = 1;
+                gO.runData = saveStruct.runData;
             end
             
             smartplot(gO)
@@ -337,8 +438,10 @@ classdef DASevDB < handle
         
         %%
         function ephysTypeMenuSel(gO,~,~)
+            initVal = find(gO.ephysTypeSelected);
             [idx,tf] = listdlg('ListString',{'Raw','DoG','InstPow'},...
-                'PromptString','Select data type(s) to show detections on!');
+                'PromptString','Select data type(s) to show detections on!',...
+                'InitialValue',initVal);
             if ~tf
                 return
             end
@@ -351,8 +454,10 @@ classdef DASevDB < handle
         
         %%
         function imagingTypeMenuSel(gO,~,~)
+            initVal = find(gO.imagingTypeSelected);
             [idx,tf] = listdlg('ListString',{'Raw','Gauss smoothed'},...
-                'PromptString','Select data type(s) to show detections on!');
+                'PromptString','Select data type(s) to show detections on!',...
+                'SelectionMode','single','InitialValue',initVal);
             if ~tf
                 return
             end
@@ -365,9 +470,10 @@ classdef DASevDB < handle
         
         %%
         function runTypeMenuSel(gO,~,~)
+            initVal = find(gO.runTypeSelected);
             [idx,tf] = listdlg('ListString',{'Velocity','Absolute position','Relative position'},...
                 'PromptString','Select data type to show detections on!',...
-                'SelectionMode','single');
+                'SelectionMode','single','InitialValue',initVal);
             if ~tf
                 return
             end
@@ -462,6 +568,18 @@ classdef DASevDB < handle
                 'Position',[0.22, 0.01, 0.775, 0.98],...
                 'BorderType','beveledout',...
                 'TItle','Graphs');
+            gO.eventUpButton = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.96, 0.95, 0.035, 0.035],...
+                'String','<HTML>Event&uarr',...
+                'Callback',@(h,e) gO.changeCurrEv(1));
+            gO.eventDwnButton = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.96, 0.9, 0.035, 0.035],...
+                'String','<HTML>Event&darr',...
+                'Callback',@(h,e) gO.changeCurrEv(-1));
             gO.ax11 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.6],...
                 'Visible','off',...
                 'Tag','axGroup1');
