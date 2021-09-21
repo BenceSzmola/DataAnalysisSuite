@@ -14,6 +14,12 @@ classdef DASevDB < handle
         entryListBox
         loadEntryButton
         
+        %% infoPanel
+        infoPanel
+        sourceFileLabel
+        sourceFileTxt
+        sourceChanDetTable
+        
         %% paramPanel
         paramPanel
         ephysParamTable
@@ -117,6 +123,10 @@ classdef DASevDB < handle
         %% 
         function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypeSelected)-1))
+            
+%             outtxt = textwrap(gO.sourceFileTxt,{gO.source(gO.currEvent,:)})
+            gO.sourceFileTxt.String = gO.source(gO.currEvent,:);
+            gO.sourceFileTxt.Tooltip = gO.source(gO.currEvent,:);
             
             switch sum(gO.loaded)
                 case 1
@@ -275,6 +285,9 @@ classdef DASevDB < handle
             temp = [fieldnames([gO.ephysEvents(currEv).Params]),...
                 squeeze(struct2cell([gO.ephysEvents(currEv).Params]))];
             gO.ephysParamTable.Data = temp;
+            
+            gO.sourceChanDetTable.Data(1,:) = {gO.ephysEvents(currEv).ChanNum,...
+                gO.ephysEvents(currEv).DetNum};
         end
         
         %%
@@ -306,6 +319,9 @@ classdef DASevDB < handle
             temp = [fieldnames([gO.imagingEvents(currEv).Params]),...
                 squeeze(struct2cell([gO.imagingEvents(currEv).Params]))];
             gO.imagingParamTable.Data = temp;
+            
+             gO.sourceChanDetTable.Data(2,:) = {gO.imagingEvents(currEv).ROINum,...
+                gO.imagingEvents(currEv).DetNum};
         end
         
         %%
@@ -359,6 +375,10 @@ classdef DASevDB < handle
     methods (Access = private)
         %%
         function keyboardPressFcn(gO,~,kD)
+            if sum(gO.loaded) == 0
+                return
+            end
+            
             switch kD.Key
                 case 'rightarrow'
                     upDwn = 1;
@@ -383,6 +403,7 @@ classdef DASevDB < handle
             gO.ephysParamTable.Visible = 'off';
             gO.imagingParamTable.Data = {};
             gO.imagingParamTable.Visible = 'off';
+            gO.sourceChanDetTable.Data = cell(2,2);
             
             DASloc = mfilename('fullpath');
             file2load = [DASloc(1:end-7),'DASeventDBdir\',gO.dbFileNames{selInd}];
@@ -515,7 +536,7 @@ classdef DASevDB < handle
                 
             %% load panel
             gO.loadEntryPanel = uipanel(gO.mainFig,...
-                'Position',[0.01, 0.7, 0.2, 0.29],...
+                'Position',[0.01, 0.8, 0.2, 0.19],...
                 'BorderType','beveledout',...
                 'Title','Database entries:');
             
@@ -544,6 +565,29 @@ classdef DASevDB < handle
                 'Position',[0.75, 0.01, 0.24, 0.1],...
                 'String','Load',...
                 'Callback',@ gO.loadEntryButtonPress);
+            
+            %% info panel
+            gO.infoPanel = uipanel(gO.mainFig,...
+                'Position',[0.01, 0.67, 0.2, 0.12],...
+                'BorderType','beveledout',...
+                'Title','Event info');
+            gO.sourceFileLabel = uicontrol(gO.infoPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.01, 0.85, 0.2, 0.15],...
+                'String','Source file:');
+            gO.sourceFileTxt = uicontrol(gO.infoPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.22, 0.71, 0.77, 0.28],...
+                'String','');
+            gO.sourceChanDetTable = uitable(gO.infoPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.98, 0.7],...
+                'ColumnWidth',{100,75},...
+                'ColumnName',{'Chan/ROI#','Det#'},...
+                'RowName',{'Ephys','Imaging'},...
+                'Data',cell(2,2));
             
             %% param panel
             gO.paramPanel = uipanel(gO.mainFig,...
