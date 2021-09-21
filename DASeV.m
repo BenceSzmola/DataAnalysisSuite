@@ -2177,8 +2177,29 @@ classdef DASeV < handle
                 end
             else
                 dbName = dbFiles{ind}(12:end-4);
-                saveFname = dbFiles{ind};
+                saveFname = [DASloc(1:end-5),'DASeventDBdir\',dbFiles{ind}];
                 load(saveFname,'saveStruct')
+                
+                % Checking whether the user chose a fitting db entry
+                if saveStruct(1).simult
+                    if ~selected(3)
+                        errordlg(['The entry you chose contains simult events!',...
+                            ' Choose another, or create a new one!'])
+                        return
+                    end
+                elseif ~saveStruct(1).simult
+                    if simult(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
+                        errordlg(['The entry you chose contains only ',...
+                            'electrophysiological events! ',...
+                            'Choose another, or create a new one!'])
+                        return
+                    end
+                    if simult(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))
+                        errordlg(['The entry you chose contains only ',...
+                            'imaging events! Choose another, or create a new one!'])
+                        return
+                    end
+                end
             end
             
             if ~isempty(newSaveStruct)
