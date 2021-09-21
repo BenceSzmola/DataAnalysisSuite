@@ -1146,6 +1146,20 @@ classdef DASeV < handle
             win = winStart:winEnd;
         end
         
+        %%
+        function win = runWindowMacher(gO,tWin)
+            if (tWin(1) < gO.runTaxis(1)) || (tWin(1) > gO.runTaxis(1))
+                win = [];
+                return
+            end
+            
+            temp = gO.runTaxis-tWin(1);
+            [~,winStart] = min(abs(temp));
+            temp = gO.runTaxis-tWin(2);
+            [~,winEnd] = min(abs(temp));
+            win = winStart:winEnd;
+        end
+        
     end
     
     %% Callback functions
@@ -2004,6 +2018,19 @@ classdef DASeV < handle
                         tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo(i).Channel;
                         tempStruct.ephysEvents.DetNum = j;
                         
+                        if gO.save2DbRunningChechBox.Value
+                            refWin = gO.ephysTaxis(win);
+                            runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                            if ~isempty(runWin)
+                                newSaveStruct.runData.Taxis
+                                newSaveStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                newSaveStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                newSaveStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                                newSaveStruct.runData.Lap = gO.runLap(runWin);
+                                newSaveStruct.runData.Licks = gO.runLicks(runWin);
+                            end
+                        end
+                        
                         newSaveStruct = [newSaveStruct; tempStruct];
                     end
                     
@@ -2036,6 +2063,19 @@ classdef DASeV < handle
                         tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo(i).DetSettings;
                         tempStruct.imagingEvents.ROINum = gO.imagingDetInfo(i).Roi;
                         tempStruct.imagingEvents.DetNum = j;
+                        
+                        if gO.save2DbRunningChechBox.Value
+                            refWin = gO.imagingTaxis(win);
+                            runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                            if ~isempty(runWin)
+                                newSaveStruct.runData.Taxis
+                                newSaveStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                newSaveStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                newSaveStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                                newSaveStruct.runData.Lap = gO.runLap(runWin);
+                                newSaveStruct.runData.Licks = gO.runLicks(runWin);
+                            end
+                        end
                         
                         newSaveStruct = [newSaveStruct; tempStruct];
                     end
@@ -2070,14 +2110,21 @@ classdef DASeV < handle
                     tempStruct.imagingEvents.ROINum = gO.imagingDetInfo(currRow(3)).Roi;
                     tempStruct.imagingEvents.DetNum = currRow(4);
                     
+                    if gO.save2DbRunningChechBox.Value
+                        refWin = gO.ephysTaxis(ephysWin);
+                        runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                        if ~isemtpy(runWin)
+                            newSaveStruct.runData.Taxis
+                            newSaveStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                            newSaveStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                            newSaveStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                            newSaveStruct.runData.Lap = gO.runLap(runWin);
+                            newSaveStruct.runData.Licks = gO.runLicks(runWin);
+                        end
+                    end
+                    
                     newSaveStruct = [newSaveStruct; tempStruct];
                 end
-            end
-            
-            if gO.save2DbRunningChechBox.Value && ~isempty(newSaveStruct)
-                
-                newSaveStruct.runDataWin.Velocity = gO.runVeloc;
-%               
             end
             
             DASloc = mfilename('fullpath');
