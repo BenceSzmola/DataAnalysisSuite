@@ -12,6 +12,8 @@ classdef DASevDB < handle
         %% loadPanel
         loadEntryPanel
         entryListBox
+        LBcontMenu
+        cMenu1
         loadEntryButton
         
         %% infoPanel
@@ -79,6 +81,31 @@ classdef DASevDB < handle
     
     %% Helper functions
     methods (Access = private)
+        %%
+        function getDBlist(gO,writeToGUI)
+            DASloc = mfilename('fullpath');
+            if ~exist([DASloc(1:end-7),'DASeventDBdir\'],'dir')
+                DBentryList = {'No DB entries! First create them in DASeV!'};
+                gO.entryListBox.Value = 1;
+                gO.loadEntryButton.Enable = 'off';
+            else
+                DBentryList = dir([DASloc(1:end-7),'DASeventDBdir\','DASeventDB*.mat']);
+                if isempty(DBentryList)
+                    DBentryList = {'No DB entries! First create them in DASeV!'};
+                    gO.entryListBox.Value = 1;
+                    gO.loadEntryButton.Enable = 'off';
+                else
+                    DBentryList = {DBentryList.name};
+                    gO.dbFileNames = DBentryList;
+                    gO.loadEntryButton.Enable = 'on';
+                end
+            end
+            
+            if writeToGUI
+                gO.entryListBox.String = DBentryList;
+            end
+        end
+        
         %%
         function axVisSwitch(gO,numAx)
             zum = zoom(gO.mainFig);
@@ -411,9 +438,9 @@ classdef DASevDB < handle
                 case 'leftarrow'
                     upDwn = -1;
                 case 'uparrow'
-                    upDwn = 1;
+                    
                 case 'downarrow'
-                    upDwn = -1;
+                    
             end
             changeCurrEv(gO,upDwn)
         end
@@ -566,25 +593,30 @@ classdef DASevDB < handle
                 'BorderType','beveledout',...
                 'Title','Database entries:');
             
-            DASloc = mfilename('fullpath');
-            if ~exist([DASloc(1:end-7),'DASeventDBdir\'],'dir')
-                DBentryList = {'No DB entries! First create them in DASeV!'};
-            else
-                DBentryList = dir([DASloc(1:end-7),'DASeventDBdir\','DASeventDB*.mat']);
-                if isempty(DBentryList)
-                    DBentryList = {'No DB entries! First create them in DASeV!'};
-                    gO.loadEntryButton.Enable = 'off';
-                else
-                    DBentryList = {DBentryList.name};
-                    gO.dbFileNames = DBentryList;
-                    gO.loadEntryButton.Enable = 'on';
-                end
-            end
+%             DASloc = mfilename('fullpath');
+%             if ~exist([DASloc(1:end-7),'DASeventDBdir\'],'dir')
+%                 DBentryList = {'No DB entries! First create them in DASeV!'};
+%             else
+%                 DBentryList = dir([DASloc(1:end-7),'DASeventDBdir\','DASeventDB*.mat']);
+%                 if isempty(DBentryList)
+%                     DBentryList = {'No DB entries! First create them in DASeV!'};
+%                     gO.loadEntryButton.Enable = 'off';
+%                 else
+%                     DBentryList = {DBentryList.name};
+%                     gO.dbFileNames = DBentryList;
+%                     gO.loadEntryButton.Enable = 'on';
+%                 end
+%             end
+            gO.LBcontMenu = uicontextmenu(gO.mainFig);
             gO.entryListBox = uicontrol(gO.loadEntryPanel,...
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0.01, 0.15, 0.98, 0.84],...
-                'String',DBentryList);
+                'String','',...
+                'UIContextMenu',gO.LBcontMenu);
+            gO.cMenu1 = uimenu(gO.LBcontMenu,'Text','Update list',...
+                'Callback',@(h,e) gO.getDBlist(1));
+            getDBlist(gO,1)           
             gO.loadEntryButton = uicontrol(gO.loadEntryPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
