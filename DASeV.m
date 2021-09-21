@@ -1113,7 +1113,7 @@ classdef DASeV < handle
         end
         
         %%
-        function [win] = windowMacher(gO,dTyp,chanNum,detNum,winLen)
+        function [win,relBorders] = windowMacher(gO,dTyp,chanNum,detNum,winLen)
             if nargin < 5 || isempty(winLen)
                 winLen = 0.25;
             end
@@ -1122,26 +1122,46 @@ classdef DASeV < handle
                     detArray = gO.ephysDets;
                     fs = gO.ephysFs;
                     lenData = length(gO.ephysData);
+                    detBorders = gO.ephysDetBorders;
                 case 2
                     detArray = gO.imagingDets;
                     fs = gO.imagingFs;
                     lenData = length(gO.imagingData);
+                    detBorders = gO.imagingDetBorders;
             end
             
-            dets = detArray(chanNum,:);
-            dets = find(~isnan(dets));
-            detInd = dets(detNum);
-
             winLen = round(fs*winLen);
-            if (detInd-winLen) > 1
-                winStart = detInd-winLen;
+            
+            if ~isempty(detBorders)
+                detBorders = detBorders{chanNum}(detNum,:);
+                if (detBorders(1)-winLen) > 1
+                    winStart = detBorders(1)-winLen;
+                else
+                    winStart = 1;
+                end
+                
+                if (detBorders(2)+winLen) <= lenData
+                    winEnd = detBorders(2)+winLen;
+                else
+                    winEnd = lenData;
+                end
+                relBorders = detBorders-winStart+1;
             else
-                winStart = 1;
-            end
-            if (detInd+winLen) <= lenData
-                winEnd = detInd+winLen;
-            else
-                winEnd = lenData;
+                dets = detArray(chanNum,:);
+                dets = find(~isnan(dets));
+                detInd = dets(detNum);
+            
+                if (detInd-winLen) > 1
+                    winStart = detInd-winLen;
+                else
+                    winStart = 1;
+                end
+                if (detInd+winLen) <= lenData
+                    winEnd = detInd+winLen;
+                else
+                    winEnd = lenData;
+                end
+                relBorders = [];
             end
             win = winStart:winEnd;
         end
@@ -2003,7 +2023,7 @@ classdef DASeV < handle
                             continue
                         end
 
-                        win = windowMacher(gO,1,i,j,0.25);
+                        [win,relBorders] = windowMacher(gO,1,i,j,0.25);
                         
                         tempStruct.source = gO.path2loadedSave;
                         tempStruct.simult = 0;
@@ -2013,6 +2033,7 @@ classdef DASeV < handle
                         tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(i,win);
                         tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(i,win);
                         tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(i,win);
+                        tempStruct.ephysEvents.DetBorders = relBorders;
                         tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
                         tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo(i).DetSettings;
                         tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo(i).Channel;
@@ -2050,7 +2071,7 @@ classdef DASeV < handle
                             continue
                         end
                         
-                        win = windowMacher(gO,2,i,j,0.25);
+                        [win,relBorders] = windowMacher(gO,2,i,j,0.25);
                         
                         tempStruct.source = gO.path2loadedSave;
                         tempStruct.simult = 0;
@@ -2059,6 +2080,7 @@ classdef DASeV < handle
                         tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
                         tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i,win);
                         tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i,win);
+                        tempStruct.imagingEvents.DetBorders = relBorders;
                         tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
                         tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo(i).DetSettings;
                         tempStruct.imagingEvents.ROINum = gO.imagingDetInfo(i).Roi;
@@ -2086,8 +2108,8 @@ classdef DASeV < handle
             if selected(3)
                 for i = 2:size(gO.save2DbSimultSelection,1)
                     currRow = gO.save2DbSimultSelection(i,:);
-                    ephysWin = windowMacher(gO,1,currRow(1),currRow(2),0.25);
-                    imagingWin = windowMacher(gO,2,currRow(3),currRow(4),0.25);
+                    [ephysWin,ephysRelBorders] = windowMacher(gO,1,currRow(1),currRow(2),0.25);
+                    [imagingWin,imagingRelBorders] = windowMacher(gO,2,currRow(3),currRow(4),0.25);
                     
                     tempStruct.source = gO.path2loadedSave;
                     tempStruct.simult = 1;
@@ -2097,6 +2119,7 @@ classdef DASeV < handle
                     tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
+                    tempStruct.ephysEvents.DetBorders = ephysRelBorders;
                     tempStruct.ephysEvents.Params = gO.ephysDetParams{currRow(1)}(currRow(2));
                     tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo(currRow(1)).DetSettings;
                     tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo(currRow(1)).Channel;
@@ -2105,6 +2128,7 @@ classdef DASeV < handle
                     tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
                     tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
                     tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
+                    tempStruct.imagingEvents.DetBorders = imagingRelBorders;
                     tempStruct.imagingEvents.Params = gO.imagingDetParams{currRow(3)}(currRow(4));
                     tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo(currRow(3)).DetSettings;
                     tempStruct.imagingEvents.ROINum = gO.imagingDetInfo(currRow(3)).Roi;

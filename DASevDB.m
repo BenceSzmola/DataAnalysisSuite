@@ -246,7 +246,7 @@ classdef DASevDB < handle
         %%
         function ephysPlot(gO,ax)
             type = gO.ephysTypeSelected;
-            currEv = gO.currEvent;
+            currEv = gO.ephysEvents(gO.currEvent);
             axTag = cell(length(ax),1);
             for i = 1:length(ax)
                 axTag{i} = ax.Tag;
@@ -256,24 +256,39 @@ classdef DASevDB < handle
             yLabels = [];
             plotTitle = [];
             if type(1)
-                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Raw];
+                dataWin = [dataWin; currEv.DataWin.Raw];
                 yLabels = [yLabels; "Voltage [\muV]"];
                 plotTitle = [plotTitle; "Raw data"];
             end
             if type(2)
-                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.BP];
+                dataWin = [dataWin; currEv.DataWin.BP];
                 yLabels = [yLabels; "Voltage [\muV]"];
                 plotTitle = [plotTitle; "Bandpass filtered data"];
             end
             if type(3)
-                dataWin = [dataWin; gO.ephysEvents(currEv).DataWin.Power];
+                dataWin = [dataWin; currEv.DataWin.Power];
                 yLabels = [yLabels; "Power [\muV^2]"];
                 plotTitle = [plotTitle; "Instantaneous power of data"];
             end
-            taxisWin = gO.ephysEvents(currEv).Taxis;
+            taxisWin = currEv.Taxis;
             
             for i = 1:length(ax)
                 plot(ax(i),taxisWin,dataWin(i,:))
+                
+                hold(ax(i),'on')
+%                 xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
+                if ~isempty(currEv.DetBorders)
+                    xline(ax(i),taxisWin(currEv.DetBorders(1)),'--b','LineWidth',1);
+                    xline(ax(i),taxisWin(currEv.DetBorders(2)),'--b','LineWidth',1);
+                    hL = dataWin(i,:);
+                    temp1 = find(taxisWin==taxisWin(currEv.DetBorders(1)));
+                    temp2 = find(taxisWin==taxisWin(currEv.DetBorders(2)));
+                    hL(1:temp1-1) = nan;
+                    hL(temp2+1:end) = nan;
+                    plot(ax(i),taxisWin,hL,'-r','LineWidth',0.75)
+                end
+                hold(ax(i),'off')
+                
                 ylabel(ax(i),yLabels(i))
                 title(ax(i),plotTitle(i))
                 xlabel(ax(i),'Time [s]')
@@ -282,69 +297,80 @@ classdef DASevDB < handle
             end
             
             
-            temp = [fieldnames([gO.ephysEvents(currEv).Params]),...
-                squeeze(struct2cell([gO.ephysEvents(currEv).Params]))];
+            temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
             gO.ephysParamTable.Data = temp;
             
-            gO.sourceChanDetTable.Data(1,:) = {gO.ephysEvents(currEv).ChanNum,...
-                gO.ephysEvents(currEv).DetNum};
+            gO.sourceChanDetTable.Data(1,:) = {currEv.ChanNum,currEv.DetNum};
         end
         
         %%
         function imagingPlot(gO,ax)
             type = gO.imagingTypeSelected;
-            currEv = gO.currEvent;
+            currEv = gO.imagingEvents(gO.currEvent);
             axTag = ax.Tag;
             
             if type(1)
-                dataWin = gO.imagingEvents(currEv).DataWin.Raw;
+                dataWin = currEv.DataWin.Raw;
                 yLabels = '\DeltaF/F';
                 plotTitle = 'Raw imaging data';
             end
             if type(2)
-                dataWin = gO.imagingEvents(currEv).DataWin.Smoothed;
+                dataWin = currEv.DataWin.Smoothed;
                 yLabels = '\DeltaF/F';
                 plotTitle = 'Smoothed imaging data';
             end
             
-            taxisWin = gO.imagingEvents(currEv).Taxis;
+            taxisWin = currEv.Taxis;
             
             plot(ax,taxisWin,dataWin)
+            
+            hold(ax,'on')
+%             xline(ax,tDetInds(j),'Color','g','LineWidth',1);
+            if ~isempty(currEv.DetBorders)
+                xline(ax,taxisWin(currEv.DetBorders(1)),'--b','LineWidth',1);
+                xline(ax,taxisWin(currEv.DetBorders(2)),'--b','LineWidth',1);
+                hL = dataWin;
+                temp1 = find(taxisWin==taxisWin(currEv.DetBorders(1)));
+                temp2 = find(taxisWin==taxisWin(currEv.DetBorders(2)));
+                hL(1:temp1-1) = nan;
+                hL(temp2+1:end) = nan;
+                plot(ax,taxisWin,hL,'-r','LineWidth',0.75)
+            end
+            hold(ax,'off')
+            
             ylabel(ax,yLabels)
             title(ax,plotTitle)
             xlabel(ax,'Time [s]')
             axis(ax,'tight')
             ax.Tag = axTag;
             
-            temp = [fieldnames([gO.imagingEvents(currEv).Params]),...
-                squeeze(struct2cell([gO.imagingEvents(currEv).Params]))];
+            temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
             gO.imagingParamTable.Data = temp;
             
-             gO.sourceChanDetTable.Data(2,:) = {gO.imagingEvents(currEv).ROINum,...
-                gO.imagingEvents(currEv).DetNum};
+             gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
         end
         
         %%
         function runPlot(gO,ax)
             type = gO.runTypeSelected;
-            currEv = gO.currEvent;
+            currEv = gO.runData(gO.currEvent);
             axTag = ax.Tag;
             
             if type(1)
-                dataWin = gO.runData(currEv).DataWin.Velocity;
+                dataWin = currEv.DataWin.Velocity;
                 yLabels = 'Velocity [cm/s]';
                 plotTitle = 'Velocity on treadmill';
             elseif type(2)
-                dataWin = gO.runData(currEv).DataWin.AbsPos;
+                dataWin = currEv.DataWin.AbsPos;
                 yLabels = 'Absolute position [cm]';
                 plotTitle = 'Absolute position on treadmill';
             elseif type(3)
-                dataWin = gO.runData(currEv).DataWin.RelPos;
+                dataWin = currEv.DataWin.RelPos;
                 yLabels = 'Relative position [%]';
                 plotTitle = 'Relative position on treadmill';
             end
             
-            plot(ax,gO.runData(currEv).Taxis,dataWin)
+            plot(ax,currEv.Taxis,dataWin)
             xlabel(ax,'Time [s]')
             ylabel(ax,yLabels)
             title(ax,plotTitle)
