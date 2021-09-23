@@ -2190,8 +2190,8 @@ classdef DASeV < handle
                 elseif ~saveStruct(1).simult
                     if simult(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
                         errordlg(['The entry you chose contains only ',...
-                            'electrophysiological events! ',...
-                            'Choose another, or create a new one!'])
+                            'electrophysiological events! Choose another, ',...
+                            'or create a new one!'])
                         return
                     end
                     if simult(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))

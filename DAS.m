@@ -4069,7 +4069,8 @@ classdef DAS < handle
                     return
                 end
                 
-                if ~isempty(find(ismember(indx,currDetRows)==false, 1))
+%                 if ~isempty(find(ismember(indx,currDetRows)==false, 1))
+                if length(unique([detInfo(indx).DetRun]))~=1
                     warndlg('Please only select from same detection run!')
                     return
                 end
@@ -4117,7 +4118,8 @@ classdef DAS < handle
                     return
                 end
                 
-                if ~isempty(find(ismember(indx,currDetRows)==false,1))
+%                 if ~isempty(find(ismember(indx,currDetRows)==false,1))
+                if length(unique([detInfo(indx).DetRun]))~=1
                     warndlg('Please only select from same detection run!')
                     return
                 end
@@ -4378,7 +4380,7 @@ classdef DAS < handle
         function testcallback(varargin)
             display(varargin)
             assignin('base','testinput',varargin)
-            display(varargin{1}.tabs.SelectedTab.Title)
+            
         end
         
     end
