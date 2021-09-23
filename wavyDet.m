@@ -148,10 +148,14 @@ for i = 1:min(size(data))
         hold(sp2,'on')
         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
         yline(sp2,thr,'Color','g');
-        legend(sp2,'Inst. Energy integral','Detections','threshold')
+        yline(sp2,quietThr,'Color','k');
+        plot(sp2,taxis,qSegsInds,'-m')
+        legend(sp2,'Inst. Energy integral','Detections','Detection threshold',...
+            'Quiet threshold','Quiet segments')
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
         ylabel(sp2,'CWT coefficient magnitude')
+        title(sp2,'Instantaneous energy based on CWT')
 
         xtraFig.Visible = 'on';
         
