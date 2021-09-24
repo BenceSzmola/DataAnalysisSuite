@@ -12,6 +12,12 @@ function [validDets,validDetsStartStop] = commDetAlg(rawData,detData,corrData,..
     if nargin < 11
         quietThr = [];
     end
+    
+    % Creating a container to store events which were discarded by the
+    % refchan validation mechanic
+    if refVal ~= 0
+        refValVictims = [];
+    end
 
     minSepar = round(0.03*fs);
     minLen = round(minLen*fs);
@@ -80,13 +86,14 @@ function [validDets,validDetsStartStop] = commDetAlg(rawData,detData,corrData,..
 
             if condit & vEvents(j)
                 vEvents(j) = true;
-            else
+            elseif ~condit & vEvents(j)
                 vEvents(j) = false;
+                refValVictims = [refValVictims, j];
             end
 
         end
     end
-
+    
     allDets(eventsPeak) = 0;
     allDetsStartStop = eventsStartStop;
     validDets(eventsPeak(vEvents)) = 0;
@@ -115,20 +122,20 @@ function [validDets,validDetsStartStop] = commDetAlg(rawData,detData,corrData,..
         extEventsStartStop = validDetsStartStop;
         for j = 1:size(validDetsStartStop,1)
             if j == 1
-                extEventsStartStop(j,1) = narrowBorders(1:validDetsStartStop(j,1),j,1);
+                extEventsStartStop(j,1) = extBorders(1:validDetsStartStop(j,1),j,1);
             else
-                extEventsStartStop(j,1) = narrowBorders(validDetsStartStop(j-1,2):validDetsStartStop(j,1),j,1);
+                extEventsStartStop(j,1) = extBorders(validDetsStartStop(j-1,2):validDetsStartStop(j,1),j,1);
             end
             if j == size(validDetsStartStop,1)
-                extEventsStartStop(j,2) = narrowBorders(validDetsStartStop(j,2):length(detDataModQ),j,2);
+                extEventsStartStop(j,2) = extBorders(validDetsStartStop(j,2):length(detDataModQ),j,2);
             else
-                extEventsStartStop(j,2) = narrowBorders(validDetsStartStop(j,2):validDetsStartStop(j+1,1),j,2);
+                extEventsStartStop(j,2) = extBorders(validDetsStartStop(j,2):validDetsStartStop(j+1,1),j,2);
             end
         end
         validDetsStartStop = extEventsStartStop;
     end
     
-    function ind = narrowBorders(interV,j,startOrStop)
+    function ind = extBorders(interV,j,startOrStop)
         if startOrStop == 1
             if quietThr > thr
                 ind = find(detDataModQ(validDetsStartStop(j,1):validDetsStartStop(j,2)),1,'first');
@@ -159,4 +166,6 @@ function [validDets,validDetsStartStop] = commDetAlg(rawData,detData,corrData,..
         
     end    
     
+
 end
+
