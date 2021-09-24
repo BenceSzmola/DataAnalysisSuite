@@ -19,12 +19,13 @@ for i = 1:numDets
     if dTyp == 1
         detParams(i).BpAmplitudeP2P = max(dogData(detBorders(i,1):detBorders(i,2)))...
             - min(dogData(detBorders(i,1):detBorders(i,2)));
-        
+
         [cfs,f] = cwt(dogData(detBorders(i,1):detBorders(i,2)),'amor',...
             fs,'FrequencyLimits',[1,500]);
         maxCfs = max(abs(cfs));
         [r,~] = find(abs(cfs)==maxCfs,1);
         detParams(i).Frequency = f(r);
+%         detParams(i).Frequency = 0;
     end
     detParams(i).AUC = trapz(detData(detBorders(i,1):detBorders(i,2)));
     detParams(i).RiseTime = (detInds(i) - detBorders(i,1))/fs;

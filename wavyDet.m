@@ -49,8 +49,12 @@ if nargin == 0
     end
 end
 
-dets = nan(size(data));
-detBorders = cell(min(size(data)),1);
+if size(data,1) > size(data,2)
+    data = data';
+end
+
+% dets = nan(size(data));
+% detBorders = cell(min(size(data)),1);
 detParams = cell(min(size(data)),1);
 
 dogged = DoG(data,fs,w1,w2);
@@ -76,6 +80,12 @@ else
     refDets = [];
 end
 
+instE = zeros(size(data));
+quietThr = nan(size(data,1),1);
+quietSegs = cell(size(data,1),1);
+qSegsInds = cell(size(data,1),1);
+thr = nan(size(data,1),1);
+extThr = nan(size(data,1),1);
 for i = 1:min(size(data))
     if i == refch
         continue
@@ -99,21 +109,27 @@ for i = 1:min(size(data))
     %% Threshold calculation and detection
 
     % Instantaneous energy integral approach
-    instE = trapz(abs(coeffs).^2);
+    currInstE  = trapz(abs(coeffs).^2);
+    instE(i,:) = currInstE;
 %     thr = mean(instE) + sdmult*std(instE);
-    quietThr = mean(instE) + std(instE);
-    quietSegs = instE(instE < quietThr);
-    qSegsInds = instE;
-    qSegsInds(instE>=quietThr) = nan;
+    quietThr(i) = mean(currInstE) + std(currInstE);
+    quietSegs{i} = currInstE(currInstE < quietThr(i));
+    qSegsInds{i} = currInstE;
+    qSegsInds{i}(currInstE>=quietThr(i)) = nan;
     
-    thr = mean(quietSegs) + sdmult*std(quietSegs);
+    thr(i) = mean(quietSegs{i}) + sdmult*std(quietSegs{i});
+    extThr(i) = mean(quietSegs{i}) + std(quietSegs{i});
     
-    [validDets,validDetBorders] = commDetAlg(data(i,:),instE,dogged(i,:),refch,refDogged,refDets,fs,...
-        thr,refVal,minLen,mean(quietSegs)+std(quietSegs));
+end
+    
+    [dets,detBorders] = commDetAlg(taxis,data,instE,dogged,refch,refDogged,refDets,fs,...
+        thr,refVal,minLen,extThr);
         
-    dets(i,:) = validDets;
-    detBorders{i} = validDetBorders;
-    detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE,dogged(i,:));
+%     dets(i,:) = validDets;
+%     detBorders{i} = validDetBorders;
+    
+for i = 1:min(size(data))
+    detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:));
 
     %% Plotting
     if showFigs
@@ -149,12 +165,12 @@ for i = 1:min(size(data))
         ylabel(sp1,'Voltage [\muV]')
         title(sp1,['DoG of channel #',num2str(i)])
 
-        plot(sp2,taxis,instE)
+        plot(sp2,taxis,instE(i,:))
         hold(sp2,'on')
         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
-        yline(sp2,thr,'Color','g');
-        yline(sp2,quietThr,'Color','k');
-        plot(sp2,taxis,qSegsInds,'-m')
+        yline(sp2,thr(i),'Color','g');
+        yline(sp2,quietThr(i),'Color','k');
+        plot(sp2,taxis,qSegsInds{i},'-m')
         legend(sp2,'Inst. Energy integral','Detections','Detection threshold',...
             'Quiet threshold','Quiet segments')
         hold(sp2,'off')

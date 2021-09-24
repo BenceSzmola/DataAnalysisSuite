@@ -56,6 +56,14 @@ else
     belowRefThr = [];
 end
 
+quietThr = nan(size(data,1),1);
+quietSegs = cell(size(data,1),1);
+qSegsInds = cell(size(data,1),1);
+thr = nan(size(data,1),1);
+extThr = nan(size(data,1),1);
+% eventsPeak = cell(size(data,1),1);
+% vEvents = cell(size(data,1),1);
+% refValVictims = cell(size(data,1),1);
 for i = 1:size(data,1)
     
     if i == refch
@@ -64,23 +72,31 @@ for i = 1:size(data,1)
     
     % Determining background noise segments
     currInstPow = instPowd(i,:);
-    quietThr = mean(currInstPow) + std(currInstPow);
-    quietSegs = currInstPow(currInstPow < quietThr);
-    qSegsInds = currInstPow;
-    qSegsInds(currInstPow>=quietThr) = nan;
-    
-    thr = mean(quietSegs) + sdmult*std(quietSegs);
+    quietThr(i) = mean(currInstPow) + std(currInstPow);
+    quietSegs{i} = currInstPow(currInstPow < quietThr(i));
+    qSegsInds{i} = currInstPow;
+    qSegsInds{i}(currInstPow>=quietThr) = nan;
+
+    thr(i) = mean(quietSegs{i}) + sdmult*std(quietSegs{i});
+    extThr(i) = mean(quietSegs{i}) + std(quietSegs{i});
 %     thr = mean(currInstPow) + sdmult*std(currInstPow);
     
-    [validDets,validDetBorders] = commDetAlg(data(i,:),instPowd(i,:),dogged(i,:),...
-        refch,refDogged,refDets,fs,thr,refVal,minLen,mean(quietSegs)+std(quietSegs));
-    dets(i,:) = validDets;
-    detBorders{i} = validDetBorders;
 end
 
+[dets,detBorders] = commDetAlg(taxis,data,instPowd,dogged,...
+    refch,refDogged,refDets,fs,thr,refVal,minLen,extThr);
+
+% dets(i,:) = validDets;
+% detBorders{i} = validDetBorders;
+assignin('base','newDetBords',detBorders)
 
 
 for i = 1:min(size(data))
+    
+    if i == refch
+        continue
+    end
+    
     % det stats
     detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
     
@@ -121,8 +137,8 @@ for i = 1:min(size(data))
         hold(sp2,'on')
         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
         plot(sp2,taxis,thr*ones(1,length(taxis)),'-g')
-        plot(sp2,taxis,quietThr*ones(1,length(taxis)),'-k')
-        plot(sp2,taxis,qSegsInds,'-m')
+        plot(sp2,taxis,quietThr(i)*ones(1,length(taxis)),'-k')
+        plot(sp2,taxis,qSegsInds{i},'-m')
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
         ylabel(sp2,'Power [\muV^2]')
