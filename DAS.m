@@ -3701,7 +3701,8 @@ classdef DAS < handle
                     end
                     list = {'RawData','DoG','InstPow'};
                     [idx,tf] = listdlg('ListString',list,...
-                        'InitialValue',guiobj.eventDet1DataType);
+                        'InitialValue',guiobj.eventDet1DataType,...
+                        'SelectionMode','single');
                     if ~tf
                         return
                     end
