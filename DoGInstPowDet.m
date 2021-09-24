@@ -73,10 +73,14 @@ for i = 1:size(data,1)
 %     thr = mean(currInstPow) + sdmult*std(currInstPow);
     
     [validDets,validDetBorders] = commDetAlg(data(i,:),instPowd(i,:),dogged(i,:),...
-        refch,refDogged,refDets,fs,thr,refVal,minLen,quietThr);
+        refch,refDogged,refDets,fs,thr,refVal,minLen,mean(quietSegs)+std(quietSegs));
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
-    
+end
+
+
+
+for i = 1:min(size(data))
     % det stats
     detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
     

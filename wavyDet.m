@@ -69,6 +69,11 @@ if refVal ~= 0
     refThr = mean(refInstE) + std(refInstE);
     
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstE,[],refThr,fs);
+else
+    refDogged = [];
+    refInstE = [];
+    refThr = [];
+    refDets = [];
 end
 
 for i = 1:min(size(data))
@@ -104,7 +109,7 @@ for i = 1:min(size(data))
     thr = mean(quietSegs) + sdmult*std(quietSegs);
     
     [validDets,validDetBorders] = commDetAlg(data(i,:),instE,dogged(i,:),refch,refDogged,refDets,fs,...
-        thr,refVal,minLen,quietThr);
+        thr,refVal,minLen,mean(quietSegs)+std(quietSegs));
         
     dets(i,:) = validDets;
     detBorders{i} = validDetBorders;
