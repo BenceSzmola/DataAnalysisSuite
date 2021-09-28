@@ -30,10 +30,12 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,data,refData,vEvents,ev
             case 'uparrow'
                 if chanInd < length(refValVictims)
                     chanInd = chanInd + 1;
+                    detInd = 1;
                 end
             case 'downarrow'
                 if chanInd > 1
                     chanInd = chanInd - 1; 
+                    detInd = 1;
                 end
             case 'space'
                 events2Restore{chanInd} = [events2Restore{chanInd}, detInd];
@@ -43,26 +45,38 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,data,refData,vEvents,ev
         end
         
         % adjusted index (detInd works in refValVictims)
-        adjInd = refValVictims{chanInd}(detInd);
-        
         ax = findobj(h,'Type','axes');
-        winInds = winMacher(adjInd,0.5);
-        plot(ax(2),taxis(winInds),data(chanInd,winInds),'-r')
-        hold(ax(2),'on')
-        xline(ax(2),taxis(eventsPeak{chanInd}(adjInd)),'g','LineWidth',1);
-        hold(ax(2),'off')
-        if ~isempty(find(events2Restore{chanInd}==detInd,1))
-            title(ax(2),'Discarded event - marked for recovery')
-        else
-            title(ax(2),'Discarded event')
-        end
-        xlabel(ax(2),'Time [s]')
-        ylabel(ax(2),'Voltage [\muV]')
+        if ~isempty(refValVictims{chanInd})
+            adjInd = refValVictims{chanInd}(detInd);
         
-        plot(ax(1),taxis(winInds),refData(winInds))
-        title(ax(1),'Reference channel')
-        xlabel(ax(1),'Time [s]')
-        ylabel(ax(1),'Voltage [\muV]')
+            winInds = winMacher(adjInd,0.5);
+            plot(ax(2),taxis(winInds),data(chanInd,winInds),'-r')
+            hold(ax(2),'on')
+            xline(ax(2),taxis(eventsPeak{chanInd}(adjInd)),'g','LineWidth',1);
+            hold(ax(2),'off')
+            if ~isempty(find(events2Restore{chanInd}==detInd,1))
+                title(ax(2),['Discarded event - Ch#',num2str(chanInd),...
+                    ' Event#',num2str(adjInd),' - marked for recovery'])
+            else
+                title(ax(2),['Discarded event - Ch#',num2str(chanInd),...
+                    ' Event#',num2str(adjInd)])
+            end
+            xlabel(ax(2),'Time [s]')
+            ylabel(ax(2),'Voltage [\muV]')
+
+            plot(ax(1),taxis(winInds),refData(winInds))
+            title(ax(1),'Reference channel')
+            xlabel(ax(1),'Time [s]')
+            ylabel(ax(1),'Voltage [\muV]')
+            
+        else
+            cla(ax(1))
+            cla(ax(2))
+            title(ax(1),['Ch#',num2str(chanInd),...
+                ' - This channel is empty (or the refchannel)'])
+            title(ax(2),['Ch#',num2str(chanInd),...
+                ' - This channel is empty (or the refchannel)'])
+        end
     end
 
     function winInds = winMacher(adjInd,winLen)
