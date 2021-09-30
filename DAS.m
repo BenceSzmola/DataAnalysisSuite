@@ -1779,6 +1779,9 @@ classdef DAS < handle
                                 chan = chanFocus;
                                 numChans = length(unique(detStruct(:,1)));
                             elseif guiobj.simultFocusTyp==2
+                                temp = unique(detStructFocus(detStructFocus(:,3)==chanFocus,4));
+                                temp = temp(guiobj.eventDetSim2CurrDet);
+                                detStructFocus = detStructFocus(detStructFocus(:,4)==temp,:);
                                 chan = unique(detStructFocus(:,1));
                                 chan = chan(currChan);
                                 numChans = length(unique(detStructFocus(:,1)));
@@ -1819,6 +1822,9 @@ classdef DAS < handle
                                 chan = chanFocus;
                                 numChans = length(unique(detStruct(:,3)));
                             elseif guiobj.simultFocusTyp==1
+                                temp = unique(detStructFocus(detStructFocus(:,1)==chanFocus,2));
+                                temp = temp(guiobj.eventDetSim1CurrDet);
+                                detStructFocus = detStructFocus(detStructFocus(:,2)==temp,:);
                                 chan = unique(detStructFocus(:,3));
                                 chan = chan(currChan);
                                 numChans = length(unique(detStructFocus(:,3)));

@@ -103,6 +103,7 @@ classdef DASeV < handle
         plotFull = 0;
         fixWin = 0;
         simultMode = 0;
+        simultFocusTyp = 1;
         keyboardPressDtyp = 1;
         save2DbEphysSelection = cell(1,1);
         save2DbImagingSelection = cell(1,1);
@@ -387,130 +388,120 @@ classdef DASeV < handle
                     detStruct = gO.simultDets;
                     
                     detInfo = gO.simultDetInfo;
-                    emptyRows = [];
-                    currDetRowsRel = [];
-                    for i = 1:length(detStruct)
-                        if isempty(find([detStruct(i).DetInds{:}],1))
-                            emptyRows = [emptyRows; i];
-                        else
-                            currDetRowsRel = [currDetRowsRel; i];
-                        end
-                    end
-                    detStruct(emptyRows) = [];
 
-                    numEphysChans = length(detStruct);
-                    currEphysChan = gO.simultEphysCurrDetRow;
-                    [r,~] = find([detStruct(currEphysChan).DetInds{:}]);
-                    r = unique(r);
+                     switch gO.simultFocusTyp % this stores from which datatype we are approaching
+                         case 1
+                            chanFocus = detInfo.EphysChannels(gO.simultEphysCurrDetRow);
+                            detStructFocus = detStruct(detStruct(:,1)==chanFocus,:);
+                        case 2
+                            chanFocus = detInfo.ROIs(gO.simultImagingCurrDetRow);
+                            detStructFocus = detStruct(detStruct(:,3)==chanFocus,:);
+
+                    end
                     
                     switch dTyp
                         case 1
-                            numDets = length(r);
-                            numChans = numEphysChans;
-                            
-                            if nargout == 2
-                                return
-                            end
-                            
                             currChan = gO.simultEphysCurrDetRow;
                             currDet = gO.simultEphysCurrDetNum;
                             
-                            detMat = gO.ephysDets;
-                            detMat(emptyRows,:) = [];
-%                             assignin('base','detMat',detMat)
-                            
-                            detMat = detMat(currChan,:);
-                            
-                            detIdx = find(~isnan(detMat));
-                            detNum = r(currDet);
-                            if ~gO.plotFull
-                                detIdx = detIdx(detNum);
+                            if gO.simultFocusTyp==1
+                                chan = chanFocus;
+                                numChans = length(unique(detStruct(:,1)));
+                            elseif gO.simultFocusTyp==2
+                                temp = unique(detStructFocus(detStructFocus(:,3)==chanFocus,4));
+                                temp = temp(gO.simultImagingCurrDetNum);
+                                detStructFocus = detStructFocus(detStructFocus(:,4)==temp,:);
+                                chan = unique(detStructFocus(:,1));
+                                chan = chan(currChan);
+                                numChans = length(unique(detStructFocus(:,1)));
                             end
-                            
-                            nonSimDetInfo = gO.ephysDetInfo;
-                            nonSimDetInfo = nonSimDetInfo(currDetRowsRel(currChan));
-%                             nonSimDetInfo = nonSimDetInfo(currChan);
-                            chanOgNum = nonSimDetInfo.Channel;
-                            
-                            chanNum = currDetRowsRel(currChan);
-                            
-                            if nargout == 5
-                                return
-                            end
-                            
-                            detBorders = gO.ephysDetBorders;
-%                             assignin('base','detBorders',detBorders)
-                            detBorders = detBorders{currDetRowsRel(currChan)};
-                            if ~isempty(detBorders) & ~gO.plotFull
-                                detBorders = detBorders(r(currDet),:);
-                            end
-                            
-                            detParams = gO.ephysDetParams;
-                            detParams = detParams{currDetRowsRel(currChan)};
-                            if ~isempty(detParams) & ~gO.plotFull
-                                detParams = detParams(r(currDet));
-                            end
-                            
-                        case 2
-                            currDet = gO.simultImagingCurrDetNum;
-                            currChan = gO.simultImagingCurrDetRow;
-                            
-                            ephysDetNum = r(gO.simultEphysCurrDetNum);
-                            
-                            currChans = detInfo.ROI;
-
-                            temp = ~cellfun('isempty',detStruct(currEphysChan).DetInds);
-                            temp2 = detStruct(currEphysChan).DetInds(temp);
-                            goodrows = [];
-                            for i = 1:length(temp2)
-                                if find(temp2{i}(ephysDetNum,:),1)
-                                    goodrows = [goodrows; i];
-                                end
-                            end
-                            numChans = length(goodrows);
-                            currChans = currChans(temp);
-                            currChans = currChans(goodrows);
-                            [~,currChansRel] = ismember(currChans,detInfo.ROI);
-                            
-                            [~,c] = find(detStruct(currEphysChan).DetInds{currChansRel(currChan)}(ephysDetNum,:));
-                            c = unique(c);
-                            numDets = length(c);
-                            
+                            numDets = length(unique(detStructFocus(detStructFocus(:,1)==chan,2)));
+                                                        
                             if nargout == 2
                                 return
                             end
                             
-                            detMat = gO.imagingDets;
-                            detMat = detMat(currChansRel(currChan),:);
-%                             detMat = detMat(currChan,:);
+                            currChanEvents = unique(detStructFocus(detStructFocus(:,1)==chan,2));
+                            
+                            nonSimDetInfo = gO.ephysDetInfo;
+                            nonSimDetRow = find([nonSimDetInfo.Channel]==chan);
+                            chanOgNum = chan;
+                            
+                            detMat = gO.ephysDets(nonSimDetRow,:);
                             
                             detIdx = find(~isnan(detMat));
-                            detNum = c(currDet);
+                            detNum = currChanEvents(currDet);
                             if ~gO.plotFull
                                 detIdx = detIdx(detNum);
                             end
                             
-                            nonSimDetInfo = gO.imagingDetInfo;
-                            nonSimDetInfo = nonSimDetInfo(currChansRel(currChan));
-%                             nonSimDetInfo = nonSimDetInfo(currChan);
-                            chanOgNum = nonSimDetInfo.Roi;
-                            
-                            chanNum = currChansRel(currChan);
+                            chanNum = nonSimDetRow;
                             
                             if nargout == 5
                                 return
                             end
                             
-                            detBorders = gO.imagingDetBorders{currChansRel(currChan)};
+                            detBorders = gO.ephysDetBorders{nonSimDetRow};
                             if ~isempty(detBorders) & ~gO.plotFull
-                                detBorders = detBorders(c(currDet),:);
+                                detBorders = detBorders(currChanEvents(currDet),:);
                             end
                             
-                            detParams = gO.imagingDetParams{currChansRel(currChan)};
+                            detParams = gO.ephysDetParams{nonSimDetRow};
                             if ~isempty(detParams) & ~gO.plotFull
-                                detParams = detParams(c(currDet));
+                                detParams = detParams(currChanEvents(currDet));
                             end
                             
+                        case 2
+                            currChan = gO.simultImagingCurrDetRow;
+                            currDet = gO.simultImagingCurrDetNum;
+                            
+                            if gO.simultFocusTyp==2
+                                chan = chanFocus;
+                                numChans = length(unique(detStruct(:,3)));
+                            elseif gO.simultFocusTyp==1
+                                temp = unique(detStructFocus(detStructFocus(:,1)==chanFocus,2));
+                                temp = temp(gO.simultEphysCurrDetNum);
+                                detStructFocus = detStructFocus(detStructFocus(:,2)==temp,:);
+                                chan = unique(detStructFocus(:,3));
+                                chan = chan(currChan);
+                                numChans = length(unique(detStructFocus(:,3)));
+                            end
+                            numDets = length(unique(detStructFocus(detStructFocus(:,3)==chan,4)));
+                                                        
+                            if nargout == 2
+                                return
+                            end
+                            
+                            currChanEvents = unique(detStructFocus(detStructFocus(:,3)==chan,4));
+                            
+                            nonSimDetInfo = gO.imagingDetInfo;
+                            nonSimDetRow = find([nonSimDetInfo.Roi]==chan);
+                            chanOgNum = chan;
+                            
+                            detMat = gO.imagingDets(nonSimDetRow,:);
+                            
+                            detIdx = find(~isnan(detMat));
+                            detNum = currChanEvents(currDet);
+                            if ~gO.plotFull
+                                detIdx = detIdx(detNum);
+                            end
+                            
+                            chanNum = nonSimDetRow;
+                            
+                            if nargout == 5
+                                return
+                            end
+                            
+                            detBorders = gO.imagingDetBorders{nonSimDetRow};
+                            if ~isempty(detBorders) & ~gO.plotFull
+                                detBorders = detBorders(currChanEvents(currDet),:);
+                            end
+                            
+                            detParams = gO.imagingDetParams{nonSimDetRow};
+                            if ~isempty(detParams) & ~gO.plotFull
+                                detParams = detParams(currChanEvents(currDet));
+                            end
+                                                        
                     end
             end
         end
@@ -1759,12 +1750,19 @@ classdef DASeV < handle
                         case 1
                             gO.simultEphysCurrDetNum = currDet;
                             gO.simultEphysCurrDetRow = currChan;
-                            gO.simultImagingCurrDetNum = 1;
-                            gO.simultImagingCurrDetRow = 1;
                             
+                            if gO.simultFocusTyp==1
+                                gO.simultImagingCurrDetNum = 1;
+                                gO.simultImagingCurrDetRow = 1;
+                            end
                         case 2
                             gO.simultImagingCurrDetNum = currDet;
                             gO.simultImagingCurrDetRow = currChan;
+                            
+                            if gO.simultFocusTyp==2
+                                gO.simultEphysCurrDetNum = 1;
+                                gO.simultEphysCurrDetRow = 1;
+                            end
                             
                     end
                     [~,~,chanNum,~,ephysDetNum] = extractDetStruct(gO,1);
