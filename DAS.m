@@ -226,6 +226,7 @@ classdef DAS < handle
         showXtraDetFigs = 0;
         keyboardPressDtyp = 1;
         evDetTabSimultMode = 0;
+        simultFocusTyp = 1;                 % this stores from which datatype we are approaching
         mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
         
         xtitle = 'Time [s]';
@@ -1351,6 +1352,7 @@ classdef DAS < handle
                     
                     yAxLbl = guiobj.ephys_ylabel;
                     plotTitle = 'Channel#';
+                    simultDetNum = guiobj.eventDetSim1CurrDet;
                 case 2
                     ax = guiobj.axesEventDet2;
                     
@@ -1365,6 +1367,7 @@ classdef DAS < handle
                     
                     yAxLbl = guiobj.imaging_ylabel;
                     plotTitle = 'ROI#';
+                    simultDetNum = guiobj.eventDetSim2CurrDet;
             end
             
             [numDets,numChans,detNum,detInd,detBorders,chan,detParams] = extractDetStructs(guiobj,dTyp);
@@ -1452,8 +1455,13 @@ classdef DAS < handle
                 ylim(ax,axYMinMax)
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
-                title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detNum),...
-                    '/',num2str(numDets)])
+                if ~guiobj.evDetTabSimultMode
+                    title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detNum),...
+                        '/',num2str(numDets)])
+                else
+                    title(ax,[plotTitle,num2str(chan),'      Simultan Detection#',num2str(simultDetNum),...
+                        '/',num2str(numDets),' (nonSimult#',num2str(detNum),')'])
+                end
             end
             
         end
@@ -1547,17 +1555,31 @@ classdef DAS < handle
                         case 1
                             guiobj.eventDetSim1CurrDet = currDet;
                             guiobj.eventDetSim1CurrChan = currChan;
-                            guiobj.eventDetSim2CurrDet = 1;
-                            guiobj.eventDetSim2CurrRoi = 1;
                             
                             eventDetPlotFcn(guiobj,1)
-                            eventDetPlotFcn(guiobj,2)
+                            
+                            if guiobj.simultFocusTyp==1
+                                guiobj.eventDetSim2CurrDet = 1;
+                                guiobj.eventDetSim2CurrRoi = 1;
+                                eventDetPlotFcn(guiobj,2)
+                            end
+%                             guiobj.eventDetSim2CurrDet = 1;
+%                             guiobj.eventDetSim2CurrRoi = 1;
+                            
+%                             eventDetPlotFcn(guiobj,1)
+%                             eventDetPlotFcn(guiobj,2)
 
                         case 2
                             guiobj.eventDetSim2CurrDet = currDet;
                             guiobj.eventDetSim2CurrRoi = currChan;
                             
                             eventDetPlotFcn(guiobj,2)
+                            
+                            if guiobj.simultFocusTyp==2
+                                guiobj.eventDetSim1CurrDet = 1;
+                                guiobj.eventDetSim1CurrChan = 1;
+                                eventDetPlotFcn(guiobj,1)
+                            end
                     end
             end
         end
@@ -1728,127 +1750,107 @@ classdef DAS < handle
                     end
                     if ~isempty(detParams{currChan})
                         detParams = detParams{currChan}(currDet);
-%                         detParams = detParams(currDet);
                     else
                         detParams = [];
                     end
                     
                 case 1
-                    detStruct = guiobj.simult_detections;
                     currDetRun = guiobj.simult_detRunsNum;
-                    currDetRows = find([detStruct.DetRun]==currDetRun);
-                    detStruct = detStruct(currDetRows);
+                    detStruct = guiobj.simult_detections{currDetRun};
                     
                     detInfo = guiobj.simult_detectionsInfo(currDetRun);
-                    emptyRows = [];
-                    currDetRowsRel = [];
-                    for i = 1:length(detStruct)
-                        if isempty(find([detStruct(i).DetInds{:}],1))
-                            emptyRows = [emptyRows; i];
-                        else
-                            currDetRowsRel = [currDetRowsRel; i];
-                        end
-                    end
-                    detStruct(emptyRows) = [];
-                    currDetRows(emptyRows) = [];
-
-                    numEphysChans = length(detStruct);
-                    currEphysChan = guiobj.eventDetSim1CurrChan;
-%                     detStruct
-                    [r,~] = find([detStruct(currEphysChan).DetInds{:}]);
-                    r = unique(r);
                     
+                    switch guiobj.simultFocusTyp % this stores from which datatype we are approaching
+                        case 1
+                            chanFocus = detInfo.EphysChannels(guiobj.eventDetSim1CurrChan);
+                            detStructFocus = detStruct(detStruct(:,1)==chanFocus,:);
+                        case 2
+                            chanFocus = detInfo.ROIs(guiobj.eventDetSim2CurrRoi);
+                            detStructFocus = detStruct(detStruct(:,3)==chanFocus,:);
+                            
+                    end
+                  
                     switch dTyp
                         case 1
-                            numDets = length(r);
-                            numChans = numEphysChans;
+                            currChan = guiobj.eventDetSim1CurrChan;
+                            currDet = guiobj.eventDetSim1CurrDet;
+                            
+                            if guiobj.simultFocusTyp==1
+                                chan = chanFocus;
+                                numChans = length(unique(detStruct(:,1)));
+                            elseif guiobj.simultFocusTyp==2
+                                chan = unique(detStructFocus(:,1));
+                                chan = chan(currChan);
+                                numChans = length(unique(detStructFocus(:,1)));
+                            end
+                            numDets = length(unique(detStructFocus(detStructFocus(:,1)==chan,2)));
+                            
                             
                             if nargout == 2
                                 return
                             end
                             
-                            currChan = guiobj.eventDetSim1CurrChan;
-                            currDet = guiobj.eventDetSim1CurrDet;
-                            
-                            detMat = guiobj.ephys_detections;
-%                             assignin('base','detMat',detMat)
-                            detMat = detMat(detInfo.EphysChannels,:);
-                            detMat = detMat(currChan,:);
-                            
-                            detInd = find(~isnan(detMat));
-                            detNum = r(currDet);
-                            detInd = detInd(detNum);
-                            
-                            detBorders = guiobj.ephys_detBorders;
-%                             assignin('base','detBorders',detBorders)
-                            detBorders = detBorders{detInfo.EphysChannels(currDetRowsRel(currChan))};
-                            if ~isempty(detBorders)
-                                detBorders = detBorders(r(currDet),:);
-                            end
-                            
-%                             currDetRowsRel
-%                             assignin('base','detParams',guiobj.ephys_detParams)
-                            detParams = guiobj.ephys_detParams;
-                            detParams = detParams{detInfo.EphysChannels(currDetRowsRel(currChan))};
-                            if ~isempty(detParams)
-                                detParams = detParams(r(currDet));
-                            end
+                            currChanEvents = unique(detStructFocus(detStructFocus(:,1)==chan,2));
                             
                             nonSimDetInfo = guiobj.ephys_detectionsInfo;
-                            nonSimDetInfo = nonSimDetInfo(detInfo.EphysChannels(currDetRowsRel));
-                            nonSimDetInfo = nonSimDetInfo(currChan);
-                            chan = nonSimDetInfo.Channel;
+                            nonSimDetInfo = nonSimDetInfo([nonSimDetInfo.DetRun]==detInfo.EphysDetRun);
+                            nonSimDetRow = find([nonSimDetInfo.Channel]==chan);
+                            
+                            detMat = guiobj.ephys_detections(nonSimDetRow,:);
+                            detInd = find(~isnan(detMat));
+                            detNum = currChanEvents(currDet);
+                            detInd = detInd(detNum);
+                            
+                            detBorders = guiobj.ephys_detBorders{nonSimDetRow};
+                            if ~isempty(detBorders)
+                                detBorders = detBorders(currChanEvents(currDet),:);
+                            end
+                            
+                            detParams = guiobj.ephys_detParams{nonSimDetRow};
+                            if ~isempty(detParams)
+                                detParams = detParams(currChanEvents(currDet));
+                            end
+                            
                         case 2
                             currDet = guiobj.eventDetSim2CurrDet;
                             currChan = guiobj.eventDetSim2CurrRoi;
                             
-                            ephysDetNum = r(guiobj.eventDetSim1CurrDet);
-                            
-                            currChans = detInfo.ROI;
-
-                            temp = ~cellfun('isempty',detStruct(currEphysChan).DetInds);
-                            temp2 = detStruct(currEphysChan).DetInds(temp);
-                            goodrows = [];
-                            for i = 1:length(temp2)
-                                if find(temp2{i}(ephysDetNum,:),1)
-                                    goodrows = [goodrows; i];
-                                end
+                            if guiobj.simultFocusTyp==2
+                                chan = chanFocus;
+                                numChans = length(unique(detStruct(:,3)));
+                            elseif guiobj.simultFocusTyp==1
+                                chan = unique(detStructFocus(:,3));
+                                chan = chan(currChan);
+                                numChans = length(unique(detStructFocus(:,3)));
                             end
-                            numChans = length(goodrows);
-                            currChans = currChans(temp);
-                            currChans = currChans(goodrows);
-                            [~,currChansRel] = ismember(currChans,detInfo.ROI);
-                            
-                            [~,c] = find(detStruct(currEphysChan).DetInds{currChansRel(currChan)}(ephysDetNum,:));
-                            c = unique(c);
-                            numDets = length(c);
+                            numDets = length(unique(detStructFocus(detStructFocus(:,3)==chan,4)));
                             
                             if nargout == 2
                                 return
                             end
                             
-                            detMat = guiobj.imaging_detections;
-                            detMat = detMat(currChans,:);
-                            detMat = detMat(currChan,:);
-                            
-                            detInd = find(~isnan(detMat));
-                            detNum = c(currDet);
-                            detInd = detInd(detNum);
-                            
-                            detBorders = guiobj.imaging_detBorders{currChans(currChan)};
-                            if ~isempty(detBorders)
-                                detBorders = detBorders(c(currDet),:);
-                            end
-                            
-                            detParams = guiobj.imaging_detParams{currChans(currChan)};
-                            if ~isempty(detParams)
-                                detParams = detParams(c(currDet));
-                            end
+                            currChanEvents = unique(detStructFocus(detStructFocus(:,3)==chan,4));
                             
                             nonSimDetInfo = guiobj.imaging_detectionsInfo;
-                            nonSimDetInfo = nonSimDetInfo(currChans);
-                            nonSimDetInfo = nonSimDetInfo(currChan);
-                            chan = nonSimDetInfo.Roi;
+                            nonSimDetInfo = nonSimDetInfo([nonSimDetInfo.DetRun]==detInfo.ImagingDetRun);
+                            nonSimDetRow = find([nonSimDetInfo.Roi]==chan);
+                            detMat = guiobj.imaging_detections(nonSimDetRow,:);                            
+                            
+                            detInd = find(~isnan(detMat));
+                            
+                            detNum = currChanEvents(currDet);
+                            detInd = detInd(detNum);
+                            
+                            detBorders = guiobj.imaging_detBorders{nonSimDetRow};
+                            if ~isempty(detBorders)
+                                detBorders = detBorders(currChanEvents(currDet),:);
+                            end
+                            
+                            detParams = guiobj.imaging_detParams{nonSimDetRow};
+                            if ~isempty(detParams)
+                                detParams = detParams(currChanEvents(currDet));
+                            end
+                            
                     end
             end
             
@@ -1917,6 +1919,11 @@ classdef DAS < handle
             end
             
             delete(mbox)
+        end
+        
+        %%
+        function [parallelSaveData, parallelSaveInfo] = parallelSave(guiobj,saveData,saveInfo)
+            
         end
         
     end
@@ -3392,18 +3399,23 @@ classdef DAS < handle
                 case 'Mean+SD'
                     
                     guiobj.imaging_detRunsNum = guiobj.imaging_detRunsNum + 1;
+                    smoothd = nan(size(data));
+                    thr = nan(size(data,1),1);
                     for i = 1:size(data,1)
-                        smoothd = smoothdata(data(i,:),'gaussian',5);
-                        thr = mean(smoothd) + sdmult*std(smoothd);
+                        smoothd(i,:) = smoothdata(data(i,:),'gaussian',5);
+                        thr(i) = mean(smoothd(i,:)) + sdmult*std(smoothd(i,:));
 %                         aboveThrInds = smoothd(smoothd > thr);
 %                         aboveThrInd_diff = diff(aboveThrInds);
 %                         [~,locs,~,~] = findpeaks(smoothd,'MinPeakHeight',thr);
-                        [validDets,validDetBorders] = commDetAlg(data(i,:),smoothd,...
-                            [],0,[],[],fs,thr,0,0.025);
-                        dets(i,:) = validDets;
-                        detBorders{i} = validDetBorders;
+                    end
+                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,data,smoothd,...
+                        [],0,[],[],fs,thr,0,0.025);
+%                         dets(i,:) = validDets;
+%                         detBorders{i} = validDetBorders;
+                    
+                    for i = 1:size(data,1)
                         detParams{i} = detParamMiner(2,dets(i,:),detBorders{i},fs,...
-                            data(i,:),smoothd,[]);
+                            data(i,:),smoothd(i,:),[]);
                         
                         detinfo(i).Roi = i;
                         detinfo(i).DetType = 'Mean+SD';
@@ -3545,9 +3557,9 @@ classdef DAS < handle
             imaging_tAx = guiobj.imaging_taxis;
             
 %             simult_dets = cell(length(imaging_selROIs),1);
-            simult_dets = struct('DetInds',cell(length(ephysSelChans),1),...
-                'Channel',cell(length(ephysSelChans),1),...
-                'DetRun',cell(length(ephysSelChans),1));
+%             simult_dets = struct('DetInds',cell(length(ephysSelChans),1),...
+%                 'Channel',cell(length(ephysSelChans),1),...
+%                 'DetRun',cell(length(ephysSelChans),1));
             
 %             detInfo = struct('DetType',cell(length(imaging_selROIs),1),...
 %                         'EphysChannel',cell(length(imaging_selROIs),1),...
@@ -3556,15 +3568,17 @@ classdef DAS < handle
 %                         'ImagingDetRun',cell(length(imaging_selROIs),1),...
 %                         'Params',cell(length(imaging_selROIs),1),...
 %                         'DetRun',cell(length(imaging_selROIs),1));
-            detInfo = struct('DetType',[],...
-                        'EphysChannels',[],...
-                        'EphysDetRun',[],...
-                        'ROI',[],...
-                        'ImagingDetRun',[],...
-                        'Settings',[],...
-                        'DetRun',[]);
+%             detInfo = struct('DetType',[],...
+%                         'EphysChannels',[],...
+%                         'EphysDetRun',[],...
+%                         'ROI',[],...
+%                         'ImagingDetRun',[],...
+%                         'Settings',[],...
+%                         'DetRun',[]);
                     
             currDetRun = guiobj.simult_detRunsNum + 1;
+            
+            simultDets = [];
             
             switch dettype
                 case 'Standard'
@@ -3574,14 +3588,14 @@ classdef DAS < handle
                         ephysDetRow = ephysSelChans(ephysRowNum);
                         chan = guiobj.ephys_detectionsInfo(ephysDetRow).Channel;
                         ephys_detInds = find(~isnan(guiobj.ephys_detections(ephysDetRow,:)));
-                        temp = cell(length(imaging_selROIs),1);
+%                         temp = cell(length(imaging_selROIs),1);
                         
                         for imRowNum = 1:length(imaging_selROIs)
                             imDetRow = imaging_selROIs(imRowNum);
                             imaging_detInds = find(~isnan(guiobj.imaging_detections(imDetRow,:)));
                             roi = guiobj.imaging_detectionsInfo(imDetRow).Roi;
                             
-                            temp2 = zeros(length(ephys_detInds),length(imaging_detInds));
+%                             temp2 = zeros(length(ephys_detInds),length(imaging_detInds));
                             
                             for i = 1:length(ephys_detInds)
                                 for j = 1:length(imaging_detInds)
@@ -3589,33 +3603,49 @@ classdef DAS < handle
                                         - ephys_tAx(ephys_detInds(i));
                                     if (tDiff < delay) && (tDiff >= 0)
     %                                     temp = [temp; [j,i]];
-                                        temp2(i,j) = 1;
+%                                         temp2(i,j) = 1;
+                                        eventPair = [chan,i,roi,j];
+%                                         eventPair = [chan,ephys_detInds(i),roi,imaging_detInds(j)];
+                                        simultDets = [simultDets; eventPair];
                                     end
                                 end
                                 
                             end
-                            if isempty(find(temp2,1))
-                                temp2 = [];
-                            end
-                            temp{imRowNum} = temp2;
+%                             if isempty(find(temp2,1))
+%                                 temp2 = [];
+%                             end
+%                             temp{imRowNum} = temp2;
                         end
 
-                        simult_dets(ephysRowNum).DetInds = temp;
-                        simult_dets(ephysRowNum).DetRun = currDetRun;
-                        simult_dets(ephysRowNum).Channel = chan;
+%                         simult_dets(ephysRowNum).DetInds = temp;
+%                         simult_dets(ephysRowNum).DetRun = currDetRun;
+%                         simult_dets(ephysRowNum).Channel = chan;
 %                         simult_dets{rowNum} = temp;
                         
-                        detInfo.DetType = dettype;
-                        detInfo.EphysChannels = ephysSelChans;
-                        detInfo.EphysDetRun = ephysDetRun;
-                        detInfo.ROI = imaging_selROIs;
-                        detInfo.ImagingDetRun = imagingDetRun;
-                        detInfo.Settings.Delay = delay;
-                        detInfo.DetRun = currDetRun;
+                        
                     end
+                    simultDets = sortrows(simultDets);
+                    
+%                     detInfo.DetType = dettype;
+%                     detInfo.EphysChannels = ephysSelChans;
+%                     detInfo.EphysDetRun = ephysDetRun;
+%                     detInfo.ROI = imaging_selROIs;
+%                     detInfo.ImagingDetRun = imagingDetRun;
+%                     detInfo.Settings.Delay = delay;
+%                     detInfo.DetRun = currDetRun;
+                    simultDetInfo.DetType = dettype;
+                    simultDetInfo.EphysChannels = unique(simultDets(:,1));
+%                     simultDetInfo.EphysDetMatRows = ephysSelChans;
+                    simultDetInfo.EphysDetRun = ephysDetRun;
+                    simultDetInfo.ROIs = unique(simultDets(:,3));
+%                     simultDetInfo.ImagingDetMatRows = imaging_selROIs;
+                    simultDetInfo.ImagingDetRun = imagingDetRun;
+                    simultDetInfo.Settings.Delay = delay;
+                    simultDetInfo.DetRun = currDetRun;
             end
             
-            if isempty(find(~cellfun('isempty',[simult_dets.DetInds]),1))
+%             if isempty(find(~cellfun('isempty',[simult_dets.DetInds]),1))
+            if isempty(simultDets)
                 warndlg('No simultaneous events found!')
                 guiobj.simultDetStatusLabel.String = '--IDLE--';
                 guiobj.simultDetStatusLabel.BackgroundColor = 'g';
@@ -3624,24 +3654,25 @@ classdef DAS < handle
             
             
             if isempty(guiobj.simult_detections)
-                guiobj.simult_detections = simult_dets;
+%                 guiobj.simult_detections = simult_dets;
+                guiobj.simult_detections = {simultDets};
             else
-                guiobj.simult_detections = [guiobj.simult_detections; simult_dets];
+%                 guiobj.simult_detections = [guiobj.simult_detections; simult_dets];
+                guiobj.simult_detections = [guiobj.simult_detections; {simultDets}];
             end
             
             if isempty(guiobj.simult_detectionsInfo)
-                guiobj.simult_detectionsInfo = detInfo;
+                guiobj.simult_detectionsInfo = simultDetInfo;
             else
                 guiobj.simult_detectionsInfo = [guiobj.simult_detectionsInfo;...
-                    detInfo];
+                    simultDetInfo];
             end
             
             guiobj.simult_detRunsNum = currDetRun;
             
-%             assignin('base','simDets',guiobj.simult_detections)
-%             assignin('base','simDetInfo',guiobj.simult_detectionsInfo)
-            
-%             eventDetAxesButtFcn(guiobj,3,0,0)
+            assignin('base','simDets',guiobj.simult_detections)
+            assignin('base','simDetInfo',guiobj.simult_detectionsInfo)
+
             guiobj.evDetTabSimultMode = 1;
 
             eventDetAxesButtFcn(guiobj,1,0,0)
@@ -4041,6 +4072,17 @@ classdef DAS < handle
             if (length(detTypeToSave) > 1) & (~isempty(find(detTypeToSave==3,1)))
                 detTypeToSave = 3;
             end
+            
+            doParallelSave = 0;
+            if (detTypeToSave == 1) || (detTypeToSave == 2)
+                quest = ['Do you want to save the parallel time windows from',...
+                    ' the other datatype?'];
+                title = 'Parallel saving';
+                answer = questdlg(quest,title);
+                if strcmp(answer,'Yes')
+                    doParallelSave = 1;
+                end
+            end
 %             saveStruct = struct('ephys',[],'imaging',[],'simult',[]);
             
             if ~isempty(find(detTypeToSave==1,1)) % ephys save
@@ -4170,30 +4212,36 @@ classdef DAS < handle
                     return
                 end
                 
-                selRows = [guiobj.simult_detections.DetRun]==detInfo(indx).DetRun;
-                
-                simultSaveData = guiobj.simult_detections(selRows);
-                simultSaveInfo = detInfo(indx);
+                simultSaveData = guiobj.simult_detections{indx};
+                simultSaveInfo.DetType = detInfo(indx).DetType;
+                simultSaveInfo.EphysChannels = detInfo(indx).EphysChannels;
+                simultSaveInfo.ROIs = detInfo(indx).ROIs;
+                simultSaveInfo.Settings = detInfo(indx).Settings;
+
                 
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
-                chans2save = [guiobj.ephys_detectionsInfo(simultSaveInfo.EphysChannels).Channel];
+                chans2save = detInfo(indx).EphysChannels;
                 ephysSaveData.RawData = guiobj.ephys_data(chans2save,:);
-                ephysSaveData.Dets = guiobj.ephys_detections(simultSaveInfo.EphysChannels,:);
-                ephysSaveData.DetBorders = guiobj.ephys_detBorders(simultSaveInfo.EphysChannels);
-                ephysSaveData.DetParams = guiobj.ephys_detParams(simultSaveInfo.EphysChannels);
-                ephysSaveInfo = guiobj.ephys_detectionsInfo(simultSaveInfo.EphysChannels);
+                adjustedChans = ([guiobj.ephys_detectionsInfo.DetRun]==detInfo(indx).EphysDetRun)...
+                    & (ismember([guiobj.ephys_detectionsInfo.Channel],detInfo(indx).EphysChannels));
+                ephysSaveData.Dets = guiobj.ephys_detections(adjustedChans,:);
+                ephysSaveData.DetBorders = guiobj.ephys_detBorders(adjustedChans);
+                ephysSaveData.DetParams = guiobj.ephys_detParams(adjustedChans);
+                ephysSaveInfo = guiobj.ephys_detectionsInfo(adjustedChans);
                 
                 imagingSaveData.TAxis = guiobj.imaging_taxis;
                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
                 imagingSaveData.Fs = guiobj.imaging_fs;
-                rois2save = [guiobj.imaging_detectionsInfo(simultSaveInfo.ROI).Roi];
+                rois2save = detInfo(indx).ROIs;
                 imagingSaveData.RawData = guiobj.imaging_data(rois2save,:);
-                imagingSaveData.Dets = guiobj.imaging_detections(simultSaveInfo.ROI,:);
-                imagingSaveData.DetBorders = guiobj.imaging_detBorders(simultSaveInfo.ROI);
-                imagingSaveData.DetParams = guiobj.imaging_detParams(simultSaveInfo.ROI);
-                imagingSaveInfo = guiobj.imaging_detectionsInfo(simultSaveInfo.ROI);
+                adjustedROIs = ([guiobj.imaging_detectionsInfo.DetRun]==detInfo(indx).ImagingDetRun)...
+                    & (ismember([guiobj.imaging_detectionsInfo.Roi],detInfo(indx).ROIs));
+                imagingSaveData.Dets = guiobj.imaging_detections(adjustedROIs,:);
+                imagingSaveData.DetBorders = guiobj.imaging_detBorders(adjustedROIs);
+                imagingSaveData.DetParams = guiobj.imaging_detParams(adjustedROIs);
+                imagingSaveInfo = guiobj.imaging_detectionsInfo(adjustedROIs);
             else
                 simultSaveData = [];
                 simultSaveInfo = [];
