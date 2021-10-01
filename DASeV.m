@@ -614,8 +614,14 @@ classdef DASeV < handle
                             '      Detection #',...
                             num2str(detNum),'/',num2str(numDets)];
                     else
-                        axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
-                            num2str(detNum),'/',num2str(numDets)];
+                        if ~gO.simultMode
+                            axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
+                                num2str(detNum),'/',num2str(numDets)];
+                        else
+                            axTitle = ['Channel #',num2str(chanOgNum),'      Simult Detection #',...
+                                num2str(gO.simultEphysCurrDetNum),'/',num2str(numDets),...
+                                ' (nonSimult #',num2str(detNum),')'];
+                        end
                     end
                     
                 end
@@ -883,8 +889,14 @@ classdef DASeV < handle
                     chanNum = gO.imagingFixWinDetRow;
                     axTitle = ['ROI #',num2str(chanOgNum)];
                 elseif gO.fixWin == 0
-                    axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
-                        num2str(detNum),'/',num2str(numDets)];
+                    if ~gO.simultMode
+                        axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
+                            num2str(detNum),'/',num2str(numDets)];
+                    else
+                        axTitle = ['ROI #',num2str(chanOgNum),'      Simult Detection #',...
+                            num2str(gO.simultImagingCurrDetNum),'/',num2str(numDets),...
+                            ' (nonSimult #',num2str(detNum),')'];
+                    end
                 end
                 
             elseif gO.plotFull

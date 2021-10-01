@@ -1351,7 +1351,7 @@ classdef DAS < handle
                     
                     
                     yAxLbl = guiobj.ephys_ylabel;
-                    plotTitle = 'Channel#';
+                    plotTitle = 'Channel #';
                     simultDetNum = guiobj.eventDetSim1CurrDet;
                 case 2
                     ax = guiobj.axesEventDet2;
@@ -1366,7 +1366,7 @@ classdef DAS < handle
                     fs = guiobj.imaging_fs;
                     
                     yAxLbl = guiobj.imaging_ylabel;
-                    plotTitle = 'ROI#';
+                    plotTitle = 'ROI #';
                     simultDetNum = guiobj.eventDetSim2CurrDet;
             end
             
@@ -1456,11 +1456,11 @@ classdef DAS < handle
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
                 if ~guiobj.evDetTabSimultMode
-                    title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detNum),...
+                    title(ax,[plotTitle,num2str(chan),'      Detection #',num2str(detNum),...
                         '/',num2str(numDets)])
                 else
-                    title(ax,[plotTitle,num2str(chan),'      Simultan Detection#',num2str(simultDetNum),...
-                        '/',num2str(numDets),' (nonSimult#',num2str(detNum),')'])
+                    title(ax,[plotTitle,num2str(chan),'      Simultan Detection #',num2str(simultDetNum),...
+                        '/',num2str(numDets),' (nonSimult #',num2str(detNum),')'])
                 end
             end
             
