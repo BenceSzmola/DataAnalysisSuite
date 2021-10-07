@@ -104,6 +104,7 @@ classdef DASeV < handle
         fixWin = 0;
         simultMode = 0;
         simultFocusTyp = 1;
+        parallelMode = 0;
         keyboardPressDtyp = 1;
         save2DbEphysSelection = cell(1,1);
         save2DbImagingSelection = cell(1,1);
@@ -1314,8 +1315,9 @@ classdef DASeV < handle
             gO.ephysDetParamsTable.ColumnName = {};
             gO.save2DbEphysCheckBox.Enable = 'off';
 
-            if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
-                    & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
+%             if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
+%                     & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
+            if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'}))==2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
                 if ~isempty(ephysSaveData) & ~isempty(ephysSaveInfo)
@@ -1352,6 +1354,18 @@ classdef DASeV < handle
                     gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
                     gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
                     
+                    if sum(ismember(fieldnames(testload),'parallelSave'))==1
+                        if parallelSave.dTyp == "Imaging"
+                            gO.imagingData = parallelSave.Data;
+                            gO.imagingTaxis = parallelSave.Taxis;
+                            gO.imagingFs = parallelSave.Fs;
+                            gO.imagingYlabel = parallelSave.Ylabel;
+                        else
+                            errordlg('Save file is incorrectly configured!')
+                            return
+                        end
+                    end
+                    
 %                     axButtPress(gO,1,0,0)
 
                     
@@ -1367,8 +1381,9 @@ classdef DASeV < handle
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
-            if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
-                    & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
+%             if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
+%                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
+            if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'}))==2
                 load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
                 if ~isempty(imagingSaveData) & ~isempty(imagingSaveInfo)
@@ -1399,12 +1414,26 @@ classdef DASeV < handle
                         2,'gaussian',10);
                     
                     gO.loaded(2) = 1;
+                    
+                    if sum(ismember(fieldnames(testload),'parallelSave'))==1
+                        if parallelSave.dTyp == "Ephys"
+                            gO.ephysData = parallelSave.Data;
+                            gO.ephysTaxis = parallelSave.Taxis;
+                            gO.ephysFs = parallelSave.Fs;
+                            gO.ephysYlabel = parallelSave.Ylabel;
+                        else
+                            errordlg('Save file is incorrectly configured!')
+                            return
+                        end
+                    end
+                    
 %                     axButtPress(gO,2,0,0)
                 end
             end
             
             gO.loaded(3) = 0;
-            if (~isempty(find(strcmp(fieldnames(testload),'runData'),1)))
+%             if (~isempty(find(strcmp(fieldnames(testload),'runData'),1)))
+            if sum(ismember(fieldnames(testload),'runData'))==1
                 load(fnameFull,'runData')
                 
                 if ~isempty(runData)
@@ -1424,8 +1453,9 @@ classdef DASeV < handle
             gO.simultModeSwitch.Value = 0;
             gO.simultModeSwitch.Enable = 'off';
             gO.save2DbSimultCheckBox.Enable = 'off';
-            if (~isempty(find(strcmp(fieldnames(testload),'simultSaveData'),1)))...
-                    & (~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1)))
+%             if (~isempty(find(strcmp(fieldnames(testload),'simultSaveData'),1)))...
+%                     & (~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1)))
+            if sum(ismember(fieldnames(testload),{'simultSaveData';'simultSaveInfo'}))==2
                 load(fnameFull,'simultSaveData','simultSaveInfo')
                 
                 if ~isempty(simultSaveData) & ~isempty(simultSaveInfo)
@@ -2053,12 +2083,12 @@ classdef DASeV < handle
                             refWin = gO.ephysTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                             if ~isempty(runWin)
-                                newSaveStruct.runData.Taxis
-                                newSaveStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                                newSaveStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                newSaveStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
-                                newSaveStruct.runData.Lap = gO.runLap(runWin);
-                                newSaveStruct.runData.Licks = gO.runLicks(runWin);
+                                tempStruct.runData.Taxis
+                                tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                                tempStruct.runData.Lap = gO.runLap(runWin);
+                                tempStruct.runData.Licks = gO.runLicks(runWin);
                             end
                         end
                         
@@ -2100,12 +2130,12 @@ classdef DASeV < handle
                             refWin = gO.imagingTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                             if ~isempty(runWin)
-                                newSaveStruct.runData.Taxis
-                                newSaveStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                                newSaveStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                newSaveStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
-                                newSaveStruct.runData.Lap = gO.runLap(runWin);
-                                newSaveStruct.runData.Licks = gO.runLicks(runWin);
+                                tempStruct.runData.Taxis
+                                tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                                tempStruct.runData.Lap = gO.runLap(runWin);
+                                tempStruct.runData.Licks = gO.runLicks(runWin);
                             end
                         end
                         
@@ -2148,12 +2178,12 @@ classdef DASeV < handle
                         refWin = gO.ephysTaxis(ephysWin);
                         runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                         if ~isemtpy(runWin)
-                            newSaveStruct.runData.Taxis
-                            newSaveStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                            newSaveStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                            newSaveStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
-                            newSaveStruct.runData.Lap = gO.runLap(runWin);
-                            newSaveStruct.runData.Licks = gO.runLicks(runWin);
+                            tempStruct.runData.Taxis
+                            tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                            tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                            tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                            tempStruct.runData.Lap = gO.runLap(runWin);
+                            tempStruct.runData.Licks = gO.runLicks(runWin);
                         end
                     end
                     

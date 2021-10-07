@@ -4080,13 +4080,16 @@ classdef DAS < handle
             end
             
             doParallelSave = 0;
-            if (detTypeToSave == 1) || (detTypeToSave == 2)
+            parallelSave = [];
+            if ((detTypeToSave == 1) && guiobj.datatyp(2)) || ((detTypeToSave == 2) && guiobj.datatyp(1))
                 quest = ['Do you want to save the parallel time windows from',...
                     ' the other datatype?'];
                 title = 'Parallel saving';
                 answer = questdlg(quest,title);
                 if strcmp(answer,'Yes')
                     doParallelSave = 1;
+                elseif isempty(answer) 
+                    return
                 end
             end
 %             saveStruct = struct('ephys',[],'imaging',[],'simult',[]);
@@ -4133,10 +4136,20 @@ classdef DAS < handle
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders(indx);
                 ephysSaveData.DetParams = guiobj.ephys_detParams(indx);
                 ephysSaveInfo = guiobj.ephys_detectionsInfo(indx);
-                 
+                
+                
+                if doParallelSave
+                    parallelSave.dTyp = "Imaging";
+                    parallelSave.Data = guiobj.imaging_data;
+                    parallelSave.Taxis = guiobj.imaging_taxis;
+                    parallelSave.YLabel = guiobj.imaging_ylabel;
+                    parallelSave.Fs = guiobj.imaging_fs;
+                end
+                
             else
                 ephysSaveData = [];
                 ephysSaveInfo = [];
+                
             end
             
             if ~isempty(find(detTypeToSave==2,1)) % imaging save
@@ -4182,9 +4195,19 @@ classdef DAS < handle
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders(indx);
                 imagingSaveData.DetParams = guiobj.imaging_detParams(indx);
                 imagingSaveInfo = guiobj.imaging_detectionsInfo(indx);
+                
+                if doParallelSave
+                    parallelSave.dTyp = "Ephys";
+                    parallelSave.Data = guiobj.ephys_data;
+                    parallelSave.Taxis = guiobj.ephys_taxis;
+                    parallelSave.YLabel = guiobj.ephys_ylabel;
+                    parallelSave.Fs = guiobj.ephys_fs;
+                end
+                
             else
                 imagingSaveData = [];
                 imagingSaveInfo = [];
+                
             end
             
             if ~isempty(find(detTypeToSave==3,1)) % simult save
@@ -4278,19 +4301,22 @@ classdef DAS < handle
             if isempty(guiobj.rhdName)
                 fname = ['DASsave_',char(datetime('now','Format','yyMMdd_HHmmss'))];
             else
-                fname = [guiobj.rhdName,'_DASsave'];
+                fname = ['DASsave_',guiobj.rhdName];
             end
             
             [fname,path] = uiputfile('*.mat','Save DAS detections',fname);
+            strfind(fname,'DASsave')
             if fname==0
                 return
+            elseif ~contains(fname,'DASsave')
+                fname = ['DASsave_',fname];
             end
             oldpath = cd(path);
             
             save(fname,'ephysSaveData','ephysSaveInfo','comments',...
                 'imagingSaveData','imagingSaveInfo',...
                 'simultSaveData','simultSaveInfo',...
-                'runData')
+                'parallelSave','runData')
             cd(oldpath)
         end
         
