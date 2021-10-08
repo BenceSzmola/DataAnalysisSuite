@@ -40,7 +40,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
     eventsStartStop = cell(size(rawData,1),1);
     eventsPeak = cell(size(rawData,1),1);
     vEvents = cell(size(rawData,1),1);
-
+    
     for i = 1:min(size(rawData))
         if i == refch
             continue
@@ -51,22 +51,17 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         [~,aboveThr] = find(detDataMod);
         aboveThr = unique(aboveThr);
         if isempty(aboveThr)
-            return
+            continue
         end
         steps = diff(aboveThr);
         steps = [0,steps];
         events = find(steps ~= 1);
 
-    %     if ~isempty(quietThr)
-    %         detDataModQ = detData;
-    %         detDataModQ(detDataModQ < quietThr) = 0;
-    %     end
-
         eventsStartStop{i} = nan(length(events),2);
         eventsPeak{i} = nan(length(events),1);
         vEvents{i} = false(length(events),1);
         aboveMinLen = false(length(events),1);
-
+        
         for j = 1:length(events)
             eventsStartStop{i}(j,1) = aboveThr(events(j));
             if j == length(events)
@@ -81,7 +76,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
 
             [~,maxIdx] = max(detData(i,eventsStartStop{i}(j,1):eventsStartStop{i}(j,2)));
             eventsPeak{i}(j) = maxIdx + eventsStartStop{i}(j,1) - 1;
-
+            
             if refVal~=0
                 winSize = 0.1*fs;
 
@@ -114,10 +109,10 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
                 vEvents{i} = aboveMinLen;
             end
         end
-
+        
     end
     
-    if refVal~=0
+    if (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
         title = 'Review of discarded events';
@@ -179,80 +174,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         
         dets(i,eventsPeak{i}) = 0;
     end
-    detBorders = eventsStartStop;
-    
-%     allDets(eventsPeak) = 0;
-%     allDetsStartStop = eventsStartStop;
-%     validDets(eventsPeak(vEvents)) = 0;
-%     validDetsStartStop = eventsStartStop(vEvents,:);
-
-%     tempValidDetSS = validDetsStartStop;
-%     merged = false(1,size(validDetsStartStop,1));
-%     if size(validDetsStartStop,1) > 1
-%         for i = 1:(size(validDetsStartStop,1)-1)
-%             for j = i:(size(validDetsStartStop,1)-1)
-%                 if (validDetsStartStop(j+1,1) - validDetsStartStop(j,2)) < minSepar
-%                     tempValidDetSS(i,2) = validDetsStartStop(j+1,2);
-%                     merged(j+1) = true;
-%                 else
-%                     break
-%                 end
-%             end
-%         end
-%     end
-
-%     validDetsStartStop = tempValidDetSS(~merged,:);
-%     temp = eventsPeak(vEvents);
-%     validDets(temp(merged)) = nan;
-
-%     if ~isempty(quietThr)
-%         extEventsStartStop = validDetsStartStop;
-%         for j = 1:size(validDetsStartStop,1)
-%             if j == 1
-%                 extEventsStartStop(j,1) = extBorders(1:validDetsStartStop(j,1),j,1);
-%             else
-%                 extEventsStartStop(j,1) = extBorders(validDetsStartStop(j-1,2):validDetsStartStop(j,1),j,1);
-%             end
-%             if j == size(validDetsStartStop,1)
-%                 extEventsStartStop(j,2) = extBorders(validDetsStartStop(j,2):length(detDataModQ),j,2);
-%             else
-%                 extEventsStartStop(j,2) = extBorders(validDetsStartStop(j,2):validDetsStartStop(j+1,1),j,2);
-%             end
-%         end
-%         validDetsStartStop = extEventsStartStop;
-%     end
-%     
-%     function ind = extBorders(interV,j,startOrStop)
-%         if startOrStop == 1
-%             if quietThr > thr
-%                 ind = find(detDataModQ(validDetsStartStop(j,1):validDetsStartStop(j,2)),1,'first');
-%             else
-%                 ind = find(~detDataModQ(interV),1,'last');
-%             end
-%         elseif startOrStop == 2
-%             if quietThr > thr
-%                 ind = find(detDataModQ(validDetsStartStop(j,1):validDetsStartStop(j,2)),1,'last');
-%             else
-%                 ind = find(~detDataModQ(interV),1,'first');
-%             end
-%         end
-%                 
-%         if isempty(ind)
-%             if startOrStop == 1
-%                 ind = validDetsStartStop(j,1);
-%             elseif startOrStop == 2
-%                 ind = validDetsStartStop(j,2);
-%             end
-%         else
-%             if quietThr > thr
-%                 ind = validDetsStartStop(j,1)+ind;
-%             else
-%                 ind = interV(1)+ind;
-%             end
-%         end
-%         
-%     end    
-    
+    detBorders = eventsStartStop;   
 
 end
 
