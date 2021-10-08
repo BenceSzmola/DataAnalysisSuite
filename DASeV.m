@@ -321,7 +321,7 @@ classdef DASeV < handle
                             detParams = gO.imagingDetParams;
                     end
                     
-                    currDetRows = 1:length(detInfo);
+                    currDetRows = 1:size(dets,1);
 
                     emptyRows = [];
                     for i = 1:length(currDetRows)
@@ -332,7 +332,11 @@ classdef DASeV < handle
                     allChans(emptyRows) = [];
                     dets(emptyRows,:) = [];
                     currDetRows(emptyRows) = [];
-                    detInfo(emptyRows) = [];
+                    if dTyp==1
+                        detInfo.Channel(emptyRows) = [];
+                    elseif dTyp==2
+                        detInfo.Roi(emptyRows) = [];
+                    end
                     if ~isempty(detBorders)
                         detBorders(emptyRows) = [];
                     end
@@ -348,9 +352,9 @@ classdef DASeV < handle
                     end
                     
                     if dTyp == 1
-                        chanOgNum = detInfo(currChan).Channel;
+                        chanOgNum = detInfo.Channel(currChan);
                     elseif dTyp == 2
-                        chanOgNum = detInfo(currChan).Roi;
+                        chanOgNum = detInfo.Roi(currChan);
                     end
                     
                     chanNum = allChans(currChan);
@@ -425,7 +429,7 @@ classdef DASeV < handle
                             currChanEvents = unique(detStructFocus(detStructFocus(:,1)==chan,2));
                             
                             nonSimDetInfo = gO.ephysDetInfo;
-                            nonSimDetRow = find([nonSimDetInfo.Channel]==chan);
+                            nonSimDetRow = find(nonSimDetInfo.Channel==chan);
                             chanOgNum = chan;
                             
                             detMat = gO.ephysDets(nonSimDetRow,:);
@@ -476,7 +480,7 @@ classdef DASeV < handle
                             currChanEvents = unique(detStructFocus(detStructFocus(:,3)==chan,4));
                             
                             nonSimDetInfo = gO.imagingDetInfo;
-                            nonSimDetRow = find([nonSimDetInfo.Roi]==chan);
+                            nonSimDetRow = find(nonSimDetInfo.Roi==chan);
                             chanOgNum = chan;
                             
                             detMat = gO.imagingDets(nonSimDetRow,:);
@@ -1315,8 +1319,6 @@ classdef DASeV < handle
             gO.ephysDetParamsTable.ColumnName = {};
             gO.save2DbEphysCheckBox.Enable = 'off';
 
-%             if (~isempty(find(strcmp(fieldnames(testload),'ephysSaveData'),1)))...
-%                     & (~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1)))
             if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'}))==2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
@@ -1355,20 +1357,21 @@ classdef DASeV < handle
                     gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
                     
                     if sum(ismember(fieldnames(testload),'parallelSave'))==1
-                        if parallelSave.dTyp == "Imaging"
-                            gO.imagingData = parallelSave.Data;
-                            gO.imagingTaxis = parallelSave.Taxis;
-                            gO.imagingFs = parallelSave.Fs;
-                            gO.imagingYlabel = parallelSave.Ylabel;
-                        else
-                            errordlg('Save file is incorrectly configured!')
-                            return
+                        load(fnameFull,'parallelSave')
+                        
+                        if ~isempty(parallelSave)
+                            if parallelSave.dTyp == "Imaging"
+                                gO.imagingData = parallelSave.Data;
+                                gO.imagingTaxis = parallelSave.Taxis;
+                                gO.imagingFs = parallelSave.Fs;
+                                gO.imagingYlabel = parallelSave.Ylabel;
+                            else
+                                errordlg('Save file is incorrectly configured!')
+                                return
+                            end
                         end
                     end
-                    
-%                     axButtPress(gO,1,0,0)
-
-                    
+                                        
                 end
             end
             
@@ -1381,8 +1384,6 @@ classdef DASeV < handle
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
-%             if (~isempty(find(strcmp(fieldnames(testload),'imagingSaveData'),1)))...
-%                     & (~isempty(find(strcmp(fieldnames(testload),'imagingSaveInfo'),1)))
             if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'}))==2
                 load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
@@ -1416,23 +1417,24 @@ classdef DASeV < handle
                     gO.loaded(2) = 1;
                     
                     if sum(ismember(fieldnames(testload),'parallelSave'))==1
-                        if parallelSave.dTyp == "Ephys"
-                            gO.ephysData = parallelSave.Data;
-                            gO.ephysTaxis = parallelSave.Taxis;
-                            gO.ephysFs = parallelSave.Fs;
-                            gO.ephysYlabel = parallelSave.Ylabel;
-                        else
-                            errordlg('Save file is incorrectly configured!')
-                            return
+                        load(fnameFull,'parallelSave')
+                        if ~isempty(parallelSave)
+                            if parallelSave.dTyp == "Ephys"
+                                gO.ephysData = parallelSave.Data;
+                                gO.ephysTaxis = parallelSave.Taxis;
+                                gO.ephysFs = parallelSave.Fs;
+                                gO.ephysYlabel = parallelSave.Ylabel;
+                            else
+                                errordlg('Save file is incorrectly configured!')
+                                return
+                            end
                         end
                     end
                     
-%                     axButtPress(gO,2,0,0)
                 end
             end
             
             gO.loaded(3) = 0;
-%             if (~isempty(find(strcmp(fieldnames(testload),'runData'),1)))
             if sum(ismember(fieldnames(testload),'runData'))==1
                 load(fnameFull,'runData')
                 
@@ -1453,8 +1455,7 @@ classdef DASeV < handle
             gO.simultModeSwitch.Value = 0;
             gO.simultModeSwitch.Enable = 'off';
             gO.save2DbSimultCheckBox.Enable = 'off';
-%             if (~isempty(find(strcmp(fieldnames(testload),'simultSaveData'),1)))...
-%                     & (~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1)))
+            
             if sum(ismember(fieldnames(testload),{'simultSaveData';'simultSaveInfo'}))==2
                 load(fnameFull,'simultSaveData','simultSaveInfo')
                 
@@ -1492,17 +1493,7 @@ classdef DASeV < handle
                     gO.save2DbImagingSelection{i} = false(size(gO.imagingDetBorders{i},1),1);
                 end
             end
-%             if gO.simultMode % if there is simult data, during loading simultMode is set to 1
-%                 gO.save2DbSimultSelection = cell(length(gO.simultDets),1);
-%                 for i = 1:length(gO.save2DbSimultSelection)
-%                     numDets = 0;
-%                     for j = 1:length(gO.simultDets(i).DetInds)
-%                         numDets = numDets + sum(gO.simultDets(i).DetInds{j}(:));
-%                     end
-%                     gO.save2DbSimultSelection{i} = false(numDets,3);
-%                 end
-%             end
-            
+
             for i = 1:2
                 if gO.loaded(i)
                     axButtPress(gO,i,0,0)
