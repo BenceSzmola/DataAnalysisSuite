@@ -3757,56 +3757,44 @@ classdef DAS < handle
         
         %%
         function saveDets(guiobj,event)
+            list = [];
+            if ~isempty(guiobj.ephys_detections)
+                list = [list,"Electrophysiology"];
+            end
+            if ~isempty(guiobj.imaging_detections)
+                list = [list,"Imaging"];
+            end
+            if ~isempty(guiobj.simult_detections)
+                list = [list,"Simultaneous"];
+            end
+            if isempty(list)
+                return
+            end
             [detTypeToSave,tf] = listdlg('PromptString','Which detection do you want to save?',...
                 'Name','Saving detections',...
-                'ListString',{'Ephys','Imaging','Simultaneous'},...
-                'ListSize',[500, 200]);
+                'ListString',list,'ListSize',[250, 100]);
             if ~tf
                 return
             end
             
-            if (length(detTypeToSave) > 1) & (~isempty(find(detTypeToSave==3,1)))
-                detTypeToSave = 3;
-            end
+%             if (length(detTypeToSave) > 1) & (~isempty(find(list(detTypeToSave)=="Simultaneous",1)))
+%                 detTypeToSave = 3;
+%             end
             
-            doParallelSave = 0;
-            doParallelDetSave = 0;
-            parallelSave = [];
-            if ((detTypeToSave == 1) && guiobj.datatyp(2)) || ((detTypeToSave == 2) && guiobj.datatyp(1))
-                if detTypeToSave == 1
-                    quest = ['Do you want to save the parallel time windows from',...
-                        ' the imaging data set?'];
-                elseif detTypeToSave == 2
-                    quest = ['Do you want to save the parallel time windows from',...
-                        ' the electrophysiology data set?'];
-                end
-                title = 'Parallel saving';
-                answer = questdlg(quest,title);
-                if strcmp(answer,'Yes')
-                    doParallelSave = 1;
-                    
-                    if detTypeToSave == 1
-                        quest = ['Do you want to save the detections from',...
-                            ' the imaging data set?'];
-                    elseif detTypeToSave == 2
-                        quest = ['Do you want to save the detections from',...
-                            ' the electrophysiology data set?'];
-                    end
-                    title = 'Parallel deteciton saving';
-                    answer = questdlg(quest,title);
-                    if strcmp(answer,'Yes')
-                        doParallelDetSave = 1;
-                    elseif isempty(answer) 
-                        return
-                    end
-                    
-                elseif isempty(answer) 
-                    return
-                end
+            saveAllChans = 0;
+            quest = ['Do you want to save the all channels/ROIs, or only those',...
+                ' which were used in the detection?'];
+            title = 'Save all channels';
+            answer = questdlg(quest,title,'All','Those used in detection','Cancel','All');
+            if strcmp(answer,'All')
+                saveAllChans = 1;
+            elseif isempty(answer)
+                return
+            end
                 
-            end
             
-            if ~isempty(find(detTypeToSave==1,1)) % ephys save
+            if ~isempty(find(list(detTypeToSave) == "Electrophysiology",1))...
+                    || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % ephys save
                 if isempty(guiobj.ephys_detectionsInfo(1).DetType)
                     warndlg('No detections!')
                     return
@@ -3815,34 +3803,25 @@ classdef DAS < handle
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
-                chans2Save = guiobj.ephys_detectionsInfo.Channel;
-                ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
+                if ~saveAllChans
+                    chans2Save = guiobj.ephys_detectionsInfo.Channel;
+                    ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
+                else
+                    ephysSaveData.RawData = guiobj.ephys_data;
+                end
                 ephysSaveData.Dets = guiobj.ephys_detections;
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
                 ephysSaveData.DetParams = guiobj.ephys_detParams;
                 ephysSaveInfo = guiobj.ephys_detectionsInfo;
-                
-                
-                if doParallelSave
-                    parallelSave.dTyp = "Imaging";
-                    parallelSave.Data = guiobj.imaging_data;
-                    parallelSave.Taxis = guiobj.imaging_taxis;
-                    parallelSave.YLabel = guiobj.imaging_ylabel;
-                    parallelSave.Fs = guiobj.imaging_fs;
-                    
-                    if doParallelDetSave
-                        parallelSave.Dets = guiobj.imaging_detections;
-                        parallelSave.DetInfo = guiobj.imaging_detectionsInfo;
-                    end
-                end
-                
+                                
             else
                 ephysSaveData = [];
                 ephysSaveInfo = [];
                 
             end
             
-            if ~isempty(find(detTypeToSave==2,1)) % imaging save
+            if ~isempty(find(list(detTypeToSave) == "Imaging",1))...
+                    || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % imaging save
                 if isempty(guiobj.imaging_detectionsInfo(1).DetType)
                     warndlg('No detections!')
                     return
@@ -3856,27 +3835,14 @@ classdef DAS < handle
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders;
                 imagingSaveData.DetParams = guiobj.imaging_detParams;
                 imagingSaveInfo = guiobj.imaging_detectionsInfo;
-                
-                if doParallelSave
-                    parallelSave.dTyp = "Ephys";
-                    parallelSave.Data = guiobj.ephys_data;
-                    parallelSave.Taxis = guiobj.ephys_taxis;
-                    parallelSave.YLabel = guiobj.ephys_ylabel;
-                    parallelSave.Fs = guiobj.ephys_fs;
-                    
-                    if doParallelDetSave
-                        parallelSave.Dets = guiobj.ephys_detections;
-                        parallelSave.DetInfo = guiobj.ephys_detectionsInfo;
-                    end
-                end
-                
+                                
             else
                 imagingSaveData = [];
                 imagingSaveInfo = [];
                 
             end
             
-            if ~isempty(find(detTypeToSave==3,1)) % simult save
+            if ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % simult save
                                 
                 if isempty(guiobj.simult_detections)
                     errordlg('No simultan detections!')
@@ -3886,24 +3852,28 @@ classdef DAS < handle
                 simultSaveData = guiobj.simult_detections;
                 simultSaveInfo = guiobj.simult_detectionsInfo;
                 
-                ephysSaveData.TAxis = guiobj.ephys_taxis;
-                ephysSaveData.YLabel = guiobj.ephys_ylabel;
-                ephysSaveData.Fs = guiobj.ephys_fs;
-                chans2Save = guiobj.ephys_detectionsInfo.Channel;
-                ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
-                ephysSaveData.Dets = guiobj.ephys_detections;
-                ephysSaveData.DetBorders = guiobj.ephys_detBorders;
-                ephysSaveData.DetParams = guiobj.ephys_detParams;
-                ephysSaveInfo = guiobj.ephys_detectionsInfo;
-                
-                imagingSaveData.TAxis = guiobj.imaging_taxis;
-                imagingSaveData.YLabel = guiobj.imaging_ylabel;
-                imagingSaveData.Fs = guiobj.imaging_fs;
-                imagingSaveData.RawData = guiobj.imaging_data;
-                imagingSaveData.Dets = guiobj.imaging_detections;
-                imagingSaveData.DetBorders = guiobj.imaging_detBorders;
-                imagingSaveData.DetParams = guiobj.imaging_detParams;
-                imagingSaveInfo = guiobj.imaging_detectionsInfo;
+%                 ephysSaveData.TAxis = guiobj.ephys_taxis;
+%                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
+%                 ephysSaveData.Fs = guiobj.ephys_fs;
+%                 if ~saveAllChans
+%                     chans2Save = guiobj.ephys_detectionsInfo.Channel;
+%                     ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
+%                 else
+%                     ephysSaveData.RawData = guiobj.ephys_data;
+%                 end
+%                 ephysSaveData.Dets = guiobj.ephys_detections;
+%                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
+%                 ephysSaveData.DetParams = guiobj.ephys_detParams;
+%                 ephysSaveInfo = guiobj.ephys_detectionsInfo;
+%                 
+%                 imagingSaveData.TAxis = guiobj.imaging_taxis;
+%                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
+%                 imagingSaveData.Fs = guiobj.imaging_fs;
+%                 imagingSaveData.RawData = guiobj.imaging_data;
+%                 imagingSaveData.Dets = guiobj.imaging_detections;
+%                 imagingSaveData.DetBorders = guiobj.imaging_detBorders;
+%                 imagingSaveData.DetParams = guiobj.imaging_detParams;
+%                 imagingSaveInfo = guiobj.imaging_detectionsInfo;
             else
                 simultSaveData = [];
                 simultSaveInfo = [];
@@ -3947,7 +3917,7 @@ classdef DAS < handle
             save(fname,'ephysSaveData','ephysSaveInfo','comments',...
                 'imagingSaveData','imagingSaveInfo',...
                 'simultSaveData','simultSaveInfo',...
-                'parallelSave','runData')
+                'runData')
             cd(oldpath)
         end
         

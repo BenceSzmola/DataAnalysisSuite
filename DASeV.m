@@ -10,6 +10,7 @@ classdef DASeV < handle
         runTypMenu
         highPassRawEphysMenu
         plotFullMenu
+        parallelModeMenu
         showEventSpectroMenu
         
         %% tabs
@@ -517,156 +518,124 @@ classdef DASeV < handle
                 forSpectro = 0;
             end
             
-            [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
-            
-%             currDetNum = gO.ephysCurrDetNum;
-%             currDetRow = gO.ephysCurrDetRow;
-            
-%             currDetRows = 1:length(gO.ephysDetInfo);
-%             emptyChans = [];
-%             % Filtering out channels with no detections
-%             for j = 1:length(currDetRows)
-%                 if isempty(find(~isnan(gO.ephysDets(currDetRows(j),:)),1))
-%                     emptyChans = [emptyChans, j];
-%                 end
-%             end
-            
-%             currDetRows(emptyChans) = [];
-%             currDetRow = currDetRows(currDetRow);
-            
-%             numDets = length(find(~isnan(gO.ephysDets(currDetRow,:))));
-%             chan = gO.ephysDetInfo(currDetRow).Channel;
-            
-%             currDetBorders = gO.ephysDetBorders{currDetRow};
-            currDetBorders = detBorders;
-            
-            if numDets == 0
-                return
-            end
-            
-            if ~gO.plotFull
-                gO.ephysDetUpButt.Enable = 'on';
-                gO.ephysDetDwnButt.Enable = 'on';
-                
-%                 currDetParamsRows = gO.ephysDetParams{currDetRow};
-%                 if ~isempty(currDetParamsRows)
-%                     currDetParams = currDetParamsRows(currDetNum);
-%                     assignin('base','currDetParams',currDetParams)
-%                     temp = [fieldnames([currDetParams]), squeeze(struct2cell([currDetParams]))];
-%                     gO.ephysDetParamsTable.Data = temp;
-%                     gO.ephysDetParamsTable.RowName = [];
-%                     gO.ephysDetParamsTable.ColumnName = {'Electrophysiology','Values'};
-%                 end
+            if gO.parallelMode ~= 1
+                [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
 
-                if ~isempty(detParams)
-                    temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
-                    gO.ephysDetParamsTable.Data = temp;
-                    gO.ephysDetParamsTable.RowName = [];
-                    gO.ephysDetParamsTable.ColumnName = {'Electrophysiology','Values'};
-                end
-                
-%                 currDetBorders = gO.ephysDetBorders{currDetRow};
-%                 if ~isempty(currDetBorders)
-%                     currDetBorders = currDetBorders(currDetNum,:);
-%                 end
-                
-%                 detIdx = gO.ephysDets(currDetRow,:);
-%                 detIdx = find(~isnan(detIdx));
-%                 detIdx = detIdx(currDetNum);
-                tDetInds = gO.ephysTaxis(detIdx);
+                currDetBorders = detBorders;
 
-                win = 0.5;
-                win = round(win*gO.ephysFs,4);
-                
-                if ~isempty(currDetBorders)
-                    winStart = currDetBorders(1)-win;
-                    winEnd = currDetBorders(2)+win;
-                    if (winStart > 0) & (winEnd <= length(gO.ephysTaxis))
-                        winIdx = winStart:winEnd;
-                        tWin = gO.ephysTaxis(winIdx);
-                    elseif winStart <= 0
-                        winIdx = 1:winEnd;
-                        tWin = gO.ephysTaxis(winIdx);
-                    elseif winEnd > length(gO.ephysTaxis)
-                        winIdx = winStart:length(gO.ephysTaxis);
-                        tWin = gO.ephysTaxis(winIdx);
-                    end
-                else
-                    if (detIdx-win > 0) & (detIdx+win <= length(gO.ephysTaxis))
-                        winIdx = detIdx-win:detIdx+win;
-                        tWin = gO.ephysTaxis(winIdx);
-                    elseif detIdx-win <= 0
-                        winIdx = 1:detIdx+win;
-                        tWin = gO.ephysTaxis(winIdx);
-                    elseif detIdx+win > length(gO.ephysTaxis)
-                        winIdx = detIdx-win:length(gO.ephysTaxis);
-                        tWin = gO.ephysTaxis(winIdx);
-                    end
+                if numDets == 0
+                    return
                 end
-                
-            
-                if gO.fixWin == 1
-                    chanOgNum = gO.ephysDetInfo(gO.ephysFixWinDetRow).Channel;
-                    chanNum = gO.ephysFixWinDetRow;
-                    if chanOgNum == gO.ephysRefCh
-                        axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)'];
-                    else
-                        axTitle = ['Channel #',num2str(chanOgNum)];
+
+                if ~gO.plotFull
+                    gO.ephysDetUpButt.Enable = 'on';
+                    gO.ephysDetDwnButt.Enable = 'on';
+
+
+                    if ~isempty(detParams)
+                        temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
+                        gO.ephysDetParamsTable.Data = temp;
+                        gO.ephysDetParamsTable.RowName = [];
+                        gO.ephysDetParamsTable.ColumnName = {'Electrophysiology','Values'};
                     end
-                elseif gO.fixWin == 0
-                    if chanOgNum == gO.ephysRefCh
-                        axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)',...
-                            '      Detection #',...
-                            num2str(detNum),'/',num2str(numDets)];
+
+                    tDetInds = gO.ephysTaxis(detIdx);
+
+                    win = 0.5;
+                    win = round(win*gO.ephysFs,4);
+
+                    if ~isempty(currDetBorders)
+                        winStart = currDetBorders(1)-win;
+                        winEnd = currDetBorders(2)+win;
+                        if (winStart > 0) & (winEnd <= length(gO.ephysTaxis))
+                            winIdx = winStart:winEnd;
+                            tWin = gO.ephysTaxis(winIdx);
+                        elseif winStart <= 0
+                            winIdx = 1:winEnd;
+                            tWin = gO.ephysTaxis(winIdx);
+                        elseif winEnd > length(gO.ephysTaxis)
+                            winIdx = winStart:length(gO.ephysTaxis);
+                            tWin = gO.ephysTaxis(winIdx);
+                        end
                     else
-                        if ~gO.simultMode
-                            axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
-                                num2str(detNum),'/',num2str(numDets)];
-                        else
-                            axTitle = ['Channel #',num2str(chanOgNum),'      Simult Detection #',...
-                                num2str(gO.simultEphysCurrDetNum),'/',num2str(numDets),...
-                                ' (nonSimult #',num2str(detNum),')'];
+                        if (detIdx-win > 0) & (detIdx+win <= length(gO.ephysTaxis))
+                            winIdx = detIdx-win:detIdx+win;
+                            tWin = gO.ephysTaxis(winIdx);
+                        elseif detIdx-win <= 0
+                            winIdx = 1:detIdx+win;
+                            tWin = gO.ephysTaxis(winIdx);
+                        elseif detIdx+win > length(gO.ephysTaxis)
+                            winIdx = detIdx-win:length(gO.ephysTaxis);
+                            tWin = gO.ephysTaxis(winIdx);
                         end
                     end
-                    
+
+
+                    if gO.fixWin == 1
+                        chanOgNum = gO.ephysDetInfo.Channel(gO.ephysFixWinDetRow);
+                        chanNum = gO.ephysFixWinDetRow;
+                        if chanOgNum == gO.ephysRefCh
+                            axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)'];
+                        else
+                            axTitle = ['Channel #',num2str(chanOgNum)];
+                        end
+                    elseif gO.fixWin == 0
+                        if chanOgNum == gO.ephysRefCh
+                            axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)',...
+                                '      Detection #',...
+                                num2str(detNum),'/',num2str(numDets)];
+                        else
+                            if ~gO.simultMode
+                                axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
+                                    num2str(detNum),'/',num2str(numDets)];
+                            else
+                                axTitle = ['Channel #',num2str(chanOgNum),'      Simult Detection #',...
+                                    num2str(gO.simultEphysCurrDetNum),'/',num2str(numDets),...
+                                    ' (nonSimult #',num2str(detNum),')'];
+                            end
+                        end
+
+                    end
+                elseif gO.plotFull
+                    gO.ephysDetUpButt.Enable = 'off';
+                    gO.ephysDetDwnButt.Enable = 'off';
+                    gO.ephysCurrDetNum = 1;
+
+                    if ~isempty(detParams)
+                        currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),3);
+                        temp = [fieldnames([detParams(1)]),...
+                            mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
+                        gO.ephysDetParamsTable.Data = temp;
+                        gO.ephysDetParamsTable.RowName = [];
+                        gO.ephysDetParamsTable.ColumnName = {'Electrophysiology','Mean values'};
+                    end
+
+                    tDetInds = gO.ephysTaxis(detIdx);
+
+                    winIdx = 1:length(gO.ephysTaxis);
+                    tWin = gO.ephysTaxis;
+
+                    if chanOgNum == gO.ephysRefCh
+                        axTitle = ['Channel #',num2str(chanOgNum),' (Ref)',...
+                            '      #Detections = ',num2str(numDets)];
+                    else
+                        axTitle = ['Channel #',num2str(chanOgNum),'      #Detections = ',...
+                            num2str(numDets)];
+                    end
                 end
-            elseif gO.plotFull
-                gO.ephysDetUpButt.Enable = 'off';
-                gO.ephysDetDwnButt.Enable = 'off';
-                gO.ephysCurrDetNum = 1;
                 
-%                 currDetParamsRows = gO.ephysDetParams{currDetRow};
-%                 if ~isempty(currDetParamsRows)
-%                     currDetParamsAvg = mean(cell2mat(struct2cell(currDetParamsRows)),3);
-%                     temp = [fieldnames([currDetParamsRows(1)]),...
-%                         mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
-%                     gO.ephysDetParamsTable.Data = temp;
-%                     gO.ephysDetParamsTable.RowName = [];
-%                     gO.ephysDetParamsTable.ColumnName = {'','Mean values'};
-%                 end
-                if ~isempty(detParams)
-                    currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),3);
-                    temp = [fieldnames([detParams(1)]),...
-                        mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
-                    gO.ephysDetParamsTable.Data = temp;
-                    gO.ephysDetParamsTable.RowName = [];
-                    gO.ephysDetParamsTable.ColumnName = {'Electrophysiology','Mean values'};
-                end
                 
-%                 detInds = gO.ephysDets(currDetRow,:);
-%                 detInds = find(~isnan(detInds));
-                tDetInds = gO.ephysTaxis(detIdx);
-                
-                winIdx = 1:length(gO.ephysTaxis);
-                tWin = gO.ephysTaxis;
-                                
-                if chanOgNum == gO.ephysRefCh
-                    axTitle = ['Channel #',num2str(chanOgNum),' (Ref)',...
-                        '      #Detections = ',num2str(numDets)];
-                else
-                    axTitle = ['Channel #',num2str(chanOgNum),'      #Detections = ',...
-                        num2str(numDets)];
-                end
+            elseif gO.parallelMode == 1
+                [~,~,chanNum,~,~,~,~,~] = extractDetStruct(gO,1);
+                [~,~,imagingChanNum,~,imagingDetNum,~,~,~] = extractDetStruct(gO,2);
+                [imagingWinIdx,~] = windowMacher(gO,2,imagingChanNum,imagingDetNum,0.5);
+                imagingTWinIdx = gO.imagingTaxis(imagingWinIdx);
+                [~,winStart] = min(abs(gO.ephysTaxis-imagingTWinIdx(1)));
+                [~,winEnd] = min(abs(gO.ephysTaxis-imagingTWinIdx(end)));
+                winIdx = winStart:winEnd;
+                tWin = gO.ephysTaxis(winIdx);
+                axTitle = 'Electrophysiology - parallel time window';
+                tDetInds = [];
             end
             
             if forSpectro
@@ -692,22 +661,18 @@ classdef DASeV < handle
                         if gO.highPassRawEphys == 1
                             temp = filtfilt(b,a,gO.ephysData(chanNum,:));
                             data = temp(winIdx);
-%                             axLims = [tWin(1), tWin(end), min(temp), max(temp)];
                             axLims = [min(temp), max(temp)];
                         elseif gO.highPassRawEphys == 0
                             data = gO.ephysData(chanNum,winIdx);
-%                             axLims = [tWin(1), tWin(end),...
                             axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
                         end
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(2)
                         data = gO.ephysDoGGed(chanNum,winIdx);
-%                         axLims = [tWin(1), tWin(end),...
                         axLims = [min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(3)
                         data = gO.ephysInstPow(chanNum,winIdx);
-%                         axLims = [tWin(1), tWin(end),...
                         axLims = [min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
@@ -718,11 +683,9 @@ classdef DASeV < handle
                         if gO.highPassRawEphys == 1
                             tempfull = filtfilt(b,a,gO.ephysData(chanNum,:));
                             temp = tempfull(winIdx);
-%                             axLims = [axLims; tWin(1), tWin(end),...
                             axLims = [axLims; min(tempfull), max(tempfull)];
                         elseif gO.highPassRawEphys == 0
                             temp = gO.ephysData(chanNum,winIdx);
-%                             axLims = [axLims; tWin(1), tWin(end),...
                             axLims = [axLims; min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
                         end
                         data = [data; temp];
@@ -730,13 +693,11 @@ classdef DASeV < handle
                     end
                     if gO.ephysTypSelected(2)
                         data = [data; gO.ephysDoGGed(chanNum,winIdx)];
-%                         axLims = [axLims; tWin(1), tWin(end),...
                         axLims = [axLims; min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(3)
                         data = [data; gO.ephysInstPow(chanNum,winIdx)];
-%                         axLims = [axLims; tWin(1), tWin(end),...
                         axLims = [axLims; min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = [string(yLabels); string(['Power ',gO.ephysYlabel(temp:end-1),...
@@ -746,17 +707,15 @@ classdef DASeV < handle
                     if gO.highPassRawEphys == 1
                         tempfull = filtfilt(b,a,gO.ephysData(chanNum,:));
                         temp = tempfull(winIdx);
-%                         axLims = [tWin(1), tWin(end),...
                         axLims = [min(tempfull), max(tempfull)];
                     elseif gO.highPassRawEphys == 0
                         temp = gO.ephysData(chanNum,winIdx);
-%                         axLims = [tWin(1), tWin(end),...
                         axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
                     end
                     data = [temp;...
                         gO.ephysDoGGed(chanNum,winIdx);...
                         gO.ephysInstPow(chanNum,winIdx)];
-                    axLims = [axLims;... %axLims(1:2), ...
+                    axLims = [axLims;...
                         min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:));
                         min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
                     temp = find(gO.ephysYlabel=='[');
@@ -768,29 +727,23 @@ classdef DASeV < handle
             for i = 1:min(size(data))
                 plot(ax(i),tWin,data(i,:))
                 hold(ax(i),'on')
-%                 if chan == gO.ephysDetInfo(1).Params.RefCh
-%                     for j = 1:2:length(tDetInds)
-%                         plot(ax(i),tWin(tDetInds(j):tDetInds(j+1)),data(i,tDetInds(j):tDetInds(j+1)),'-r')
-%                     end
-%                 else
-                    for j = 1:length(tDetInds)
-                        xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
-                        if ~isempty(currDetBorders)
-                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'--b','LineWidth',1);
-                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'--b','LineWidth',1);
-                            hL = data(i,:);
-                            temp1 = find(tWin==gO.ephysTaxis(currDetBorders(j,1)));
-                            temp2 = find(tWin==gO.ephysTaxis(currDetBorders(j,2)));
-                            hL(1:temp1-1) = nan;
-                            hL(temp2+1:end) = nan;
-                            plot(ax(i),tWin,hL,'-r','LineWidth',0.75)
-                        end
+
+                for j = 1:length(tDetInds)
+                    xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
+                    if ~isempty(currDetBorders)
+                        xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'--b','LineWidth',1);
+                        xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'--b','LineWidth',1);
+                        hL = data(i,:);
+                        temp1 = find(tWin==gO.ephysTaxis(currDetBorders(j,1)));
+                        temp2 = find(tWin==gO.ephysTaxis(currDetBorders(j,2)));
+                        hL(1:temp1-1) = nan;
+                        hL(temp2+1:end) = nan;
+                        plot(ax(i),tWin,hL,'-r','LineWidth',0.75)
                     end
-%                 end
+                end
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
-%                 axis(ax(i),axLims(i,:))
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
@@ -804,139 +757,107 @@ classdef DASeV < handle
         
         %%
         function imagingPlot(gO,ax)
-            
-            [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
-%             currDetNum = gO.imagingCurrDetNum;
-%             currDetRow = gO.imagingCurrDetRow;
-            
-%             currDetRows = 1:length(gO.imagingDetInfo);
-%             emptyChans = [];
-%             % Filtering out channels with no detections
-%             for j = 1:length(currDetRows)
-%                 if isempty(find(~isnan(gO.imagingDets(currDetRows(j),:)),1))
-%                     emptyChans = [emptyChans, j];
-%                 end
-%             end
-%             currDetRows(emptyChans) = [];
-%             currDetRow = currDetRows(currDetRow);
-            
-%             numDets = length(find(~isnan(gO.imagingDets(currDetRow,:))));
-%             chan = gO.imagingDetInfo(currDetRow).Roi;
-            
-%             currDetBorders = gO.imagingDetBorders{currDetRow};
-            currDetBorders = detBorders;
-            
-            if numDets == 0
-                return
-            end
-            
-            if ~gO.plotFull
-                gO.imagingDetUpButt.Enable = 'on';
-                gO.imagingDetDwnButt.Enable = 'on';
-                
-%                 currDetParamsRows = gO.imagingDetParams{currDetRow};
-%                 if ~isempty(currDetParamsRows)
-%                     currDetParams = currDetParamsRows(currDetNum);
-%                     assignin('base','currDetParams',currDetParams)
-%                     temp = [fieldnames([currDetParams]), squeeze(struct2cell([currDetParams]))];
-%                     gO.imagingDetParamsTable.Data = temp;
-%                     gO.imagingDetParamsTable.RowName = [];
-%                     gO.imagingDetParamsTable.ColumnName = {'Imaging','Values'};
-%                 end
-                if ~isempty(detParams)
-                    temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
-                    gO.imagingDetParamsTable.Data = temp;
-                    gO.imagingDetParamsTable.RowName = [];
-                    gO.imagingDetParamsTable.ColumnName = {'Imaging','Values'};
-                end
-                
-%                 detIdx = gO.imagingDets(currDetRow,:);
-%                 detIdx = find(~isnan(detIdx));
-%                 detIdx = detIdx(currDetNum);
-                tDetInds = gO.imagingTaxis(detIdx);
+            if gO.parallelMode ~= 2
+                [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
 
-                win = 0.5;
-                win = round(win*gO.imagingFs,0);
-                
-                
-                if ~isempty(currDetBorders)
-%                     currDetBorders = currDetBorders(currDetNum,:);
-                    
-                    winStart = currDetBorders(1)-win;
-                    winEnd = currDetBorders(2)+win;
-                    if (winStart > 0) & (winEnd <= length(gO.imagingTaxis))
-                        winIdx = winStart:winEnd;
-                        tWin = gO.imagingTaxis(winIdx);
-                    elseif winStart <= 0
-                        winIdx = 1:winEnd;
-                        tWin = gO.imagingTaxis(winIdx);
-                    elseif winEnd > length(gO.imagingTaxis)
-                        winIdx = winStart:length(gO.imagingTaxis);
-                        tWin = gO.imagingTaxis(winIdx);
-                    end
-                else
-                    if (detIdx-win > 0) & (detIdx+win <= length(gO.imagingTaxis))
-                            winIdx = detIdx-win:detIdx+win;
-                            tWin = gO.imagingTaxis(winIdx);
-                        elseif detIdx-win <= 0
-                            winIdx = 1:detIdx+win;
-                            tWin = gO.imagingTaxis(winIdx);
-                        elseif detIdx+win > length(gO.imagingTaxis)
-                            winIdx = detIdx-win:length(gO.imagingTaxis);
-                            tWin = gO.imagingTaxis(winIdx);
-                    end
+                currDetBorders = detBorders;
+
+                if numDets == 0
+                    return
                 end
-%                 axTitle = ['ROI #',num2str(chan),'      Detection #',...
-%                                 num2str(currDetNum),'/',num2str(numDets)];
-                
-                if gO.fixWin == 1
-                    chanOgNum = gO.imagingDetInfo(gO.imagingFixWinDetRow).Roi;
-                    chanNum = gO.imagingFixWinDetRow;
-                    axTitle = ['ROI #',num2str(chanOgNum)];
-                elseif gO.fixWin == 0
-                    if ~gO.simultMode
-                        axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
-                            num2str(detNum),'/',num2str(numDets)];
+
+                if ~gO.plotFull
+                    gO.imagingDetUpButt.Enable = 'on';
+                    gO.imagingDetDwnButt.Enable = 'on';
+
+                    if ~isempty(detParams)
+                        temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
+                        gO.imagingDetParamsTable.Data = temp;
+                        gO.imagingDetParamsTable.RowName = [];
+                        gO.imagingDetParamsTable.ColumnName = {'Imaging','Values'};
+                    end
+
+                    tDetInds = gO.imagingTaxis(detIdx);
+
+                    win = 0.5;
+                    win = round(win*gO.imagingFs,0);
+
+
+                    if ~isempty(currDetBorders)
+
+                        winStart = currDetBorders(1)-win;
+                        winEnd = currDetBorders(2)+win;
+                        if (winStart > 0) & (winEnd <= length(gO.imagingTaxis))
+                            winIdx = winStart:winEnd;
+                            tWin = gO.imagingTaxis(winIdx);
+                        elseif winStart <= 0
+                            winIdx = 1:winEnd;
+                            tWin = gO.imagingTaxis(winIdx);
+                        elseif winEnd > length(gO.imagingTaxis)
+                            winIdx = winStart:length(gO.imagingTaxis);
+                            tWin = gO.imagingTaxis(winIdx);
+                        end
                     else
-                        axTitle = ['ROI #',num2str(chanOgNum),'      Simult Detection #',...
-                            num2str(gO.simultImagingCurrDetNum),'/',num2str(numDets),...
-                            ' (nonSimult #',num2str(detNum),')'];
+                        if (detIdx-win > 0) & (detIdx+win <= length(gO.imagingTaxis))
+                                winIdx = detIdx-win:detIdx+win;
+                                tWin = gO.imagingTaxis(winIdx);
+                            elseif detIdx-win <= 0
+                                winIdx = 1:detIdx+win;
+                                tWin = gO.imagingTaxis(winIdx);
+                            elseif detIdx+win > length(gO.imagingTaxis)
+                                winIdx = detIdx-win:length(gO.imagingTaxis);
+                                tWin = gO.imagingTaxis(winIdx);
+                        end
                     end
-                end
-                
-            elseif gO.plotFull
-                gO.imagingDetUpButt.Enable = 'off';
-                gO.imagingDetDwnButt.Enable = 'off';
-                gO.imagingCurrDetNum = 1;
-                
-%                 currDetParamsRows = gO.imagingDetParams{currDetRow};
-%                 if ~isempty(currDetParamsRows)
-%                     currDetParamsAvg = mean(cell2mat(struct2cell(currDetParamsRows)),3);
-%                     temp = [fieldnames([currDetParamsRows(1)]),...
-%                         mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
-%                     gO.imagingDetParamsTable.Data = temp;
-%                     gO.imagingDetParamsTable.RowName = [];
-%                     gO.imagingDetParamsTable.ColumnName = {'','Mean values'};
-%                 end
 
-                if ~isempty(detParams)
-                    currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),3);
-                    temp = [fieldnames([detParams(1)]),...
-                        mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
-                    gO.imagingDetParamsTable.Data = temp;
-                    gO.imagingDetParamsTable.RowName = [];
-                    gO.imagingDetParamsTable.ColumnName = {'Imaging','Mean values'};
+                    if gO.fixWin == 1
+                        chanOgNum = gO.imagingDetInfo.Roi(gO.imagingFixWinDetRow);
+                        chanNum = gO.imagingFixWinDetRow;
+                        axTitle = ['ROI #',num2str(chanOgNum)];
+                    elseif gO.fixWin == 0
+                        if ~gO.simultMode
+                            axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
+                                num2str(detNum),'/',num2str(numDets)];
+                        else
+                            axTitle = ['ROI #',num2str(chanOgNum),'      Simult Detection #',...
+                                num2str(gO.simultImagingCurrDetNum),'/',num2str(numDets),...
+                                ' (nonSimult #',num2str(detNum),')'];
+                        end
+                    end
+
+                elseif gO.plotFull
+                    gO.imagingDetUpButt.Enable = 'off';
+                    gO.imagingDetDwnButt.Enable = 'off';
+                    gO.imagingCurrDetNum = 1;
+
+                    if ~isempty(detParams)
+                        currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),3);
+                        temp = [fieldnames([detParams(1)]),...
+                            mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
+                        gO.imagingDetParamsTable.Data = temp;
+                        gO.imagingDetParamsTable.RowName = [];
+                        gO.imagingDetParamsTable.ColumnName = {'Imaging','Mean values'};
+                    end
+
+                    tDetInds = gO.imagingTaxis(detIdx);
+
+                    winIdx = 1:length(gO.imagingTaxis);
+                    tWin = gO.imagingTaxis;
+
+                    axTitle = ['ROI #',num2str(chanOgNum),'      #Detections = ',...
+                        num2str(numDets)];
                 end
-                
-%                 detInds = gO.imagingDets(currDetRow,:);
-%                 detInds = find(~isnan(detInds));
-                tDetInds = gO.imagingTaxis(detIdx);
-                
-                winIdx = 1:length(gO.imagingTaxis);
-                tWin = gO.imagingTaxis;
-                
-                axTitle = ['ROI #',num2str(chanOgNum),'      #Detections = ',...
-                    num2str(numDets)];
+            elseif gO.parallelMode == 2
+                [~,~,chanNum,~,~,~,~,~] = extractDetStruct(gO,2);
+                [~,~,ephysChanNum,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
+                [ephysWinIdx,~] = windowMacher(gO,1,ephysChanNum,ephysDetNum,0.5);
+                ephysTWinIdx = gO.ephysTaxis(ephysWinIdx);
+                [~,winStart] = min(abs(gO.imagingTaxis-ephysTWinIdx(1)));
+                [~,winEnd] = min(abs(gO.imagingTaxis-ephysTWinIdx(end)));
+                winIdx = winStart:winEnd;
+                tWin = gO.imagingTaxis(winIdx);
+                axTitle = 'Imaging - parallel time window';
+                tDetInds = [];
             end
             
             if gO.imagingTypSelected(1)
@@ -968,7 +889,6 @@ classdef DASeV < handle
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
-%                 axis(ax(i),axLims(i,:))
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
@@ -995,6 +915,11 @@ classdef DASeV < handle
             title(ax,axTitle)
             ylabel(ax,axYlabel)
             xlabel(ax,'Time [s]')
+            
+        end
+        
+        %%
+        function parallelPlot(gO,dTyp,ax)
             
         end
         
@@ -1263,6 +1188,42 @@ classdef DASeV < handle
         end
         
         %%
+        function parallelModeMenuSel(gO,changeVal)
+            if changeVal
+                if gO.parallelMode < 2
+                    gO.parallelMode = gO.parallelMode + 1;
+                else
+                    gO.parallelMode = 0;
+                end
+            end
+            
+            if gO.parallelMode > 0
+                gO.simultModeSwitch.Enable = 'off';
+                gO.fixWinSwitch.Enable = 'off';
+            else
+                gO.simultModeSwitch.Enable = 'on';
+                gO.fixWinSwitch.Enable = 'on';
+                gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+            end
+            
+            if gO.parallelMode == 1
+                gO.parallelModeMenu.Text = 'Parallel mode --Ephys--';
+                gO.ephysDetUpButt.Enable = 'off';
+                gO.ephysDetDwnButt.Enable = 'off';
+                gO.imagingDetUpButt.Enable = 'on';
+                gO.imagingDetDwnButt.Enable = 'on';
+            elseif gO.parallelMode == 2
+                gO.parallelModeMenu.Text = 'Parallel mode --Imaging--';
+                gO.ephysDetUpButt.Enable = 'on';
+                gO.ephysDetDwnButt.Enable = 'on';
+                gO.imagingDetUpButt.Enable = 'off';
+                gO.imagingDetDwnButt.Enable = 'off';
+            end
+            
+            smartplot(gO)
+        end
+        
+        %%
         function showEventSpectro(gO,~,~)
             ephysPlot(gO,[],1)
         end
@@ -1305,6 +1266,8 @@ classdef DASeV < handle
                 return
             end
             
+            gO.parallelMode = 0;
+            
             gO.ephysCurrDetNum = 1;
             gO.ephysCurrDetRow = 1;
             
@@ -1333,7 +1296,7 @@ classdef DASeV < handle
                     catch
                         gO.ephysDetBorders = cell(min(size(gO.ephysData)),1);
                     end
-                    try 
+                    try
                         gO.ephysDetParams = ephysSaveData.DetParams;
                     catch
                         gO.ephysDetParams = cell(min(size(gO.ephysData)),1);
@@ -1355,23 +1318,7 @@ classdef DASeV < handle
 
                     gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
                     gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
-                    
-                    if sum(ismember(fieldnames(testload),'parallelSave'))==1
-                        load(fnameFull,'parallelSave')
-                        
-                        if ~isempty(parallelSave)
-                            if parallelSave.dTyp == "Imaging"
-                                gO.imagingData = parallelSave.Data;
-                                gO.imagingTaxis = parallelSave.Taxis;
-                                gO.imagingFs = parallelSave.Fs;
-                                gO.imagingYlabel = parallelSave.Ylabel;
-                            else
-                                errordlg('Save file is incorrectly configured!')
-                                return
-                            end
-                        end
-                    end
-                                        
+                                                            
                 end
             end
             
@@ -1416,25 +1363,11 @@ classdef DASeV < handle
                     
                     gO.loaded(2) = 1;
                     
-                    if sum(ismember(fieldnames(testload),'parallelSave'))==1
-                        load(fnameFull,'parallelSave')
-                        if ~isempty(parallelSave)
-                            if parallelSave.dTyp == "Ephys"
-                                gO.ephysData = parallelSave.Data;
-                                gO.ephysTaxis = parallelSave.Taxis;
-                                gO.ephysFs = parallelSave.Fs;
-                                gO.ephysYlabel = parallelSave.Ylabel;
-                            else
-                                errordlg('Save file is incorrectly configured!')
-                                return
-                            end
-                        end
-                    end
-                    
                 end
             end
             
             gO.loaded(3) = 0;
+            gO.save2DbRunningChechBox.Enable = 'off';
             if sum(ismember(fieldnames(testload),'runData'))==1
                 load(fnameFull,'runData')
                 
@@ -1447,8 +1380,15 @@ classdef DASeV < handle
                     gO.runVeloc = runData.veloc;
                     
                     gO.loaded(3) = 1;
+                    gO.save2DbRunningChechBox.Enable = 'on';
                 end
                 
+            end
+            
+            if sum(gO.loaded(1:2)) < 2
+                gO.parallelModeMenu.Enable = 'off';
+            else
+                gO.parallelModeMenu.Enable = 'on';
             end
             
             gO.simultMode = 0;
@@ -1469,7 +1409,10 @@ classdef DASeV < handle
                     gO.save2DbSimultCheckBox.Enable = 'on';
                     gO.save2DbEphysCheckBox.Enable = 'off';
                     gO.save2DbImagingCheckBox.Enable = 'off';
+                    
                     gO.fixWinSwitch.Enable = 'off';
+                    
+                    gO.parallelModeMenu.Enable = 'off';
                 end
             end
                         
@@ -1493,7 +1436,7 @@ classdef DASeV < handle
                     gO.save2DbImagingSelection{i} = false(size(gO.imagingDetBorders{i},1),1);
                 end
             end
-
+            
             for i = 1:2
                 if gO.loaded(i)
                     axButtPress(gO,i,0,0)
@@ -1762,9 +1705,19 @@ classdef DASeV < handle
                             gO.ephysFixWinDetRow = currChan;
                             
                             temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
-                            temp = temp(gO.ephysCurrDetRow);
-                            val = gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum);
-                            gO.save2DbEphysCheckBox.Value = val;
+                            save2DbPanelKids = findobj(gO.save2DbPanel,'Type','UIControl');
+                            if gO.ephysCurrDetRow <= length(temp)
+                                temp = temp(gO.ephysCurrDetRow);
+                                val = gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum);
+                                gO.save2DbEphysCheckBox.Value = val;
+                                gO.save2DbEphysCheckBox.Enable = 'on';
+                                gO.save2DbButton.Enable = 'on';
+                                if gO.loaded(3)
+                                    gO.save2DbRunningChechBox.Enable = 'on';
+                                end
+                            else
+                                set(save2DbPanelKids,'Enable','off')
+                            end
                             
                         case 2
                             gO.imagingCurrDetNum = currDet;
@@ -1772,9 +1725,19 @@ classdef DASeV < handle
                             gO.imagingFixWinDetRow = currChan;
                             
                             temp = find(~cellfun('isempty',gO.save2DbImagingSelection));
-                            temp = temp(gO.imagingCurrDetRow);
-                            val = gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum);
-                            gO.save2DbImagingCheckBox.Value = val;
+                            save2DbPanelKids = findobj(gO.save2DbPanel,'Type','UIControl');
+                            if gO.imagingCurrDetRow <= length(temp)
+                                temp = temp(gO.imagingCurrDetRow);
+                                val = gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum);
+                                gO.save2DbImagingCheckBox.Value = val;
+                                gO.save2DbImagingCheckBox.Enable = 'on';
+                                gO.save2DbButton.Enable = 'on';
+                                if gO.loaded(3)
+                                    gO.save2DbRunningChechBox.Enable = 'on';
+                                end
+                            else
+                                set(save2DbPanelKids,'Enable','off')
+                            end
                             
                     end
                     
@@ -1854,6 +1817,9 @@ classdef DASeV < handle
             
             switch gO.fixWin
                 case 0
+                    gO.plotFullMenu.Enable = 'on';
+                    gO.parallelModeMenu.Enable = 'on';
+                    
                     if gO.loaded(1)
                         gO.ephysDetUpButt.Enable = 'on';
                         gO.ephysDetUpButt.Visible = 'on';
@@ -1887,6 +1853,9 @@ classdef DASeV < handle
                     end
                 case 1
                     gO.plotFull = 0;
+                    gO.parallelMode = 0;
+                    gO.parallelModeMenu.Enable = 'off';
+                    gO.plotFullMenu.Enable = 'off';
                     
                     if gO.loaded(1)
                         gO.ephysDetUpButt.Enable = 'off';
@@ -1929,15 +1898,26 @@ classdef DASeV < handle
         function simultModeSwitchPress(gO,~,~)
             if gO.simultModeSwitch.Value
                 gO.simultMode = 1;
+                
                 gO.fixWinSwitch.Value = 0;
-                fixWinSwitchPress(gO)
+%                 fixWinSwitchPress(gO)
                 gO.fixWinSwitch.Enable = 'off';
+                
+                gO.parallelMode = 0;
+                gO.parallelModeMenu.Enable = 'off';
+                gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+%                 parallelModeMenuSel(gO,0)
+                
                 gO.save2DbSimultCheckBox.Enable = 'on';
                 gO.save2DbEphysCheckBox.Enable = 'off';
                 gO.save2DbImagingCheckBox.Enable = 'off';
             elseif ~gO.simultModeSwitch.Value
                 gO.simultMode = 0;
+                
                 gO.fixWinSwitch.Enable = 'on';
+                
+                gO.parallelModeMenu.Enable = 'on';
+                
                 gO.save2DbSimultCheckBox.Enable = 'off';
                 gO.save2DbEphysCheckBox.Enable = 'on';
                 gO.save2DbImagingCheckBox.Enable = 'on';
@@ -1950,6 +1930,16 @@ classdef DASeV < handle
         %%
         function keyboardPressFcn(gO,~,kD)
             if gO.tabgrp.SelectedTab == gO.tabgrp.Children(2)
+%                 if strcmp(kD.Key,'p')
+%                     if gO.parallelMode < 2
+%                         gO.parallelMode = gO.parallelMode + 1;
+%                     else
+%                         gO.parallelMode = 0;
+%                     end
+%                     disp('parallelMode:')
+%                     display(gO.parallelMode)
+%                 end
+                
                 if strcmp(kD.Key,'d') & (sum(gO.loaded) > 1)
                     switch gO.keyboardPressDtyp
                         case 1
@@ -2284,6 +2274,9 @@ classdef DASeV < handle
             gO.plotFullMenu = uimenu(gO.optMenu,...
                 'Text','Plot full data / Plot individual detections',...
                 'MenuSelectedFcn',@ gO.plotFullMenuSel);
+            gO.parallelModeMenu = uimenu(gO.optMenu,...
+                'Text','Parallel mode --OFF--',...
+                'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1));
             gO.showEventSpectroMenu = uimenu(gO.optMenu,...
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@ gO.showEventSpectro);
