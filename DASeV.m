@@ -8,6 +8,7 @@ classdef DASeV < handle
         ephysTypMenu
         imagingTypMenu
         runTypMenu
+        simultFocusMenu
         highPassRawEphysMenu
         plotFullMenu
         parallelModeMenu
@@ -1162,6 +1163,17 @@ classdef DASeV < handle
         end
         
         %%
+        function simultFocusMenuSel(gO,~,~)
+            if gO.simultFocusTyp == 1
+                gO.simultFocusTyp = 2;
+                gO.simultFocusMenu.Text = 'Simultan mode focus --Imaging--';
+            else
+                gO.simultFocusTyp = 1;
+                gO.simultFocusMenu.Text = 'Simultan mode focus --Ephys--';
+            end
+        end
+        
+        %%
         function highPassRawEphysMenuSel(gO,~,~)
             if strcmp(gO.highPassRawEphysMenu.Checked,'off')
                 gO.highPassRawEphys = 1;
@@ -1204,16 +1216,19 @@ classdef DASeV < handle
                 gO.simultModeSwitch.Enable = 'on';
                 gO.fixWinSwitch.Enable = 'on';
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+                gO.parallelModeMenu.ForegroundColor = 'r';
             end
             
             if gO.parallelMode == 1
                 gO.parallelModeMenu.Text = 'Parallel mode --Ephys--';
+                gO.parallelModeMenu.ForegroundColor = 'g';
                 gO.ephysDetUpButt.Enable = 'off';
                 gO.ephysDetDwnButt.Enable = 'off';
                 gO.imagingDetUpButt.Enable = 'on';
                 gO.imagingDetDwnButt.Enable = 'on';
             elseif gO.parallelMode == 2
                 gO.parallelModeMenu.Text = 'Parallel mode --Imaging--';
+                gO.parallelModeMenu.ForegroundColor = 'b';
                 gO.ephysDetUpButt.Enable = 'on';
                 gO.ephysDetDwnButt.Enable = 'on';
                 gO.imagingDetUpButt.Enable = 'off';
@@ -1855,6 +1870,8 @@ classdef DASeV < handle
                     gO.plotFull = 0;
                     gO.parallelMode = 0;
                     gO.parallelModeMenu.Enable = 'off';
+                    gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+                    gO.parallelModeMenu.ForegroundColor = 'r';
                     gO.plotFullMenu.Enable = 'off';
                     
                     if gO.loaded(1)
@@ -1906,6 +1923,7 @@ classdef DASeV < handle
                 gO.parallelMode = 0;
                 gO.parallelModeMenu.Enable = 'off';
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+                gO.parallelModeMenu.ForegroundColor = 'r';
 %                 parallelModeMenuSel(gO,0)
                 
                 gO.save2DbSimultCheckBox.Enable = 'on';
@@ -2267,6 +2285,9 @@ classdef DASeV < handle
             gO.runTypMenu = uimenu(gO.optMenu,...
                 'Text','Running data type selection',...
                 'MenuSelectedFcn',@ gO.runTypMenuSel);
+            gO.simultFocusMenu = uimenu(gO.optMenu,...
+                'Text','Simultan mode focus --Ephys--',...
+                'MenuSelectedFcn',@ gO.simultFocusMenuSel);
             gO.highPassRawEphysMenu = uimenu(gO.optMenu,...
                 'Text','Apply high pass filter to displayed raw ephys data',...
                 'Checked','off',...
@@ -2276,7 +2297,8 @@ classdef DASeV < handle
                 'MenuSelectedFcn',@ gO.plotFullMenuSel);
             gO.parallelModeMenu = uimenu(gO.optMenu,...
                 'Text','Parallel mode --OFF--',...
-                'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1));
+                'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1),...
+                'ForegroundColor','r');
             gO.showEventSpectroMenu = uimenu(gO.optMenu,...
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@ gO.showEventSpectro);
