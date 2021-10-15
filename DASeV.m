@@ -100,7 +100,7 @@ classdef DASeV < handle
         selDir = cd;
         path2loadedSave
         xLabel = 'Time [s]';
-        loaded = [0,0,0]; % ephys-imaging-running (0-1)
+        loaded = [0,0,0,0]; % ephys-imaging-running-simultan (0-1)
         prevNumAx = 1;
         plotFull = 0;
         fixWin = 0;
@@ -1213,7 +1213,9 @@ classdef DASeV < handle
                 gO.simultModeSwitch.Enable = 'off';
                 gO.fixWinSwitch.Enable = 'off';
             else
-                gO.simultModeSwitch.Enable = 'on';
+                if gO.loaded(4)
+                    gO.simultModeSwitch.Enable = 'on';
+                end
                 gO.fixWinSwitch.Enable = 'on';
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
                 gO.parallelModeMenu.ForegroundColor = 'r';
@@ -1407,6 +1409,7 @@ classdef DASeV < handle
             end
             
             gO.simultMode = 0;
+            gO.loaded(4) = 0;
             gO.simultModeSwitch.Value = 0;
             gO.simultModeSwitch.Enable = 'off';
             gO.save2DbSimultCheckBox.Enable = 'off';
@@ -1419,6 +1422,7 @@ classdef DASeV < handle
                     gO.simultDetInfo = simultSaveInfo;
                     
                     gO.simultMode = 1;
+                    gO.loaded(4) = 1;
                     gO.simultModeSwitch.Value = 1;
                     gO.simultModeSwitch.Enable = 'on';
                     gO.save2DbSimultCheckBox.Enable = 'on';
