@@ -9,11 +9,15 @@ classdef DASevDB < handle
         imagingTypeChangeMenu
         runTypeChangeMenu
         
+        changeDbMenu
+        deleteEventMenu
+        
         %% loadPanel
         loadEntryPanel
         entryListBox
         LBcontMenu
-        cMenu1
+        LBcontMenuUpdate
+        LBcontMenuDelete
         loadEntryButton
         
         %% infoPanel
@@ -56,6 +60,9 @@ classdef DASevDB < handle
         currEvent = 1;
         numEvents = 0;
         source
+        simultFromSaveStruct
+        parallelFromSaveStruct
+        loadedEntryFname
         
         ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
@@ -97,6 +104,7 @@ classdef DASevDB < handle
                 else
                     DBentryList = {DBentryList.name};
                     gO.dbFileNames = DBentryList;
+                    gO.entryListBox.Value = 1;
                     gO.loadEntryButton.Enable = 'on';
                 end
             end
@@ -148,8 +156,10 @@ classdef DASevDB < handle
         end
         
         %% 
-        function smartplot(gO)
-            axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypeSelected)-1))
+        function smartplot(gO,doAxVisSwitch)
+            if doAxVisSwitch
+                axVisSwitch(gO,sum(gO.loaded)+(sum(gO.ephysTypeSelected)-1))
+            end
             
 %             outtxt = textwrap(gO.sourceFileTxt,{gO.source(gO.currEvent,:)})
             gO.sourceFileTxt.String = gO.source(gO.currEvent,:);
@@ -420,7 +430,7 @@ classdef DASevDB < handle
                     end
             end
             gO.currEvent = currEv;
-            smartplot(gO)
+            smartplot(gO,0)
         end
     end
     
@@ -448,6 +458,7 @@ classdef DASevDB < handle
         %%
         function loadEntryButtonPress(gO,~,~)
             selInd = gO.entryListBox.Value;
+            gO.loadedEntryFname = gO.dbFileNames{selInd};
             gO.currEvent = 1;
             gO.ephysEvents = [];
             gO.imagingEvents = [];
@@ -459,7 +470,7 @@ classdef DASevDB < handle
             gO.sourceChanDetTable.Data = cell(2,2);
             
             DASloc = mfilename('fullpath');
-            file2load = [DASloc(1:end-7),'DASeventDBdir\',gO.dbFileNames{selInd}];
+            file2load = [DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname];
             load(file2load,'saveStruct');
             if isempty(saveStruct)
                 errordlg('Selected entry is empty!')
@@ -470,6 +481,9 @@ classdef DASevDB < handle
             if size(gO.source,1) ~= length(saveStruct)
                 gO.source = horzcat(saveStruct.source);
             end
+            
+            gO.simultFromSaveStruct = [saveStruct.simult];
+            gO.parallelFromSaveStruct = [saveStruct.parallel];
             
 %             temp = {'ephysTaxis';'ephysDataWin';'ephysParams';'imagingTaxis';...
 %                 'imagingDataWin';'imagingParams';'simultEphysTaxis';...
@@ -507,7 +521,7 @@ classdef DASevDB < handle
                 gO.runData = saveStruct.runData;
             end
             
-            smartplot(gO)
+            smartplot(gO,1)
         end
         
         %%
@@ -523,7 +537,7 @@ classdef DASevDB < handle
             gO.ephysTypeSelected(:) = 0;
             gO.ephysTypeSelected(idx) = 1;
             
-            smartplot(gO)
+            smartplot(gO,1)
         end
         
         %%
@@ -539,7 +553,7 @@ classdef DASevDB < handle
             gO.imagingTypeSelected(:) = 0;
             gO.imagingTypeSelected(idx) = 1;
             
-            smartplot(gO)
+            smartplot(gO,0)
         end
         
         %%
@@ -555,7 +569,86 @@ classdef DASevDB < handle
             gO.runTypeSelected(:) = 0;
             gO.runTypeSelected(idx) = 1;
             
-            smartplot(gO)
+            smartplot(gO,0)
+        end
+        
+        %%
+        function deleteEntry(gO,delLoaded)
+            if isempty(gO.entryListBox.String)
+                errordlg('No entries!')
+                return
+            end
+            
+            DASloc = mfilename('fullpath');
+            if ~delLoaded
+                sel = gO.entryListBox.Value;
+
+                if strcmp(gO.entryListBox.String{sel},gO.loadedEntryFname)
+                    quest = ['Are you sure you want to delete the currently',...
+                        ' loaded entry? (If you delete it, you can still browse',...
+                        ' this entry until you load another one)'];
+                    title = 'Confirm delete';
+                    answer = questdlg(quest,title);
+                    if ~strcmp(answer,'Yes')                
+                        return
+                    end
+                end
+
+                delete([DASloc(1:end-7),'DASeventDBdir\',gO.entryListBox.String{sel}])
+                getDBlist(gO,1)
+            else
+                delete([DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname])
+                getDBlist(gO,1)
+            end
+        end
+        
+        %%
+        function deleteEventMenuSel(gO)
+            currEv = gO.currEvent;
+            
+            if gO.numEvents > 1
+                gO.numEvents = gO.numEvents-1;
+            else
+                warndlg('This is the last event! The whole entry will be deleted!')
+                deleteEntry(gO,1)
+                return
+            end
+            
+            gO.source(currEv,:) = [];
+            gO.simultFromSaveStruct(currEv) = [];
+            gO.parallelFromSaveStruct(currEv) = [];
+            
+            if gO.loaded(1)
+                gO.ephysEvents(currEv) = [];
+            end
+            
+            if gO.loaded(2)
+                gO.imagingEvents(currEv) = [];
+            end
+            
+            for i = 1:gO.numEvents
+                saveStruct(i).source = gO.source(i,:);
+                saveStruct(i).simult = gO.simultFromSaveStruct(i);
+                saveStruct(i).parallel = gO.parallelFromSaveStruct(i);
+                if gO.loaded(1)
+                    saveStruct(i).ephysEvents = gO.ephysEvents(i);
+                end
+                if gO.loaded(2)
+                    saveStruct(i).imagingEvents = gO.imagingEvents(i);
+                end
+            end
+            
+            if currEv > 1
+                gO.currEvent = currEv-1;
+            else
+                gO.currEvent = 1;
+            end
+            
+            smartplot(gO,0)
+            
+            DASloc = mfilename('fullpath');
+            saveLoc = [DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname];
+            save(saveLoc,'saveStruct')
         end
     end
     
@@ -586,6 +679,12 @@ classdef DASevDB < handle
             gO.runTypeChangeMenu = uimenu(gO.optionsMenu,...
                 'Text','Change displayed running data',...
                 'Callback',@ gO.runTypeMenuSel);
+            
+            gO.changeDbMenu = uimenu(gO.mainFig,...
+                'Text','Manipulate DB');
+            gO.deleteEventMenu = uimenu(gO.changeDbMenu,...
+                'Text','Delete current event',...
+                'Callback',@(h,e) gO.deleteEventMenuSel);
                 
             %% load panel
             gO.loadEntryPanel = uipanel(gO.mainFig,...
@@ -614,8 +713,10 @@ classdef DASevDB < handle
                 'Position',[0.01, 0.15, 0.98, 0.84],...
                 'String','',...
                 'UIContextMenu',gO.LBcontMenu);
-            gO.cMenu1 = uimenu(gO.LBcontMenu,'Text','Update list',...
+            gO.LBcontMenuUpdate = uimenu(gO.LBcontMenu,'Text','Update list',...
                 'Callback',@(h,e) gO.getDBlist(1));
+            gO.LBcontMenuDelete = uimenu(gO.LBcontMenu,'Text','Delete selected entry',...
+                'Callback',@(h,e) gO.deleteEntry(0));
             getDBlist(gO,1)           
             gO.loadEntryButton = uicontrol(gO.loadEntryPanel,...
                 'Style','pushbutton',...
