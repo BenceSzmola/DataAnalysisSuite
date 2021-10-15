@@ -298,7 +298,7 @@ classdef DASeV < handle
         end
         
         %%
-        function [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp)
+        function [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp)
             
             switch gO.simultMode
                 case 0
@@ -347,6 +347,7 @@ classdef DASeV < handle
                     end
 
                     numDets = length(find(~isnan(dets(currChan,:))));
+                    numDetsOg = numDets;
                     numChans = length(currDetRows);
                     
                     if nargout == 2
@@ -362,7 +363,7 @@ classdef DASeV < handle
                     chanNum = allChans(currChan);
                     detNum = currDet;
                     
-                    if nargout == 5
+                    if nargout == 6
                         return
                     end
                     
@@ -423,6 +424,7 @@ classdef DASeV < handle
                                 numChans = length(unique(detStructFocus(:,1)));
                             end
                             numDets = length(unique(detStructFocus(detStructFocus(:,1)==chan,2)));
+                            numDetsOg = length(unique(detStruct(detStruct(:,1)==chan,2)));
                                                         
                             if nargout == 2
                                 return
@@ -444,7 +446,7 @@ classdef DASeV < handle
                             
                             chanNum = nonSimDetRow;
                             
-                            if nargout == 5
+                            if nargout == 6
                                 return
                             end
                             
@@ -474,6 +476,7 @@ classdef DASeV < handle
                                 numChans = length(unique(detStructFocus(:,3)));
                             end
                             numDets = length(unique(detStructFocus(detStructFocus(:,3)==chan,4)));
+                            numDetsOg = length(unique(detStruct(detStruct(:,3)==chan,4)));
                                                         
                             if nargout == 2
                                 return
@@ -495,7 +498,7 @@ classdef DASeV < handle
                             
                             chanNum = nonSimDetRow;
                             
-                            if nargout == 5
+                            if nargout == 6
                                 return
                             end
                             
@@ -520,7 +523,7 @@ classdef DASeV < handle
             end
             
             if gO.parallelMode ~= 1
-                [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
+                [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
 
                 currDetBorders = detBorders;
 
@@ -584,14 +587,14 @@ classdef DASeV < handle
                         if chanOgNum == gO.ephysRefCh
                             axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)',...
                                 '      Detection #',...
-                                num2str(detNum),'/',num2str(numDets)];
+                                num2str(detNum),'/',num2str(numDetsOg)];
                         else
                             if ~gO.simultMode
                                 axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
-                                    num2str(detNum),'/',num2str(numDets)];
+                                    num2str(detNum),'/',num2str(numDetsOg)];
                             else
                                 axTitle = ['Channel #',num2str(chanOgNum),'      Simult Detection #',...
-                                    num2str(gO.simultEphysCurrDetNum),'/',num2str(numDets),...
+                                    num2str(gO.simultEphysCurrDetNum),'/',num2str(numDetsOg),...
                                     ' (nonSimult #',num2str(detNum),')'];
                             end
                         end
@@ -618,24 +621,25 @@ classdef DASeV < handle
 
                     if chanOgNum == gO.ephysRefCh
                         axTitle = ['Channel #',num2str(chanOgNum),' (Ref)',...
-                            '      #Detections = ',num2str(numDets)];
+                            '      #Detections = ',num2str(numDetsOg)];
                     else
                         axTitle = ['Channel #',num2str(chanOgNum),'      #Detections = ',...
-                            num2str(numDets)];
+                            num2str(numDetsOg)];
                     end
                 end
                 
                 
             elseif gO.parallelMode == 1
-                [~,~,chanNum,~,~,~,~,~] = extractDetStruct(gO,1);
-                [~,~,imagingChanNum,~,imagingDetNum,~,~,~] = extractDetStruct(gO,2);
+                [~,~,chanNum,chanNumOg,~,~,~,~,~] = extractDetStruct(gO,1);
+                [~,~,imagingChanNum,~,~,imagingDetNum,~,~,~] = extractDetStruct(gO,2);
                 [imagingWinIdx,~] = windowMacher(gO,2,imagingChanNum,imagingDetNum,0.5);
                 imagingTWinIdx = gO.imagingTaxis(imagingWinIdx);
                 [~,winStart] = min(abs(gO.ephysTaxis-imagingTWinIdx(1)));
                 [~,winEnd] = min(abs(gO.ephysTaxis-imagingTWinIdx(end)));
                 winIdx = winStart:winEnd;
                 tWin = gO.ephysTaxis(winIdx);
-                axTitle = 'Electrophysiology - parallel time window';
+                axTitle = ['Electrophysiology channel #',num2str(chanNumOg),...
+                    ' - parallel time window'];
                 tDetInds = [];
             end
             
@@ -759,7 +763,7 @@ classdef DASeV < handle
         %%
         function imagingPlot(gO,ax)
             if gO.parallelMode ~= 2
-                [numDets,numChans,chanNum,chanOgNum,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
+                [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
 
                 currDetBorders = detBorders;
 
@@ -818,10 +822,10 @@ classdef DASeV < handle
                     elseif gO.fixWin == 0
                         if ~gO.simultMode
                             axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
-                                num2str(detNum),'/',num2str(numDets)];
+                                num2str(detNum),'/',num2str(numDetsOg)];
                         else
                             axTitle = ['ROI #',num2str(chanOgNum),'      Simult Detection #',...
-                                num2str(gO.simultImagingCurrDetNum),'/',num2str(numDets),...
+                                num2str(gO.simultImagingCurrDetNum),'/',num2str(numDetsOg),...
                                 ' (nonSimult #',num2str(detNum),')'];
                         end
                     end
@@ -849,15 +853,16 @@ classdef DASeV < handle
                         num2str(numDets)];
                 end
             elseif gO.parallelMode == 2
-                [~,~,chanNum,~,~,~,~,~] = extractDetStruct(gO,2);
-                [~,~,ephysChanNum,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
+                [~,~,chanNum,chanNumOg,~,~,~,~,~] = extractDetStruct(gO,2);
+                [~,~,ephysChanNum,~,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
                 [ephysWinIdx,~] = windowMacher(gO,1,ephysChanNum,ephysDetNum,0.5);
                 ephysTWinIdx = gO.ephysTaxis(ephysWinIdx);
                 [~,winStart] = min(abs(gO.imagingTaxis-ephysTWinIdx(1)));
                 [~,winEnd] = min(abs(gO.imagingTaxis-ephysTWinIdx(end)));
                 winIdx = winStart:winEnd;
                 tWin = gO.imagingTaxis(winIdx);
-                axTitle = 'Imaging - parallel time window';
+                axTitle = ['Imaging ROI #',num2str(chanNumOg),...
+                    ' - parallel time window'];
                 tDetInds = [];
             end
             
@@ -1780,8 +1785,8 @@ classdef DASeV < handle
                             end
                             
                     end
-                    [~,~,chanNum,~,ephysDetNum] = extractDetStruct(gO,1);
-                    [~,~,roiNum,~,imagingDetNum] = extractDetStruct(gO,2);
+                    [~,~,chanNum,~,~,ephysDetNum] = extractDetStruct(gO,1);
+                    [~,~,roiNum,~,~,imagingDetNum] = extractDetStruct(gO,2);
                     [~,r,~] = intersect(gO.save2DbSimultSelection,[chanNum,ephysDetNum,roiNum,imagingDetNum],'rows');
                     if ~isempty(r)
                         gO.save2DbSimultCheckBox.Value = 1;
@@ -2011,8 +2016,8 @@ classdef DASeV < handle
                 case 3
                     val = gO.save2DbSimultCheckBox.Value;
                     
-                    [~,~,chanNum,~,ephysDetNum] = extractDetStruct(gO,1);
-                    [~,~,roiNum,~,imagingDetNum] = extractDetStruct(gO,2);
+                    [~,~,chanNum,~,~,ephysDetNum] = extractDetStruct(gO,1);
+                    [~,~,roiNum,~,~,imagingDetNum] = extractDetStruct(gO,2);
                     temp = [chanNum,ephysDetNum,roiNum,imagingDetNum];
                     
                     if val
