@@ -2137,6 +2137,7 @@ classdef DASeV < handle
                                 tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
                                 tempStruct.runData.Lap = gO.runLap(runWin);
                                 tempStruct.runData.Licks = gO.runLicks(runWin);
+                                tempStruct.runData.ActState = gO.runActState(runWin);
                             end
                         end
                         
@@ -2184,6 +2185,7 @@ classdef DASeV < handle
                                 tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
                                 tempStruct.runData.Lap = gO.runLap(runWin);
                                 tempStruct.runData.Licks = gO.runLicks(runWin);
+                                tempStruct.runData.ActState = gO.runActState(runWin);
                             end
                         end
                         
@@ -2232,6 +2234,7 @@ classdef DASeV < handle
                             tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
                             tempStruct.runData.Lap = gO.runLap(runWin);
                             tempStruct.runData.Licks = gO.runLicks(runWin);
+                            tempStruct.runData.ActState = gO.runActState(runWin);
                         end
                     end
                     

@@ -8,6 +8,7 @@ classdef DASevDB < handle
         ephysTypeChangeMenu
         imagingTypeChangeMenu
         runTypeChangeMenu
+        showLicksMenu
         
         changeDbMenu
         deleteEventMenu
@@ -70,7 +71,8 @@ classdef DASevDB < handle
         imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
         
-        runTypeSelected = [1,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos
+        runTypeSelected = [1,0,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos; 4==ActivityStates
+        showLicks = 0;
         runData
     end
     
@@ -405,9 +407,19 @@ classdef DASevDB < handle
                 dataWin = currEv.DataWin.RelPos;
                 yLabels = 'Relative position [%]';
                 plotTitle = 'Relative position on treadmill';
+            elseif type(4)
+                dataWin = currEv.ActState;
+                yLabels = 'Still/Moving';
+                plotTitle = 'Activity state on treadmill';
             end
             
             plot(ax,currEv.Taxis,dataWin)
+            if gO.showLicks
+                lickInds = find(currEv.Licks);
+                for i = 1:length(lickInds) 
+                    xline(ax,currEv.Taxis(lickInds(i)),'g','LineWidth',1);
+                end
+            end
             xlabel(ax,'Time [s]')
             ylabel(ax,yLabels)
             title(ax,plotTitle)
@@ -573,6 +585,20 @@ classdef DASevDB < handle
         end
         
         %%
+        function showLicksMenuSel(gO,~,~)
+            if gO.showLicks
+                gO.showLicks = 0;
+                gO.showLicksMenu.Text = 'Show licks on graph --OFF--';
+                gO.showLicksMenu.ForegroundColor = 'r';
+            else
+                gO.showLicks = 1;
+                gO.showLicksMenu.Text = 'Show licks on graph --ON--';
+                gO.showLicksMenu.ForegroundColor = 'g';
+            end
+            smartplot(gO,0)
+        end
+        
+        %%
         function deleteEntry(gO,delLoaded)
             if isempty(gO.entryListBox.String)
                 errordlg('No entries!')
@@ -672,13 +698,17 @@ classdef DASevDB < handle
                 'Text','Options Menu');
             gO.ephysTypeChangeMenu = uimenu(gO.optionsMenu,...
                 'Text','Change displayed ephys data',...
-                'Callback',@ gO.ephysTypeMenuSel);
+                'MenuSelectedFcn',@ gO.ephysTypeMenuSel);
             gO.imagingTypeChangeMenu = uimenu(gO.optionsMenu,...
                 'Text','Change displayed imaging data',...
-                'Callback',@ gO.imagingTypeMenuSel);
+                'MenuSelectedFcn',@ gO.imagingTypeMenuSel);
             gO.runTypeChangeMenu = uimenu(gO.optionsMenu,...
                 'Text','Change displayed running data',...
-                'Callback',@ gO.runTypeMenuSel);
+                'MenuSelectedFcn',@ gO.runTypeMenuSel);
+            gO.showLicksMenu = uimenu(gO.optionsMenu,...
+                'Text','Show licks on graph --OFF--',...
+                'ForegroundColor','r',...
+                'MenuSelectedFcn',@ gO.showLicksMenuSel);
             
             gO.changeDbMenu = uimenu(gO.mainFig,...
                 'Text','Manipulate DB');
