@@ -5,14 +5,23 @@ classdef DASeV < handle
         
         %% menus
         optMenu
-        ephysTypMenu
-        imagingTypMenu
-        runTypMenu
-        simultFocusMenu
-        highPassRawEphysMenu
         plotFullMenu
         parallelModeMenu
+        
+        ephysOptMenu
+        ephysTypMenu
+        highPassRawEphysMenu
         showEventSpectroMenu
+        
+        imagingOptMenu
+        imagingTypMenu
+        
+        runOptMenu
+        runTypMenu
+        showLicksMenu
+        
+        simultOptMenu
+        simultFocusMenu
         
         %% tabs
         tabgrp
@@ -150,7 +159,8 @@ classdef DASeV < handle
         imagingFixWinDetRow = 1;
         
         %% running
-        runDataTypSelected = [1,0,0];       % Velocity-AbsPos-RelPos
+        runDataTypSelected = [1,0,0,0];       % Velocity-AbsPos-RelPos-still/moving
+        showLicks = 0;
         runFs = 200;
         runTaxis
         runAbsPos
@@ -158,6 +168,8 @@ classdef DASeV < handle
         runLap
         runLicks
         runVeloc
+        runActState                 % For showing activity status (still-moving)
+        runActThr = 3;              % Threshold in cm/s for moving state
         
         %% simult
         simultDets
@@ -915,9 +927,19 @@ classdef DASeV < handle
                 data = gO.runRelPos;
                 axTitle = 'Running - Relative position';
                 axYlabel = 'Relative position [‰]';
+            elseif gO.runDataTypSelected(4)
+                data = gO.runActState;
+                axTitle = 'Running - activity states';
+                axYlabel = 'Still/Active';
             end
             
             plot(ax,gO.runTaxis,data)
+            if gO.showLicks
+                lickInds = find(gO.runLicks);
+                for i = 1:length(lickInds) 
+                    xline(ax,gO.runTaxis(lickInds(i)),'g','LineWidth',1);
+                end
+            end
             title(ax,axTitle)
             ylabel(ax,axYlabel)
             xlabel(ax,'Time [s]')
@@ -1154,7 +1176,7 @@ classdef DASeV < handle
         
         %%
         function runTypMenuSel(gO,~,~)
-            [idx,tf] = listdlg('ListString',{'Velocity','Absolute position','Relative position'},...
+            [idx,tf] = listdlg('ListString',{'Velocity','Absolute position','Relative position','Still/Moving'},...
                 'PromptString','Select data type to show detections on!',...
                 'SelectionMode','single');
             if ~tf
@@ -1248,6 +1270,21 @@ classdef DASeV < handle
         %%
         function showEventSpectro(gO,~,~)
             ephysPlot(gO,[],1)
+        end
+        
+        %%
+        function showLicksMenuSel(gO,~,~)
+            if gO.showLicks
+                gO.showLicks = 0;
+                gO.showLicksMenu.Text = 'Show licks on graphs --OFF--';
+                gO.showLicksMenu.ForegroundColor = 'r';
+            else
+                gO.showLicks = 1;
+                gO.showLicksMenu.Text = 'Show licks on graphs --ON--';
+                gO.showLicksMenu.ForegroundColor = 'g';
+            end
+            
+            smartplot(gO)
         end
         
         %%
@@ -1400,6 +1437,9 @@ classdef DASeV < handle
                     gO.runLap = runData.lapNum;
                     gO.runLicks = runData.licks;
                     gO.runVeloc = runData.veloc;
+                    
+                    gO.runActState = zeros(size(gO.runVeloc));
+                    gO.runActState(gO.runVeloc >= gO.runActThr) = 1;
                     
                     gO.loaded(3) = 1;
                     gO.save2DbRunningChechBox.Enable = 'on';
@@ -2285,22 +2325,6 @@ classdef DASeV < handle
             %% Menus
             gO.optMenu = uimenu(gO.mainFig,...
                 'Text','Options');
-            gO.ephysTypMenu = uimenu(gO.optMenu,...
-                'Text','Ephys data type selection',...
-                'MenuSelectedFcn',@ gO.ephysTypMenuSel);
-            gO.imagingTypMenu = uimenu(gO.optMenu,...
-                'Text','Imaging data type selection',...
-                'MenuSelectedFcn',@ gO.imagingTypMenuSel);
-            gO.runTypMenu = uimenu(gO.optMenu,...
-                'Text','Running data type selection',...
-                'MenuSelectedFcn',@ gO.runTypMenuSel);
-            gO.simultFocusMenu = uimenu(gO.optMenu,...
-                'Text','Simultan mode focus --Ephys--',...
-                'MenuSelectedFcn',@ gO.simultFocusMenuSel);
-            gO.highPassRawEphysMenu = uimenu(gO.optMenu,...
-                'Text','Apply high pass filter to displayed raw ephys data',...
-                'Checked','off',...
-                'MenuSelectedFcn',@ gO.highPassRawEphysMenuSel);
             gO.plotFullMenu = uimenu(gO.optMenu,...
                 'Text','Plot full data / Plot individual detections',...
                 'MenuSelectedFcn',@ gO.plotFullMenuSel);
@@ -2308,9 +2332,41 @@ classdef DASeV < handle
                 'Text','Parallel mode --OFF--',...
                 'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1),...
                 'ForegroundColor','r');
-            gO.showEventSpectroMenu = uimenu(gO.optMenu,...
+            
+            gO.ephysOptMenu = uimenu(gO.mainFig,...
+                'Text','Electrophysiology options');
+            gO.ephysTypMenu = uimenu(gO.ephysOptMenu,...
+                'Text','Ephys data type selection',...
+                'MenuSelectedFcn',@ gO.ephysTypMenuSel);
+            gO.highPassRawEphysMenu = uimenu(gO.ephysOptMenu,...
+                'Text','Apply high pass filter to displayed raw ephys data',...
+                'Checked','off',...
+                'MenuSelectedFcn',@ gO.highPassRawEphysMenuSel);
+            gO.showEventSpectroMenu = uimenu(gO.ephysOptMenu,...
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@ gO.showEventSpectro);
+            
+            gO.imagingOptMenu = uimenu(gO.mainFig,...
+                'Text','Imaging options');
+            gO.imagingTypMenu = uimenu(gO.imagingOptMenu,...
+                'Text','Imaging data type selection',...
+                'MenuSelectedFcn',@ gO.imagingTypMenuSel);
+            
+            gO.runOptMenu = uimenu(gO.mainFig,...
+                'Text','Running options');
+            gO.runTypMenu = uimenu(gO.runOptMenu,...
+                'Text','Running data type selection',...
+                'MenuSelectedFcn',@ gO.runTypMenuSel);
+            gO.showLicksMenu = uimenu(gO.runOptMenu,...
+                'Text','Show licks on graphs --OFF--',...
+                'ForegroundColor','r',...
+                'MenuSelectedFcn',@ gO.showLicksMenuSel);
+            
+            gO.simultOptMenu = uimenu(gO.mainFig,...
+                'Text','Simultan mode options');
+            gO.simultFocusMenu = uimenu(gO.simultOptMenu,...
+                'Text','Simultan mode focus --Ephys--',...
+                'MenuSelectedFcn',@ gO.simultFocusMenuSel);
             
             %% Tabgroup
             gO.tabgrp = uitabgroup(gO.mainFig,...
