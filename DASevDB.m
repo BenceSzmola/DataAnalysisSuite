@@ -6,6 +6,7 @@ classdef DASevDB < handle
         %% menus
         optionsMenu
         showAvgParamsMenu
+        displayAvgDataWinMenu
         
         ephysOptMenu
         ephysTypeChangeMenu
@@ -76,13 +77,15 @@ classdef DASevDB < handle
         simultFromSaveStruct
         parallelFromSaveStruct
         loadedEntryFname
-        paramTableMode = 0;
+        displayAvgDataWin = 0;
         
         ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
+        avgEphysEvents
         
         imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
+        avgImagingEvents
         
         runTypeSelected = [1,0,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos; 4==ActivityStates
         showLicks = 0;
@@ -308,28 +311,50 @@ classdef DASevDB < handle
             yLabels = [];
             plotTitle = [];
             if type(1)
-                dataWin = [dataWin; currEv.DataWin.Raw];
-                yLabels = [yLabels; "Voltage [\muV]"];
-                plotTitle = [plotTitle; "Raw data"];
+                if ~gO.displayAvgDataWin
+                    dataWin = [dataWin; currEv.DataWin.Raw];
+                    yLabels = [yLabels; "Voltage [\muV]"];
+                    plotTitle = [plotTitle; "Raw data"];
+                else
+                    dataWin = [dataWin; gO.avgEphysEvents.Raw];
+                    yLabels = [yLabels; "Voltage [\muV]"];
+                    plotTitle = [plotTitle; "Average of Raw data"];
+                end
             end
             if type(2)
-                dataWin = [dataWin; currEv.DataWin.BP];
-                yLabels = [yLabels; "Voltage [\muV]"];
-                plotTitle = [plotTitle; "Bandpass filtered data"];
+                if ~gO.displayAvgDataWin
+                    dataWin = [dataWin; currEv.DataWin.BP];
+                    yLabels = [yLabels; "Voltage [\muV]"];
+                    plotTitle = [plotTitle; "Bandpass filtered data"];
+                else
+                    dataWin = [dataWin; gO.avgEphysEvents.BP];
+                    yLabels = [yLabels; "Voltage [\muV]"];
+                    plotTitle = [plotTitle; "Average of Bandpass filtered data"];
+                end
             end
             if type(3)
-                dataWin = [dataWin; currEv.DataWin.Power];
-                yLabels = [yLabels; "Power [\muV^2]"];
-                plotTitle = [plotTitle; "Instantaneous power of data"];
+                if ~gO.displayAvgDataWin
+                    dataWin = [dataWin; currEv.DataWin.Power];
+                    yLabels = [yLabels; "Power [\muV^2]"];
+                    plotTitle = [plotTitle; "Instantaneous power of data"];
+                else
+                    dataWin = [dataWin; gO.avgEphysEvents.Power];
+                    yLabels = [yLabels; "Power [\muV^2]"];
+                    plotTitle = [plotTitle; "Average of Instantaneous power"];
+                end
             end
-            taxisWin = currEv.Taxis;
+            if ~gO.displayAvgDataWin
+                taxisWin = currEv.Taxis;
+            else
+                taxisWin = gO.avgEphysEvents.Taxis;
+            end
             
             for i = 1:length(ax)
                 plot(ax(i),taxisWin,dataWin(i,:))
                 
                 hold(ax(i),'on')
 %                 xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
-                if ~isempty(currEv.DetBorders)
+                if ~isempty(currEv.DetBorders) & ~gO.displayAvgDataWin
                     xline(ax(i),taxisWin(currEv.DetBorders(1)),'--b','LineWidth',1);
                     xline(ax(i),taxisWin(currEv.DetBorders(2)),'--b','LineWidth',1);
                     hL = dataWin(i,:);
@@ -362,23 +387,39 @@ classdef DASevDB < handle
             axTag = ax.Tag;
             
             if type(1)
-                dataWin = currEv.DataWin.Raw;
-                yLabels = '\DeltaF/F';
-                plotTitle = 'Raw imaging data';
+                if ~gO.displayAvgDataWin
+                    dataWin = currEv.DataWin.Raw;
+                    yLabels = '\DeltaF/F';
+                    plotTitle = 'Raw imaging data';
+                else
+                    dataWin = gO.avgImagingEvents.Raw;
+                    yLabels = '\DeltaF/F';
+                    plotTitle = 'Average of Raw imaging data';
+                end
             end
             if type(2)
-                dataWin = currEv.DataWin.Smoothed;
-                yLabels = '\DeltaF/F';
-                plotTitle = 'Smoothed imaging data';
+                if ~gO.displayAvgDataWin
+                    dataWin = currEv.DataWin.Smoothed;
+                    yLabels = '\DeltaF/F';
+                    plotTitle = 'Smoothed imaging data';
+                else
+                    dataWin = gO.avgImagingEvents.Smoothed;
+                    yLabels = '\DeltaF/F';
+                    plotTitle = 'Average of Smoothed imaging data';
+                end
             end
             
-            taxisWin = currEv.Taxis;
+            if ~gO.displayAvgDataWin
+                taxisWin = currEv.Taxis;
+            else
+                taxisWin = gO.avgImagingEvents.Taxis;
+            end
             
             plot(ax,taxisWin,dataWin)
             
             hold(ax,'on')
 %             xline(ax,tDetInds(j),'Color','g','LineWidth',1);
-            if ~isempty(currEv.DetBorders)
+            if ~isempty(currEv.DetBorders) & ~gO.displayAvgDataWin
                 xline(ax,taxisWin(currEv.DetBorders(1)),'--b','LineWidth',1);
                 xline(ax,taxisWin(currEv.DetBorders(2)),'--b','LineWidth',1);
                 hL = dataWin;
@@ -445,6 +486,8 @@ classdef DASevDB < handle
             numEvs = gO.numEvents;
             currEv = gO.currEvent;
             switch upDwn
+                case 0
+                    % no change
                 case 1
                     if currEv < numEvs
                         currEv = currEv + 1;
@@ -456,6 +499,64 @@ classdef DASevDB < handle
             end
             gO.currEvent = currEv;
             smartplot(gO,0)
+        end
+        
+        %%
+        function computeMeanDataWin(gO)
+            if gO.loaded(1)
+                datawin = squeeze(struct2cell([gO.ephysEvents.DataWin]));
+                rawEfiz = datawin(1,:);
+                bpEfiz = datawin(2,:);
+                powEfiz = datawin(3,:);
+                winLens = cellfun('length',rawEfiz);
+                [~,maxLenInd] = max(winLens);
+                for i = 1:length(rawEfiz)
+                    toMax=max(winLens)-winLens(i);
+                    if toMax~=0
+                        toMaxHalf = toMax/2;
+                        if mod(toMaxHalf,2)~=0
+                            rawEfiz{i} = [zeros(1,floor(toMaxHalf)),rawEfiz{i},zeros(1,ceil(toMaxHalf))];
+                            bpEfiz{i} = [zeros(1,floor(toMaxHalf)),bpEfiz{i},zeros(1,ceil(toMaxHalf))];
+                            powEfiz{i} = [zeros(1,floor(toMaxHalf)),powEfiz{i},zeros(1,ceil(toMaxHalf))];
+                        else
+                            rawEfiz{i} = [zeros(1,toMaxHalf),rawEfiz{i},zeros(1,toMaxHalf)];
+                            bpEfiz{i} = [zeros(1,toMaxHalf),bpEfiz{i},zeros(1,toMaxHalf)];
+                            powEfiz{i} = [zeros(1,toMaxHalf),powEfiz{i},zeros(1,toMaxHalf)];
+                        end
+                    end
+                end
+
+                gO.avgEphysEvents.Raw = mean(cell2mat(rawEfiz'));
+                gO.avgEphysEvents.BP = mean(cell2mat(bpEfiz'));
+                gO.avgEphysEvents.Power = mean(cell2mat(powEfiz'));
+                gO.avgEphysEvents.Taxis = gO.ephysEvents(maxLenInd).Taxis;
+            end
+            
+            if gO.loaded(2)
+                datawin = squeeze(struct2cell([gO.imagingEvents.DataWin]));
+                rawImaging = datawin(1,:);
+                smoothImaging = datawin(2,:);
+                winLens = cellfun('length',rawImaging);
+                [~,maxLenInd] = max(winLens);
+                for i = 1:length(rawImaging)
+                    toMax=max(winLens)-winLens(i);
+                    if toMax~=0
+                        toMaxHalf = toMax/2;
+                        if mod(toMaxHalf,2)~=0
+                            rawImaging{i} = [zeros(1,floor(toMaxHalf)),rawImaging{i},zeros(1,ceil(toMaxHalf))];
+                            smoothImaging{i} = [zeros(1,floor(toMaxHalf)),smoothImaging{i},zeros(1,ceil(toMaxHalf))];
+                        else
+                            rawImaging{i} = [zeros(1,toMaxHalf),rawImaging{i},zeros(1,toMaxHalf)];
+                            smoothImaging{i} = [zeros(1,toMaxHalf),smoothImaging{i},zeros(1,toMaxHalf)];
+                        end
+                    end
+                end
+
+                gO.avgImagingEvents.Raw = mean(cell2mat(rawImaging'));
+                gO.avgImagingEvents.Smoothed = mean(cell2mat(smoothImaging'));
+                gO.avgImagingEvents.Taxis = gO.imagingEvents(maxLenInd).Taxis;
+            end
+            
         end
     end
     
@@ -557,11 +658,14 @@ classdef DASevDB < handle
                 gO.runData = saveStruct.runData;
             end
             
+            computeMeanDataWin(gO)
+            
             smartplot(gO,1)
         end
         
         %%
         function showAvgParamsMenuSel(gO,~,~)
+            
             if gO.loaded(1)
                 avg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2);
                 sd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
@@ -587,6 +691,23 @@ classdef DASevDB < handle
                 gO.imagingParamTable.Data = temp;
                 gO.imagingParamTable.ColumnName = {'Imaging','Mean values'};
             end
+            
+            
+        end
+        
+        %%
+        function displayAvgDataWinMenuSel(gO,~,~)
+            if gO.displayAvgDataWin
+                gO.displayAvgDataWin = 0;
+                gO.displayAvgDataWinMenu.Text = 'Display the average data window --OFF--';
+                gO.displayAvgDataWinMenu.ForegroundColor = 'r';
+            else
+                gO.displayAvgDataWin = 1;
+                gO.displayAvgDataWinMenu.Text = 'Display the average data window --ON--';
+                gO.displayAvgDataWinMenu.ForegroundColor = 'g';
+            end
+            
+            smartplot(gO,0)
         end
         
         %%
@@ -752,6 +873,10 @@ classdef DASevDB < handle
             gO.showAvgParamsMenu = uimenu(gO.optionsMenu,...
                 'Text','Show average parameters',...
                 'MenuSelectedFcn',@ gO.showAvgParamsMenuSel);
+            gO.displayAvgDataWinMenu = uimenu(gO.optionsMenu,...
+                'Text','Display the average data window --OFF--',...
+                'ForegroundColor','r',...
+                'MenuSelectedFcn',@ gO.displayAvgDataWinMenuSel);
             
             gO.ephysOptMenu = uimenu(gO.mainFig,...
                 'Text','Electrophysiological options');
