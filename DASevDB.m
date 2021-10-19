@@ -564,10 +564,12 @@ classdef DASevDB < handle
         function showAvgParamsMenuSel(gO,~,~)
             if gO.loaded(1)
                 avg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2);
-                avg = string(num2str(avg));
                 sd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
-                sd = string(num2str(sd));
-                avgSd = mat2cell(char([avg+" +- "+sd]),ones(length(avg),1));
+                avgSd = cell(length(avg),1);
+                for i = 1:length(avg)
+                    avgSd{i} = [num2str(avg(i)),' ± ',num2str(sd(i))];
+                end
+                
                 temp = [fieldnames([gO.ephysEvents(1).Params]),avgSd];
                 gO.ephysParamTable.Data = temp;
                 gO.ephysParamTable.ColumnName = {'Electrophysiology','Mean values'};
@@ -575,10 +577,12 @@ classdef DASevDB < handle
             
             if gO.loaded(2)
                 avg = mean(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),2);
-                avg = string(num2str(avg));
                 sd = std(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),[],2);
-                sd = string(num2str(sd));
-                avgSd = mat2cell(char([avg+" +- "+sd]),ones(length(avg),1));
+                avgSd = cell(length(avg),1);
+                for i = 1:length(avg)
+                    avgSd{i} = [num2str(avg(i)),' ± ',num2str(sd(i))];
+                end
+                
                 temp = [fieldnames([gO.imagingEvents(1).Params]),avgSd];
                 gO.imagingParamTable.Data = temp;
                 gO.imagingParamTable.ColumnName = {'Imaging','Mean values'};
