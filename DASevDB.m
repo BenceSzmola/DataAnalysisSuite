@@ -26,6 +26,7 @@ classdef DASevDB < handle
         eventTab
         statTab
         
+        %% eventtab
         %% loadPanel
         loadEntryPanel
         entryListBox
@@ -65,6 +66,24 @@ classdef DASevDB < handle
         ax53
         ax54
         ax55
+        
+        %% stattab
+        %% dataPanel
+        dataPanel
+        statSelectPopMenu
+        db4StatListBox
+        statLaunchButton
+        
+        ptTestSetupPanel
+                
+        basicStatParamPanel
+        basicStatParamTable
+        %% graphPanel 
+        graphPanel
+        what2plotPopMenu
+        axStatTab
+            
+            
     end
     
     %% Initializing data stored in GUI
@@ -127,8 +146,10 @@ classdef DASevDB < handle
                 end
             end
             
-            if writeToGUI
+            if writeToGUI == 1
                 gO.entryListBox.String = DBentryList;
+            elseif writeToGUI == 2
+                gO.db4StatListBox.String = DBentryList;
             end
         end
         
@@ -376,6 +397,7 @@ classdef DASevDB < handle
             
             temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
             gO.ephysParamTable.Data = temp;
+            gO.ephysParamTable.ColumnName = {'Electrophysiology','Values'};
             
             gO.sourceChanDetTable.Data(1,:) = {currEv.ChanNum,currEv.DetNum};
         end
@@ -439,6 +461,7 @@ classdef DASevDB < handle
             
             temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
             gO.imagingParamTable.Data = temp;
+            gO.imagingParamTable.ColumnName = {'Imaging','Values'};
             
              gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
         end
@@ -583,13 +606,13 @@ classdef DASevDB < handle
         
         %%
         function tabChanged(gO,~,e)
-            e.NewValue
-            isempty(find(gO.loaded,1))
-            if (e.NewValue == gO.tabgroup.Children(2)) & isempty(find(gO.loaded,1))
-                gO.tabgroup.SelectedTab = e.OldValue;
-                drawnow
-                warndlg('No file loaded!')
-            end
+%             e.NewValue
+%             isempty(find(gO.loaded,1))
+%             if (e.NewValue == gO.tabgroup.Children(2)) & isempty(find(gO.loaded,1))
+%                 gO.tabgroup.SelectedTab = e.OldValue;
+%                 drawnow
+%                 warndlg('No file loaded!')
+%             end
         end
         
         %%
@@ -850,6 +873,25 @@ classdef DASevDB < handle
             saveLoc = [DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname];
             save(saveLoc,'saveStruct')
         end
+        
+        %%
+        function statSelectPopMenuCB(gO,~,~)
+            switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
+                case '--Select statistic!--'
+                    gO.basicStatParamPanel.Visible = 'off';
+                    gO.ptTestSetupPanel.Visible = 'off';
+                case 'Basic statistical parameters'
+                    gO.basicStatParamPanel.Visible = 'on';
+                    gO.ptTestSetupPanel.Visible = 'off';
+                    
+%                     eAvg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2);
+%                     eSd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
+%                     eMed = median(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
+                case 'Paired t-Test'
+                    gO.ptTestSetupPanel.Visible = 'on';
+                    gO.basicStatParamPanel.Visible = 'off';
+            end
+        end
     end
     
     %% gui component initialization and construction
@@ -1073,6 +1115,62 @@ classdef DASevDB < handle
                 'Visible','off',...
                 'Tag','axGroup5');
             gO.ax55.Toolbar.Visible = 'on';
+            
+            
+            %% statistics Tab ---------------------------------------------
+            
+            %% dataPanel
+            gO.dataPanel = uipanel(gO.statTab,...
+                'Position',[0, 0, 0.49, 1],...
+                'BorderType','beveledout',...
+                'TItle','Data panel');
+            gO.statSelectPopMenu = uicontrol(gO.dataPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.01, 0.95, 0.3, 0.025],...
+                'String',{'--Select statistic!--','Basic statistical parameters','Paired t-Test'},...
+                'Callback',@ gO.statSelectPopMenuCB);
+            gO.db4StatListBox = uicontrol(gO.dataPanel,...
+                'Style','listbox',...
+                'Units','normalized',...
+                'Position',[0.01,0.75,0.3,0.19],...
+                'String','');
+            getDBlist(gO,2)
+            gO.statLaunchButton = uicontrol(gO.dataPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.7, 0.15, 0.025],...
+                'String','Launch',...
+                'Callback',@ gO.statLaunchButtonPress);
+            
+            gO.ptTestSetupPanel = uipanel(gO.dataPanel,...
+                'Position',[0.315, 0.7, 0.68, 0.3],...
+                'BorderType','beveledout',...
+                'Title','Paired t-Test setup',...
+                'Visible','off');
+            
+            
+            
+            gO.basicStatParamPanel = uipanel(gO.dataPanel,...
+                'Position',[0,0,1,0.65],...
+                'BorderType','beveledout',...
+                'Title','Basic statistical parameters',...
+                'Visible','off');
+            gO.basicStatParamTable = uitable(gO.basicStatParamPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.98, 0.98],...
+                'ColumnWidth',{100,150},...
+                'ColumnName',{'Electrophysiology','Values'},...
+                'RowName',{});
+            
+            %% graphPanel
+            gO.graphPanel = uipanel(gO.statTab,...
+                'Position',[0.51,0,0.49,1],...
+                'BorderType','beveledout',...
+                'Title','Graph panel');
+            gO.axStatTab = axes(gO.graphPanel,'Position',[0.15,0.15,0.7,0.7],...
+                'Tag','axGroupStat');
+                
         end
         
     end
