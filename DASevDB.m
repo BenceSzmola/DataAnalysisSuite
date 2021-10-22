@@ -77,7 +77,9 @@ classdef DASevDB < handle
         ptTestSetupPanel
                 
         basicStatParamPanel
-        basicStatParamTable
+        basicStatParamTableBig
+        basicStatParamTable1
+        basicStatParamTable2
         %% graphPanel 
         graphPanel
         what2plotPopMenu
@@ -879,17 +881,110 @@ classdef DASevDB < handle
             switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
                 case '--Select statistic!--'
                     gO.basicStatParamPanel.Visible = 'off';
+                    gO.basicStatParamTable1.Visible = 'off';
+                    gO.basicStatParamTable2.Visible = 'off';
+                    gO.basicStatParamTableBig.Visible = 'off';
                     gO.ptTestSetupPanel.Visible = 'off';
+                    gO.db4StatListBox.Max = 2;
+                    gO.db4StatListBox.Value = 1;
                 case 'Basic statistical parameters'
                     gO.basicStatParamPanel.Visible = 'on';
+                    gO.basicStatParamTable1.Visible = 'off';
+                    gO.basicStatParamTable2.Visible = 'off';
+                    gO.basicStatParamTableBig.Visible = 'off';
                     gO.ptTestSetupPanel.Visible = 'off';
-                    
-%                     eAvg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2);
-%                     eSd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
-%                     eMed = median(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
+                    gO.db4StatListBox.Max = 1;
+                    gO.db4StatListBox.Value = 1;
                 case 'Paired t-Test'
                     gO.ptTestSetupPanel.Visible = 'on';
                     gO.basicStatParamPanel.Visible = 'off';
+                    gO.basicStatParamTable1.Visible = 'off';
+                    gO.basicStatParamTable2.Visible = 'off';
+                    gO.basicStatParamTableBig.Visible = 'off';
+                    gO.db4StatListBox.Max = 2;
+                    gO.db4StatListBox.Value = 1;
+            end
+        end
+        
+        %%
+        function statLaunchButtonPress(gO,~,~)
+            fNames = gO.db4StatListBox.String(gO.db4StatListBox.Value);
+            DASloc = mfilename('fullpath');
+            statEntries = cell(length(fNames),1);
+            loaded4Stat = [0,0,0];
+            for i = 1:length(fNames)
+                file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
+                load(file2load,'saveStruct');
+                statEntries{i} = saveStruct;
+            end
+            assignin('base','sEs',statEntries)
+
+            switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
+                case '--Select statistic!--'
+                    %%
+                    
+                case 'Basic statistical parameters'
+                    %%
+                    if length(fNames) > 1
+                        errordlg('This statistic works on only one entry')
+                        return
+                    end
+                    gO.basicStatParamTable1.Visible = 'off';
+                    gO.basicStatParamTable2.Visible = 'off';
+                    gO.basicStatParamTableBig.Visible = 'off';
+                    
+                    statEntries = statEntries{1};
+                    
+                    if sum(ismember(fieldnames(statEntries),'ephysEvents'))
+                        eEvs = [statEntries.ephysEvents];
+                        eAvg = mat2cell(mean(cell2mat(squeeze(struct2cell([eEvs.Params]))),2),ones(1,length(fieldnames(eEvs(1).Params))));
+                        eSd = mat2cell(std(cell2mat(squeeze(struct2cell([eEvs.Params]))),[],2),ones(1,length(fieldnames(eEvs(1).Params))));
+                        eMed = mat2cell(median(cell2mat(squeeze(struct2cell([eEvs.Params]))),2),ones(1,length(fieldnames(eEvs(1).Params))));
+                        loaded4Stat(1) = 1;
+                    end
+                    
+                    if sum(ismember(fieldnames(statEntries),'imagingEvents'))
+                        iEvs = [statEntries.imagingEvents];
+                        iAvg = mat2cell(mean(cell2mat(squeeze(struct2cell([iEvs.Params]))),2),ones(1,length(fieldnames(iEvs(1).Params))));
+                        iSd = mat2cell(std(cell2mat(squeeze(struct2cell([iEvs.Params]))),[],2),ones(1,length(fieldnames(iEvs(1).Params))));
+                        iMed = mat2cell(median(cell2mat(squeeze(struct2cell([iEvs.Params]))),2),ones(1,length(fieldnames(iEvs(1).Params))));
+                        loaded4Stat(2) = 1;
+                    end
+                    
+                    if sum(loaded4Stat) == 2
+                        gO.basicStatParamTable1.ColumnName = {'Electrophysiology',...
+                            'Mean','SD','Median'};
+                        temp = [fieldnames([eEvs(1).Params]),eAvg,eSd,eMed];
+                        gO.basicStatParamTable1.Data = temp;
+                        gO.basicStatParamTable1.ColumnWidth = {100,100,100,100};
+                        gO.basicStatParamTable1.Visible = 'on';
+                        
+                        gO.basicStatParamTable2.ColumnName = {'Imaging',...
+                            'Mean','SD','Median'};
+                        temp = [fieldnames([iEvs(1).Params]),iAvg,iSd,iMed];
+                        gO.basicStatParamTable2.Data = temp;
+                        gO.basicStatParamTable2.ColumnWidth = {100,100,100,100};
+                        gO.basicStatParamTable2.Visible = 'on';
+                    elseif loaded4Stat(1)
+                        gO.basicStatParamTableBig.ColumnName = {'Electrophysiology',...
+                            'Mean','SD','Median'};
+                        temp = [fieldnames([eEvs(1).Params]),eAvg,eSd,eMed];
+                        gO.basicStatParamTableBig.Data = temp;
+                        gO.basicStatParamTableBig.ColumnWidth = {100,100,100,100};
+                        gO.basicStatParamTableBig.Visible = 'on';
+                    elseif loaded4Stat(2)
+                        gO.basicStatParamTableBig.ColumnName = {'Imaging',...
+                            'Mean','SD','Median'};
+                        temp = [fieldnames([iEvs(1).Params]),iAvg,iSd,iMed];
+                        gO.basicStatParamTableBig.Data = temp;
+                        gO.basicStatParamTableBig.ColumnWidth = {100,100,100,100};
+                        gO.basicStatParamTableBig.Visible = 'on';
+                    elseif sum(loaded4Stat) == 0
+                        
+                    end
+                    
+                case 'Paired t-Test'
+                    %%
             end
         end
     end
@@ -1156,13 +1251,21 @@ classdef DASevDB < handle
                 'BorderType','beveledout',...
                 'Title','Basic statistical parameters',...
                 'Visible','off');
-            gO.basicStatParamTable = uitable(gO.basicStatParamPanel,...
+            gO.basicStatParamTableBig = uitable(gO.basicStatParamPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
-                'ColumnWidth',{100,150},...
-                'ColumnName',{'Electrophysiology','Values'},...
-                'RowName',{});
-            
+                'Visible','off',...
+                'RowName','');
+            gO.basicStatParamTable1 = uitable(gO.basicStatParamPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.51, 0.98, 0.48],...
+                'Visible','off',...
+                'RowName','');
+            gO.basicStatParamTable2 = uitable(gO.basicStatParamPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.98, 0.48],...
+                'Visible','off',...
+                'RowName','');
             %% graphPanel
             gO.graphPanel = uipanel(gO.statTab,...
                 'Position',[0.51,0,0.49,1],...
