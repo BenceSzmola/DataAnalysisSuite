@@ -191,6 +191,16 @@ classdef DAS < handle
         imagingMeanSdDetPanel
         imagingMeanSdDetSdmultLabel
         imagingMeanSdDetSdmultEdit
+        imagingMeanSdDetSlideAvgCheck
+        
+        imagingMlSpDetPanel
+        imagingMlSpDetDFFSpikeText
+        imagingMlSpDetDFFSpikeEdit
+        imagingMlSpDetTauText
+        imagingMlSpDetTauEdit
+        imagingMlSpDetSigmaText
+        imagingMlSpDetSigmaEdit
+        
         
         imagingDetParamsPanel
         imagingDetParamsTable
@@ -3213,8 +3223,13 @@ classdef DAS < handle
             switch dettype
                 case 'Mean+SD'
                     guiobj.imagingMeanSdDetPanel.Visible = 'on';
+                    guiobj.imagingMlSpDetPanel.Visible = 'off';
+                case 'MLSpike based'
+                    guiobj.imagingMlSpDetPanel.Visible = 'on';
+                    guiobj.imagingMeanSdDetPanel.Visible = 'off';
                 otherwise
                     guiobj.imagingMeanSdDetPanel.Visible = 'off';
+                    guiobj.imagingMlSpDetPanel.Visible = 'off';
                 
             end
         end
@@ -3242,34 +3257,75 @@ classdef DAS < handle
             
             data = guiobj.imaging_data;
             fs = guiobj.imaging_fs;
-            sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
+            
             
             dets = nan(size(data));
             detBorders = cell(min(size(data)),1);
             detParams = cell(min(size(data)),1);
             switch dettype
                 case 'Mean+SD'
+                    sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
                     
-                    smoothd = nan(size(data));
+                    detData = nan(size(data));
                     thr = nan(size(data,1),1);
-                    for i = 1:size(data,1)
-                        smoothd(i,:) = smoothdata(data(i,:),'gaussian',5);
-                        thr(i) = mean(smoothd(i,:)) + sdmult*std(smoothd(i,:));
+                    
+                    detinfo.Roi = [1:size(data,1)];
+                    detinfo.DetType = 'Mean+SD';
+                    detinfo.DetSettings.SdMult = sdmult;
+
+                    if ~guiobj.imagingMeanSdDetSlideAvgCheck.Value
+                        for i = 1:size(data,1)
+                            detData(i,:) = smoothdata(data(i,:),'gaussian',5);
+                            thr(i) = mean(detData(i,:)) + sdmult*std(detData(i,:));
+                        end
+                        minLen = 0.03;
+                        detinfo.DetSettings.WinType = 'Gaussian';
+                        detinfo.DetSettings.WinLen = 5;
+                    else
+                        for i = 1:size(data,1)
+                            detData(i,:) = movmean(data(i,:),3);
+                            thr(i) = mean(data(i,:)) + sdmult*std(data(i,:));
+                        end
+                        minLen = 0;
+                        detinfo.DetSettings.WinType = '3-point mean';
+                        detinfo.DetSettings.WinLen = 3;
                     end
-                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,data,smoothd,...
-                        [],0,[],[],fs,thr,0,0.025);
+                    
+                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,data,detData,...
+                        [],0,[],[],fs,thr,0,minLen);
                     
                     for i = 1:size(data,1)
                         detParams{i} = detParamMiner(2,dets(i,:),detBorders{i},fs,...
-                            data(i,:),smoothd(i,:),[]);
+                            data(i,:),detData(i,:),[]);
                         
                     end
-                    detinfo.Roi = [1:size(data,1)];
-                    detinfo.DetType = 'Mean+SD';
-                    detinfo.DetSettings.WinType = 'Gaussian';
-                    detinfo.DetSettings.WinLen = 10;
-                    detinfo.DetSettings.SdMult = sdmult;
+%                     detinfo.Roi = [1:size(data,1)];
+%                     detinfo.DetType = 'Mean+SD';
+%                     detinfo.DetSettings.WinType = 'Gaussian';
+%                     detinfo.DetSettings.WinLen = 10;
+%                     detinfo.DetSettings.SdMult = sdmult;
+
+                case 'MLSpike based'
+                    par = tps_mlspikes('par');
+                    par.dt = 1/fs;
+                    par.a = str2double(guiobj.imagingMlSpDetDFFSpikeEdit.String);
+                    par.tau = str2double(guiobj.imagingMlSpDetTauEdit.String);
+                    par.finetune.sigma = str2double(guiobj.imagingMlSpDetSigmaEdit.String);
+                    par.dographsummary = false;
                     
+                    numSpikes = zeros(size(data));
+                    for i = 1:size(data,1)
+                        numSpikes(i,:) = tps_mlspikes(data(i,:),par);
+                        [binSize,binEdges] = histcounts(numSpikes(i,:));
+                        if (binSize(end)/sum(binSize)) < 0.015
+                            goodBin = mean(binEdges(end-1:end));
+                            dets(i,numSpikes(i,:)==goodBin) = 0;
+                        end
+                    end
+                    
+                    detinfo.Roi = [1:size(data,1)];
+                    detinfo.DetType = 'MLSpike based';
+                    detinfo.DetSettings = par;
             end
             
             if isempty(dets)
@@ -4922,7 +4978,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.5, 0.1, 0.1],...
-                'String',{'--Imaging detection methods--','Mean+SD'},...
+                'String',{'--Imaging detection methods--','Mean+SD','MLSpike based'},...
                 'Callback',@(h,e) guiobj.imagingDetPopMenuSelected);
             
 %             guiobj.imagingDetChSelPopMenu = uicontrol(guiobj.eventDetTab,...
@@ -4945,6 +5001,46 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.41, 0.85, 0.1, 0.1],...
                 'String','3');
+            guiobj.imagingMeanSdDetSlideAvgCheck = uicontrol(guiobj.imagingMeanSdDetPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.1, 0.7, 0.3, 0.1],...
+                'String','Use 3-point average method');
+            
+            guiobj.imagingMlSpDetPanel = uipanel(guiobj.eventDetTab,...
+                'Position',[0.12, 0.33, 0.2, 0.3],...
+                'Title','Settings for MLSpike based detection',...
+                'Visible','off');
+            guiobj.imagingMlSpDetDFFSpikeText = uicontrol(guiobj.imagingMlSpDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.85, 0.5, 0.1],...
+                'String',[char(916),'F/F of 1 spike']);
+            guiobj.imagingMlSpDetDFFSpikeEdit = uicontrol(guiobj.imagingMlSpDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.65, 0.85, 0.3, 0.1],...
+                'String','0.1');
+            guiobj.imagingMlSpDetSigmaText = uicontrol(guiobj.imagingMlSpDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.65, 0.5, 0.1],...
+                'String',[char(963),' (noise parameter)']);
+            guiobj.imagingMlSpDetSigmaEdit = uicontrol(guiobj.imagingMlSpDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.65, 0.65, 0.3, 0.1],...
+                'String','0.02');
+            guiobj.imagingMlSpDetTauText = uicontrol(guiobj.imagingMlSpDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.45, 0.5, 0.1],...
+                'String',[char(964),' (decay time constant)']);
+            guiobj.imagingMlSpDetTauEdit = uicontrol(guiobj.imagingMlSpDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.65, 0.45, 0.3, 0.1],...
+                'String','1');
             
             guiobj.imagingDetParamsPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.325, 0.33, 0.125, 0.3],...
