@@ -2113,7 +2113,7 @@ classdef DASeV < handle
 
                         [win,relBorders] = windowMacher(gO,1,i,j,0.25);
                         
-                        tempStruct.source = gO.path2loadedSave;
+                        tempStruct.source = string(gO.path2loadedSave);
                         tempStruct.simult = 0;
                         tempStruct.parallel = 0;
                                                 
@@ -2162,7 +2162,7 @@ classdef DASeV < handle
                         
                         [win,relBorders] = windowMacher(gO,2,i,j,0.25);
                         
-                        tempStruct.source = gO.path2loadedSave;
+                        tempStruct.source = string(gO.path2loadedSave);
                         tempStruct.simult = 0;
                         tempStruct.parallel = 0;                         
                         
@@ -2201,7 +2201,7 @@ classdef DASeV < handle
                     [ephysWin,ephysRelBorders] = windowMacher(gO,1,currRow(1),currRow(2),0.25);
                     [imagingWin,imagingRelBorders] = windowMacher(gO,2,currRow(3),currRow(4),0.25);
                     
-                    tempStruct.source = gO.path2loadedSave;
+                    tempStruct.source = string(gO.path2loadedSave);
                     tempStruct.simult = 1;
                     tempStruct.parallel = 0;
                     
@@ -2279,13 +2279,13 @@ classdef DASeV < handle
                         return
                     end
                 elseif ~saveStruct(1).simult
-                    if simult(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
+                    if selected(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
                         errordlg(['The entry you chose contains only ',...
                             'electrophysiological events! Choose another, ',...
                             'or create a new one!'])
                         return
                     end
-                    if simult(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))
+                    if selected(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))
                         errordlg(['The entry you chose contains only ',...
                             'imaging events! Choose another, or create a new one!'])
                         return
