@@ -82,7 +82,8 @@ classdef DASevDB < handle
 %         tTestMu0Text
 %         tTestMu0Edit
         tTestResultPanel
-        tTestResultTable
+        tTestEphysResultTable
+        tTestImagingResultTable
 %         tTestResultPText1
 %         tTestResultPText2
 %         tTestResultCIText1
@@ -118,10 +119,24 @@ classdef DASevDB < handle
         ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
         avgEphysEvents
+        ephysParamNames = [{'RawAmplitudeP2P'};...
+            {'BpAmplitudeP2P' };...
+            {'Length'         };...
+            {'Frequency'      };...
+            {'AUC'            };...
+            {'RiseTime'       };...
+            {'DecayTime'      };...
+            {'FWHM'           }];
         
         imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
         avgImagingEvents
+        imagingParamNames = [{'RawAmplitudeP2P'};...
+            {'Length'         };...
+            {'AUC'            };...
+            {'RiseTime'       };...
+            {'DecayTime'      };...
+            {'FWHM'           }];
         
         runTypeSelected = [1,0,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos; 4==ActivityStates
         showLicks = 0;
@@ -848,9 +863,12 @@ classdef DASevDB < handle
             
             if gO.numEvents > 1
                 gO.numEvents = gO.numEvents-1;
-            else
+            elseif gO.numEvents == 1
                 warndlg('This is the last event! The whole entry will be deleted!')
                 deleteEntry(gO,1)
+                return
+            elseif gO.numEvents == 0
+                errordlg('No database group loaded!')
                 return
             end
             
@@ -925,10 +943,41 @@ classdef DASevDB < handle
                     if strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'One-sample t-Test')
                         gO.db4StatListBox.Max = 1;
                         gO.db4StatListBox.Value = 1;
+%                         gO.tTestMu0EphysTable.Enable = 'on';
+%                         gO.tTestMu0ImagingTable.Enable = 'on';
                     elseif strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'Paired t-Test')
                         gO.db4StatListBox.Max = 2;
                         gO.db4StatListBox.Value = 1;
+                        gO.tTestMu0EphysTable.Enable = 'off';
+                        gO.tTestMu0ImagingTable.Enable = 'off';
                     end
+            end
+        end
+        
+        %%
+        function db4StatListBoxCB(gO,~,~)
+            
+            switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
+                case 'One-sample t-Test'
+                    fNames = gO.db4StatListBox.String(gO.db4StatListBox.Value);
+                    DASloc = mfilename('fullpath');
+
+                    file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{1}];
+                    load(file2load,'saveStruct');
+                    
+                    if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                        gO.tTestMu0EphysTable.Enable = 'on';
+                    else
+                        gO.tTestMu0EphysTable.Enable = 'off';
+                    end
+                    
+                    if sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                        gO.tTestMu0ImagingTable.Enable = 'on';
+                    else
+                        gO.tTestMu0ImagingTable.Enable = 'off';
+                    end
+                otherwise
+                    return
             end
         end
         
@@ -1017,7 +1066,8 @@ classdef DASevDB < handle
                         return
                     end
                     alpha = str2double(gO.tTestCritPEdit.String);
-                    mu0 = str2double(gO.tTestMu0Edit.String);
+                    e_mu0 = cell2mat(gO.tTestMu0EphysTable.Data(:,2));
+                    i_mu0 = cell2mat(gO.tTestMu0ImagingTable.Data(:,2));
                     
                     statEntries = statEntries{1};
                     
@@ -1028,37 +1078,53 @@ classdef DASevDB < handle
                         
                         loaded4Stat(1) = 1;
                         
-                        h = zeros(length(eParamNames),1);
-                        p = zeros(length(eParamNames),1);
-                        ci = cell(length(eParamNames),1);
+                        e_h = zeros(length(eParamNames),1);
+                        e_p = zeros(length(eParamNames),1);
+                        e_ci = cell(length(eParamNames),1);
                         for i = 1:size(eEvsMat,1)
-                            [h(i),p(i),ciNum] = ttest(eEvsMat(i,:),mu0,'Alpha',alpha);
-                            ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                            [e_h(i),e_p(i),ciNum] = ttest(eEvsMat(i,:),e_mu0(i),'Alpha',alpha);
+                            e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
                         end
                         
-                        h = mat2cell(logical(h),ones(length(eParamNames),1));
-                        p = mat2cell(p,ones(length(eParamNames),1));
+                        e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
+                        e_p = mat2cell(e_p,ones(length(eParamNames),1));
                     end
                     
                     if sum(ismember(fieldnames(statEntries),'imagingEvents'))
                         iEvs = [statEntries.imagingEvents];
+                        iParamNames = fieldnames(iEvs(1).Params);
                         iEvsMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
+                        
                         loaded4Stat(2) = 1;
+                        
+                        i_h = zeros(length(iParamNames),1);
+                        i_p = zeros(length(iParamNames),1);
+                        i_ci = cell(length(iParamNames),1);
+                        for i = 1:size(iEvsMat,1)
+                            [i_h(i),i_p(i),ciNum] = ttest(iEvsMat(i,:),i_mu0(i),'Alpha',alpha);
+                            i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                        end
+                        
+                        i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
+                        i_p = mat2cell(i_p,ones(length(iParamNames),1));
                     end
                     
-                    if sum(loaded4Stat) == 2
-                        
-                    elseif loaded4Stat(1)
-                        gO.tTestResultTable.ColumnName = {'Electrophysiology',...
+                    
+                    if loaded4Stat(1)
+                        gO.tTestEphysResultTable.ColumnName = {'Electrophysiology',...
                             'Null hypothesis rejected?','p-value','CI'};
-                        gO.tTestResultTable.ColumnFormat = {'char','logical','numeric','char'};
-                        temp = [fieldnames([eEvs(1).Params]),h,p,ci];
-                        gO.tTestResultTable.Data = temp;
-                        gO.tTestResultTable.ColumnWidth = {100,150,100,150};
-                    elseif loaded4Stat(2)
-                        
-                    elseif sum(loaded4Stat) == 0
-                        
+                        gO.tTestEphysResultTable.ColumnFormat = {'char','logical','numeric','char'};
+                        temp = [fieldnames([eEvs(1).Params]),e_h,e_p,e_ci];
+                        gO.tTestEphysResultTable.Data = temp;
+                        gO.tTestEphysResultTable.ColumnWidth = {100,150,100,150};
+                    end
+                    if loaded4Stat(2)
+                        gO.tTestImagingResultTable.ColumnName = {'Imaging',...
+                            'Null hypothesis rejected?','p-value','CI'};
+                        gO.tTestImagingResultTable.ColumnFormat = {'char','logical','numeric','char'};
+                        temp = [fieldnames([iEvs(1).Params]),i_h,i_p,i_ci];
+                        gO.tTestImagingResultTable.Data = temp;
+                        gO.tTestImagingResultTable.ColumnWidth = {100,150,100,150};
                     end
                     
                 case 'Paired t-Test'
@@ -1308,7 +1374,8 @@ classdef DASevDB < handle
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0.01,0.75,0.3,0.19],...
-                'String','');
+                'String','',...
+                'Callback',@ gO.db4StatListBoxCB);
             getDBlist(gO,2)
             gO.statLaunchButton = uicontrol(gO.dataPanel,...
                 'Style','pushbutton',...
@@ -1353,14 +1420,22 @@ classdef DASevDB < handle
                 'Units','normalized',...
                 'Position',[0.55, 0.85, 0.3, 0.1],...
                 'String','0.05');
+            temp = [gO.ephysParamNames, mat2cell(zeros(length(gO.ephysParamNames),1),ones(length(gO.ephysParamNames),1))];
             gO.tTestMu0EphysTable = uitable(gO.tTestSetupPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.1, 0.48, 0.7],...
-                'RowName','');
+                'RowName','',...
+                'ColumnName',{'Electrophysiology',['Edit ',char(956),char(8320),' value']},...
+                'Data',temp,...
+                'ColumnEditable',[false, true]);
+            temp = [gO.imagingParamNames, mat2cell(zeros(length(gO.imagingParamNames),1),ones(length(gO.imagingParamNames),1))];
             gO.tTestMu0ImagingTable = uitable(gO.tTestSetupPanel,...
                 'Units','normalized',...
                 'Position',[0.51, 0.1, 0.48, 0.7],...
-                'RowName','');
+                'RowName','',...
+                'ColumnName',{'Imaging',['Edit ',char(956),char(8320),' value']},...
+                'Data',temp,...
+                'ColumnEditable',[false, true]);
 %             gO.tTestMu0Text = uicontrol(gO.tTestSetupPanel,...
 %                 'Style','text',...
 %                 'Units','normalized',...
@@ -1377,9 +1452,13 @@ classdef DASevDB < handle
                 'BorderType','beveledout',...
                 'Title','t-Test Results',...
                 'Visible','off');
-            gO.tTestResultTable = uitable(gO.tTestResultPanel,...
+            gO.tTestEphysResultTable = uitable(gO.tTestResultPanel,...
                 'Units','normalized',...
                 'Position',[0.1, 0.6, 0.8, 0.35],...
+                'RowName','');
+            gO.tTestImagingResultTable = uitable(gO.tTestResultPanel,...
+                'Units','normalized',...
+                'Position',[0.1, 0.2, 0.8, 0.35],...
                 'RowName','');
 %             gO.tTestResultPText1 = uicontrol(gO.tTestResultPanel,...
 %                 'Style','text',...
@@ -1414,7 +1493,7 @@ classdef DASevDB < handle
             gO.tTestResultSummText = uicontrol(gO.tTestResultPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.1, 0.46, 0.8, 0.2],...
+                'Position',[0.1, 0.01, 0.8, 0.15],...
                 'String','');
             
             %% graphPanel
