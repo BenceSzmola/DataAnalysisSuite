@@ -518,7 +518,7 @@ classdef DASevDB < handle
                 plotTitle = 'Relative position on treadmill';
             elseif type(4)
                 dataWin = currEv.ActState;
-                yLabels = 'Still/Moving';
+                yLabels = '';
                 plotTitle = 'Activity state on treadmill';
             end
             
@@ -533,6 +533,11 @@ classdef DASevDB < handle
             ylabel(ax,yLabels)
             title(ax,plotTitle)
             axis(ax,'tight')
+            if type(4)
+                ylim(ax,[-0.1,1.1])
+                yticks(ax,[0,1])
+                yticklabels(ax,{'Still','Moving'})
+            end
             ax.Tag = axTag;
         end
         
@@ -932,7 +937,7 @@ classdef DASevDB < handle
                     
                     gO.db4StatListBox.Max = 1;
                     gO.db4StatListBox.Value = 1;
-                case {'One-sample t-Test','Paired t-Test'}
+                case {'One-sample t-Test','Two-sample t-Test'}
                     gO.tTestSetupPanel.Visible = 'on';
                     gO.tTestResultPanel.Visible = 'on';
                     gO.basicStatParamPanel.Visible = 'off';
@@ -943,13 +948,13 @@ classdef DASevDB < handle
                     if strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'One-sample t-Test')
                         gO.db4StatListBox.Max = 1;
                         gO.db4StatListBox.Value = 1;
-%                         gO.tTestMu0EphysTable.Enable = 'on';
-%                         gO.tTestMu0ImagingTable.Enable = 'on';
-                    elseif strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'Paired t-Test')
+                        gO.tTestMu0EphysTable.Visible = 'on';
+                        gO.tTestMu0ImagingTable.Visible = 'on';
+                    elseif strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'Two-sample t-Test')
                         gO.db4StatListBox.Max = 2;
                         gO.db4StatListBox.Value = 1;
-                        gO.tTestMu0EphysTable.Enable = 'off';
-                        gO.tTestMu0ImagingTable.Enable = 'off';
+                        gO.tTestMu0EphysTable.Visible = 'off';
+                        gO.tTestMu0ImagingTable.Visible = 'off';
                     end
             end
         end
@@ -1127,9 +1132,77 @@ classdef DASevDB < handle
                         gO.tTestImagingResultTable.ColumnWidth = {100,150,100,150};
                     end
                     
-                case 'Paired t-Test'
+                case 'Two-sample t-Test'
                     %%
+                    if length(fNames) ~= 2
+                        errordlg('This statistic works on two entries')
+                        return
+                    end
+                    alpha = str2double(gO.tTestCritPEdit.String);
                     
+                    if sum(ismember(fieldnames(statEntries{1}),'ephysEvents')) && sum(ismember(fieldnames(statEntries{2}),'ephysEvents'))
+                        eParamNames = gO.ephysParamNames;
+                        
+                        eEvs1 = [statEntries{1}.ephysEvents];
+                        eEvsMat1 = cell2mat(squeeze(struct2cell([eEvs1.Params])));
+                        
+                        eEvs2 = [statEntries{2}.ephysEvents];
+                        eEvsMat2 = cell2mat(squeeze(struct2cell([eEvs2.Params])));
+                        
+                        loaded4Stat(1) = 1;
+                        
+                        e_h = zeros(length(eParamNames),1);
+                        e_p = zeros(length(eParamNames),1);
+                        e_ci = cell(length(eParamNames),1);
+                        for i = 1:length(eParamNames)
+                            [e_h(i),e_p(i),ciNum] = ttest2(eEvsMat1(i,:),eEvsMat2(i,:),'Alpha',alpha);
+                            e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                        end
+                        
+                        e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
+                        e_p = mat2cell(e_p,ones(length(eParamNames),1));
+                    end
+                    
+                    if sum(ismember(fieldnames(statEntries{1}),'imagingEvents')) && sum(ismember(fieldnames(statEntries{2}),'imagingEvents'))
+                        iParamNames = gO.imagingParamNames;
+                        
+                        iEvs1 = [statEntries{1}.imagingEvents];
+                        iEvsMat1 = cell2mat(squeeze(struct2cell([iEvs1.Params])));
+                        
+                        iEvs2 = [statEntries{2}.imagingEvents];
+                        iEvsMat2 = cell2mat(squeeze(struct2cell([iEvs2.Params])));
+                        
+                        loaded4Stat(2) = 1;
+                        
+                        i_h = zeros(length(iParamNames),1);
+                        i_p = zeros(length(iParamNames),1);
+                        i_ci = cell(length(iParamNames),1);
+                        for i = 1:length(iParamNames)
+                            [i_h(i),i_p(i),ciNum] = ttest2(iEvsMat1(i,:),iEvsMat2(i,:),'Alpha',alpha);
+                            i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                        end
+                        
+                        i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
+                        i_p = mat2cell(i_p,ones(length(iParamNames),1));
+                    end
+                    
+                    
+                    if loaded4Stat(1)
+                        gO.tTestEphysResultTable.ColumnName = {'Electrophysiology',...
+                            'Null hypothesis rejected?','p-value','CI'};
+                        gO.tTestEphysResultTable.ColumnFormat = {'char','logical','numeric','char'};
+                        temp = [eParamNames,e_h,e_p,e_ci];
+                        gO.tTestEphysResultTable.Data = temp;
+                        gO.tTestEphysResultTable.ColumnWidth = {100,150,100,150};
+                    end
+                    if loaded4Stat(2)
+                        gO.tTestImagingResultTable.ColumnName = {'Imaging',...
+                            'Null hypothesis rejected?','p-value','CI'};
+                        gO.tTestImagingResultTable.ColumnFormat = {'char','logical','numeric','char'};
+                        temp = [iParamNames,i_h,i_p,i_ci];
+                        gO.tTestImagingResultTable.Data = temp;
+                        gO.tTestImagingResultTable.ColumnWidth = {100,150,100,150};
+                    end
             end
         end
     end
@@ -1368,7 +1441,7 @@ classdef DASevDB < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.95, 0.3, 0.025],...
-                'String',{'--Select statistic!--','Basic statistical parameters','One-sample t-Test','Paired t-Test'},...
+                'String',{'--Select statistic!--','Basic statistical parameters','One-sample t-Test','Two-sample t-Test'},...
                 'Callback',@ gO.statSelectPopMenuCB);
             gO.db4StatListBox = uicontrol(gO.dataPanel,...
                 'Style','listbox',...
