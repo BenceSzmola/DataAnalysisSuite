@@ -930,7 +930,7 @@ classdef DASeV < handle
             elseif gO.runDataTypSelected(4)
                 data = gO.runActState;
                 axTitle = 'Running - activity states';
-                axYlabel = 'Still/Active';
+                axYlabel = '';
             end
             
             plot(ax,gO.runTaxis,data)
@@ -943,6 +943,11 @@ classdef DASeV < handle
             title(ax,axTitle)
             ylabel(ax,axYlabel)
             xlabel(ax,'Time [s]')
+            if gO.runDataTypSelected(4)
+                ylim(ax,[-0.1,1.1])
+                yticks(ax,[0,1])
+                yticklabels(ax,{'Still','Moving'})
+            end
             
         end
         
