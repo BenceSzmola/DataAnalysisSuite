@@ -30,5 +30,6 @@ for i = 1:size(data,1)
     axis tight
     ylabel('Frequency [Hz]')
     xlabel('Time [ms]')
-    colorbar
+    cbar = colorbar;
+    cbar.Label.String = 'CWT coefficient magnitude';
 end

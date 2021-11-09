@@ -145,7 +145,8 @@ if showFigs
     imagesc(taxis,vbins,histo)
     set(gca,'YDir','normal')
     colormap(hot)
-    colorbar
+    cbar = colorbar;
+    cbar.Label.String = '# of peaks';
     title('Histogram from Hilbert envelope peaks')
     xlabel('Time [s]')
     ylabel('Voltage [\muV]')
@@ -252,7 +253,7 @@ if showFigs
     % hold on
     hold(sp2,'on')
     plot(taxis,dets,'r*','MarkerSize',12)
-    legend('DoG','Detections')
+    legend(sp2,'DoG','Detections')
     axis tight
     hold off
 end
