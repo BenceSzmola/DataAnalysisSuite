@@ -98,7 +98,10 @@ classdef DASevDB < handle
         basicStatParamTable2
         %% graphPanel 
         graphPanel
-        what2plotPopMenu
+        statGraphDataListbox
+        statGraphTypePopMenu
+        statGraphParamSelPopMenu
+        statGraphPlotButton
         axStatTab
             
             
@@ -119,24 +122,24 @@ classdef DASevDB < handle
         ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
         avgEphysEvents
-        ephysParamNames = [{'RawAmplitudeP2P'};...
-            {'BpAmplitudeP2P' };...
-            {'Length'         };...
-            {'Frequency'      };...
-            {'AUC'            };...
-            {'RiseTime'       };...
-            {'DecayTime'      };...
-            {'FWHM'           }];
+        ephysParamNames = [{'RawAmplitudeP2P'},{[char(956),'V']};...
+            {'BpAmplitudeP2P' },{['[',char(956),'V]']};...
+            {'Length'         },{'[s]'};...
+            {'Frequency'      },{'[Hz]'};...
+            {'AUC'            },{['[',char(956),'V*s]']};...
+            {'RiseTime'       },{'[s]'};...
+            {'DecayTime'      },{'[s]'};...
+            {'FWHM'           },{'[s]'}];
         
         imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
         avgImagingEvents
-        imagingParamNames = [{'RawAmplitudeP2P'};...
-            {'Length'         };...
-            {'AUC'            };...
-            {'RiseTime'       };...
-            {'DecayTime'      };...
-            {'FWHM'           }];
+        imagingParamNames = [{'RawAmplitudeP2P'},{['[',char(916),'F/F]']};...
+            {'Length'         },{'[s]'};...
+            {'AUC'            },{['[',char(916),'F/F]']};...
+            {'RiseTime'       },{'[s]'};...
+            {'DecayTime'      },{'[s]'};...
+            {'FWHM'           },{'[s]'}];
         
         runTypeSelected = [1,0,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos; 4==ActivityStates
         showLicks = 0;
@@ -182,6 +185,7 @@ classdef DASevDB < handle
                 gO.entryListBox.String = DBentryList;
             elseif writeToGUI == 2
                 gO.db4StatListBox.String = DBentryList;
+                gO.statGraphDataListbox.String = DBentryList;
             end
         end
         
@@ -1141,7 +1145,7 @@ classdef DASevDB < handle
                     alpha = str2double(gO.tTestCritPEdit.String);
                     
                     if sum(ismember(fieldnames(statEntries{1}),'ephysEvents')) && sum(ismember(fieldnames(statEntries{2}),'ephysEvents'))
-                        eParamNames = gO.ephysParamNames;
+                        eParamNames = gO.ephysParamNames(:,1);
                         
                         eEvs1 = [statEntries{1}.ephysEvents];
                         eEvsMat1 = cell2mat(squeeze(struct2cell([eEvs1.Params])));
@@ -1164,7 +1168,7 @@ classdef DASevDB < handle
                     end
                     
                     if sum(ismember(fieldnames(statEntries{1}),'imagingEvents')) && sum(ismember(fieldnames(statEntries{2}),'imagingEvents'))
-                        iParamNames = gO.imagingParamNames;
+                        iParamNames = gO.imagingParamNames(:,1);
                         
                         iEvs1 = [statEntries{1}.imagingEvents];
                         iEvsMat1 = cell2mat(squeeze(struct2cell([iEvs1.Params])));
@@ -1204,6 +1208,51 @@ classdef DASevDB < handle
                         gO.tTestImagingResultTable.ColumnWidth = {100,150,100,150};
                     end
             end
+        end
+        
+        %%
+        function statGraphPlotButtonPress(gO,~,~)
+            paramSel = gO.statGraphParamSelPopMenu.String{gO.statGraphParamSelPopMenu.Value};
+            paramSelVal = gO.statGraphParamSelPopMenu.Value-1;
+            if paramSelVal==0
+                return
+            end
+            plotTypeSel = gO.statGraphTypePopMenu.String{gO.statGraphTypePopMenu.Value};
+            if strcmp(plotTypeSel,'---Select plot type---')
+                return
+            end
+            
+            fNames = gO.db4StatListBox.String{gO.statGraphDataListbox.Value};
+            DASloc = mfilename('fullpath');
+            file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames];
+            load(file2load,'saveStruct');
+            
+            if contains(paramSel,'Ephys') && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                dTyp = 1;
+                eEvs = [saveStruct.ephysEvents];
+                paramMat = cell2mat(squeeze(struct2cell([eEvs.Params])));
+                paramMat = paramMat(paramSelVal,:);
+                xTitle = [gO.ephysParamNames{paramSelVal,1},' ',gO.ephysParamNames{paramSelVal,2}];
+            elseif contains(paramSel,'Imaging') && sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                paramSelVal = paramSelVal-size(gO.ephysParamNames,1);
+                dTyp = 2;
+                iEvs = [saveStruct.imagingEvents];
+                paramMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
+                paramMat = paramMat(paramSelVal,:);
+                xTitle = [gO.imagingParamNames{paramSelVal,1},' ',gO.imagingParamNames{paramSelVal,2}];
+            else
+                errordlg('Unexpected error!')
+            end
+            
+            switch plotTypeSel
+                case 'Histogram with fitted distribution'
+                    axes(gO.axStatTab)
+                    histfit(paramMat,[],'normal')
+                    title(gO.axStatTab,['Distribution from: ',paramSel])
+                    xlabel(gO.axStatTab,xTitle)
+            end
+            
+            
         end
     end
     
@@ -1493,7 +1542,7 @@ classdef DASevDB < handle
                 'Units','normalized',...
                 'Position',[0.55, 0.85, 0.3, 0.1],...
                 'String','0.05');
-            temp = [gO.ephysParamNames, mat2cell(zeros(length(gO.ephysParamNames),1),ones(length(gO.ephysParamNames),1))];
+            temp = [gO.ephysParamNames(:,1), mat2cell(zeros(size(gO.ephysParamNames,1),1),ones(size(gO.ephysParamNames,1),1))];
             gO.tTestMu0EphysTable = uitable(gO.tTestSetupPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.1, 0.48, 0.7],...
@@ -1501,7 +1550,7 @@ classdef DASevDB < handle
                 'ColumnName',{'Electrophysiology',['Edit ',char(956),char(8320),' value']},...
                 'Data',temp,...
                 'ColumnEditable',[false, true]);
-            temp = [gO.imagingParamNames, mat2cell(zeros(length(gO.imagingParamNames),1),ones(length(gO.imagingParamNames),1))];
+            temp = [gO.imagingParamNames(:,1), mat2cell(zeros(size(gO.imagingParamNames,1),1),ones(size(gO.imagingParamNames,1),1))];
             gO.tTestMu0ImagingTable = uitable(gO.tTestSetupPanel,...
                 'Units','normalized',...
                 'Position',[0.51, 0.1, 0.48, 0.7],...
@@ -1574,7 +1623,38 @@ classdef DASevDB < handle
                 'Position',[0.51,0,0.49,1],...
                 'BorderType','beveledout',...
                 'Title','Graph panel');
-            gO.axStatTab = axes(gO.graphPanel,'Position',[0.15,0.15,0.7,0.7],...
+            gO.statGraphDataListbox = uicontrol(gO.graphPanel,...
+                'Style','listbox',...
+                'Units','normalized',...
+                'Position',[0.01,0.8,0.3,0.19],...
+                'String','');
+            getDBlist(gO,2)
+            gO.statGraphTypePopMenu = uicontrol(gO.graphPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.4, 0.94, 0.4, 0.05],...
+                'String',{'---Select plot type---','Histogram with fitted distribution'});
+            gO.statGraphParamSelPopMenu = uicontrol(gO.graphPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.4, 0.88, 0.4, 0.05],...
+                'String','');
+            temp = cell(1+size(gO.ephysParamNames,1)+size(gO.imagingParamNames,1),1);
+            temp{1} = '---Select paramter to use---';
+            for i = 1:size(gO.ephysParamNames,1)
+                temp{i+1} = ['Ephys - ',gO.ephysParamNames{i,1}];
+            end
+            for i = 1:size(gO.imagingParamNames,1)
+                temp{i+1+size(gO.ephysParamNames,1)} = ['Imaging - ',gO.imagingParamNames{i,1}];
+            end
+            gO.statGraphParamSelPopMenu.String = temp;
+            gO.statGraphPlotButton = uicontrol(gO.graphPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.4, 0.82, 0.4, 0.05],...
+                'String','Create graph',...
+                'Callback',@ gO.statGraphPlotButtonPress);
+            gO.axStatTab = axes(gO.graphPanel,'Position',[0.1,0.1,0.8,0.65],...
                 'Tag','axGroupStat');
                 
         end
