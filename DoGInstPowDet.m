@@ -72,10 +72,11 @@ for i = 1:size(data,1)
     
     % Determining background noise segments
     currInstPow = instPowd(i,:);
+
     quietThr(i) = mean(currInstPow) + std(currInstPow);
     quietSegs{i} = currInstPow(currInstPow < quietThr(i));
     qSegsInds{i} = currInstPow;
-    qSegsInds{i}(currInstPow>=quietThr) = nan;
+    qSegsInds{i}(currInstPow>=quietThr(i)) = nan;
 
     thr(i) = mean(quietSegs{i}) + sdmult*std(quietSegs{i});
     extThr(i) = mean(quietSegs{i}) + std(quietSegs{i});
@@ -136,7 +137,7 @@ for i = 1:min(size(data))
         plot(sp2,taxis,instPowd(i,:))
         hold(sp2,'on')
         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
-        plot(sp2,taxis,thr*ones(1,length(taxis)),'-g')
+        plot(sp2,taxis,thr(i)*ones(1,length(taxis)),'-g')
         plot(sp2,taxis,quietThr(i)*ones(1,length(taxis)),'-k')
         plot(sp2,taxis,qSegsInds{i},'-m')
         hold(sp2,'off')

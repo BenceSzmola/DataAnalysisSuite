@@ -129,6 +129,10 @@ end
 %     detBorders{i} = validDetBorders;
     
 for i = 1:min(size(data))
+    if i == refch
+        continue
+    end
+    
     detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:));
 
     %% Plotting
