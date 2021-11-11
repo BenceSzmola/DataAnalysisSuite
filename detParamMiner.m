@@ -1,17 +1,21 @@
 function detParams = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData)
 
+numDets = length(find(~isnan(dets)));
+detInds = find(~isnan(dets));
+
 switch dTyp
     case 1
-        detParams = struct('RawAmplitudeP2P',[],'BpAmplitudeP2P',[],'Length',[],'Frequency',[],...
-                'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
+        detParams = struct('RawAmplitudeP2P',cell(numDets,1),'BpAmplitudeP2P',cell(numDets,1),...
+            'Length',cell(numDets,1),'Frequency',cell(numDets,1),'NumCycles',cell(numDets,1),...
+            'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'DecayTime',cell(numDets,1),...
+            'FWHM',cell(numDets,1));
     case 2
-        detParams = struct('RawAmplitudeP2P',[],'Length',[],'AUC',[],...
-            'RiseTime',[],'DecayTime',[],'FWHM',[]);
+        detParams = struct('RawAmplitudeP2P',cell(numDets,1),'Length',cell(numDets,1),...
+            'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'DecayTime',cell(numDets,1),...
+            'FWHM',cell(numDets,1));
 end
 
 
-numDets = length(find(~isnan(dets)));
-detInds = find(~isnan(dets));
 for i = 1:numDets
     detParams(i).Length = (detBorders(i,2)-detBorders(i,1))/fs;
     detParams(i).RawAmplitudeP2P = max(rawData(detBorders(i,1):detBorders(i,2)))...
@@ -20,6 +24,9 @@ for i = 1:numDets
         detParams(i).BpAmplitudeP2P = max(dogData(detBorders(i,1):detBorders(i,2)))...
             - min(dogData(detBorders(i,1):detBorders(i,2)));
 
+        peaks = findpeaks(dogData(detBorders(i,1):detBorders(i,2)));
+        detParams(i).NumCycles = length(peaks);
+        
         [cfs,f] = cwt(dogData(detBorders(i,1):detBorders(i,2)),'amor',...
             fs,'FrequencyLimits',[1,500]);
         maxCfs = max(abs(cfs));
