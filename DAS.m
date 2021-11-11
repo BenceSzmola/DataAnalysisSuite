@@ -3200,7 +3200,7 @@ classdef DAS < handle
                     detinfo.DetSettings.RefCh = refch;
             end
             
-            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1)))
+            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) | (isempty(find(~isnan(dets([1:refch-1,refch+1:end],:)),1)))
                 errordlg('No events were found!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -4019,22 +4019,6 @@ classdef DAS < handle
             if isempty(guiobj.ephys_detections)
                 return
             end
-
-%             detMat = guiobj.ephys_detections;
-% 
-%             currDetRun = guiobj.ephys_currDetRun;
-%             currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
-%             currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
-%             emptyChans = [];
-% 
-%             % Filtering out channels with no detections
-%             for j = 1:length(currDetRows)
-%                 if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
-%                     emptyChans = [emptyChans, j];
-%                 end
-%             end
-%             currChans(emptyChans) = [];
-%             currDetRows(emptyChans) = [];
             
             eventDetPlotFcn(guiobj,1,1)
         end
