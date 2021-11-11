@@ -212,7 +212,8 @@ classdef DAS < handle
         
         simultDetStandardPanel
         simultDetStandardDelayLabel
-        simultDetStandardDelayEdit
+        simultDetStandardDelayEdit1
+        simultDetStandardDelayEdit2
         
         simultDetRunButt
         simultDetStatusLabel
@@ -1929,9 +1930,7 @@ classdef DAS < handle
 
         %% Button pushed function: ImportRHDButton
         function ImportRHDButtonPushed(guiobj, event)
-%             %%%test
-%             display(event)
-%             %%%
+
             if ~isempty(guiobj.ephys_data)
                 quest = 'GUI will be reset, have you saved everything you wanted?';
                 title = 'GUI reset';
@@ -1946,10 +1945,6 @@ classdef DAS < handle
                 elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
                     return
                 end
-%                 if strcmp(clrGUI,'Yes')
-%                     resetGuiData(guiobj,1)
-%                 end
-%                 return
             end
             
             [filename,path] = uigetfile('*.rhd');
@@ -3386,8 +3381,8 @@ classdef DAS < handle
             
             switch dettype
                 case 'Standard'
-                    delay = str2double(guiobj.simultDetStandardDelayEdit.String)/1000;
-                    
+                    delay1 = str2double(guiobj.simultDetStandardDelayEdit1.String)/1000;
+                    delay2 = str2double(guiobj.simultDetStandardDelayEdit2.String)/1000;
                     for ephysRowNum = 1:size(guiobj.ephys_detections,1)
                         chan = guiobj.ephys_detectionsInfo.Channel(ephysRowNum);
                         ephys_detInds = find(~isnan(guiobj.ephys_detections(ephysRowNum,:)));
@@ -3400,7 +3395,7 @@ classdef DAS < handle
                                 for j = 1:length(imaging_detInds)
                                     tDiff = imaging_tAx(imaging_detInds(j))...
                                         - ephys_tAx(ephys_detInds(i));
-                                    if (tDiff < delay) && (tDiff >= 0)
+                                    if (tDiff > delay1) && (tDiff < delay2)
                                         eventPair = [chan,i,roi,j];
                                         simultDets = [simultDets; eventPair];
                                     end
@@ -3416,7 +3411,7 @@ classdef DAS < handle
                     simultDetInfo.DetType = dettype;
                     simultDetInfo.EphysChannels = unique(simultDets(:,1));
                     simultDetInfo.ROIs = unique(simultDets(:,3));
-                    simultDetInfo.Settings.Delay = delay;
+                    simultDetInfo.Settings.Delay = ['[',num2str(delay1),' , ',num2str(delay2),']'];
             end
             
             if isempty(simultDets)
@@ -5085,12 +5080,17 @@ classdef DAS < handle
                 'Style','text',...
                 'Units','normalized',...
                 'Position',[0.1, 0.8, 0.6, 0.1],...
-                'String','Max delay between LFP and imaging event [ms]',...
+                'String','Delay interval between LFP and imaging event [ms]',...
                 'Tooltip','Positive value means LFP first and vice versa');
-            guiobj.simultDetStandardDelayEdit = uicontrol(guiobj.simultDetStandardPanel,...
+            guiobj.simultDetStandardDelayEdit1 = uicontrol(guiobj.simultDetStandardPanel,...
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.7, 0.8, 0.1, 0.1],...
+                'String','200');
+            guiobj.simultDetStandardDelayEdit2 = uicontrol(guiobj.simultDetStandardPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.8, 0.8, 0.1, 0.1],...
                 'String','300');
             
             guiobj.axesEventDet1 = axes(guiobj.eventDetTab,...

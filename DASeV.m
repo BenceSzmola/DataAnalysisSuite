@@ -2409,6 +2409,7 @@ classdef DASeV < handle
                 %'BackgroundColor',[62,105,225]/255,...
                 %'ForegroundColor',[1,1,1]);
             
+            gO.selDir = cd;
             initFileList = dir('*DASsave*.mat');
             initFileList(find(strcmp({initFileList.name},'DAS_LOG.mat'))) = [];
             initFileList = {initFileList.name};
