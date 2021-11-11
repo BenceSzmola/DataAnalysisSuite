@@ -112,6 +112,9 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         
     end
     
+%     assignin('base','evSS1',eventsStartStop)
+%     assignin('base','evP1',eventsPeak)
+    
     if (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
@@ -143,6 +146,9 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         eventsPeak{i} = eventsPeak{i}(vEvents{i});
     end
         
+%     assignin('base','evSS2',eventsStartStop)
+%     assignin('base','evP2',eventsPeak)
+    
     if ~isempty(extThr)
         
         for i = 1:size(rawData,1)
@@ -157,6 +163,9 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         
     end
     
+%     assignin('base','evSS3',eventsStartStop)
+%     assignin('base','evP3',eventsPeak)
+%     
     minSepar = round(0.03*fs);
     for i = 1:size(rawData,1)
         if i == refch
@@ -165,6 +174,9 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         
         [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},eventsStartStop{i},minSepar);
     end
+    
+%     assignin('base','evSS4',eventsStartStop)
+%     assignin('base','evP4',eventsPeak)
     
     dets = nan(size(rawData));
     for i = 1:size(rawData,1)

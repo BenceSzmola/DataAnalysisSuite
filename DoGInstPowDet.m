@@ -89,7 +89,8 @@ end
 
 % dets(i,:) = validDets;
 % detBorders{i} = validDetBorders;
-assignin('base','newDetBords',detBorders)
+% assignin('base','detz',dets)
+% assignin('base','newDetBords',detBorders)
 
 
 for i = 1:min(size(data))

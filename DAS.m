@@ -1700,6 +1700,11 @@ classdef DAS < handle
                         end
                     end
                     detMat(emptyRows,:) = [];
+                    if dTyp==1
+                        detInfo.Channel(emptyRows) = [];
+                    elseif dTyp==2
+                        detInfo.Roi(emptyRows) = [];
+                    end
                     if ~isempty(detBorders)
                         detBorders(emptyRows,:) = [];
                     end
@@ -3177,7 +3182,10 @@ classdef DAS < handle
                     elseif refVal && (size(data,1)==1)
                         [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
                     end
-                                        
+                    
+%                     assignin('base','DASdetz',dets)
+%                     assignin('base','DASbordz',detBorders)
+                    
                     if chan < min(size(guiobj.ephys_data))
                         detinfo.Channel = chan;
                     else
