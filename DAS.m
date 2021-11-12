@@ -1,9 +1,5 @@
 classdef DAS < handle
     
-    properties (Access = public)
-        
-    end
-    
     %% Initializing components
     properties (Access = private)
         mainfig
@@ -134,7 +130,7 @@ classdef DAS < handle
         %% Members of eventDetTab
         ephysDetPopMenu
         ephysDetChSelLabel
-        ephysDetChSelPopMenu
+        ephysDetChSelListBox
         
         ephysCwtDetPanel
         ephysCwtDetMinlenLabel
@@ -2606,8 +2602,8 @@ classdef DAS < handle
                     case guiobj.tabs.Children(4)
                         if ~isempty(guiobj.ephys_data)
                             temp = 1:size(guiobj.ephys_data,1);
-                            temp = {num2str(temp');'all'};
-                            guiobj.ephysDetChSelPopMenu.String = temp;
+                            temp = {num2str(temp')};
+                            guiobj.ephysDetChSelListBox.String = temp;
                         end
                 end
                 smartplot(guiobj)
@@ -2991,7 +2987,7 @@ classdef DAS < handle
                 return
             end
                                                 
-            chan = guiobj.ephysDetChSelPopMenu.Value;
+            chan = guiobj.ephysDetChSelListBox.Value
             if chan <= min(size(guiobj.ephys_data))
                 data = guiobj.ephys_data(chan,:);
             else
@@ -3195,7 +3191,9 @@ classdef DAS < handle
                     detinfo.DetSettings.RefCh = refch;
             end
             
-            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) | (isempty(find(~isnan(dets([1:refch-1,refch+1:end],:)),1)))
+            
+            
+            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) %| (isempty(find(~isnan(dets([1:refch-1,refch+1:end],:)),1)))
                 errordlg('No events were found!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -4734,11 +4732,12 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.82, 0.1, 0.1],...
                 'String','Channel selection');
-            guiobj.ephysDetChSelPopMenu = uicontrol(guiobj.eventDetTab,...
-                'Style','popupmenu',...
+            guiobj.ephysDetChSelListBox = uicontrol(guiobj.eventDetTab,...
+                'Style','listbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.78, 0.1, 0.1],...
-                'String',{'--Select channel--'});
+                'Position',[0.01, 0.78, 0.1, 0.15],...
+                'String',{'--Select channel--'},...
+                'Max',2);
             
             guiobj.ephysCwtDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...

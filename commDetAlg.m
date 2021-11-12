@@ -34,7 +34,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
     % Creating a container to store events which were discarded by the
     % refchan validation mechanic
     if refVal ~= 0
-        refValVictims = cell(size(rawData,1));
+        refValVictims = cell(size(rawData,1),1);
     end
     
     eventsStartStop = cell(size(rawData,1),1);
@@ -79,7 +79,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
             
             if refVal~=0
                 winSize = 0.1*fs;
-
+                
                 if eventsPeak{i}(j)-winSize < 1
                     winInds = 1:eventsPeak{i}(j)+winSize;
                 elseif eventsPeak{i}(j)+winSize > length(rawData)
@@ -95,15 +95,16 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
                     refWin = refCorrData(winInds);
                     chanWin = corrData(i,winInds);
 
-                    r = corrcoef(refWin,chanWin);
+                    r = corrcoef(refWin,chanWin)
                     condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
                 end
-
+                size(condit)
+                size(aboveMinLen(j))
                 if condit & aboveMinLen(j)
                     vEvents{i}(j) = true;
                 elseif ~condit & aboveMinLen(j)
-                    vEvents{i}(j) = false;
-                    refValVictims{i} = [refValVictims{i}, j];
+                    vEvents{i}(j) = false
+                    refValVictims{i} = [refValVictims{i}, j]
                 end
             else
                 vEvents{i} = aboveMinLen;
@@ -114,7 +115,8 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
     
 %     assignin('base','evSS1',eventsStartStop)
 %     assignin('base','evP1',eventsPeak)
-    
+%     refVal
+%     refValVictims
     if (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
