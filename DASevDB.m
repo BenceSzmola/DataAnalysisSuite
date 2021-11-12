@@ -838,6 +838,80 @@ classdef DASevDB < handle
         end
         
         %%
+        function ephysParamTableCB(~,h,e)
+            tableInd = e.Indices;
+            
+            if isempty(tableInd)
+                return
+            end
+            
+            msg = '';
+            switch tableInd(1)
+                case 1
+                    msg = 'Peak to peak amplitude of the raw event';
+                case 2
+                    msg = 'Peak to peak amplitude of the band pass filtered event';
+                case 3
+                    msg = 'Length of the event';
+                case 4
+                    msg = 'Frequency of the event, computed using continuous wavelet transform';
+                case 5
+                    msg = 'Number of cycles over the duration of the event';
+                case 6
+                    msg = 'Area under curve, computed from the power of the event';
+                case 7
+                    msg = 'Time it takes the event to reach peak power';
+                case 8
+                    msg = 'Duration from the peak power until the end of the event';
+                case 9
+                    msg = 'Full width at half of the maximal amplitude';
+            end
+            
+            if ~isempty(msg)
+                msgbox(msg,'modal')
+            end
+            
+            temp = get(h,'Data');
+            set(h,'Data',{ '' });
+            set(h,'Data', temp );
+            
+        end
+        
+        %%
+        function imagingParamTableCB(~,h,e)
+            tableInd = e.Indices;
+            
+            if isempty(tableInd)
+                return
+            end
+            
+            msg = '';
+            switch tableInd(1)
+                case 1
+                    msg = 'Peak to peak amplitude of the raw event';
+                case 2
+                    msg = 'Length of the event';
+                case 3
+                    msg = 'Area under curve, computed from the power of the event';
+                case 4
+                    msg = 'Time it takes the event to reach peak power';
+                case 5
+                    msg = 'Duration from the peak power until the end of the event';
+                case 6
+                    msg = 'Full width at half of the maximal amplitude';
+            end
+            
+            if ~isempty(msg)
+                msgbox(msg,'modal')
+            end
+            
+            temp = get(h,'Data');
+            set(h,'Data',{ '' });
+            set(h,'Data', temp );
+            
+        end
+        
+        %%
         function deleteEntry(gO,delLoaded)
             if isempty(gO.entryListBox.String)
                 errordlg('No entries!')
@@ -1393,13 +1467,15 @@ classdef DASevDB < handle
                 'Position',[0.01, 0.7, 0.98, 0.3],...
                 'ColumnWidth',{100,150},...
                 'ColumnName',{'Electrophysiology','Values'},...
-                'RowName',{});
+                'RowName',{},...
+                'CellSelectionCallback',@ gO.ephysParamTableCB);
             gO.imagingParamTable = uitable(gO.paramPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.35, 0.98, 0.3],...
                 'ColumnWidth',{100,150},...
                 'ColumnName',{'Imaging','Values'},...
-                'RowName',{});
+                'RowName',{},...
+                'CellSelectionCallback',@ gO.imagingParamTableCB);
             
             %% plot panel
             gO.plotPanel = uipanel(gO.eventTab,...
