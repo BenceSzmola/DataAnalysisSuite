@@ -1,7 +1,6 @@
-function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
+function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
         refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
 
-    %%%
     if isempty(corrData) | isempty(refCorrData)
         valTyp = 1;
     else
@@ -13,13 +12,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         extThr = [];
     end
     
-%     minSepar = round(0.03*fs);
     minLen = round(minLen*fs);
-    %%%
-
-%     allDets = nan(size(rawData));
-%     validDets = nan(size(rawData));
-%     validDetsStartStop = [];
 
     if size(rawData,1) > size(rawData,2)
         rawData = rawData';
@@ -41,8 +34,8 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
     eventsPeak = cell(size(rawData,1),1);
     vEvents = cell(size(rawData,1),1);
     
-    for i = 1:min(size(rawData))
-        if i == refch
+    for i = 1:size(rawData,1)
+        if chan(i) == refch
             continue
         end
         
@@ -90,21 +83,20 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
 
                 if valTyp == 1
                     refWin = refDets(winInds);
-                    condit = ((refch~=0) & (isempty(find(refWin==0,1)))) | (refch==0);
+                    condit = isempty(find(refWin==0,1));
                 elseif valTyp == 2
                     refWin = refCorrData(winInds);
                     chanWin = corrData(i,winInds);
 
-                    r = corrcoef(refWin,chanWin)
-                    condit = ((refch~=0) & (abs(r(2))<corrThr)) | (refch==0);
+                    r = corrcoef(refWin,chanWin);
+                    condit = abs(r(2))<corrThr;
                 end
-                size(condit)
-                size(aboveMinLen(j))
-                if condit & aboveMinLen(j)
+                
+                if condit && aboveMinLen(j)
                     vEvents{i}(j) = true;
-                elseif ~condit & aboveMinLen(j)
-                    vEvents{i}(j) = false
-                    refValVictims{i} = [refValVictims{i}, j]
+                elseif ~condit && aboveMinLen(j)
+                    vEvents{i}(j) = false;
+                    refValVictims{i} = [refValVictims{i}, j];
                 end
             else
                 vEvents{i} = aboveMinLen;
@@ -112,11 +104,7 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         end
         
     end
-    
-%     assignin('base','evSS1',eventsStartStop)
-%     assignin('base','evP1',eventsPeak)
-%     refVal
-%     refValVictims
+
     if (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
@@ -128,14 +116,12 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
             elseif valTyp == 2
                 reviewData = corrData;
             end
-            events2Restore = reviewDiscardedEvents(taxis,fs,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
-%             assignin('base','vEventsBefore',vEvents)
+            events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
             for i = 1:length(events2Restore)
                 for j = 1:length(events2Restore{i})
                     vEvents{i}(refValVictims{i}(events2Restore{i}(j))) = true;
                 end
             end
-%             assignin('base','vEventsAfter',vEvents)
         end
     end
     
@@ -147,9 +133,6 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         eventsStartStop{i} = eventsStartStop{i}(vEvents{i},:);
         eventsPeak{i} = eventsPeak{i}(vEvents{i});
     end
-        
-%     assignin('base','evSS2',eventsStartStop)
-%     assignin('base','evP2',eventsPeak)
     
     if ~isempty(extThr)
         
@@ -165,9 +148,6 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         
     end
     
-%     assignin('base','evSS3',eventsStartStop)
-%     assignin('base','evP3',eventsPeak)
-%     
     minSepar = round(0.03*fs);
     for i = 1:size(rawData,1)
         if i == refch
@@ -176,9 +156,6 @@ function [dets,detBorders] = commDetAlg(taxis,rawData,detData,corrData,...
         
         [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},eventsStartStop{i},minSepar);
     end
-    
-%     assignin('base','evSS4',eventsStartStop)
-%     assignin('base','evP4',eventsPeak)
     
     dets = nan(size(rawData));
     for i = 1:size(rawData,1)

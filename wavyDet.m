@@ -1,4 +1,4 @@
-function [dets,detBorders,detParams] = wavyDet(data,taxis,fs,minLen,sdmult,w1,w2,refch,showFigs)
+function [dets,detBorders,detParams] = wavyDet(data,taxis,chan,fs,minLen,sdmult,w1,w2,refCh,refChData,showFigs)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -17,58 +17,21 @@ if nargin ~= 0
 end
 
 % Checking whether refchan validation is requested 
-% 0 => not reqeusted; nonzero number => number of refchan; 
-% dataseries => refchan itself
-if refch == 0
+if isempty(refChData)
     refVal = 0;
-elseif isnumber(refch) && (refch~=0)
+else
     refVal = 1;
-else % Only one data channel is given + the refchannel in a separate array
-    refVal = 2;
 end
 
-%% Input data handling
-
-% Usage from commandline
-if nargin == 0
-    minLen = 0.01;
-    sdmult = 3;
-    w1 = 5;
-    w2 = 40;
-    fs = 20000;
-    [filename,path] = uigetfile('*.rhd');
-    oldpath = cd(path);
-    data = read_Intan_RHD2000_file_cl(filename);
-    cd(oldpath)
-    goodch = input('Which is the leadchan?\n');
-    refch = input('Which is the refchan?\n');
-    if refch ~= 0
-        data = data.amplifier_data(goodch,:)-data.amplifier_data(refch,:);
-    else
-        data = data.amplifier_data(goodch,:);
-    end
-end
-
-if size(data,1) > size(data,2)
-    data = data';
-end
-
-% dets = nan(size(data));
-% detBorders = cell(min(size(data)),1);
 detParams = cell(min(size(data)),1);
 
 dogged = DoG(data,fs,w1,w2);
 
 % Finding above threshold segments on refchan
 if refVal ~= 0
-    switch refVal
-        case 1
-            refData = data(refch,:);
-        case 2
-            refData = refch;
-    end
-    refDogged = DoG(refData,fs,w1,w2);
-    [refCoeffs,~,~] = cwt(refData,fs,'amor','FrequencyLimits',[w1 w2]);
+    
+    refDogged = DoG(refChData,fs,w1,w2);
+    [refCoeffs,~,~] = cwt(refChData,fs,'amor','FrequencyLimits',[w1 w2]);
     refInstE = trapz(abs(refCoeffs).^2);
     refThr = mean(refInstE) + std(refInstE);
     
@@ -86,8 +49,9 @@ quietSegs = cell(size(data,1),1);
 qSegsInds = cell(size(data,1),1);
 thr = nan(size(data,1),1);
 extThr = nan(size(data,1),1);
-for i = 1:min(size(data))
-    if i == refch
+
+for i = 1:size(data,1)
+    if chan(i) == refCh
         continue
     end
     
@@ -122,14 +86,11 @@ for i = 1:min(size(data))
     
 end
     
-    [dets,detBorders] = commDetAlg(taxis,data,instE,dogged,refch,refDogged,refDets,fs,...
-        thr,refVal,minLen,extThr);
-        
-%     dets(i,:) = validDets;
-%     detBorders{i} = validDetBorders;
-    
+[dets,detBorders] = commDetAlg(taxis,chan,data,instE,dogged,refCh,refDogged,refDets,fs,...
+    thr,refVal,minLen,extThr);
+
 for i = 1:min(size(data))
-    if i == refch
+    if chan(i) == refCh
         continue
     end
     
@@ -137,7 +98,7 @@ for i = 1:min(size(data))
 
     %% Plotting
     if showFigs
-        xtraFig = figure('Name',['Chan#',num2str(i)],'Visible','off');
+        xtraFig = figure('Name',['Chan#',num2str(chan(i))],'Visible','off');
 
         if refVal ~= 0
             sp1 = subplot(311);
@@ -167,7 +128,7 @@ for i = 1:min(size(data))
         hold(sp1,'off')
         xlabel(sp1,'Time [s]')
         ylabel(sp1,'Voltage [\muV]')
-        title(sp1,['DoG of channel #',num2str(i)])
+        title(sp1,['DoG of channel #',num2str(chan(i))])
 
         plot(sp2,taxis,instE(i,:))
         hold(sp2,'on')
@@ -187,6 +148,6 @@ for i = 1:min(size(data))
     end
 end
 
-if refVal == 1
-    dets(refch,:) = refDetMarks;
+if ~isempty(find(chan==refCh, 1))
+    dets(refCh,:) = refDetMarks;
 end

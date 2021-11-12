@@ -2987,12 +2987,8 @@ classdef DAS < handle
                 return
             end
                                                 
-            chan = guiobj.ephysDetChSelListBox.Value
-            if chan <= min(size(guiobj.ephys_data))
-                data = guiobj.ephys_data(chan,:);
-            else
-                data = guiobj.ephys_data;
-            end
+            chan = guiobj.ephysDetChSelListBox.Value;
+            data = guiobj.ephys_data(chan,:);
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
@@ -3015,6 +3011,7 @@ classdef DAS < handle
                     end
                     
                     refch = str2double(guiobj.ephysCwtDetRefChanEdit.String);
+                    refchData = guiobj.ephys_data(refch,:);
                     
                     % Handling no input case when artsupp is enabled
                     if (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
@@ -3031,7 +3028,7 @@ classdef DAS < handle
                         return
                     end
                     
-                    if (refVal || (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1)) && (chan == refch)
+                    if (refVal || (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1)) & ((length(chan)==1) & (chan == refch))
                         errordlg('Requested channel and the reference channel are the same!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -3041,33 +3038,19 @@ classdef DAS < handle
                     switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            if chan <= min(size(guiobj.ephys_data))
-                                data = data_cl(chan,:);
-                            else
-                                data = data_cl;
-                            end
+                            data = data_cl(chan,:);
                         case 3 % ref chan subtract
                             data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            if chan <= min(size(guiobj.ephys_data))
-                                data = data_cl(chan,:);
-                            else
-                                data = data_cl;
-                            end
+                            data = data_cl(chan,:);
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,0,showFigs);
-                    elseif refVal & (chan > min(size(guiobj.ephys_data)))
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,refch,showFigs);
-                    elseif refVal & (chan < min(size(guiobj.ephys_data)))
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,fs,minLen/1000,sdmult,w1,w2,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen/1000,sdmult,w1,w2,0,[],showFigs);
+                    elseif refVal
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen/1000,sdmult,w1,w2,refch,refchData,showFigs);
                     end
                     
-                    if chan < min(size(guiobj.ephys_data))
-                        detinfo.Channel = chan;
-                    else
-                        detinfo.Channel = [1:min(size(dets))];
-                    end
+                    detinfo.Channel = chan;
                     detinfo.DetType = "CWT";
                     detinfo.DetSettings.W1 = w1;
                     detinfo.DetSettings.W2 = w2;
@@ -3098,11 +3081,7 @@ classdef DAS < handle
                     end
                     detParams = cell(min(size(data)),1);
                     
-                    if chan < min(size(guiobj.ephys_data))
-                        detinfo.Channel = chan;
-                    else
-                        detinfo.Channel = [1:min(size(dets))];
-                    end
+                    detinfo.Channel = chan;
                     detinfo.DetType = "Adapt";
                     detinfo.DetSettings.Step = step*1000;
                     detinfo.DetSettings.MinLen = minLen*1000;
@@ -3126,6 +3105,7 @@ classdef DAS < handle
                     end
                     
                     refch = str2double(guiobj.ephysDoGInstPowDetRefChanEdit.String);
+                    refchData = guiobj.ephys_data(refch,:);
                     
                     % Handling no input case when artsupp is enabled
                     if (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
@@ -3142,7 +3122,7 @@ classdef DAS < handle
                         return
                     end
                     
-                    if (refVal || (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1)) && (chan == refch)
+                    if (refVal || (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1)) & ((length(chan)==1) & (chan == refch))
                         errordlg('Requested channel and the reference channel are the same!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -3152,36 +3132,19 @@ classdef DAS < handle
                     switch guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value 
                         case 2 % wICA
                             data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            if chan <= min(size(guiobj.ephys_data))
-                                data = data_cl(chan,:);
-                            else
-                                data = data_cl;
-                            end
+                            data = data_cl(chan,:);
                         case 3 % ref chan subtract
                             data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            if chan <= min(size(guiobj.ephys_data))
-                                data = data_cl(chan,:);
-                            else
-                                data = data_cl;
-                            end
+                            data = data_cl(chan,:);
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,0,showFigs);
-                    elseif refVal && (size(data,1)>1)
-                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,refch,showFigs);
-                    elseif refVal && (size(data,1)==1)
-                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,fs,w1,w2,sdmult,minLen,guiobj.ephys_data(refch,:),showFigs);
+                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,chan,fs,w1,w2,sdmult,minLen,0,[],showFigs);
+                    elseif refVal
+                        [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,chan,fs,w1,w2,sdmult,minLen,refch,refchData,showFigs);
                     end
                     
-%                     assignin('base','DASdetz',dets)
-%                     assignin('base','DASbordz',detBorders)
-                    
-                    if chan < min(size(guiobj.ephys_data))
-                        detinfo.Channel = chan;
-                    else
-                        detinfo.Channel = [1:min(size(dets))];
-                    end
+                    detinfo.Channel = chan;
                     detinfo.DetType = "DoGInstPow";
                     detinfo.DetSettings.W1 = w1;
                     detinfo.DetSettings.W2 = w2;

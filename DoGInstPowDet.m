@@ -1,20 +1,14 @@
-function [dets,detBorders,detParams] = DoGInstPowDet(data,taxis,fs,w1,w2,sdmult,minLen,refch,showFigs)
+function [dets,detBorders,detParams] = DoGInstPowDet(data,taxis,chan,fs,w1,w2,sdmult,minLen,refCh,refChData,showFigs)
 
 if size(data,1) > size(data,2)
     data = data';
 end
 
-% data = periodicNoise(data,fs,500);
-
 % Checking whether refchan validation is requested 
-% 0 => not reqeusted; nonzero number => number of refchan; 
-% dataseries => refchan itself
-if refch == 0
+if isempty(refChData)
     refVal = 0;
-elseif isnumber(refch) && (refch~=0)
+else
     refVal = 1;
-else % Only one data channel is given + the refchannel in a separate array
-    refVal = 2;
 end
 
 fs = round(fs,4);
@@ -24,20 +18,16 @@ minLen = round(minLen,4);
 
 % Computing DoG
 dogged = DoG(data,fs,w1,w2);
-if refVal == 2
-    refDogged = DoG(refch,fs,w1,w2);
-elseif refVal == 1
-    refDogged = dogged(refch,:);
+if refVal == 1
+    refDogged = DoG(refChData,fs,w1,w2);
 else
     refDogged = [];
 end
 
 % Instant Power
 instPowd = instPow(data,fs,w1,w2);
-if refVal == 2
-    refInstPowd = instPow(refch,fs,w1,w2);
-elseif refVal == 1
-    refInstPowd = instPowd(refch,:);
+if refVal == 1
+    refInstPowd = instPow(refChData,fs,w1,w2);
 else
     refInstPowd = [];
 end
@@ -46,7 +36,7 @@ dets = nan(size(data));
 detBorders = cell(min(size(data)),1);
 detParams = cell(min(size(data)),1);
 
-if (refVal ~= 0)
+if refVal == 1
     refThr = mean(refInstPowd) + 3*std(refInstPowd);
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
 else
@@ -61,12 +51,10 @@ quietSegs = cell(size(data,1),1);
 qSegsInds = cell(size(data,1),1);
 thr = nan(size(data,1),1);
 extThr = nan(size(data,1),1);
-% eventsPeak = cell(size(data,1),1);
-% vEvents = cell(size(data,1),1);
-% refValVictims = cell(size(data,1),1);
+
 for i = 1:size(data,1)
     
-    if i == refch
+    if chan(i) == refCh
         continue
     end
     
@@ -80,22 +68,16 @@ for i = 1:size(data,1)
 
     thr(i) = mean(quietSegs{i}) + sdmult*std(quietSegs{i});
     extThr(i) = mean(quietSegs{i}) + std(quietSegs{i});
-%     thr = mean(currInstPow) + sdmult*std(currInstPow);
     
 end
 
-[dets,detBorders] = commDetAlg(taxis,data,instPowd,dogged,...
-    refch,refDogged,refDets,fs,thr,refVal,minLen,extThr);
-
-% dets(i,:) = validDets;
-% detBorders{i} = validDetBorders;
-% assignin('base','detz',dets)
-% assignin('base','newDetBords',detBorders)
+[dets,detBorders] = commDetAlg(taxis,chan,data,instPowd,dogged,...
+    refCh,refDogged,refDets,fs,thr,refVal,minLen,extThr);
 
 
 for i = 1:min(size(data))
     
-    if i == refch
+    if chan(i) == refCh
         continue
     end
     
@@ -104,7 +86,7 @@ for i = 1:min(size(data))
     
     % plotting part mainly for bugfixing
     if showFigs
-        xtraFig = figure('Name',['Chan#',num2str(i)],'Visible','off');
+        xtraFig = figure('Name',['Chan#',num2str(chan(i))],'Visible','off');
 
         if refVal ~= 0
             sp1 = subplot(311);
@@ -133,7 +115,7 @@ for i = 1:min(size(data))
         hold(sp1,'off')
         xlabel(sp1,'Time [s]')
         ylabel(sp1,'Voltage [\muV]')
-        title(sp1,['DoG of channel #',num2str(i)])
+        title(sp1,['DoG of channel #',num2str(chan(i))])
 
         plot(sp2,taxis,instPowd(i,:))
         hold(sp2,'on')
@@ -144,7 +126,7 @@ for i = 1:min(size(data))
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
         ylabel(sp2,'Power [\muV^2]')
-        title(sp2,['Instantaneous Power of channel #',num2str(i)])
+        title(sp2,['Instantaneous Power of channel #',num2str(chan(i))])
         legend(sp2,{'Inst.Power','Detections','Detection threshold',...
             'Threshold for quiet intervals','Quiet intervals'})
         
@@ -153,8 +135,8 @@ for i = 1:min(size(data))
     end
 end
 
-if refVal == 1
-    dets(refch,:) = refDetMarks;
+if ~isempty(find(chan==refCh, 1))
+    dets(refCh,:) = refDetMarks;
     
 end
 
