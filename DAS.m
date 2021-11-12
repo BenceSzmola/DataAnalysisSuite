@@ -4048,12 +4048,14 @@ classdef DAS < handle
                 case 4
                     msg = 'Frequency of the event, computed using continuous wavelet transform';
                 case 5
-                    msg = 'Area under curve, computed from the power of the event';
+                    msg = 'Number of cycles over the duration of the event';
                 case 6
-                    msg = 'Time it takes the event to reach peak power';
+                    msg = 'Area under curve, computed from the power of the event';
                 case 7
-                    msg = 'Duration from the peak power until the end of the event';
+                    msg = 'Time it takes the event to reach peak power';
                 case 8
+                    msg = 'Duration from the peak power until the end of the event';
+                case 9
                     msg = 'Full width at half of the maximal amplitude';
             end
             
