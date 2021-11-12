@@ -75,14 +75,10 @@ classdef DASeV < handle
         ephysDetDwnButt
         ephysChanUpButt
         ephysChanDwnButt
-        ephysFixWinChanUpButt
-        ephysFixWinChanDwnButt
         imagingDetUpButt
         imagingDetDwnButt
         imagingRoiUpButt
         imagingRoiDwnButt
-        imagingFixWinRoiUpButt
-        imagingFixWinRoiDwnButt
         
         
         % all the axes
@@ -119,8 +115,6 @@ classdef DASeV < handle
         keyboardPressDtyp = 1;
         save2DbEphysSelection = cell(1,1);
         save2DbImagingSelection = cell(1,1);
-%         save2DbSimultEphysSelection
-%         save2DbSimultImagingSelection
         save2DbSimultSelection = [0,0,0,0];
         
         %% ephys stuff
@@ -141,6 +135,7 @@ classdef DASeV < handle
         ephysCurrDetNum = 1;
         ephysCurrDetRow = 1;
         ephysFixWinDetRow = 1;
+        ephysParallDetRow = 1;
         
         %% imaging
         imagingTypSelected = [1,0];         % Raw-Gauss
@@ -157,6 +152,7 @@ classdef DASeV < handle
         imagingCurrDetNum = 1;
         imagingCurrDetRow = 1;
         imagingFixWinDetRow = 1;
+        imagingParallDetRow = 1;
         
         %% running
         runDataTypSelected = [1,0,0,0];       % Velocity-AbsPos-RelPos-still/moving
@@ -645,7 +641,8 @@ classdef DASeV < handle
                 
                 
             elseif gO.parallelMode == 1
-                [~,~,chanNum,chanNumOg,~,~,~,~,~] = extractDetStruct(gO,1);
+                chanNum = gO.ephysParallDetRow;
+                chanOgNum = gO.ephysDetInfo.AllChannel(chanNum);
                 [~,~,imagingChanNum,~,~,imagingDetNum,~,~,~] = extractDetStruct(gO,2);
                 [imagingWinIdx,~] = windowMacher(gO,2,imagingChanNum,imagingDetNum,0.5);
                 imagingTWinIdx = gO.imagingTaxis(imagingWinIdx);
@@ -653,7 +650,7 @@ classdef DASeV < handle
                 [~,winEnd] = min(abs(gO.ephysTaxis-imagingTWinIdx(end)));
                 winIdx = winStart:winEnd;
                 tWin = gO.ephysTaxis(winIdx);
-                axTitle = ['Electrophysiology channel #',num2str(chanNumOg),...
+                axTitle = ['Electrophysiology channel #',num2str(chanOgNum),...
                     ' - parallel time window'];
                 tDetInds = [];
             end
@@ -868,15 +865,17 @@ classdef DASeV < handle
                         num2str(numDets)];
                 end
             elseif gO.parallelMode == 2
-                [~,~,chanNum,chanNumOg,~,~,~,~,~] = extractDetStruct(gO,2);
+                chanNum = gO.imagingParallDetRow;
+                chanOgNum = gO.imagingDetInfo.Roi(chanNum);
                 [~,~,ephysChanNum,~,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
-                [ephysWinIdx,~] = windowMacher(gO,1,ephysChanNum,ephysDetNum,0.5);
+                iAdj = find(gO.ephysDetInfo.DetChannel == ephysChanNum(1));
+                [ephysWinIdx,~] = windowMacher(gO,1,iAdj,ephysDetNum,0.5);
                 ephysTWinIdx = gO.ephysTaxis(ephysWinIdx);
                 [~,winStart] = min(abs(gO.imagingTaxis-ephysTWinIdx(1)));
                 [~,winEnd] = min(abs(gO.imagingTaxis-ephysTWinIdx(end)));
                 winIdx = winStart:winEnd;
                 tWin = gO.imagingTaxis(winIdx);
-                axTitle = ['Imaging ROI #',num2str(chanNumOg),...
+                axTitle = ['Imaging ROI #',num2str(chanOgNum),...
                     ' - parallel time window'];
                 tDetInds = [];
             end
@@ -954,18 +953,10 @@ classdef DASeV < handle
             
         end
         
-        %%
-        function parallelPlot(gO,dTyp,ax)
-            
-        end
-        
         %% 
         function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded(1:3))+(sum(gO.ephysTypSelected)-1))
-            %%%
-%             axVisSwitch(gO,5)
-%             gO.loaded = [1,1,2];
-            %%%
+            
             switch sum(gO.loaded(1:3))
                 case 1
                     if gO.loaded(1)
@@ -1602,6 +1593,11 @@ classdef DASeV < handle
         
         %%
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
+            if gO.parallelMode || gO.fixWin
+                axButtPressAlter(gO,dTyp,chanUpDwn)
+                return
+            end
+            
             switch gO.simultMode
                 case 0
                     switch dTyp
@@ -1669,7 +1665,7 @@ classdef DASeV < handle
                         case 1
                             gO.ephysCurrDetNum = currDet;
                             gO.ephysCurrDetRow = currChan;
-                            gO.ephysFixWinDetRow = currChan;
+                            gO.ephysFixWinDetRow = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(currChan));
                             
                             temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
                             save2DbPanelKids = findobj(gO.save2DbPanel,'Type','UIControl');
@@ -1742,35 +1738,50 @@ classdef DASeV < handle
         end
         
         %%
-        function axButtPressFixWin(gO,dTyp,chanUpDwn)
+        function axButtPressAlter(gO,dTyp,chanUpDwn)
             switch dTyp
                 case 1
                     currDetRows = 1:length(gO.ephysDetInfo.AllChannel);
                     
-                    fixWinCurrDetRow = gO.ephysFixWinDetRow;
+                    if gO.parallelMode
+                        altCurrDetRow = gO.ephysParallDetRow;
+                    elseif gO.fixWin
+                        altCurrDetRow = gO.ephysFixWinDetRow;
+                    end
                 case 2
                     currDetRows = 1:length(gO.imagingDetInfo.Roi);
                     
-                    fixWinCurrDetRow = gO.imagingFixWinDetRow;
-                    
+                    if gO.parallelMode
+                        altCurrDetRow = gO.imagingParallDetRow;
+                    elseif gO.fixWin
+                        altCurrDetRow = gO.imagingFixWinDetRow;
+                    end
             end
             
             switch chanUpDwn
                 case 1
-                    if fixWinCurrDetRow < length(currDetRows)
-                        fixWinCurrDetRow = fixWinCurrDetRow + 1;
+                    if altCurrDetRow < length(currDetRows)
+                        altCurrDetRow = altCurrDetRow + 1;
                     end
                 case -1
-                    if fixWinCurrDetRow > 1
-                        fixWinCurrDetRow = fixWinCurrDetRow -1;
+                    if altCurrDetRow > 1
+                        altCurrDetRow = altCurrDetRow -1;
                     end
             end
             
             switch dTyp
                 case 1
-                    gO.ephysFixWinDetRow = fixWinCurrDetRow;
+                    if gO.parallelMode
+                        gO.ephysParallDetRow = altCurrDetRow;
+                    elseif gO.fixWin
+                        gO.ephysFixWinDetRow = altCurrDetRow;
+                    end
                 case 2
-                    gO.imagingFixWinDetRow = fixWinCurrDetRow;
+                    if gO.parallelMode
+                        gO.imagingParallDetRow = altCurrDetRow;
+                    elseif gO.fixWin
+                        gO.imagingFixWinDetRow = altCurrDetRow;
+                    end
                     
             end
 
@@ -1792,15 +1803,6 @@ classdef DASeV < handle
                         gO.ephysDetUpButt.Visible = 'on';
                         gO.ephysDetDwnButt.Enable = 'on';
                         gO.ephysDetDwnButt.Visible = 'on';
-                        gO.ephysChanUpButt.Enable = 'on';
-                        gO.ephysChanUpButt.Visible = 'on';
-                        gO.ephysChanDwnButt.Enable = 'on';
-                        gO.ephysChanDwnButt.Visible = 'on';
-
-                        gO.ephysFixWinChanUpButt.Enable = 'off';
-                        gO.ephysFixWinChanUpButt.Visible = 'off';
-                        gO.ephysFixWinChanDwnButt.Enable = 'off';
-                        gO.ephysFixWinChanDwnButt.Visible = 'off';
                     end
                     
                     if gO.loaded(2)
@@ -1808,15 +1810,6 @@ classdef DASeV < handle
                         gO.imagingDetUpButt.Visible = 'on';
                         gO.imagingDetDwnButt.Enable = 'on';
                         gO.imagingDetDwnButt.Visible = 'on';
-                        gO.imagingRoiUpButt.Enable = 'on';
-                        gO.imagingRoiUpButt.Visible = 'on';
-                        gO.imagingRoiDwnButt.Enable = 'on';
-                        gO.imagingRoiDwnButt.Visible = 'on';
-
-                        gO.imagingFixWinRoiUpButt.Enable = 'off';
-                        gO.imagingFixWinRoiUpButt.Visible = 'off';
-                        gO.imagingFixWinRoiDwnButt.Enable = 'off';
-                        gO.imagingFixWinRoiDwnButt.Visible = 'off';
                     end
                 case 1
                     gO.plotFull = 0;
@@ -1831,15 +1824,6 @@ classdef DASeV < handle
                         gO.ephysDetUpButt.Visible = 'off';
                         gO.ephysDetDwnButt.Enable = 'off';
                         gO.ephysDetDwnButt.Visible = 'off';
-                        gO.ephysChanUpButt.Enable = 'off';
-                        gO.ephysChanUpButt.Visible = 'off';
-                        gO.ephysChanDwnButt.Enable = 'off';
-                        gO.ephysChanDwnButt.Visible = 'off';
-
-                        gO.ephysFixWinChanUpButt.Enable = 'on';
-                        gO.ephysFixWinChanUpButt.Visible = 'on';
-                        gO.ephysFixWinChanDwnButt.Enable = 'on';
-                        gO.ephysFixWinChanDwnButt.Visible = 'on';
                     end
                     
                     if gO.loaded(2)
@@ -1847,15 +1831,6 @@ classdef DASeV < handle
                         gO.imagingDetUpButt.Visible = 'off';
                         gO.imagingDetDwnButt.Enable = 'off';
                         gO.imagingDetDwnButt.Visible = 'off';
-                        gO.imagingRoiUpButt.Enable = 'off';
-                        gO.imagingRoiUpButt.Visible = 'off';
-                        gO.imagingRoiDwnButt.Enable = 'off';
-                        gO.imagingRoiDwnButt.Visible = 'off';
-
-                        gO.imagingFixWinRoiUpButt.Enable = 'on';
-                        gO.imagingFixWinRoiUpButt.Visible = 'on';
-                        gO.imagingFixWinRoiDwnButt.Enable = 'on';
-                        gO.imagingFixWinRoiDwnButt.Visible = 'on';
                     end
             end
             
@@ -1869,14 +1844,12 @@ classdef DASeV < handle
                 gO.simultMode = 1;
                 
                 gO.fixWinSwitch.Value = 0;
-%                 fixWinSwitchPress(gO)
                 gO.fixWinSwitch.Enable = 'off';
                 
                 gO.parallelMode = 0;
                 gO.parallelModeMenu.Enable = 'off';
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
                 gO.parallelModeMenu.ForegroundColor = 'r';
-%                 parallelModeMenuSel(gO,0)
                 
                 gO.save2DbSimultCheckBox.Enable = 'on';
                 gO.save2DbEphysCheckBox.Enable = 'off';
@@ -2587,22 +2560,6 @@ classdef DASeV < handle
                 'Position',[0.965, 0.7, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,-1));
-            gO.ephysFixWinChanUpButt = uicontrol(gO.plotPanel,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.965, 0.75, 0.035, 0.05],...
-                'String','<HTML>Chan&uarr (FW)',...
-                'Callback',@(h,e) gO.axButtPressFixWin(1,1),...
-                'Visible','off',...
-                'Enable','off');
-            gO.ephysFixWinChanDwnButt = uicontrol(gO.plotPanel,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.965, 0.7, 0.035, 0.05],...
-                'String','<HTML>Chan&darr (FW)',...
-                'Callback',@(h,e) gO.axButtPressFixWin(1,-1),...
-                'Visible','off',...
-                'Enable','off');
             
             gO.imagingDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
@@ -2628,22 +2585,6 @@ classdef DASeV < handle
                 'Position',[0.965, 0.45, 0.035, 0.05],...
                 'String','<HTML>ROI&darr',...
                 'Callback',@(h,e) gO.axButtPress(2,0,-1));
-             gO.imagingFixWinRoiUpButt = uicontrol(gO.plotPanel,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.965, 0.5, 0.035, 0.05],...
-                'String','<HTML>ROI&uarr (FW)',...
-                'Callback',@(h,e) gO.axButtPressFixWin(2,1),...
-                'Visible','off',...
-                'Enable','off');
-            gO.imagingFixWinRoiDwnButt = uicontrol(gO.plotPanel,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.965, 0.45, 0.035, 0.05],...
-                'String','<HTML>ROI&darr (FW)',...
-                'Callback',@(h,e) gO.axButtPressFixWin(2,-1),...
-                'Visible','off',...
-                'Enable','off');
             
             kids = findobj(gO.plotPanel,'Type','uicontrol','-or',...
                 'Type','uitable');
