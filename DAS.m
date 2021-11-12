@@ -2773,6 +2773,9 @@ classdef DAS < handle
                     detinfo.DetSettings.MinDist = mindist*1000;
                     detinfo.DetSettings.Ratio = ratio;
                     
+                    % to comply with a check later on
+                    refVal = 0;
+                    
                 case 'DoG+InstPow'
                     w1 = str2double(guiobj.ephysDoGInstPowDetW1Edit.String);
                     w2 = str2double(guiobj.ephysDoGInstPowDetW2Edit.String);
@@ -2839,9 +2842,15 @@ classdef DAS < handle
                     detinfo.DetSettings.RefCh = refch;
             end
             
+            if (refVal ~= 0) & (~isempty(find(chan==refch,1)))
+                temp = dets;
+                temp(find(chan==refch),:) = [];
+                detsOnlyInRef = isempty(find(~isnan(temp),1));
+            else
+                detsOnlyInRef = false;
+            end
             
-            
-            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) %| (isempty(find(~isnan(dets([1:refch-1,refch+1:end],:)),1)))
+            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) | detsOnlyInRef
                 errordlg('No events were found!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';

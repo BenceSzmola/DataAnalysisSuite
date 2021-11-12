@@ -149,5 +149,5 @@ for i = 1:min(size(data))
 end
 
 if ~isempty(find(chan==refCh, 1))
-    dets(refCh,:) = refDetMarks;
+    dets(find(chan==refCh),:) = refDetMarks;
 end
