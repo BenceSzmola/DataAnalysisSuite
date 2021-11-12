@@ -1092,14 +1092,14 @@ classdef DASeV < handle
             
             winLen = round(fs*winLen);
             
-            if ~isempty(detBorders)
+            if ~isempty(detBorders) & (length(detBorders) >= chanNum) & (~isempty(detBorders{chanNum}))
                 detBorders = detBorders{chanNum}(detNum,:);
                 if (detBorders(1)-winLen) > 1
                     winStart = detBorders(1)-winLen;
                 else
                     winStart = 1;
                 end
-                
+
                 if (detBorders(2)+winLen) <= lenData
                     winEnd = detBorders(2)+winLen;
                 else
@@ -1593,7 +1593,7 @@ classdef DASeV < handle
         
         %%
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
-            if gO.parallelMode || gO.fixWin
+            if (gO.parallelMode == dTyp) || gO.fixWin
                 axButtPressAlter(gO,dTyp,chanUpDwn)
                 return
             end
