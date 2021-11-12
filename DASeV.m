@@ -1310,7 +1310,6 @@ classdef DASeV < handle
             if newdir == 0
                 return
             end
-%             cd(newdir)
             
             newlist = dir([newdir,'\*DASsave*.mat']);
             if isempty(newlist)
@@ -1318,6 +1317,7 @@ classdef DASeV < handle
                 return
             end
             newlist = {newlist.name};
+            gO.fileList.Value = 1;
             gO.fileList.String = newlist;
             gO.selDir = newdir;
         end
@@ -1971,7 +1971,7 @@ classdef DASeV < handle
                             gO.save2DbSimultSelection(r(1),:) = [];
                         end
                     end
-                    
+                                        
                 case 4
                     return
             end
@@ -2019,11 +2019,13 @@ classdef DASeV < handle
                         tempStruct.source = string(gO.path2loadedSave);
                         tempStruct.simult = 0;
                         tempStruct.parallel = 0;
-                                                
+                        
+                        iAdj = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(i));
+                        
                         tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
-                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(i,win);
-                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(i,win);
-                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(i,win);
+                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(iAdj,win);
+                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(iAdj,win);
+                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(iAdj,win);
                         tempStruct.ephysEvents.DetBorders = relBorders;
                         tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
                         tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
@@ -2101,21 +2103,22 @@ classdef DASeV < handle
             if selected(3)
                 for i = 2:size(gO.save2DbSimultSelection,1)
                     currRow = gO.save2DbSimultSelection(i,:);
-                    [ephysWin,ephysRelBorders] = windowMacher(gO,1,currRow(1),currRow(2),0.25);
+                    iAdj = find(gO.ephysDetInfo.DetChannel == currRow(1));
+                    [ephysWin,ephysRelBorders] = windowMacher(gO,1,iAdj,currRow(2),0.25);
                     [imagingWin,imagingRelBorders] = windowMacher(gO,2,currRow(3),currRow(4),0.25);
                     
                     tempStruct.source = string(gO.path2loadedSave);
                     tempStruct.simult = 1;
                     tempStruct.parallel = 0;
-                    
+                                        
                     tempStruct.ephysEvents.Taxis = gO.ephysTaxis(ephysWin);
                     tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DetBorders = ephysRelBorders;
-                    tempStruct.ephysEvents.Params = gO.ephysDetParams{currRow(1)}(currRow(2));
+                    tempStruct.ephysEvents.Params = gO.ephysDetParams{iAdj}(currRow(2));
                     tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(currRow(1));
+                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(iAdj);
                     tempStruct.ephysEvents.DetNum = currRow(2);
                     
                     tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
