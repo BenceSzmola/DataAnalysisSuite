@@ -319,7 +319,8 @@ classdef DASeV < handle
                             currChan = gO.ephysCurrDetRow;
                             currDet = gO.ephysCurrDetNum;
                             
-                            allChans = 1:size(gO.ephysData,1);
+%                             allChans = 1:size(gO.ephysData,1);
+%                             allDetChans = 1:size(gO.ephysDets,1);
                             dets = gO.ephysDets;
                             detInfo = gO.ephysDetInfo;
                             detBorders = gO.ephysDetBorders;
@@ -328,7 +329,8 @@ classdef DASeV < handle
                             currChan = gO.imagingCurrDetRow;
                             currDet = gO.imagingCurrDetNum;
                             
-                            allChans = 1:size(gO.imagingData,1);
+%                             allChans = 1:size(gO.imagingData,1);
+%                             allDetChans = 1:size(gO.imagingDets,1);
                             dets = gO.imagingDets;
                             detInfo = gO.imagingDetInfo;
                             detBorders = gO.imagingDetBorders;
@@ -343,11 +345,11 @@ classdef DASeV < handle
                             emptyRows = [emptyRows; i];
                         end
                     end
-                    allChans(emptyRows) = [];
+%                     allDetChans(emptyRows) = [];
                     dets(emptyRows,:) = [];
                     currDetRows(emptyRows) = [];
                     if dTyp==1
-                        detInfo.Channel(emptyRows) = [];
+                        detInfo.DetChannel(emptyRows) = [];
                     elseif dTyp==2
                         detInfo.Roi(emptyRows) = [];
                     end
@@ -367,12 +369,13 @@ classdef DASeV < handle
                     end
                     
                     if dTyp == 1
-                        chanOgNum = detInfo.Channel(currChan);
+                        chanOgNum = detInfo.DetChannel(currChan);
+                        chanNum = find(detInfo.AllChannel==chanOgNum);
                     elseif dTyp == 2
                         chanOgNum = detInfo.Roi(currChan);
+                        chanNum = chanOgNum;
                     end
                     
-                    chanNum = allChans(currChan);
                     detNum = currDet;
                     
                     if nargout == 6
@@ -445,7 +448,7 @@ classdef DASeV < handle
                             currChanEvents = unique(detStructFocus(detStructFocus(:,1)==chan,2));
                             
                             nonSimDetInfo = gO.ephysDetInfo;
-                            nonSimDetRow = find(nonSimDetInfo.Channel==chan);
+                            nonSimDetRow = find(nonSimDetInfo.DetChannel==chan);
                             chanOgNum = chan;
                             
                             detMat = gO.ephysDets(nonSimDetRow,:);
@@ -456,7 +459,7 @@ classdef DASeV < handle
                                 detIdx = detIdx(detNum);
                             end
                             
-                            chanNum = nonSimDetRow;
+                            chanNum = find(nonSimDetInfo.AllChannel == chan);
                             
                             if nargout == 6
                                 return
@@ -588,7 +591,7 @@ classdef DASeV < handle
 
 
                     if gO.fixWin == 1
-                        chanOgNum = gO.ephysDetInfo.Channel(gO.ephysFixWinDetRow);
+                        chanOgNum = gO.ephysDetInfo.AllChannel(gO.ephysFixWinDetRow);
                         chanNum = gO.ephysFixWinDetRow;
                         if chanOgNum == gO.ephysRefCh
                             axTitle = ['Channel #',num2str(chanOgNum), ' (Ref)'];
@@ -1545,22 +1548,11 @@ classdef DASeV < handle
             if ~isempty(find(strcmp(fieldnames(testload),'ephysSaveInfo'),1))
                 load(fnameFull,'ephysSaveInfo')
                 if ~isempty(ephysSaveInfo)
-%                     gO.fnameTxt.String = fname;
                     gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
-                    gO.ephysChanTxt.String = sprintf('%d ',[ephysSaveInfo.Channel]);
+                    gO.ephysChanTxt.String = sprintf('%d ',[ephysSaveInfo.DetChannel]);
                     gO.ephysDetSettingsTable.Data = squeeze(struct2cell(ephysSaveInfo(1).DetSettings))';
                     gO.ephysDetSettingsTable.ColumnName = fieldnames(ephysSaveInfo(1).DetSettings);
-%                 else
-%                     gO.ephysDetTypeTxt.String = '';
-%                     gO.ephysChanTxt.String = '';
-%                     gO.ephysParamTable.Data = [];
-%                     gO.ephysParamTable.ColumnName = '';
                 end
-%             else
-%                 gO.ephysDetTypeTxt.String = '';
-%                 gO.ephysChanTxt.String = '';
-%                 gO.ephysParamTable.Data = [];
-%                 gO.ephysParamTable.ColumnName = '';
             end
             
             gO.imagingDetTypeTxt.String = '';
@@ -1574,17 +1566,8 @@ classdef DASeV < handle
                     gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
                     gO.imagingDetSettingsTable.Data = squeeze(struct2cell(imagingSaveInfo(1).DetSettings))';
                     gO.imagingDetSettingsTable.ColumnName = fieldnames(imagingSaveInfo(1).DetSettings);
-%                 else
-%                     gO.imagingDetTypeTxt.String = '';
-%                     gO.imagingRoiTxt.String = '';
-%                     gO.imagingParamTable.Data = [];
-%                     gO.imagingParamTable.ColumnName = '';
+
                 end
-%             else
-%                 gO.imagingDetTypeTxt.String = '';
-%                 gO.imagingRoiTxt.String = '';
-%                 gO.imagingParamTable.Data = [];
-%                 gO.imagingParamTable.ColumnName = '';
             end
             
             if ~isempty(find(strcmp(fieldnames(testload),'simultSaveInfo'),1))
@@ -1613,93 +1596,8 @@ classdef DASeV < handle
                 load(fnameFull,'runData')
                 if ~isempty(runData)
                     gO.runIndicator.Value = 1;
-%                 else
-%                     gO.runIndicator.Value = 0;
                 end
-%             else
-%                 gO.runIndicator.Value = 0;
             end
-        end
-        
-        %%
-        function axButtPressOld(gO,dTyp,detUpDwn,chanUpDwn)
-%             switch dTyp
-%                 case 1
-%                     currDetRows = 1:length(gO.ephysDetInfo);
-% %                     currChans = [gO.ephysDetInfo.Channel];
-%                     
-%                     currDetNum = gO.ephysCurrDetNum;
-%                     currDetRow = gO.ephysCurrDetRow;
-%                     detMat = gO.ephysDets;
-%                 case 2
-%                     currDetRows = 1:length(gO.imagingDetInfo);
-% %                     currChans = [gO.imagingDetInfo.Roi];
-%                     
-%                     currDetNum = gO.imagingCurrDetNum;
-%                     currDetRow = gO.imagingCurrDetRow;
-%                     detMat = gO.imagingDets;
-%                 case 3
-%                     
-%             end
-%             
-%             emptyChans = [];
-%             % Filtering out channels with no detections
-%             for j = 1:length(currDetRows)
-%                 if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
-%                     emptyChans = [emptyChans, j];
-%                 end
-%             end
-% %             currChans(emptyChans) = [];
-%             currDetRows(emptyChans) = [];
-%             
-%             if chanUpDwn ~= 0
-%                 currDetNum = 1;
-%             end
-% 
-%             if (chanUpDwn == 0) & (detUpDwn == 0)
-%                 currDetNum = 1;
-%                 currDetRow = 1;
-%             end
-%             
-%             if gO.plotFull == 0
-%                 switch detUpDwn
-%                     case 1
-%                         temp = currDetRows(currDetRow);
-%                         if currDetNum < length(find(~isnan(detMat(temp,:))))
-%                             currDetNum = currDetNum + 1;
-%                         end
-%                     case -1
-%                         if currDetNum > 1
-%                             currDetNum = currDetNum - 1;
-%                         end
-%                 end
-%             end
-%                 
-%             switch chanUpDwn
-%                 case 1
-%                     if currDetRow < length(currDetRows)
-%                         currDetRow = currDetRow + 1;
-%                     end
-%                 case -1
-%                     if currDetRow > 1
-%                         currDetRow = currDetRow -1;
-%                     end
-%             end
-%             
-%             switch dTyp
-%                 case 1
-%                     gO.ephysCurrDetNum = currDetNum;
-%                     gO.ephysCurrDetRow = currDetRow;
-%                     gO.ephysFixWinDetRow = currDetRow;
-%                 case 2
-%                     gO.imagingCurrDetNum = currDetNum;
-%                     gO.imagingCurrDetRow = currDetRow;
-%                     gO.imagingFixWinDetRow = currDetRow;
-%                 case 3
-%                     
-%             end
-% 
-%             smartplot(gO)
         end
         
         %%
@@ -1847,7 +1745,7 @@ classdef DASeV < handle
         function axButtPressFixWin(gO,dTyp,chanUpDwn)
             switch dTyp
                 case 1
-                    currDetRows = 1:length(gO.ephysDetInfo.Channel);
+                    currDetRows = 1:length(gO.ephysDetInfo.AllChannel);
                     
                     fixWinCurrDetRow = gO.ephysFixWinDetRow;
                 case 2
@@ -2129,7 +2027,7 @@ classdef DASeV < handle
                         tempStruct.ephysEvents.DetBorders = relBorders;
                         tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
                         tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                        tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.Channel(i);
+                        tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(i);
                         tempStruct.ephysEvents.DetNum = j;
                         
                         if gO.save2DbRunningChechBox.Value
@@ -2217,7 +2115,7 @@ classdef DASeV < handle
                     tempStruct.ephysEvents.DetBorders = ephysRelBorders;
                     tempStruct.ephysEvents.Params = gO.ephysDetParams{currRow(1)}(currRow(2));
                     tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.Channel(currRow(1));
+                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(currRow(1));
                     tempStruct.ephysEvents.DetNum = currRow(2);
                     
                     tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);

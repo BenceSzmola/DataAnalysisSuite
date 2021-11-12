@@ -1021,321 +1021,6 @@ classdef DAS < handle
         end
         
         %%
-        function eventDetAxesButtFcnOld(guiobj,axNum,detRoi,upDwn)
-%             switch axNum
-%                 case 1 %ephys axes
-%                     if isempty(guiobj.ephys_detections)
-%                         return
-%                     end
-%                     
-% %                     assignin('base','dets',guiobj.ephys_detections)
-% %                     assignin('base','detinfo',guiobj.ephys_detectionsInfo)
-%                     
-%                     switch guiobj.eventDet1DataType
-%                         case 1
-%                             data = guiobj.ephys_data;
-%                         case 2
-%                             data = guiobj.ephys_dogged;
-%                         case 3
-%                             data = guiobj.ephys_instPowed;
-%                     end
-% %                     assignin('base','efizdetinfo',guiobj.ephys_detectionsInfo)
-%                     currDetRun = guiobj.ephys_currDetRun;
-% %                     currDetRows = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
-% %                     currChans = guiobj.ephys_detectionsInfo(currDetRows,1);
-%                     currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
-%                     currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
-%                     emptyChans = [];
-%                     
-% %                     display('currChans before')
-% %                     currChans
-%                     
-%                     % Filtering out channels with no detections
-%                     for j = 1:length(currDetRows)
-%                         if isempty(find(~isnan(guiobj.ephys_detections(currDetRows(j),:)),1))
-%                             emptyChans = [emptyChans, j];
-%                         end
-%                     end
-%                     currChans(emptyChans) = [];
-%                     currDetRows(emptyChans) = [];
-%                     
-% %                     display('currChans after')
-% %                     currChans
-%                     
-% %                     assignin('base','detinfo',guiobj.ephys_detectionsInfo)
-%                     
-% %                     display('guiobj curridx')
-% %                     display(guiobj.eventDet1CurrIdx)
-%                     
-%                     ax = guiobj.axesEventDet1;
-%                     switch detRoi
-%                         case 0
-% %                             assignin('base','detinfo',guiobj.ephys_detectionsInfo)
-% %                             assignin('base','curdetrun',currDetRun)
-% %                             find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1))
-% %                             guiobj.eventDet1CurrIdx = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun,currChans(1));
-% %                             guiobj.eventDet1CurrIdx = guiobj.eventDet1CurrIdx(end);
-%                             guiobj.eventDet1CurrDet = 1;
-%                             guiobj.eventDet1CurrChan = 1;
-%                         case 1
-%                             switch upDwn
-%                                 case 1
-% %                                     temp = find(currChans == (currChans(guiobj.eventDet1CurrChan)));
-%                                     temp = currDetRows(guiobj.eventDet1CurrChan);
-% %                                     temp = currDetRows(temp)
-%                                     if guiobj.eventDet1CurrDet < length(find(~isnan(guiobj.ephys_detections(temp,:))))
-%                                         guiobj.eventDet1CurrDet = ...
-%                                             guiobj.eventDet1CurrDet + 1;
-%                                     end
-%                                 case 2
-%                                     if guiobj.eventDet1CurrDet > 1
-%                                         guiobj.eventDet1CurrDet = ...
-%                                             guiobj.eventDet1CurrDet - 1;
-%                                     end
-%                             end
-%                         case 2
-%                             guiobj.eventDet1CurrDet = 1;
-% %                             temp = find(guiobj.ephys_detectionsInfo(:,3)==currDetRun);
-% %                             currChans = guiobj.ephys_detectionsInfo(temp,1);
-%                             switch upDwn
-%                                 case 1
-%                                     if guiobj.eventDet1CurrChan < length(currChans)
-%                                         guiobj.eventDet1CurrChan = ...
-%                                             guiobj.eventDet1CurrChan + 1;
-%                                         guiobj.eventDet1CurrIdx = ...
-%                                             guiobj.eventDet1CurrIdx + 1;
-%                                     end
-%                                 case 2
-%                                     if guiobj.eventDet1CurrChan > 1
-%                                         guiobj.eventDet1CurrChan = ...
-%                                             guiobj.eventDet1CurrChan - 1;
-%                                         guiobj.eventDet1CurrIdx = ...
-%                                             guiobj.eventDet1CurrIdx - 1;
-%                                     end
-%                                     
-%                             end
-%                     end
-%                     
-% %                     chan = guiobj.ephysDetChSelPopMenu.Value;
-%                     chan = currChans(guiobj.eventDet1CurrChan);
-%                     axYMinMax = [min(data(chan,:)), max(data(chan,:))];
-% %                     currDetRows
-% %                     currDet = guiobj.eventDet1CurrIdx
-% %                     currDet = currChans(guiobj.eventDet1CurrChan)+currDetRows(1)-1
-%                     currDetRow = currDetRows(guiobj.eventDet1CurrChan);
-%                     numDets = length(find(~isnan(guiobj.ephys_detections(currDetRow,:))));
-%                     detInd = guiobj.eventDet1CurrDet;
-%                     %%%
-% %                     assignin('base','efizdets',guiobj.ephys_detections)
-%                     %%%
-%                     tInd = find(~isnan(guiobj.ephys_detections(currDetRow,:)));
-%                     tInd = tInd(detInd);
-%                     tStamp = guiobj.ephys_taxis(tInd);
-% %                     win = round(0.25 * guiobj.ephys_fs,4);
-%                     win = guiobj.eventDet1Win/2000;
-%                     win = round(win*guiobj.ephys_fs,4);
-%                     if (tInd-win > 0) & (tInd+win <= length(guiobj.ephys_taxis))
-%                         tWin = guiobj.ephys_taxis(tInd-win:tInd+win);
-% %                         dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
-%                         dataWin = data(chan,tInd-win:tInd+win);
-%                     elseif tInd-win <= 0
-%                         tWin = guiobj.ephys_taxis(1:tInd+win);
-% %                         dataWin = guiobj.ephys_data(chan,1:tInd+win);
-%                         dataWin = data(chan,1:tInd+win);
-%                     elseif tInd+win > length(guiobj.ephys_taxis)
-%                         tWin = guiobj.ephys_taxis(tInd-win:end);
-% %                         dataWin = guiobj.ephys_data(chan,tInd-win:end);
-%                         dataWin = data(chan,tInd-win:end);
-%                     end
-% %                     dataWin = guiobj.ephys_data(chan,tInd-win:tInd+win);
-%                     plot(ax,tWin,dataWin)
-%                     hold(ax,'on')
-% %                     line(ax,[tStamp tStamp],axYMinMax,...
-% %                         'Color','r')
-%                     xline(ax,tStamp,'Color','r','LineWidth',1);
-%                     hold(ax,'off')
-%                     axis(ax,'tight')
-%                     ylim(ax,axYMinMax)
-%                     xlabel(ax,guiobj.xtitle)
-%                     ylabel(ax,guiobj.ephys_ylabel);
-%                     title(ax,['Channel#',num2str(chan),'      Detection#',num2str(detInd),...
-%                         '/',num2str(numDets)])
-%                     
-%                     %%% testing FWHM
-% %                     halfmax = data(chan,tInd)/2
-% %                     aboveHM = find(data(chan,:)>halfmax);
-% %                     assignin('base','aboveHM',aboveHM)
-% %                     assignin('base','tInd',tInd)
-% %                     aboveHMtInd = find(aboveHM==tInd);
-% %                     steps = diff(aboveHM);
-% %                     disconts = find(steps~=1);
-% %                     lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last'))+1);
-% %                     highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1)));
-% %                     FWHM = (highbord-lowbord)/20
-%                     
-% %                     display('----------------------------------------')
-%                     
-%                 case 2
-%                     if isempty(guiobj.imaging_detections)
-%                         return
-%                     end
-%                     
-%                     ax = guiobj.axesEventDet2;
-%                     switch detRoi
-%                         case 0
-%                             guiobj.eventDet2CurrDet = 1;
-%                         case 1
-%                             switch upDwn
-%                                 case 1
-%                                     if guiobj.eventDet2CurrDet < length(find(~isnan(guiobj.imaging_detections(guiobj.eventDet2CurrRoi,:))))
-%                                         guiobj.eventDet2CurrDet = ...
-%                                             guiobj.eventDet2CurrDet + 1;
-%                                     end
-%                                 case 2
-%                                     if guiobj.eventDet2CurrDet > 1
-%                                         guiobj.eventDet2CurrDet = ...
-%                                             guiobj.eventDet2CurrDet - 1;
-%                                     end
-%                             end
-%                         case 2
-%                             guiobj.eventDet2CurrDet = 1;
-%                             switch upDwn
-%                                 case 1
-%                                     if guiobj.eventDet2CurrRoi < size(guiobj.imaging_data,1)
-%                                         guiobj.eventDet2CurrRoi = ...
-%                                             guiobj.eventDet2CurrRoi + 1;
-%                                     end
-%                                 case 2
-%                                     if guiobj.eventDet2CurrRoi > 1
-%                                         guiobj.eventDet2CurrRoi = ...
-%                                             guiobj.eventDet2CurrRoi - 1;
-%                                     end
-%                             end
-%                     end
-%                     
-%                     roi = guiobj.eventDet2CurrRoi;
-% %                     currDet = guiobj.eventDet2CurrIdx;
-%                     detInd = guiobj.eventDet2CurrDet;
-%                     tInd = find(~isnan(guiobj.imaging_detections(roi,:)));
-%                     tInd = tInd(detInd);
-%                     tStamp = guiobj.imaging_taxis(tInd);
-%                     win = round(1 * guiobj.imaging_fs);
-%                     tWin = guiobj.imaging_taxis(tInd-win:tInd+win);
-%                     dataWin = guiobj.imaging_data(roi,tInd-win:tInd+win);
-%                     plot(ax,tWin,dataWin)
-%                     hold(ax,'on')
-%                     line(ax,[tStamp tStamp],[min(dataWin), max(dataWin)],...
-%                         'Color','r')
-%                     hold(ax,'off')
-%                     axis(ax,'tight')
-%                     xlabel(ax,guiobj.xtitle)
-%                     ylabel(ax,guiobj.imaging_ylabel);
-%                     title(ax,['ROI#',num2str(roi),' Detection#',num2str(detInd)])
-%             end
-        end
-        
-        %%
-        function eventDetAxesButtFcnOld2(guiobj,dTyp,detRoi,upDwn)
-%             switch dTyp
-%                 case 1 % ephys
-%                     if isempty(guiobj.ephys_detections)
-%                         return
-%                     end
-%                     
-%                     detMat = guiobj.ephys_detections;
-%                     
-%                     currDetRun = guiobj.ephys_currDetRun;
-%                     currDetRows = find([guiobj.ephys_detectionsInfo.DetRun]==currDetRun);
-%                     currChans = [guiobj.ephys_detectionsInfo(currDetRows).Channel];
-%                     emptyChans = [];
-%                     
-%                     % Filtering out channels with no detections
-%                     for j = 1:length(currDetRows)
-%                         if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
-%                             emptyChans = [emptyChans, j];
-%                         end
-%                     end
-%                     currChans(emptyChans) = [];
-%                     currDetRows(emptyChans) = [];
-%                     
-%                     currDetNum = guiobj.eventDet1CurrDet;
-%                     currChanNum = guiobj.eventDet1CurrChan;
-%                     
-%                 case 2 % imaging
-%                     if isempty(guiobj.imaging_detections)
-%                         return
-%                     end
-%                     
-%                     data = guiobj.imaging_data;
-%                     
-%                     detMat = guiobj.imaging_detections;
-%                     
-%                     currDetRun = guiobj.imaging_currDetRun;
-%                     currDetRows = find([guiobj.imaging_detectionsInfo.DetRun]==currDetRun);
-%                     currChans = [guiobj.imaging_detectionsInfo(currDetRows).Roi];
-%                     emptyChans = [];
-%                     
-%                     % Filtering out channels with no detections
-%                     for j = 1:length(currDetRows)
-%                         if isempty(find(~isnan(detMat(currDetRows(j),:)),1))
-%                             emptyChans = [emptyChans, j];
-%                         end
-%                     end
-%                     currChans(emptyChans) = [];
-%                     currDetRows(emptyChans) = [];
-%                     
-%                     currDetNum = guiobj.eventDet2CurrDet;
-%                     currChanNum = guiobj.eventDet2CurrRoi;
-%                     
-%             end
-%             
-%             switch detRoi
-%                 case 0
-%                     currDetNum = 1;
-%                     currChanNum = 1;
-%                 case 1
-%                     switch upDwn
-%                         case 1
-%                             temp = currDetRows(currChanNum);
-%                             if currDetNum < length(find(~isnan(detMat(temp,:))))
-%                                 currDetNum = currDetNum + 1;
-%                             end
-%                         case 2
-%                             if currDetNum > 1
-%                                 currDetNum = currDetNum - 1;
-%                             end
-%                     end
-%                 case 2
-%                     currDetNum = 1;
-%                     switch upDwn
-%                         case 1
-%                             if currChanNum < length(currChans)
-%                                 currChanNum = currChanNum + 1;
-%                             end
-%                         case 2
-%                             if currChanNum > 1
-%                                 currChanNum = currChanNum - 1;
-%                             end
-% 
-%                     end
-%             end
-%             
-%             switch dTyp
-%                 case 1
-%                     guiobj.eventDet1CurrDet = currDetNum;
-%                     guiobj.eventDet1CurrChan = currChanNum;
-%                 case 2
-%                     guiobj.eventDet2CurrDet = currDetNum;
-%                     guiobj.eventDet2CurrRoi = currChanNum;
-%             end
-%             
-%             if (dTyp==1) | (dTyp==2)
-%                 eventDetPlotFcn(guiobj,dTyp,currChans,currDetRows,0)
-%             end
-%             
-        end
-        
-        %%
         function eventDetPlotFcn(guiobj,dTyp,forSpectro)
             if nargin < 3
                 forSpectro = 0;
@@ -1698,7 +1383,7 @@ classdef DAS < handle
                     end
                     detMat(emptyRows,:) = [];
                     if dTyp==1
-                        detInfo.Channel(emptyRows) = [];
+                        detInfo.DetChannel(emptyRows) = [];
                     elseif dTyp==2
                         detInfo.Roi(emptyRows) = [];
                     end
@@ -1717,7 +1402,7 @@ classdef DAS < handle
                     end
                     
                     if dTyp == 1
-                        chan = detInfo.Channel(currChan);
+                        chan = detInfo.DetChannel(currChan);
                     elseif dTyp == 2
                         chan = detInfo.Roi(currChan);
                     end
@@ -1780,7 +1465,7 @@ classdef DAS < handle
                             currChanEvents = unique(detStructFocus(detStructFocus(:,1)==chan,2));
                             
                             nonSimDetInfo = guiobj.ephys_detectionsInfo;
-                            nonSimDetRow = find(nonSimDetInfo.Channel==chan);
+                            nonSimDetRow = find(nonSimDetInfo.DetChannel==chan);
                             
                             detMat = guiobj.ephys_detections(nonSimDetRow,:);
                             detInd = find(~isnan(detMat));
@@ -2264,7 +1949,7 @@ classdef DAS < handle
 %                         'Det#',num2str(i))];
 %                     detList = [detList; temprows];
                     detList = [detList; strcat(detInfo(i).DetType,' | ',temp,...
-                        ' | Channel#',num2str(detInfo(i).Channel),' | ',...
+                        ' | Channel#',num2str(detInfo(i).DetChannel),' | ',...
                         'Run#',num2str(detInfo(i).DetRun))];
                 end
                 [indx,tf] = listdlg('ListString',detList,'ListSize',[500,200]);
@@ -3050,7 +2735,7 @@ classdef DAS < handle
                         [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen/1000,sdmult,w1,w2,refch,refchData,showFigs);
                     end
                     
-                    detinfo.Channel = chan;
+                    detinfo.DetChannel = chan;
                     detinfo.DetType = "CWT";
                     detinfo.DetSettings.W1 = w1;
                     detinfo.DetSettings.W2 = w2;
@@ -3081,7 +2766,7 @@ classdef DAS < handle
                     end
                     detParams = cell(min(size(data)),1);
                     
-                    detinfo.Channel = chan;
+                    detinfo.DetChannel = chan;
                     detinfo.DetType = "Adapt";
                     detinfo.DetSettings.Step = step*1000;
                     detinfo.DetSettings.MinLen = minLen*1000;
@@ -3144,7 +2829,7 @@ classdef DAS < handle
                         [dets,detBorders,detParams] = DoGInstPowDet(data,tAxis,chan,fs,w1,w2,sdmult,minLen,refch,refchData,showFigs);
                     end
                     
-                    detinfo.Channel = chan;
+                    detinfo.DetChannel = chan;
                     detinfo.DetType = "DoGInstPow";
                     detinfo.DetSettings.W1 = w1;
                     detinfo.DetSettings.W2 = w2;
@@ -3255,7 +2940,7 @@ classdef DAS < handle
                         detinfo.DetSettings.WinLen = 3;
                     end
                     
-                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,data,detData,...
+                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,1:size(data,1),data,detData,...
                         [],0,[],[],fs,thr,0,minLen);
                     
                     for i = 1:size(data,1)
@@ -3263,11 +2948,6 @@ classdef DAS < handle
                             data(i,:),detData(i,:),[]);
                         
                     end
-%                     detinfo.Roi = [1:size(data,1)];
-%                     detinfo.DetType = 'Mean+SD';
-%                     detinfo.DetSettings.WinType = 'Gaussian';
-%                     detinfo.DetSettings.WinLen = 10;
-%                     detinfo.DetSettings.SdMult = sdmult;
 
                 case 'MLspike based'
                     par = tps_mlspikes('par');
@@ -3345,7 +3025,7 @@ classdef DAS < handle
                     delay1 = str2double(guiobj.simultDetStandardDelayEdit1.String)/1000;
                     delay2 = str2double(guiobj.simultDetStandardDelayEdit2.String)/1000;
                     for ephysRowNum = 1:size(guiobj.ephys_detections,1)
-                        chan = guiobj.ephys_detectionsInfo.Channel(ephysRowNum);
+                        chan = guiobj.ephys_detectionsInfo.DetChannel(ephysRowNum);
                         ephys_detInds = find(~isnan(guiobj.ephys_detections(ephysRowNum,:)));
                         
                         for imRowNum = 1:size(guiobj.imaging_detections,1)
@@ -3823,16 +3503,19 @@ classdef DAS < handle
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
-                if ~saveAllChans
-                    chans2Save = guiobj.ephys_detectionsInfo.Channel;
-                    ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
-                else
-                    ephysSaveData.RawData = guiobj.ephys_data;
-                end
                 ephysSaveData.Dets = guiobj.ephys_detections;
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
                 ephysSaveData.DetParams = guiobj.ephys_detParams;
                 ephysSaveInfo = guiobj.ephys_detectionsInfo;
+                if ~saveAllChans
+                    chans2Save = guiobj.ephys_detectionsInfo.DetChannel;
+                    ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
+                    ephysSaveInfo.AllChannel = chans2Save;
+                else
+                    ephysSaveData.RawData = guiobj.ephys_data;
+                    ephysSaveInfo.AllChannel = 1:min(size(guiobj.ephys_data));
+                end
+                
                                 
             else
                 ephysSaveData = [];
@@ -3871,29 +3554,6 @@ classdef DAS < handle
                 
                 simultSaveData = guiobj.simult_detections;
                 simultSaveInfo = guiobj.simult_detectionsInfo;
-                
-%                 ephysSaveData.TAxis = guiobj.ephys_taxis;
-%                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
-%                 ephysSaveData.Fs = guiobj.ephys_fs;
-%                 if ~saveAllChans
-%                     chans2Save = guiobj.ephys_detectionsInfo.Channel;
-%                     ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
-%                 else
-%                     ephysSaveData.RawData = guiobj.ephys_data;
-%                 end
-%                 ephysSaveData.Dets = guiobj.ephys_detections;
-%                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
-%                 ephysSaveData.DetParams = guiobj.ephys_detParams;
-%                 ephysSaveInfo = guiobj.ephys_detectionsInfo;
-%                 
-%                 imagingSaveData.TAxis = guiobj.imaging_taxis;
-%                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
-%                 imagingSaveData.Fs = guiobj.imaging_fs;
-%                 imagingSaveData.RawData = guiobj.imaging_data;
-%                 imagingSaveData.Dets = guiobj.imaging_detections;
-%                 imagingSaveData.DetBorders = guiobj.imaging_detBorders;
-%                 imagingSaveData.DetParams = guiobj.imaging_detParams;
-%                 imagingSaveInfo = guiobj.imaging_detectionsInfo;
             else
                 simultSaveData = [];
                 simultSaveInfo = [];

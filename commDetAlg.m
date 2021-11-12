@@ -8,7 +8,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
         corrThr = 0.6;
     end
 
-    if nargin < 12
+    if nargin < 13
         extThr = [];
     end
     
