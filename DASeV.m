@@ -1594,7 +1594,11 @@ classdef DASeV < handle
         %%
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
             if (gO.parallelMode == dTyp) || gO.fixWin
-                axButtPressAlter(gO,dTyp,chanUpDwn)
+                if nargin > 2
+                    axButtPressAlter(gO,dTyp,chanUpDwn)
+                else
+                    axButtPressAlter(gO,dTyp,0)
+                end
                 return
             end
             
@@ -1759,6 +1763,8 @@ classdef DASeV < handle
             end
             
             switch chanUpDwn
+                case 0
+                    
                 case 1
                     if altCurrDetRow < length(currDetRows)
                         altCurrDetRow = altCurrDetRow + 1;
