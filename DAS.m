@@ -3047,6 +3047,23 @@ classdef DAS < handle
                                         - ephys_tAx(ephys_detInds(i));
                                     if (tDiff > delay1) && (tDiff < delay2)
                                         eventPair = [chan,i,roi,j];
+                                        
+                                        temp = guiobj.ephys_detParams{chan}(i).NumSimultEvents;
+                                        if ~isempty(temp)
+                                            temp = temp + 1;
+                                        else
+                                            temp = 1;
+                                        end
+                                        guiobj.ephys_detParams{chan}(i).NumSimultEvents = temp;
+                                        
+                                        temp = guiobj.imaging_detParams{roi}(j).NumSimultEvents;
+                                         if ~isempty(temp)
+                                            temp = temp + 1;
+                                        else
+                                            temp = 1;
+                                        end
+                                        guiobj.imaging_detParams{roi}(j).NumSimultEvents = temp;
+                                        
                                         simultDets = [simultDets; eventPair];
                                     end
                                 end
@@ -3056,6 +3073,14 @@ classdef DAS < handle
                         end
                         
                     end
+                    
+                    if isempty(simultDets)
+                        warndlg('No simultaneous events found!')
+                        guiobj.simultDetStatusLabel.String = '--IDLE--';
+                        guiobj.simultDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                    
                     simultDets = sortrows(simultDets);
 
                     simultDetInfo.DetType = dettype;
