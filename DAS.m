@@ -1160,6 +1160,13 @@ classdef DAS < handle
         
         %%
         function eventDetAxesButtFcn(guiobj,dTyp,chanUpDwn,detUpDwn)
+            if (dTyp == 1) && (isempty(guiobj.ephys_detections))
+                return
+            elseif (dTyp == 2) && (isempty(guiobj.imaging_detections))
+                return
+            end
+            
+            
             switch guiobj.evDetTabSimultMode
                 case 0
                     switch dTyp
@@ -2851,6 +2858,12 @@ classdef DAS < handle
             end
             
             if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) | detsOnlyInRef
+                
+                guiobj.ephys_detections = [];
+                guiobj.ephys_detBorders = {};
+                guiobj.ephys_detParams = {};
+                guiobj.ephys_detectionsInfo = [];
+                
                 errordlg('No events were found!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -2981,7 +2994,12 @@ classdef DAS < handle
                     detinfo.DetSettings = par;
             end
             
-            if isempty(dets)
+            if isempty(dets) || isempty(find(~isnan(dets),1))
+                guiobj.imaging_detections = [];
+                guiobj.imaging_detectionsInfo = [];
+                guiobj.imaging_detBorders = {};
+                guiobj.imaging_detParams = {};
+                
                 warndlg('No detections!')
                 guiobj.imagingDetStatusLabel.String = '--IDLE--';
                 guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
