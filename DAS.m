@@ -764,20 +764,6 @@ classdef DAS < handle
         end
         
         %%
-        function lickplot(guiobj)
-%             licks = guiobj.LickTimesListBox.String;
-%             licks = str2double(licks);
-%             allaxes = findobj(guiobj.mainfig,'Type','axes');
-%             for i = 1:length(allaxes)
-%                 for j = 1:length(licks)
-% %                     yminmax = allaxes(i).YLim;
-% %                     line(allaxes(i),[licks(j),licks(j)],yminmax,'Color','r')
-%                     xline(allaxes(i),licks(j),'Color','r');
-%                 end
-%             end
-        end
-        
-        %%
         function ephysDetMarkerPlot(guiobj,fromMenu)
             % fromMenu signals whether call is coming from menu press
             if nargin == 1
@@ -943,31 +929,6 @@ classdef DAS < handle
                 end
             end
             
-        end
-        
-        %%
-        function xlimLink(guiobj)
-%             allaxes = findobj(guiobj.mainfig,'Type','axes');
-%             
-%             xmin = 0;
-%             xmax = 1;
-%             for i = 1:length(allaxes)
-%                 if isempty(findobj(allaxes(i),'Type','line'))
-%                     continue 
-%                 end
-%                 temp = allaxes(i).XLim;
-%                 display(i)
-%                 display(temp)
-%                 if temp(1) < xmin
-%                     xmin = temp(1);
-%                 end
-%                 if temp(2) > xmax
-%                     xmax = temp(2);
-%                 end
-%             end
-%             linkaxes(allaxes,'x')
-%             allaxes(1).XLim = [xmin xmax];
-%             display('xlimlink end')
         end
         
         %%
@@ -1550,28 +1511,21 @@ classdef DAS < handle
             toRun = [0,0,0,0,0,0];
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
-%                 ephysCheckBoxValueChanged(guiobj)
                 toRun(1) = 1;
                 if rhdORgor == 1
-%                     ImportRHDButtonPushed(guiobj)
                     toRun(4) = 1;
                 elseif rhdORgor == 2
-%                     ImportgorobjButtonPushed(guiobj)
                     toRun(5) = 1;
                 end
             end
             if dtyp(2) == 1
                 guiobj.imagingCheckBox.Value = 1;
-%                 imagingCheckBoxValueChanged(guiobj)
                 toRun(2) = 1;
-%                 ImportgorobjButtonPushed(guiobj)
                 toRun(5) = 1;
             end
             if dtyp(3) == 1
                 guiobj.runCheckBox.Value = 1;
-%                 runCheckBoxValueChanged(guiobj)
                 toRun(3) = 1;
-%                 ImportruncsvButtonPushed(guiobj)
                 toRun(6) = 1;
             end
             
@@ -1599,11 +1553,6 @@ classdef DAS < handle
             end
             
             delete(mbox)
-        end
-        
-        %%
-        function [parallelSaveData, parallelSaveInfo] = parallelSave(guiobj,saveData,saveInfo)
-            
         end
         
     end
@@ -3066,13 +3015,13 @@ classdef DAS < handle
                                     if (tDiff > delay1) && (tDiff < delay2)
                                         eventPair = [chan,i,roi,j];
                                         
-                                        temp = guiobj.ephys_detParams{chan}(i).NumSimultEvents;
+                                        temp = guiobj.ephys_detParams{ephysRowNum}(i).NumSimultEvents;
                                         if ~isempty(temp)
                                             temp = temp + 1;
                                         else
                                             temp = 1;
                                         end
-                                        guiobj.ephys_detParams{chan}(i).NumSimultEvents = temp;
+                                        guiobj.ephys_detParams{ephysRowNum}(i).NumSimultEvents = temp;
                                         
                                         temp = guiobj.imaging_detParams{roi}(j).NumSimultEvents;
                                          if ~isempty(temp)
@@ -3128,46 +3077,6 @@ classdef DAS < handle
                         
             guiobj.simultDetStatusLabel.String = '--IDLE--';
             guiobj.simultDetStatusLabel.BackgroundColor = 'g';
-        end
-        
-        %%
-        function axesEventDet1UpButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,1,1,1)
-        end
-        
-        %%
-        function axesEventDet1DownButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,1,1,2)
-        end
-        
-        %%
-        function axesEventDet1ChanUpButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,1,2,1)
-        end
-        
-        %%
-        function axesEventDet1ChanDownButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,1,2,2)
-        end
-        
-        %%
-        function axesEventDet2DetUpButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,2,1,1)
-        end
-        
-        %%
-        function axesEventDet2DetDownButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,2,1,2)
-        end
-        
-        %%
-        function axesEventDet2RoiUpButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,2,2,1)
-        end
-        
-        %%
-        function axesEventDet2RoiDownButtPush(guiobj,event)
-            eventDetAxesButtFcn(guiobj,2,2,2)
         end
         
         %%

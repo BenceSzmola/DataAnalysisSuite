@@ -488,7 +488,7 @@ classdef DASeV < handle
                             end
                             numDets = length(unique(detStructFocus(detStructFocus(:,3)==chan,4)));
                             numDetsOg = length(unique(detStruct(detStruct(:,3)==chan,4)));
-                                                        
+
                             if nargout == 2
                                 return
                             end
