@@ -23,6 +23,9 @@ classdef DASeV < handle
         simultOptMenu
         simultFocusMenu
         
+        dbMenu
+        openDASevDBMenu
+        
         %% tabs
         tabgrp
         loadTab
@@ -2329,6 +2332,12 @@ classdef DASeV < handle
             gO.simultFocusMenu = uimenu(gO.simultOptMenu,...
                 'Text','Simultan mode focus --Ephys--',...
                 'MenuSelectedFcn',@ gO.simultFocusMenuSel);
+            
+            gO.dbMenu = uimenu(gO.mainFig,...
+                'Text','Database menu');
+            gO.openDASevDBMenu = uimenu(gO.dbMenu,...
+                'Text','Open DASevDB',...
+                'MenuSelectedFcn','DASevDB');
             
             %% Tabgroup
             gO.tabgrp = uitabgroup(gO.mainFig,...
