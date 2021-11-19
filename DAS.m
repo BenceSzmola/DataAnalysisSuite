@@ -2888,6 +2888,7 @@ classdef DAS < handle
                     
                     detData = nan(size(data));
                     thr = nan(size(data,1),1);
+                    extThr = nan(size(data,1),1);
                     
                     detinfo.Roi = [1:size(data,1)];
                     detinfo.DetType = 'Mean+SD';
@@ -2897,6 +2898,7 @@ classdef DAS < handle
                         for i = 1:size(data,1)
                             detData(i,:) = smoothdata(data(i,:),'gaussian',5);
                             thr(i) = mean(detData(i,:)) + sdmult*std(detData(i,:));
+                            extThr(i) = mean(detData(i,:)) + std(detData(i,:));
                         end
                         minLen = 0.03;
                         detinfo.DetSettings.WinType = 'Gaussian';
@@ -2905,6 +2907,7 @@ classdef DAS < handle
                         for i = 1:size(data,1)
                             detData(i,:) = movmean(data(i,:),3);
                             thr(i) = mean(data(i,:)) + sdmult*std(data(i,:));
+                            extThr(i) = mean(data(i,:)) + std(data(i,:));
                         end
                         minLen = 0;
                         detinfo.DetSettings.WinType = '3-point mean';
@@ -2912,7 +2915,7 @@ classdef DAS < handle
                     end
                     
                     [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,1:size(data,1),data,detData,...
-                        [],0,[],[],fs,thr,0,minLen);
+                        [],0,[],[],fs,thr,0,minLen,extThr);
                     
                     for i = 1:size(data,1)
                         detParams{i} = detParamMiner(2,dets(i,:),detBorders{i},fs,...
@@ -3686,10 +3689,21 @@ classdef DAS < handle
         end
         
         %%
+        function eventDetParamInputControll(guiobj,source,setting)
+            if strcmp(setting,'sd')
+                if str2double(source.String) < 1
+                    source.String = '1';
+                    warndlg('This parameter can''t be below 1!')
+                end
+            end
+        end
+        
+        %%
         function testcallback(varargin)
             display(varargin)
-            assignin('base','testinput',varargin)
-            
+%             assignin('base','testinput',varargin)
+%             get(h)
+%             display(inp)
         end
         
     end
@@ -4346,7 +4360,8 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.37, 0.75, 0.1, 0.1],...
-                'String','3');
+                'String','3',...
+                'Callback', @(h,e) guiobj.eventDetParamInputControll(h,'sd'));
             guiobj.ephysCwtDetCutoffLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -4468,7 +4483,8 @@ classdef DAS < handle
             guiobj.ephysDoGInstPowDetSdMultEdit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.55, 0.7, 0.1, 0.1]);
+                'Position',[0.55, 0.7, 0.1, 0.1],...
+                'Callback', @(h,e) guiobj.eventDetParamInputControll(h,'sd'));
             guiobj.ephysDoGInstPowDetMinLenLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -4572,7 +4588,8 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.41, 0.85, 0.1, 0.1],...
-                'String','3');
+                'String','3',...
+                'Callback', @(h,e) guiobj.eventDetParamInputControll(h,'sd'));
             guiobj.imagingMeanSdDetSlideAvgCheck = uicontrol(guiobj.imagingMeanSdDetPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
