@@ -1681,6 +1681,11 @@ classdef DAS < handle
                     dtyp(i) = 2;
                     ica = ica+1;
                 elseif ~isempty(find(get(wsgors(i),'yunit')=='V',1)) | ~isempty(find(get(wsgors(i),'yunit')=='A',1))
+                    if ~isempty(find(get(wsgors(i),'yunit')=='V',1))
+                        guiobj.ephys_ylabel = 'Voltage [\muV]';
+                    elseif ~isempty(find(get(wsgors(i),'yunit')=='A',1))
+                        guiobj.ephys_ylabel = 'Current [pA]';
+                    end
                     guiobj.ephys_data(ie,:) = get(wsgors(i),'extracty');
                     dtyp(i) = 1;
                     ie = ie+1;

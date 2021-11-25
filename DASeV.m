@@ -1806,6 +1806,7 @@ classdef DASeV < handle
                 case 0
                     gO.plotFullMenu.Enable = 'on';
                     gO.parallelModeMenu.Enable = 'on';
+                    gO.simultModeSwitch.Enable = 'on';
                     
                     if gO.loaded(1)
                         gO.ephysDetUpButt.Enable = 'on';
@@ -1827,6 +1828,7 @@ classdef DASeV < handle
                     gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
                     gO.parallelModeMenu.ForegroundColor = 'r';
                     gO.plotFullMenu.Enable = 'off';
+                    gO.simultModeSwitch.Enable = 'off';
                     
                     if gO.loaded(1)
                         gO.ephysDetUpButt.Enable = 'off';
