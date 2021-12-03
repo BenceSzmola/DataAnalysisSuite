@@ -1806,7 +1806,9 @@ classdef DASeV < handle
                 case 0
                     gO.plotFullMenu.Enable = 'on';
                     gO.parallelModeMenu.Enable = 'on';
-                    gO.simultModeSwitch.Enable = 'on';
+                    if gO.loaded(4)
+                        gO.simultModeSwitch.Enable = 'on';
+                    end
                     
                     if gO.loaded(1)
                         gO.ephysDetUpButt.Enable = 'on';
@@ -1851,6 +1853,12 @@ classdef DASeV < handle
         
         %%
         function simultModeSwitchPress(gO,~,~)
+            if ~gO.loaded(4)
+                gO.simultMode = 0;
+                gO.simultFocusMenu.Enable = 'off';
+                gO.simultModeSwitch.Enable = 'off';
+                return
+            end
             if gO.simultModeSwitch.Value
                 gO.simultMode = 1;
                 
