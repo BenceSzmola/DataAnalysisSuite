@@ -104,7 +104,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
         end
         
     end
-
+    
     if (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
@@ -126,7 +126,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
     end
     
     for i = 1:size(rawData,1)
-        if i == refch
+        if chan(i) == refch
             continue
         end
         
@@ -137,7 +137,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
     if ~isempty(extThr)
         
         for i = 1:size(rawData,1)
-            if i == refch
+            if chan(i) == refch
                 continue
             end
             
@@ -150,7 +150,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
     
     minSepar = round(0.03*fs);
     for i = 1:size(rawData,1)
-        if i == refch
+        if chan(i) == refch
             continue
         end
         
@@ -159,7 +159,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
     
     dets = nan(size(rawData));
     for i = 1:size(rawData,1)
-        if i == refch
+        if chan(i) == refch
             continue
         end
         

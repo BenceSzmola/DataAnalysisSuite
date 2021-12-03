@@ -74,7 +74,6 @@ end
 [dets,detBorders] = commDetAlg(taxis,chan,data,instPowd,dogged,...
     refCh,refDogged,refDets,fs,thr,refVal,minLen,extThr);
 
-
 for i = 1:min(size(data))
     
     if chan(i) == refCh
