@@ -1230,7 +1230,8 @@ classdef DASeV < handle
         
         %%
         function parallelModeMenuSel(gO,changeVal)
-            if changeVal
+            if changeVal && ~(isempty(gO.ephysDets) || isempty(gO.imagingDets))
+                
                 if gO.parallelMode < 2
                     gO.parallelMode = gO.parallelMode + 1;
                 else
@@ -1346,12 +1347,16 @@ classdef DASeV < handle
             if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'}))==2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
-                if ~isempty(ephysSaveData) & ~isempty(ephysSaveInfo)
+                if ~isempty(ephysSaveData) %& ~isempty(ephysSaveInfo)
                     gO.ephysData = ephysSaveData.RawData;
                     gO.ephysFs = ephysSaveData.Fs;
                     gO.ephysTaxis = ephysSaveData.TAxis;
                     gO.ephysYlabel = ephysSaveData.YLabel;
                     gO.ephysDets = ephysSaveData.Dets;
+                    if isempty(gO.ephysDets)
+                        gO.parallelMode = 1;
+                        parallelModeMenuSel(gO,0)
+                    end
                     try
                         gO.ephysDetBorders = ephysSaveData.DetBorders;
                     catch
@@ -1395,12 +1400,17 @@ classdef DASeV < handle
             if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'}))==2
                 load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
-                if ~isempty(imagingSaveData) & ~isempty(imagingSaveInfo)
+                if ~isempty(imagingSaveData) %& ~isempty(imagingSaveInfo)
                     gO.imagingData = imagingSaveData.RawData;
                     gO.imagingFs = imagingSaveData.Fs;
                     gO.imagingTaxis = imagingSaveData.TAxis;
                     gO.imagingYlabel = imagingSaveData.YLabel;
                     gO.imagingDets = imagingSaveData.Dets;
+                    if isempty(gO.imagingDets)
+                        gO.parallelMode = 2;
+                        parallelModeMenuSel(gO,0)
+                    end
+                    
                     try
                         gO.imagingDetBorders = imagingSaveData.DetBorders;
                     catch
@@ -1488,6 +1498,7 @@ classdef DASeV < handle
             gO.save2DbSimultCheckBox.Value = 0;
             gO.save2DbRunningChechBox.Value = 0;
             gO.save2DbSimultSelection = [0,0,0,0];
+            
             gO.save2DbEphysSelection = cell(1,1);
             if gO.loaded(1)
                 gO.save2DbEphysSelection = cell(length(gO.ephysDetBorders),1);
@@ -1495,6 +1506,7 @@ classdef DASeV < handle
                     gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
                 end
             end
+            
             gO.save2DbImagingSelection = cell(1,1);
             if gO.loaded(2)
                 gO.save2DbImagingSelection = cell(length(gO.imagingDetBorders),1);
@@ -1544,8 +1556,10 @@ classdef DASeV < handle
                 if ~isempty(ephysSaveInfo)
                     gO.ephysDetTypeTxt.String = ephysSaveInfo.DetType;
                     gO.ephysChanTxt.String = sprintf('%d ',[ephysSaveInfo.DetChannel]);
-                    gO.ephysDetSettingsTable.Data = squeeze(struct2cell(ephysSaveInfo(1).DetSettings))';
-                    gO.ephysDetSettingsTable.ColumnName = fieldnames(ephysSaveInfo(1).DetSettings);
+                    if ~isempty(ephysSaveInfo(1).DetSettings)
+                        gO.ephysDetSettingsTable.Data = squeeze(struct2cell(ephysSaveInfo(1).DetSettings))';
+                        gO.ephysDetSettingsTable.ColumnName = fieldnames(ephysSaveInfo(1).DetSettings);
+                    end
                 end
             end
             
@@ -1558,8 +1572,10 @@ classdef DASeV < handle
                 if ~isempty(imagingSaveInfo)
                     gO.imagingDetTypeTxt.String = imagingSaveInfo.DetType;
                     gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
-                    gO.imagingDetSettingsTable.Data = squeeze(struct2cell(imagingSaveInfo(1).DetSettings))';
-                    gO.imagingDetSettingsTable.ColumnName = fieldnames(imagingSaveInfo(1).DetSettings);
+                    if ~isempty(imagingSaveInfo(1).DetSettings)
+                        gO.imagingDetSettingsTable.Data = squeeze(struct2cell(imagingSaveInfo(1).DetSettings))';
+                        gO.imagingDetSettingsTable.ColumnName = fieldnames(imagingSaveInfo(1).DetSettings);
+                    end
 
                 end
             end

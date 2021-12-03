@@ -3426,11 +3426,16 @@ classdef DAS < handle
         
         %%
         function saveDets(guiobj,event)
+            if isempty(guiobj.ephys_detections) && isempty(guiobj.imaging_detections)
+                errordlg('There are no detections for either datatype!')
+                return
+            end            
+            
             list = [];
-            if ~isempty(guiobj.ephys_detections)
+            if ~isempty(guiobj.ephys_data)
                 list = [list,"Electrophysiology"];
             end
-            if ~isempty(guiobj.imaging_detections)
+            if ~isempty(guiobj.imaging_data)
                 list = [list,"Imaging"];
             end
             if ~isempty(guiobj.simult_detections)
@@ -3439,7 +3444,7 @@ classdef DAS < handle
             if isempty(list)
                 return
             end
-            [detTypeToSave,tf] = listdlg('PromptString','Which detection do you want to save?',...
+            [detTypeToSave,tf] = listdlg('PromptString','Which detection (or dataset if there are no detections) do you want to save?',...
                 'Name','Saving detections',...
                 'ListString',list,'ListSize',[250, 100]);
             if ~tf
@@ -3464,10 +3469,6 @@ classdef DAS < handle
             
             if ~isempty(find(list(detTypeToSave) == "Electrophysiology",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % ephys save
-                if isempty(guiobj.ephys_detectionsInfo(1).DetType)
-                    warndlg('No detections!')
-                    return
-                end
                 
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
@@ -3475,7 +3476,17 @@ classdef DAS < handle
                 ephysSaveData.Dets = guiobj.ephys_detections;
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
                 ephysSaveData.DetParams = guiobj.ephys_detParams;
-                ephysSaveInfo = guiobj.ephys_detectionsInfo;
+                
+                if ~isempty(guiobj.ephys_detectionsInfo)
+                    ephysSaveInfo = guiobj.ephys_detectionsInfo;
+                else
+                    guiobj.ephys_detectionsInfo.DetType = "";
+                    guiobj.ephys_detectionsInfo.DetSettings = [];
+                    guiobj.ephys_detectionsInfo.AllChannel = 1:min(size(guiobj.ephys_data));
+                    guiobj.ephys_detectionsInfo.DetChannel = 1:min(size(guiobj.ephys_data));
+                    ephysSaveInfo = guiobj.ephys_detectionsInfo;
+                end
+                
                 if ~saveAllChans
                     chans2Save = guiobj.ephys_detectionsInfo.DetChannel;
                     ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
@@ -3494,10 +3505,6 @@ classdef DAS < handle
             
             if ~isempty(find(list(detTypeToSave) == "Imaging",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % imaging save
-                if isempty(guiobj.imaging_detectionsInfo(1).DetType)
-                    warndlg('No detections!')
-                    return
-                end
 
                 imagingSaveData.TAxis = guiobj.imaging_taxis;
                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
@@ -3506,7 +3513,15 @@ classdef DAS < handle
                 imagingSaveData.Dets = guiobj.imaging_detections;
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders;
                 imagingSaveData.DetParams = guiobj.imaging_detParams;
-                imagingSaveInfo = guiobj.imaging_detectionsInfo;
+                
+                if ~isempty(guiobj.imaging_detectionsInfo)
+                    imagingSaveInfo = guiobj.imaging_detectionsInfo;
+                else
+                    guiobj.imaging_detectionsInfo.DetType = '';
+                    guiobj.imaging_detectionsInfo.DetSettings = [];
+                    guiobj.imaging_detectionsInfo.Roi = 1:min(size(guiobj.imaging_data));
+                    imagingSaveInfo = guiobj.imaging_detectionsInfo;
+                end
                                 
             else
                 imagingSaveData = [];
