@@ -433,10 +433,11 @@ classdef DASevDB < handle
                 ax(i).Tag = axTag{i};
             end
             
-            
-            temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
-            gO.ephysParamTable.Data = temp;
-            gO.ephysParamTable.ColumnName = {'Electrophysiology','Values'};
+            if ~isempty(currEv.Params)
+                temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
+                gO.ephysParamTable.Data = temp;
+                gO.ephysParamTable.ColumnName = {'Electrophysiology','Values'};
+            end
             
             gO.sourceChanDetTable.Data(1,:) = {currEv.ChanNum,currEv.DetNum};
         end
@@ -498,11 +499,13 @@ classdef DASevDB < handle
             axis(ax,'tight')
             ax.Tag = axTag;
             
-            temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
-            gO.imagingParamTable.Data = temp;
-            gO.imagingParamTable.ColumnName = {'Imaging','Values'};
+            if ~isempty(currEv.Params)
+                temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
+                gO.imagingParamTable.Data = temp;
+                gO.imagingParamTable.ColumnName = {'Imaging','Values'};
+            end
             
-             gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
+            gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
         end
         
         %%
