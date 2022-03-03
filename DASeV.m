@@ -2062,6 +2062,24 @@ classdef DASeV < handle
                         tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(i);
                         tempStruct.ephysEvents.DetNum = j;
                         
+                        if gO.save2DbEphys_wPar_CheckBox.Value
+                            tempStruct.parallel = 2;
+                            
+                            refWin = gO.ephysTaxis(win);
+                            [~,startInd] = min(abs(gO.imagingTaxis - refWin(1)));
+                            [~,stopInd] = min(abs(gO.imagingTaxis - refWin(end)));
+                            parWin = startInd:stopInd;
+                            
+                            tempStruct.imagingEvents.Taxis = gO.imagingTaxis(parWin);
+                            tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(:,parWin);
+                            tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(:,parWin);
+                            tempStruct.imagingEvents.DetBorders = [];
+                            tempStruct.imagingEvents.Params = [];
+                            tempStruct.imagingEvents.DetSettings = [];
+                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi;
+                            tempStruct.imagingEvents.DetNum = [];
+                        end
+                        
                         if gO.save2DbRunningChechBox.Value
                             refWin = gO.ephysTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);

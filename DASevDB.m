@@ -574,7 +574,7 @@ classdef DASevDB < handle
         %%
         function computeMeanDataWin(gO)
             if gO.loaded(1)
-                datawin = squeeze(struct2cell([gO.ephysEvents.DataWin]));
+                datawin = squeeze(struct2cell([gO.ephysEvents.DataWin]))
                 rawEfiz = datawin(1,:);
                 bpEfiz = datawin(2,:);
                 powEfiz = datawin(3,:);
@@ -606,18 +606,19 @@ classdef DASevDB < handle
                 datawin = squeeze(struct2cell([gO.imagingEvents.DataWin]));
                 rawImaging = datawin(1,:);
                 smoothImaging = datawin(2,:);
-                winLens = cellfun('length',rawImaging);
+                winLens = cellfun('size',rawImaging,2);
                 [~,maxLenInd] = max(winLens);
                 for i = 1:length(rawImaging)
+                    numParChans = size(rawImaging{i},1);
                     toMax=max(winLens)-winLens(i);
                     if toMax~=0
                         toMaxHalf = toMax/2;
                         if mod(toMaxHalf,2)~=0
-                            rawImaging{i} = [zeros(1,floor(toMaxHalf)),rawImaging{i},zeros(1,ceil(toMaxHalf))];
-                            smoothImaging{i} = [zeros(1,floor(toMaxHalf)),smoothImaging{i},zeros(1,ceil(toMaxHalf))];
+                            rawImaging{i} = [zeros(numParChans,floor(toMaxHalf)),rawImaging{i},zeros(numParChans,ceil(toMaxHalf))];
+                            smoothImaging{i} = [zeros(numParChans,floor(toMaxHalf)),smoothImaging{i},zeros(numParChans,ceil(toMaxHalf))];
                         else
-                            rawImaging{i} = [zeros(1,toMaxHalf),rawImaging{i},zeros(1,toMaxHalf)];
-                            smoothImaging{i} = [zeros(1,toMaxHalf),smoothImaging{i},zeros(1,toMaxHalf)];
+                            rawImaging{i} = [zeros(numParChans,toMaxHalf),rawImaging{i},zeros(numParChans,toMaxHalf)];
+                            smoothImaging{i} = [zeros(numParChans,toMaxHalf),smoothImaging{i},zeros(numParChans,toMaxHalf)];
                         end
                     end
                 end
@@ -697,31 +698,32 @@ classdef DASevDB < handle
 %                 'simultEphysDataWin';'simultEphysParams';...
 %                 'simultImagingTaxis';'simultImagingDataWin';'simultImagingParams'};
 %             nameMatch = ismember(temp,string(fieldnames(saveStruct)))
-            if isempty(find([saveStruct.simult],1)) && ...
-                    ismember('ephysEvents',string(fieldnames(saveStruct)))
+
+%             if isempty(find([saveStruct.simult],1)) && ...
+            if ismember('ephysEvents',string(fieldnames(saveStruct)))
                 gO.numEvents = length(saveStruct);
                 gO.loaded(1) = 1;
                 gO.ephysEvents = [saveStruct.ephysEvents];
                 gO.ephysParamTable.Visible = 'on';
             end
             
-            if isempty(find([saveStruct.simult],1)) && ...
-                    ismember('imagingEvents',string(fieldnames(saveStruct)))
+%             if isempty(find([saveStruct.simult],1)) && ...
+            if ismember('imagingEvents',string(fieldnames(saveStruct)))
                 
                 gO.numEvents = length(saveStruct);
                 gO.loaded(2) = 1;
                 gO.imagingEvents = [saveStruct.imagingEvents];
                 gO.imagingParamTable.Visible = 'on';
             end
-            
-            if ~isempty(find([saveStruct.simult],1))
-                gO.numEvents = length(saveStruct);
-                gO.loaded(1:2) = 1;
-                gO.ephysEvents = [saveStruct.ephysEvents];
-                gO.imagingEvents = [saveStruct.imagingEvents];
-                gO.ephysParamTable.Visible = 'on';
-                gO.imagingParamTable.Visible = 'on';
-            end
+%             
+%             if ~isempty(find([saveStruct.simult],1))
+%                 gO.numEvents = length(saveStruct);
+%                 gO.loaded(1:2) = 1;
+%                 gO.ephysEvents = [saveStruct.ephysEvents];
+%                 gO.imagingEvents = [saveStruct.imagingEvents];
+%                 gO.ephysParamTable.Visible = 'on';
+%                 gO.imagingParamTable.Visible = 'on';
+%             end
             
             if ismember('runData',string(fieldnames(saveStruct)))
                 gO.loaded(3) = 1;
