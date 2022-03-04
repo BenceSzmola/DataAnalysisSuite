@@ -2196,6 +2196,11 @@ classdef DASeV < handle
                 end
             end
             
+            if isempty(newSaveStruct)
+                errordlg('No events selected!')
+                return
+            end
+            
             DASloc = mfilename('fullpath');
             if ~exist([DASloc(1:end-5),'DASeventDBdir\'],'dir')
                 mkdir([DASloc(1:end-5),'DASeventDBdir\'])
@@ -2235,13 +2240,23 @@ classdef DASeV < handle
                 elseif ~saveStruct(1).simult
                     if selected(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
                         errordlg(['The entry you chose contains only ',...
-                            'electrophysiological events! Choose another, ',...
+                            'imaging events! Choose another, ',...
                             'or create a new one!'])
                         return
                     end
                     if selected(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))
                         errordlg(['The entry you chose contains only ',...
-                            'imaging events! Choose another, or create a new one!'])
+                            'electrophysiological events! Choose another, or create a new one!'])
+                        return
+                    end
+                end
+                
+                % control parallel saving
+                if saveStruct(1).parallel ~= 0
+                    if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox) ||...
+                            ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox)
+                        errordlg(['The entry you chose contains different type of parallel events',...
+                            ' Choose another, or create a new one!'])
                         return
                     end
                 end

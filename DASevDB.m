@@ -51,6 +51,9 @@ classdef DASevDB < handle
         plotPanel
         eventUpButton
         eventDwnButton
+        parallelChanUpButton
+        parallelChanDwnButton
+        showAvgParallelChanButton
         ax11
         ax21
         ax22
@@ -112,6 +115,7 @@ classdef DASevDB < handle
         loaded = [0,0,0];
         dbFileNames
         currEvent = 1;
+        currParallelChan = 1;
         numEvents = 0;
         source
         simultFromSaveStruct
@@ -448,9 +452,15 @@ classdef DASevDB < handle
             currEv = gO.imagingEvents(gO.currEvent);
             axTag = ax.Tag;
             
+            if gO.parallelFromSaveStruct(gO.currEvent) == 2
+                row2show = gO.currParallelChan;
+            else
+                row2show = 1;
+            end
+            
             if type(1)
                 if ~gO.displayAvgDataWin
-                    dataWin = currEv.DataWin.Raw;
+                    dataWin = currEv.DataWin.Raw(row2show,:);
                     yLabels = '\DeltaF/F';
                     plotTitle = 'Raw imaging data';
                 else
@@ -461,7 +471,7 @@ classdef DASevDB < handle
             end
             if type(2)
                 if ~gO.displayAvgDataWin
-                    dataWin = currEv.DataWin.Smoothed;
+                    dataWin = currEv.DataWin.Smoothed(row2show,:);
                     yLabels = '\DeltaF/F';
                     plotTitle = 'Smoothed imaging data';
                 else
@@ -505,7 +515,11 @@ classdef DASevDB < handle
                 gO.imagingParamTable.ColumnName = {'Imaging','Values'};
             end
             
-            gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
+            if gO.parallelFromSaveStruct(gO.currEvent) == 2
+                gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum(row2show),nan};
+            else
+                gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
+            end
         end
         
         %%
@@ -572,9 +586,38 @@ classdef DASevDB < handle
         end
         
         %%
+        function changeCurrParallelChan(gO,upDwn)
+            currEv = gO.currEvent;
+            currParCh = gO.currParallelChan;
+            
+            switch gO.parallelFromSaveStruct(currEv)
+                case 1
+                    
+                case 2
+                    numParChans = size(gO.imagingEvents(currEv).DataWin.Raw,1);
+            end
+            
+            switch upDwn
+                case 0
+                    % no change
+                case 1
+                    if currParCh < numParChans
+                        currParCh = currParCh + 1;
+                    end
+                case -1
+                    if currParCh > 1
+                        currParCh = currParCh - 1;
+                    end
+            end
+            
+            gO.currParallelChan = currParCh;
+            smartplot(gO,0)
+        end
+        
+        %%
         function computeMeanDataWin(gO)
             if gO.loaded(1)
-                datawin = squeeze(struct2cell([gO.ephysEvents.DataWin]))
+                datawin = squeeze(struct2cell([gO.ephysEvents.DataWin]));
                 rawEfiz = datawin(1,:);
                 bpEfiz = datawin(2,:);
                 powEfiz = datawin(3,:);
@@ -1475,19 +1518,40 @@ classdef DASevDB < handle
                 'Position',[0.22, 0.01, 0.775, 0.98],...
                 'BorderType','beveledout',...
                 'TItle','Graphs');
+            
             gO.eventUpButton = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.95, 0.035, 0.035],...
+                'Position',[0.95, 0.95, 0.045, 0.035],...
                 'String','<HTML>Event&uarr',...
                 'Callback',@(h,e) gO.changeCurrEv(1));
             gO.eventDwnButton = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.9, 0.035, 0.035],...
+                'Position',[0.95, 0.9, 0.045, 0.035],...
                 'String','<HTML>Event&darr',...
                 'Callback',@(h,e) gO.changeCurrEv(-1));
-            gO.ax11 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.85, 0.6],...
+            gO.parallelChanUpButton = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.8, 0.045, 0.035],...
+                'String','<HTML>ParChan&uarr',...
+                'Callback',@(h,e) gO.changeCurrParallelChan(1));
+            gO.parallelChanDwnButton = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.7, 0.045, 0.035],...
+                'String','<HTML>ParChan&darr',...
+                'Callback',@(h,e) gO.changeCurrParallelChan(-1));
+            gO.showAvgParallelChanButton = uicontrol(gO.plotPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.95, 0.75, 0.045, 0.035],...
+                'String','Avg Par.',...
+                'Tooltip','Average of parallel time windows',...
+                'Callback',@(h,e) gO.changeCurrParallelChan(0));
+            
+            gO.ax11 = axes(gO.plotPanel,'Position',[0.1, 0.2, 0.8, 0.6],...
                 'Visible','off',...
                 'Tag','axGroup1');
             gO.ax11.Toolbar.Visible = 'on';
@@ -1499,15 +1563,15 @@ classdef DASevDB < handle
                 'Visible','off',...
                 'Tag','axGroup2');
             gO.ax22.Toolbar.Visible = 'on';
-            gO.ax31 = axes(gO.plotPanel,'Position',[0.1, 0.71, 0.85, 0.25],...
+            gO.ax31 = axes(gO.plotPanel,'Position',[0.1, 0.71, 0.8, 0.25],...
                 'Visible','off',...
                 'Tag','axGroup3');
             gO.ax31.Toolbar.Visible = 'on';
-            gO.ax32 = axes(gO.plotPanel,'Position',[0.1, 0.38, 0.85, 0.25],...
+            gO.ax32 = axes(gO.plotPanel,'Position',[0.1, 0.38, 0.8, 0.25],...
                 'Visible','off',...
                 'Tag','axGroup3');
             gO.ax32.Toolbar.Visible = 'on';
-            gO.ax33 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.85, 0.25],...
+            gO.ax33 = axes(gO.plotPanel,'Position',[0.1, 0.05, 0.8, 0.25],...
                 'Visible','off',...
                 'Tag','axGroup3');
             gO.ax33.Toolbar.Visible = 'on';
