@@ -366,9 +366,16 @@ classdef DASevDB < handle
         function ephysPlot(gO,ax)
             type = gO.ephysTypeSelected;
             currEv = gO.ephysEvents(gO.currEvent);
+            
             axTag = cell(length(ax),1);
             for i = 1:length(ax)
                 axTag{i} = ax.Tag;
+            end
+            
+            if gO.parallelFromSaveStruct(gO.currEvent) == 1
+                row2show = gO.currParallelChan;
+            else
+                row2show = 1;
             end
             
             dataWin = [];
@@ -376,7 +383,7 @@ classdef DASevDB < handle
             plotTitle = [];
             if type(1)
                 if ~gO.displayAvgDataWin
-                    dataWin = [dataWin; currEv.DataWin.Raw];
+                    dataWin = [dataWin; currEv.DataWin.Raw(row2show,:)];
                     yLabels = [yLabels; "Voltage [\muV]"];
                     plotTitle = [plotTitle; "Raw data"];
                 else
@@ -387,7 +394,7 @@ classdef DASevDB < handle
             end
             if type(2)
                 if ~gO.displayAvgDataWin
-                    dataWin = [dataWin; currEv.DataWin.BP];
+                    dataWin = [dataWin; currEv.DataWin.BP(row2show,:)];
                     yLabels = [yLabels; "Voltage [\muV]"];
                     plotTitle = [plotTitle; "Bandpass filtered data"];
                 else
@@ -398,7 +405,7 @@ classdef DASevDB < handle
             end
             if type(3)
                 if ~gO.displayAvgDataWin
-                    dataWin = [dataWin; currEv.DataWin.Power];
+                    dataWin = [dataWin; currEv.DataWin.Power(row2show,:)];
                     yLabels = [yLabels; "Power [\muV^2]"];
                     plotTitle = [plotTitle; "Instantaneous power of data"];
                 else
@@ -443,7 +450,11 @@ classdef DASevDB < handle
                 gO.ephysParamTable.ColumnName = {'Electrophysiology','Values'};
             end
             
-            gO.sourceChanDetTable.Data(1,:) = {currEv.ChanNum,currEv.DetNum};
+            if gO.parallelFromSaveStruct(gO.currEvent) == 1
+                gO.sourceChanDetTable.Data(1,:) = {currEv.ChanNum(row2show),[]};
+            else
+                gO.sourceChanDetTable.Data(1,:) = {currEv.ChanNum,currEv.DetNum};
+            end
         end
         
         %%
@@ -516,7 +527,7 @@ classdef DASevDB < handle
             end
             
             if gO.parallelFromSaveStruct(gO.currEvent) == 2
-                gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum(row2show),nan};
+                gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum(row2show),[]};
             else
                 gO.sourceChanDetTable.Data(2,:) = {currEv.ROINum,currEv.DetNum};
             end
@@ -587,14 +598,14 @@ classdef DASevDB < handle
         
         %%
         function changeCurrParallelChan(gO,upDwn)
-            currEv = gO.currEvent;
+            currEvNum = gO.currEvent;
             currParCh = gO.currParallelChan;
             
-            switch gO.parallelFromSaveStruct(currEv)
+            switch gO.parallelFromSaveStruct(currEvNum)
                 case 1
-                    
+                    numParChans = size(gO.ephysEvents(currEvNum).DataWin.Raw,1);
                 case 2
-                    numParChans = size(gO.imagingEvents(currEv).DataWin.Raw,1);
+                    numParChans = size(gO.imagingEvents(currEvNum).DataWin.Raw,1);
             end
             
             switch upDwn
@@ -624,17 +635,18 @@ classdef DASevDB < handle
                 winLens = cellfun('length',rawEfiz);
                 [~,maxLenInd] = max(winLens);
                 for i = 1:length(rawEfiz)
+                    numParChans = size(rawEfiz{i},1);
                     toMax=max(winLens)-winLens(i);
                     if toMax~=0
                         toMaxHalf = toMax/2;
                         if mod(toMaxHalf,2)~=0
-                            rawEfiz{i} = [zeros(1,floor(toMaxHalf)),rawEfiz{i},zeros(1,ceil(toMaxHalf))];
-                            bpEfiz{i} = [zeros(1,floor(toMaxHalf)),bpEfiz{i},zeros(1,ceil(toMaxHalf))];
-                            powEfiz{i} = [zeros(1,floor(toMaxHalf)),powEfiz{i},zeros(1,ceil(toMaxHalf))];
+                            rawEfiz{i} = [zeros(numParChans,floor(toMaxHalf)),rawEfiz{i},zeros(numParChans,ceil(toMaxHalf))];
+                            bpEfiz{i} = [zeros(numParChans,floor(toMaxHalf)),bpEfiz{i},zeros(numParChans,ceil(toMaxHalf))];
+                            powEfiz{i} = [zeros(numParChans,floor(toMaxHalf)),powEfiz{i},zeros(numParChans,ceil(toMaxHalf))];
                         else
-                            rawEfiz{i} = [zeros(1,toMaxHalf),rawEfiz{i},zeros(1,toMaxHalf)];
-                            bpEfiz{i} = [zeros(1,toMaxHalf),bpEfiz{i},zeros(1,toMaxHalf)];
-                            powEfiz{i} = [zeros(1,toMaxHalf),powEfiz{i},zeros(1,toMaxHalf)];
+                            rawEfiz{i} = [zeros(numParChans,toMaxHalf),rawEfiz{i},zeros(numParChans,toMaxHalf)];
+                            bpEfiz{i} = [zeros(numParChans,toMaxHalf),bpEfiz{i},zeros(numParChans,toMaxHalf)];
+                            powEfiz{i} = [zeros(numParChans,toMaxHalf),powEfiz{i},zeros(numParChans,toMaxHalf)];
                         end
                     end
                 end

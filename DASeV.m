@@ -2128,6 +2128,25 @@ classdef DASeV < handle
                         tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi(i);
                         tempStruct.imagingEvents.DetNum = j;
                         
+                        if gO.save2DbImaging_wPar_CheckBox.Value
+                            tempStruct.parallel = 1;
+                            
+                            refWin = gO.imagingTaxis(win);
+                            [~,startInd] = min(abs(gO.ephysTaxis - refWin(1)));
+                            [~,stopInd] = min(abs(gO.ephysTaxis - refWin(end)));
+                            parWin = startInd:stopInd;
+                            
+                            tempStruct.ephysEvents.Taxis = gO.ephysTaxis(parWin);
+                            tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(:,parWin);
+                            tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(:,parWin);
+                            tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(:,parWin);
+                            tempStruct.ephysEvents.DetBorders = [];
+                            tempStruct.ephysEvents.Params = [];
+                            tempStruct.ephysEvents.DetSettings = [];
+                            tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.AllChannel;
+                            tempStruct.ephysEvents.DetNum = [];
+                        end
+                        
                         if gO.save2DbRunningChechBox.Value
                             refWin = gO.imagingTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
@@ -2253,8 +2272,8 @@ classdef DASeV < handle
                 
                 % control parallel saving
                 if saveStruct(1).parallel ~= 0
-                    if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox) ||...
-                            ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox)
+                    if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox.Value) ||...
+                            ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox.Value)
                         errordlg(['The entry you chose contains different type of parallel events',...
                             ' Choose another, or create a new one!'])
                         return
