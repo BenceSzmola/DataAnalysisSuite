@@ -94,7 +94,7 @@ for i = 1:min(size(data))
         continue
     end
     
-    detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:));
+    detParams{i} = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:));
 
     %% Plotting
     if showFigs
@@ -148,6 +148,6 @@ for i = 1:min(size(data))
     end
 end
 
-if ~isempty(find(chan==refCh, 1))
-    dets(find(chan==refCh),:) = refDetMarks;
-end
+% if ~isempty(find(chan==refCh, 1))
+%     dets(find(chan==refCh),:) = refDetMarks;
+% end

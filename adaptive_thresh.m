@@ -241,9 +241,10 @@ detettione(detettione==0) = [];
 
 detBorders = {detBorders};
 
-dets = zeros(1,length(smoothie));
-dets(:) = nan;
-dets(detettione) = 0;
+% dets = zeros(1,length(smoothie));
+% dets(:) = nan;
+% dets(detettione) = 0;
+dets = dettetione;
 
 %% Show detecitons on dog
 if showFigs

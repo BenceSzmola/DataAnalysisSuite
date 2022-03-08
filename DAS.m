@@ -1343,13 +1343,14 @@ classdef DAS < handle
                             detBorders = guiobj.imaging_detBorders;
                     end
                     
-                    emptyRows = [];
-                    for i = 1:size(detMat,1)
-                        if isempty(find(~isnan(detMat(i,:)),1))
-                            emptyRows = [emptyRows; i];
-                        end
-                    end
-                    detMat(emptyRows,:) = [];
+%                     emptyRows = [];
+%                     for i = 1:size(detMat,1)
+%                         if isempty(find(~isnan(detMat(i,:)),1))
+%                             emptyRows = [emptyRows; i];
+%                         end
+%                     end
+                    emptyRows = cellfun('isempty',detMat);
+                    detMat(emptyRows) = [];
                     if dTyp==1
                         detInfo.DetChannel(emptyRows) = [];
                     elseif dTyp==2
@@ -1362,8 +1363,8 @@ classdef DAS < handle
                         detParams(emptyRows) = [];
                     end
 
-                    numDets = length(find(~isnan(detMat(currChan,:))));
-                    numChans = size(detMat,1);
+                    numDets = length(detMat{currChan});
+                    numChans = length(detMat);
                     
                     if nargout == 2
                         return
@@ -1377,8 +1378,8 @@ classdef DAS < handle
 
                     detNum = currDet;
 
-                    detInd = find(~isnan(detMat(currChan,:)));
-                    detInd = detInd(currDet);
+%                     detInd = find(~isnan(detMat(currChan,:)));
+                    detInd = detMat{currChan}(currDet);
                     
                     if ~isempty(detBorders{currChan})
                         detBorders = detBorders{currChan};
@@ -1435,10 +1436,11 @@ classdef DAS < handle
                             nonSimDetInfo = guiobj.ephys_detectionsInfo;
                             nonSimDetRow = find(nonSimDetInfo.DetChannel==chan);
                             
-                            detMat = guiobj.ephys_detections(nonSimDetRow,:);
-                            detInd = find(~isnan(detMat));
-                            detNum = currChanEvents(currDet);
-                            detInd = detInd(detNum);
+                            detMat = guiobj.ephys_detections{nonSimDetRow};
+%                             detInd = find(~isnan(detMat));
+%                             detNum = currChanEvents(currDet);
+%                             detInd = detInd(detNum);
+                            detInd = detMat(currChanEvents(currDet));
                             
                             detBorders = guiobj.ephys_detBorders{nonSimDetRow};
                             if ~isempty(detBorders)
@@ -1475,12 +1477,13 @@ classdef DAS < handle
                             
                             nonSimDetInfo = guiobj.imaging_detectionsInfo;
                             nonSimDetRow = find(nonSimDetInfo.Roi==chan);
-                            detMat = guiobj.imaging_detections(nonSimDetRow,:);                            
+                            detMat = guiobj.imaging_detections{nonSimDetRow};                            
                             
-                            detInd = find(~isnan(detMat));
-                            
-                            detNum = currChanEvents(currDet);
-                            detInd = detInd(detNum);
+%                             detInd = find(~isnan(detMat));
+%                             
+%                             detNum = currChanEvents(currDet);
+%                             detInd = detInd(detNum);
+                            detInd = detMat(currChanEvents(currDet));
                             
                             detBorders = guiobj.imaging_detBorders{nonSimDetRow};
                             if ~isempty(detBorders)
@@ -2720,9 +2723,12 @@ classdef DAS < handle
                         return
                     end
                     
+                    dets = cell(min(size(data)),1);
+                    detBorders = cell(min(size(data)),1);
                     for i = 1:min(size(data))
                         [detsTemp,detBordersTemp] = adaptive_thresh(data(i,:),tAxis,fs,step,minLen,mindist,ratio,showFigs);
-                        dets(i,:) = detsTemp;
+%                         dets(i,:) = detsTemp;
+                        dets{i} = detsTemp;
                         detBorders(i) = detBordersTemp;
                     end
                     detParams = cell(min(size(data)),1);
@@ -2805,13 +2811,13 @@ classdef DAS < handle
             
             if (refVal ~= 0) & (~isempty(find(chan==refch,1)))
                 temp = dets;
-                temp(find(chan==refch),:) = [];
-                detsOnlyInRef = isempty(find(~isnan(temp),1));
+                temp(chan==refch) = [];
+                detsOnlyInRef = find(cellfun('isempty',temp),1);
             else
                 detsOnlyInRef = false;
             end
             
-            if isempty(dets) | isnan(dets) | (isempty(find(~isnan(dets), 1))) | detsOnlyInRef
+            if ~isempty(find(cellfun('isempty',dets),1)) | detsOnlyInRef
                 
                 guiobj.ephys_detections = [];
                 guiobj.ephys_detBorders = {};
@@ -2884,7 +2890,7 @@ classdef DAS < handle
             fs = guiobj.imaging_fs;
             
             
-            dets = nan(size(data));
+            dets = cell(min(size(data)),1);
             detBorders = cell(min(size(data)),1);
             detParams = cell(min(size(data)),1);
             switch dettype
@@ -2942,7 +2948,7 @@ classdef DAS < handle
                         [binSize,binEdges] = histcounts(numSpikes(i,:));
                         if (binSize(end)/sum(binSize)) < 0.015
                             goodBin = mean(binEdges(end-1:end));
-                            dets(i,numSpikes(i,:)==goodBin) = 0;
+                            dets{i} = numSpikes(i,:)==goodBin;
                         end
                     end
                     
@@ -2951,7 +2957,7 @@ classdef DAS < handle
                     detinfo.DetSettings = par;
             end
             
-            if isempty(dets) || isempty(find(~isnan(dets),1))
+            if ~isempty(find(cellfun('isempty',dets), 1))
                 guiobj.imaging_detections = [];
                 guiobj.imaging_detectionsInfo = [];
                 guiobj.imaging_detBorders = {};
@@ -2981,7 +2987,7 @@ classdef DAS < handle
         
         %%
         function simultDetRun(guiobj,event)
-            if (isempty(guiobj.ephys_detections)) | (isempty(guiobj.imaging_detections)) 
+            if ~isempty(find(cellfun('isempty',guiobj.ephys_detections),1)) | ~isempty(find(cellfun('isempty',guiobj.imaging_detections), 1))
                 errordlg('Both electrophysiology and imaging detections are needed!')
                 return
             end
@@ -3010,10 +3016,10 @@ classdef DAS < handle
                     delay2 = str2double(guiobj.simultDetStandardDelayEdit2.String)/1000;
                     for ephysRowNum = 1:size(guiobj.ephys_detections,1)
                         chan = guiobj.ephys_detectionsInfo.DetChannel(ephysRowNum);
-                        ephys_detInds = find(~isnan(guiobj.ephys_detections(ephysRowNum,:)));
+                        ephys_detInds = guiobj.ephys_detections{ephysRowNum};
                         
                         for imRowNum = 1:size(guiobj.imaging_detections,1)
-                            imaging_detInds = find(~isnan(guiobj.imaging_detections(imRowNum,:)));
+                            imaging_detInds = guiobj.imaging_detections{imRowNum};
                             roi = guiobj.imaging_detectionsInfo.Roi(imRowNum);
                                                         
                             for i = 1:length(ephys_detInds)

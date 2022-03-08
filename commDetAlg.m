@@ -157,13 +157,18 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
         [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},eventsStartStop{i},minSepar);
     end
     
-    dets = nan(size(rawData));
-    for i = 1:size(rawData,1)
-        if chan(i) == refch
-            continue
-        end
-        
-        dets(i,eventsPeak{i}) = 0;
+%     dets = nan(size(rawData));
+%     dets = cell(size(rawData,1),1);
+%     for i = 1:size(rawData,1)
+%         if chan(i) == refch
+%             continue
+%         end
+%         
+% %         dets(i,eventsPeak{i}) = true;
+%     end
+    dets = eventsPeak;
+    if ~isempty(find(chan==refch,1))
+        dets{chan==refch} = [];
     end
     detBorders = eventsStartStop;   
 

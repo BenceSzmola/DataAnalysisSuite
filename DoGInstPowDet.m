@@ -32,8 +32,8 @@ else
     refInstPowd = [];
 end
 
-dets = nan(size(data));
-detBorders = cell(min(size(data)),1);
+% dets = nan(size(data));
+% detBorders = cell(min(size(data)),1);
 detParams = cell(min(size(data)),1);
 
 if refVal == 1
@@ -81,7 +81,7 @@ for i = 1:min(size(data))
     end
     
     % det stats
-    detParams{i} = detParamMiner(1,dets(i,:),detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
+    detParams{i} = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:));
     
     % plotting part mainly for bugfixing
     if showFigs
@@ -134,8 +134,8 @@ for i = 1:min(size(data))
     end
 end
 
-if ~isempty(find(chan==refCh, 1))
-    dets(find(chan==refCh),:) = refDetMarks;
-    
-end
+% if ~isempty(find(chan==refCh, 1))
+%     dets(find(chan==refCh),:) = refDetMarks;
+%     
+% end
 

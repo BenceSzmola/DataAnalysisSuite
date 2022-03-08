@@ -1,7 +1,7 @@
 function detParams = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData)
 
-numDets = length(find(~isnan(dets)));
-detInds = find(~isnan(dets));
+numDets = length(dets);
+detInds = dets;
 
 switch dTyp
     case 1
