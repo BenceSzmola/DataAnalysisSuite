@@ -1,6 +1,5 @@
 function detPlot(ax,detInds,detBorders,tAxis,method,color,yMinMax)
 
-hold(ax,'on')
 switch method
     case 'stars'
         x2plot = tAxis(detInds);
@@ -19,4 +18,3 @@ switch method
             xline(ax,tAxis(detBorders(i,2)),'--b','LineWidth',1);
         end
 end
-hold(ax,'off')

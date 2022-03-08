@@ -132,7 +132,8 @@ for i = 1:min(size(data))
 
         plot(sp2,taxis,instE(i,:))
         hold(sp2,'on')
-        plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
+%         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
+        detPlot(sp2,dets{i},[],taxis,'stars','r',[])
         yline(sp2,thr(i),'Color','g');
         yline(sp2,quietThr(i),'Color','k');
         plot(sp2,taxis,qSegsInds{i},'-m')
@@ -148,6 +149,8 @@ for i = 1:min(size(data))
     end
 end
 
-% if ~isempty(find(chan==refCh, 1))
-%     dets(find(chan==refCh),:) = refDetMarks;
-% end
+if ~isempty(find(chan==refCh, 1))
+    % egyelore refDets-t nem alakitottam at, ezert itt convertalom
+    refDets = find(~isnan(refDetMarks));
+    dets{chan==refCh} = refDets;
+end

@@ -906,25 +906,12 @@ classdef DAS < handle
                 if strcmp(guiobj.showSimultMarkersMenu.Checked,'on')
                     hold(ax(i),'on')
                     for j = 1:size(guiobj.simult_detections,1)
-    %                     dets = guiobj.simult_detections(j,:);
-    %                     dets = round(dets*guiobj.ephys_fs,4);
-    %                     marks = nan(1,length(guiobj.ephys_taxis));
-    %                     marks(dets) = 0;
-                        plot(ax(i),guiobj.ephys_taxis,guiobj.simult_detections(j,:),...
-                            'k*','MarkerSize',12)
+%                         plot(ax(i),guiobj.ephys_taxis,guiobj.simult_detections(j,:),...
+%                             'k*','MarkerSize',12)
+                        simDets = guiobj.simult_detections(j,1:2);
+                        simDets = guiobj.ephys_detections{simDets(1)}(simDets(2));
+                        detPlot(ax(i),simDets,[],guiobj.ephys_taxis,'stars','r',[])
                     end
-    %                 if i == 1
-    %                     for j = 1:size(guiobj.simultan_detections,1)
-    %                         plot(ax(i),guiobj.ephys_taxis,...
-    %                             'k*','MarkerSize',12)
-    %                     end
-    %                 elseif i == 2
-    %                     for j = 1:size(guiobj.simultan_detections,1)
-    %                         plot(ax(i),guiobj.imaging_taxis,...
-    %                             guiobj.imaging_detections(j,:),'g*','MarkerSize',12)
-    %                     end
-    %                 end
-%                     hold(ax(i),'off')
                     ax(i).NextPlot = 'replacechildren';
                 end
             end
