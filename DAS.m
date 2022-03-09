@@ -625,8 +625,7 @@ classdef DAS < handle
                         runposplot(guiobj)
                         runvelocplot(guiobj)
                         
-                        ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select,...
-                            [])
+                        ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select)
                         imagingplot(guiobj,guiobj.axes32,guiobj.imag_select)
                 end
             elseif ~guiobj.runCheckBox.Value
@@ -2627,7 +2626,7 @@ classdef DAS < handle
             if (refVal ~= 0) && (~isempty(find(chan==refch,1)))
                 temp = dets;
                 temp(chan==refch) = [];
-                detsOnlyInRef = find(cellfun('isempty',temp),1);
+                detsOnlyInRef = ~sum(~cellfun('isempty',temp));
             else
                 detsOnlyInRef = false;
             end
