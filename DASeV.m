@@ -1419,7 +1419,7 @@ classdef DASeV < handle
                     gO.save2DbImagingCheckBox.Enable = 'on';
                     
                     gO.imagingSmoothed = smoothdata(gO.imagingData,...
-                        2,'gaussian',10);
+                        2,'gaussian',5);
                     
                     gO.loaded(2) = 1;
                     

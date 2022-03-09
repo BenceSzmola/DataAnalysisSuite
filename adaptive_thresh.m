@@ -253,8 +253,9 @@ if showFigs
     % plot(taxis,z_dog)
     % hold on
     hold(sp2,'on')
-    plot(taxis,dets,'r*','MarkerSize',12)
+%     plot(taxis,dets,'r*','MarkerSize',12)
+    detPlot(sp2,dets,[],taxis,'stars','r',[])
     legend(sp2,'DoG','Detections')
-    axis tight
-    hold off
+    axis(sp2,'tight')
+    hold(sp2,'off')
 end
