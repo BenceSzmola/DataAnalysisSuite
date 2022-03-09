@@ -251,9 +251,8 @@ classdef DAS < handle
         ephys_procTypes = ["DoG"; "Periodic"];
         ephys_detections                    % Location of detections on time axis
         ephys_detBorders
-        ephys_detectionsInfo% = struct('DetType',[],'Channel',[],'DetSettings',[],'DetRun',[]);
-        ephys_detParams %= struct('Amplitude',[],'Length',[],'Frequency',[],...
-            %'AUC',[],'RiseTime',[],'DecayTime',[],'FWHM',[]);
+        ephys_detectionsInfo
+        ephys_detParams 
         ephys_detMarkerSelection
         ephys_detRunsNum = 0;               % Number of detection runs
         ephys_currDetRun                       % Detection run currently active in detection tab
@@ -274,7 +273,7 @@ classdef DAS < handle
         imaging_detections
         imaging_detBorders
         imaging_detParams
-        imaging_detectionsInfo% = struct('DetType',[],'Roi',[],'DetSettings',[],'DetRun',[]);
+        imaging_detectionsInfo
         imaging_detMarkerSelection
         imaging_detRunsNum = 0;             % Number of detection runs
         imaging_currDetRun
@@ -299,8 +298,7 @@ classdef DAS < handle
         run_veloc_ylabel = 'Velocity [cm/s]';
         
         simult_detections
-        simult_detectionsInfo %= struct('DetType',[],'EphysChannel',[],...
-            %'ROI',[],'Params',[],'DetRun',[]);
+        simult_detectionsInfo
         simult_detParams
         simult_detRunsNum = 0;
         simult_detMarkerSelection
@@ -324,7 +322,6 @@ classdef DAS < handle
         eventDetSim2CurrDet = 1;
         eventDetSim2CurrRoi = 1;
         
-%         winsizes = [1280,780;1600,900;1920,1080;2560,1440;3840,2160];
     end
     
     %% constructor part
@@ -346,7 +343,7 @@ classdef DAS < handle
     methods (Access = private)
         
         %%
-        function ephysplot(guiobj,ax,index,value)
+        function ephysplot(guiobj,ax,index)
             if isempty(index) | index == 0
                 return
             end
@@ -381,7 +378,6 @@ classdef DAS < handle
                         hold(ax,'on')
                         dataname = guiobj.ephysProcListBox2.String{procInds};
                     end
-%                     hold(ax,'off')
                     ax.NextPlot = 'replacechildren';
                     
                     if firstplot
@@ -403,11 +399,6 @@ classdef DAS < handle
                     end
             end
 
-%             if firstplot
-% %                 axis(ax,'tight')
-% %                 ax.NextPlot = 'replacechildren';
-%                 setXlims(guiobj)
-%             end
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
             elseif length(index) > 1
@@ -457,7 +448,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingplot(guiobj,ax,index,value)
+        function imagingplot(guiobj,ax,index)
             if isempty(index) | index == 0
                 return
             end
@@ -492,7 +483,6 @@ classdef DAS < handle
                         hold(ax,'on')
                         dataname = guiobj.imagingProcListBox2.String{procInds};
                     end
-%                     hold(ax,'off')
                     ax.NextPlot = 'replacechildren';
 
                 case 'Imaging data processing'
@@ -508,8 +498,6 @@ classdef DAS < handle
             end
             
             if firstplot
-%                 axis(ax,'tight')
-%                 ax.NextPlot = 'replacechildren';
                 setXlims(guiobj)
             end
             
@@ -624,12 +612,10 @@ classdef DAS < handle
                         % Plotting previously selected data
                         if guiobj.datatyp(1)
                             ephysplot(guiobj,guiobj.axes21,...
-                                guiobj.ephys_select,...
-                                [])
+                                guiobj.ephys_select)
                         elseif guiobj.datatyp(2)
                             imagingplot(guiobj,guiobj.axes21,...
-                                guiobj.imag_select,...
-                                [])
+                                guiobj.imag_select)
                         end
                     case 3
                         guiobj.Panel1Plot.Visible = 'off';
@@ -641,8 +627,7 @@ classdef DAS < handle
                         
                         ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select,...
                             [])
-                        imagingplot(guiobj,guiobj.axes32,guiobj.imag_select,...
-                            [])
+                        imagingplot(guiobj,guiobj.axes32,guiobj.imag_select)
                 end
             elseif ~guiobj.runCheckBox.Value
                 switch sum(guiobj.datatyp)
@@ -658,12 +643,10 @@ classdef DAS < handle
                         
                         if guiobj.datatyp(1)
                             ephysplot(guiobj,guiobj.axes11,...
-                                guiobj.ephys_select,...
-                                [])
+                                guiobj.ephys_select)
                         elseif guiobj.datatyp(2)
                             imagingplot(guiobj,guiobj.axes11,...
-                                guiobj.imag_select,...
-                                [])
+                                guiobj.imag_select)
                         end
                     case 2
                         guiobj.Panel1Plot.Visible = 'off';
@@ -675,10 +658,8 @@ classdef DAS < handle
                         guiobj.Panel2Plot.Visible = 'on';
                         guiobj.Panel3Plot.Visible = 'off';
                         
-                        ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select,...
-                            [])
-                        imagingplot(guiobj,guiobj.axes22,guiobj.imag_select,...
-                            [])
+                        ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select)
+                        imagingplot(guiobj,guiobj.axes22,guiobj.imag_select)
                     case 3
                         warndlg('Something isn''t right')
                 end
@@ -694,9 +675,6 @@ classdef DAS < handle
             setAllowAxesPan(panobj,actAx,true)
             setAllowAxesPan(panobj,inactAx,false)
             
-%             if ~isempty(findobj(allAx,'Type','line'))
-%                 setXlims(guiobj)
-%             end
         end
         
         %% 
@@ -743,21 +721,13 @@ classdef DAS < handle
             switch sum(guiobj.datatyp)
                 case 1
                     ax = findobj(guiobj.Panel1Plot,'Type','axes');
-%                     set(ax,'XLim',xlimits)
-%                     set(ax,'XLim','replacechildren')
                 case 2
                     ax = findobj(guiobj.Panel2Plot,'Type','axes');
-%                     set(ax,'XLim',xlimits)
-%                     set(ax,'XLim','replacechildren')
                 case 3
                     ax = findobj(guiobj.Panel3Plot,'Type','axes');
-%                     set(ax,'XLim',xlimits)
-%                     set(ax,'XLim','replacechildren')
             end
             
             axis(ax,'tight')
-%             set(ax,'YLimMode','auto')
-%             set(ax,'ZLimMode','auto')
             set(ax,'XLim',xlimits)
             set(ax,'NextPlot','replacechildren')
             
@@ -769,7 +739,6 @@ classdef DAS < handle
             if nargin == 1
                 fromMenu = 0;
             end
-            detSel = guiobj.ephys_detMarkerSelection;
             ephysAxes = [];
             
             switch sum(guiobj.datatyp)
@@ -796,31 +765,13 @@ classdef DAS < handle
             end
             
             if strcmp(guiobj.showEphysDetMarkersMenu.Checked,'on')
-                markers = {'r*','r+','ro','rx','rs','rd','rp','rh'};
                 hold(ephysAxes,'on')
-                legendLabels = cell(1,length(detSel));
-                markerObjs = [];
-                markerIdx = 0;
-                for i = 1:length(detSel)
-                    legendLabels{i} = ['Chan#',num2str(i)];
-                    if markerIdx+1 > length(markers)
-                        markerIdx = 1;
-                    else
-                        markerIdx = markerIdx + 1;
-                    end
-                    p = plot(ephysAxes,guiobj.ephys_taxis,...
-                        guiobj.ephys_detections(detSel(i),:),markers{markerIdx},...
-                        'MarkerSize',12);
-                    markerObjs = [markerObjs; p];
-                end
-                if strcmp(guiobj.showEphysDetLegendMenu.Checked,'on')
-                    legend(ephysAxes,markerObjs,legendLabels)
-                elseif strcmp(guiobj.showEphysDetLegendMenu.Checked,'off')
-                    legend(ephysAxes,'off')
-                end
-%                 hold(ephysAxes,'off')
-                ephysAxes.NextPlot = 'replacechildren';
+                
+                detPlot(ephysAxes,guiobj.ephys_detections{guiobj.ephys_detMarkerSelection},[],guiobj.ephys_taxis,...
+                    'stars','r',[])
             end
+            
+            ephysAxes.NextPlot = 'replacechildren';
         end
         
         %%
@@ -829,7 +780,6 @@ classdef DAS < handle
             if nargin == 1
                 fromMenu = 0;
             end
-%             detSel = guiobj.imaging_detMarkerSelection;
             imagingAxes = [];
             
             switch sum(guiobj.datatyp)
@@ -859,15 +809,10 @@ classdef DAS < handle
             
             if strcmp(guiobj.showImagingDetMarkersMenu.Checked,'on')
                 hold(imagingAxes,'on')
-    %             for i = 1:length(detSel)
-    %                 plot(imagingAxes,guiobj.imaging_taxis,...
-    %                     guiobj.imaging_detections(detSel(i),:),'r*','MarkerSize',12)
-    %             end
-                for i = 1:size(guiobj.imaging_detections,1)
-                    plot(imagingAxes,guiobj.imaging_taxis,...
-                        guiobj.imaging_detections(i,:),'g*','MarkerSize',12)
-                end
-%                 hold(imagingAxes,'off')
+                
+                detPlot(imagingAxes,guiobj.imaging_detections{guiobj.imaging_detMarkerSelection},[],guiobj.imaging_taxis,...
+                    'stars','r',[])
+                
                 imagingAxes.NextPlot = 'replacechildren';
             end
             
@@ -926,43 +871,35 @@ classdef DAS < handle
                     switch sum(dtyp)
                         case 1
                             if dtyp(1)
-                                ephysplot(guiobj,guiobj.axes11,guiobj.ephys_select,...
-                                    [])
+                                ephysplot(guiobj,guiobj.axes11,guiobj.ephys_select)
                             elseif dtyp(2)
-                                imagingplot(guiobj,guiobj.axes11,guiobj.imag_select,...
-                                    [])
+                                imagingplot(guiobj,guiobj.axes11,guiobj.imag_select)
                             elseif dtyp(3)
                                 runposplot(guiobj)
                                 runvelocplot(guiobj)
                             end
                         case 2
                             if dtyp(1)
-                                ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select,...
-                                    [])
+                                ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select)
                             end
                             if dtyp(2) && dtyp(1)
-                                imagingplot(guiobj,guiobj.axes22,guiobj.imag_select,...
-                                    [])
+                                imagingplot(guiobj,guiobj.axes22,guiobj.imag_select)
                             elseif dtyp(2) && ~dtyp(1)
-                                imagingplot(guiobj,guiobj.axes21,guiobj.imag_select,...
-                                    [])
+                                imagingplot(guiobj,guiobj.axes21,guiobj.imag_select)
                             end
                             if dtyp(3)
                                 runposplot(guiobj)
                                 runvelocplot(guiobj)
                             end
                         case 3
-                            ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select,...
-                                [])
-                            imagingplot(guiobj,guiobj.axes32,guiobj.imag_select,...
-                                [])
+                            ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select)
+                            imagingplot(guiobj,guiobj.axes32,guiobj.imag_select)
                             runposplot(guiobj)
                             runvelocplot(guiobj)
                     end
                 case 'Electrophysiology data processing'
                     ephysplot(guiobj,guiobj.axesEphysProc1,...
-                        guiobj.ephys_select,...
-                        [])
+                        guiobj.ephys_select)
             end
             
 %             setXlims(guiobj)
@@ -1108,12 +1045,11 @@ classdef DAS < handle
         
         %%
         function eventDetAxesButtFcn(guiobj,dTyp,chanUpDwn,detUpDwn)
-            if (dTyp == 1) && (isempty(guiobj.ephys_detections))
+            if (dTyp == 1) && (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))
                 return
-            elseif (dTyp == 2) && (isempty(guiobj.imaging_detections))
+            elseif (dTyp == 2) && (isempty(guiobj.imaging_detections) || ~sum(~cellfun('isempty',guiobj.imaging_detections)))
                 return
             end
-            
             
             switch guiobj.evDetTabSimultMode
                 case 0
@@ -1330,12 +1266,6 @@ classdef DAS < handle
                             detBorders = guiobj.imaging_detBorders;
                     end
                     
-%                     emptyRows = [];
-%                     for i = 1:size(detMat,1)
-%                         if isempty(find(~isnan(detMat(i,:)),1))
-%                             emptyRows = [emptyRows; i];
-%                         end
-%                     end
                     emptyRows = cellfun('isempty',detMat);
                     detMat(emptyRows) = [];
                     if dTyp==1
@@ -1364,8 +1294,6 @@ classdef DAS < handle
                     end
 
                     detNum = currDet;
-
-%                     detInd = find(~isnan(detMat(currChan,:)));
                     detInd = detMat{currChan}(currDet);
                     
                     if ~isempty(detBorders{currChan})
@@ -1424,10 +1352,8 @@ classdef DAS < handle
                             nonSimDetRow = find(nonSimDetInfo.DetChannel==chan);
                             
                             detMat = guiobj.ephys_detections{nonSimDetRow};
-%                             detInd = find(~isnan(detMat));
-%                             detNum = currChanEvents(currDet);
-%                             detInd = detInd(detNum);
-                            detInd = detMat(currChanEvents(currDet));
+                            detNum = currChanEvents(currDet);
+                            detInd = detMat(detNum);
                             
                             detBorders = guiobj.ephys_detBorders{nonSimDetRow};
                             if ~isempty(detBorders)
@@ -1464,13 +1390,9 @@ classdef DAS < handle
                             
                             nonSimDetInfo = guiobj.imaging_detectionsInfo;
                             nonSimDetRow = find(nonSimDetInfo.Roi==chan);
-                            detMat = guiobj.imaging_detections{nonSimDetRow};                            
-                            
-%                             detInd = find(~isnan(detMat));
-%                             
-%                             detNum = currChanEvents(currDet);
-%                             detInd = detInd(detNum);
-                            detInd = detMat(currChanEvents(currDet));
+                            detMat = guiobj.imaging_detections{nonSimDetRow};
+                            detNum = currChanEvents(currDet);
+                            detInd = detMat(detNum);
                             
                             detBorders = guiobj.imaging_detBorders{nonSimDetRow};
                             if ~isempty(detBorders)
@@ -1550,13 +1472,8 @@ classdef DAS < handle
     %% Callback functions
     methods (Access = private)
 
-%         % Code that executes after component creation
-%         function startupFcn(guiobj)
-%             axesmaker(guiobj)
-%         end
-
         %% Button pushed function: ImportRHDButton
-        function ImportRHDButtonPushed(guiobj, event)
+        function ImportRHDButtonPushed(guiobj)
 
             if ~isempty(guiobj.ephys_data)
                 quest = 'GUI will be reset, have you saved everything you wanted?';
@@ -1616,7 +1533,7 @@ classdef DAS < handle
         end
 
         %% Button pushed function: ImportgorobjButton
-        function ImportgorobjButtonPushed(guiobj, event)
+        function ImportgorobjButtonPushed(guiobj)
             
             if ~isempty(guiobj.ephys_data) | ~isempty(guiobj.imaging_data)
                 quest = 'GUI will be reset, have you saved everything you wanted?';
@@ -1756,24 +1673,19 @@ classdef DAS < handle
         end
 
         %% Value changed function: DatasetListBox
-        function DatasetListBoxValueChanged(guiobj, event)
+        function DatasetListBoxValueChanged(guiobj)
             index = guiobj.DatasetListBox.Value;
-%             [~, index] = ismember(value, guiobj.DatasetListBox.String);
             % Check which data mode we are in and plot accordingly
             if guiobj.datatyp(3)
                 if guiobj.datatyp(1)
-%                     ephysplot(guiobj,guiobj.axes21,index,value)
                     guiobj.ephys_select = index;
                 elseif guiobj.datatyp(2)
-%                     imagingplot(guiobj,guiobj.axes21,index,value)
                     guiobj.imag_select = index;
                 end
             elseif ~guiobj.datatyp(3)
                 if guiobj.datatyp(1)
-%                     ephysplot(guiobj,guiobj.axes11,index,value)
                     guiobj.ephys_select = index;
                 elseif guiobj.datatyp(2)
-%                     imagingplot(guiobj,guiobj.axes11,index,value)
                     guiobj.imag_select = index;
                 end
             end
@@ -1785,7 +1697,7 @@ classdef DAS < handle
         end
 
         %% Menu selected function: timedimChangeMenu
-        function timedimChangeMenuSelected(guiobj, event)
+        function timedimChangeMenuSelected(guiobj)
             if guiobj.timedim == 1
                 guiobj.xtitle = 'Time [ms]';
                 
@@ -1823,7 +1735,7 @@ classdef DAS < handle
         end
         
         %%
-        function showProcDataMenuSelected(guiobj,event)
+        function showProcDataMenuSelected(guiobj)
             if strcmp(guiobj.showProcDataMenu.Checked,'off')
                 if guiobj.datatyp(1) && guiobj.datatyp(2)
                     ephys_names = [guiobj.ephys_datanames';...
@@ -1874,51 +1786,30 @@ classdef DAS < handle
         end
         
         %%
-        function showEphysDetMarkers(guiobj,event)
-            if isempty(guiobj.ephys_detections)
+        function showEphysDetMarkers(guiobj)
+            if isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections))
                 return
             end
             
             if strcmp(guiobj.showEphysDetMarkersMenu.Checked,'off')
-                detList = [];
-                detInfo = guiobj.ephys_detectionsInfo;
-%                 for i = 1:size(guiobj.ephys_detectionsInfo,1)
-                for i = 1:length(detInfo)
-%                     detList{i} = strcat(guiobj.ephys_dettypes(...
-%                         guiobj.ephys_detectionsInfo(i,2)),'| Channel #',...
-%                         num2str(guiobj.ephys_detectionsInfo(i,1)),'| Det#',...
-%                         num2str(guiobj.ephys_detectionsInfo(i,3)));
-%                     temprows = [];
-                    temp = [];
-                    pnames = fieldnames(detInfo(i).DetSettings);
-                    vals = struct2cell(detInfo(i).DetSettings);
-                    for k = 1:length(fieldnames(detInfo(i).DetSettings))
-                        temp = [temp, pnames{k},':',num2str(vals{k}),' '];
-                    end
-%                     temprows = [temprows; strcat(detInfo(i).DetType,' | ',temp,...
-%                         ' | Channel#',num2str(detInfo(i).Channel),' | ',...
-%                         'Det#',num2str(i))];
-%                     detList = [detList; temprows];
-                    detList = [detList; strcat(detInfo(i).DetType,' | ',temp,...
-                        ' | Channel#',num2str(detInfo(i).DetChannel),' | ',...
-                        'Run#',num2str(detInfo(i).DetRun))];
-                end
-                [indx,tf] = listdlg('ListString',detList,'ListSize',[500,200]);
+                guiobj.showEphysDetMarkersMenu.Checked = 'on';
+                
+                chansWithDets = find(~cellfun('isempty',guiobj.ephys_detections));
+                [indx,tf] = listdlg('PromptString','Select which channel''s detection to show:',...
+                    'SelectionMode','single','ListString',{num2str(chansWithDets)});
                 if ~tf
                     return
                 end
                 guiobj.ephys_detMarkerSelection = indx;
-                guiobj.showEphysDetMarkersMenu.Checked = 'on';
             elseif strcmp(guiobj.showEphysDetMarkersMenu.Checked,'on')
                 guiobj.showEphysDetMarkersMenu.Checked = 'off';
-                guiobj.ephys_detMarkerSelection = [];
             end
             
             ephysDetMarkerPlot(guiobj,1)
         end
         
         %%
-        function showEphysDetLegend(guiobj,~,~) 
+        function showEphysDetLegend(guiobj) 
             if strcmp(guiobj.showEphysDetLegendMenu.Checked,'on')
                 guiobj.showEphysDetLegendMenu.Checked = 'off';
             elseif strcmp(guiobj.showEphysDetLegendMenu.Checked,'off')
@@ -1928,33 +1819,30 @@ classdef DAS < handle
         end
         
         %%
-        function showImagingDetMarkers(guiobj,event)
+        function showImagingDetMarkers(guiobj)
             if isempty(guiobj.imaging_detections)
                 return
             end
             
             if strcmp(guiobj.showImagingDetMarkersMenu.Checked,'off')
-%                 detList = {};
-%                 for i = 1:size(guiobj.Imaging_detectionsInfo,1)
-%                     detList{i} = guiobj.imaging_dettypes(...
-%                         guiobj.imaging_detectionsInfo(i,2));
-%                 end
-%                 [indx,tf] = listdlg('ListString',detList);
-%                 if ~tf
-%                     return
-%                 end
-%                 guiobj.imaging_detMarkerSelection = indx;
                 guiobj.showImagingDetMarkersMenu.Checked = 'on';
+                
+                roisWithDets = find(~cellfun('isempty',guiobj.imaging_detections));
+                [indx,tf] = listdlg('PromptString','Select which ROI''s detection to show:',...
+                    'SelectionMode','single','ListString',{num2str(roisWithDets)});
+                if ~tf
+                    return
+                end
+                guiobj.imaging_detMarkerSelection = indx;
             elseif strcmp(guiobj.showImagingDetMarkersMenu.Checked,'on')
                 guiobj.showImagingDetMarkersMenu.Checked = 'off';
-%                 guiobj.imaging_detMarkerSelection = [];
             end
             
             imagingDetMarkerPlot(guiobj,1)
         end
         
         %%
-        function showSimultDetMarkers(guiobj,event)
+        function showSimultDetMarkers(guiobj)
             if isempty(guiobj.simult_detections)
                 return
             end
@@ -1969,7 +1857,7 @@ classdef DAS < handle
         end
         
         %%
-        function showXtraDetFigsMenuSel(guiobj,~,~)
+        function showXtraDetFigsMenuSel(guiobj)
             if strcmp(guiobj.showXtraDetFigsMenu.Checked,'on')
                 guiobj.showXtraDetFigsMenu.Checked = 'off';
                 guiobj.showXtraDetFigs = 0;
@@ -1981,7 +1869,7 @@ classdef DAS < handle
         end
         
         %% Button pushed function: ImportruncsvButton
-        function ImportruncsvButtonPushed(guiobj, event)
+        function ImportruncsvButtonPushed(guiobj)
             % Reading the running data from the csv
             [filename,path] = uigetfile('*.csv');
             if filename == 0
@@ -2022,7 +1910,7 @@ classdef DAS < handle
         end
 
         %% Value changed function: ephysCheckBox
-        function ephysCheckBoxValueChanged(guiobj, event)
+        function ephysCheckBoxValueChanged(guiobj)
             % Determining whether ephys modules are needed
             value = guiobj.ephysCheckBox.Value;
             % Import buttons
@@ -2062,7 +1950,7 @@ classdef DAS < handle
         end
 
         %% Value changed function: imagingCheckBox
-        function imagingCheckBoxValueChanged(guiobj, event)
+        function imagingCheckBoxValueChanged(guiobj)
             % Determining whether imaging data modules are needed
             value = guiobj.imagingCheckBox.Value;
             
@@ -2101,7 +1989,7 @@ classdef DAS < handle
         end
 
         %% Value changed function: runCheckBox
-        function runCheckBoxValueChanged(guiobj, event)
+        function runCheckBoxValueChanged(guiobj)
             % Determining whether running data modules are needed
             value = guiobj.runCheckBox.Value;
             
@@ -2121,16 +2009,9 @@ classdef DAS < handle
         end
 
         %% Value changed function: EphysListBox
-        function EphysListBoxValueChanged(guiobj, event)
+        function EphysListBoxValueChanged(guiobj)
             index = guiobj.EphysListBox.Value;
-%             names = guiobj.EphysListBox.String;
-%             [~, index] = ismember(value, guiobj.EphysListBox.Items);
             guiobj.ephys_select = index;
-%             if sum(guiobj.datatyp) == 2
-%                 ephysplot(guiobj,guiobj.axes21,index,names(index))
-%             elseif sum(guiobj.datatyp) == 3
-%                 ephysplot(guiobj,guiobj.axes31,index,names(index))
-%             end
             
             smartplot(guiobj)
             
@@ -2140,16 +2021,9 @@ classdef DAS < handle
         end
 
         %% Value changed function: ImagingListBox
-        function ImagingListBoxValueChanged(guiobj, event)
+        function ImagingListBoxValueChanged(guiobj)
             index = guiobj.ImagingListBox.Value;
-%             names = guiobj.ImagingListBox.String;
-%             [~, index] = ismember(value, guiobj.ImagingListBox.Items);
             guiobj.imag_select = index;
-%             if sum(guiobj.datatyp) == 2
-%                 imagingplot(guiobj,guiobj.axes22,index,names(index))
-%             elseif sum(guiobj.datatyp) == 3
-%                 imagingplot(guiobj,guiobj.axes32,index,names(index))
-%             end
             
             smartplot(guiobj)
             
@@ -2157,51 +2031,9 @@ classdef DAS < handle
             
             simultDetMarkerPlot(guiobj)
         end
-
-        %% Value changed function: InputLickEditField
-        function InputLickEditFieldValueChanged(guiobj, event)
-%             value = guiobj.InputLickEditField.String;
-%             temp = guiobj.LickTimesListBox.String;
-%             if isempty(temp)
-%                 temp = {value};
-%             else
-%                 temp = cat(1,temp,{value});
-%             end
-%             guiobj.LickTimesListBox.String = temp;
-%             lickplot(guiobj)
-%             guiobj.InputLickEditField.String = '';
-        end
-
-        %% Value changed function: LickTimesListBox
-        function LickTimesListBoxValueChanged(guiobj, event)
-%             if ~isscalar(guiobj.LickTimesListBox.Value)
-%                 guiobj.LickTimesListBox.Value = 1;
-%                 return
-%             end
-%             idx = guiobj.LickTimesListBox.Value;
-%             value = guiobj.LickTimesListBox.String{idx};
-%             numvalue = str2double(value);
-%             del = questdlg('Delete selected lick time?');
-%             if strcmp(del,'Yes')
-%                 temp = findobj(guiobj.mainfig,'Type','line');
-%                 for i = 1:length(temp)
-%                     if (length(temp(i).XData)==2) &...
-%                             (temp(i).XData == [numvalue numvalue])
-%                         delete(temp(i))
-%                     end
-%                 end
-%                 guiobj.LickTimesListBox.String(idx) = [];
-%             end
-%             
-%             lickplot(guiobj)
-%             
-%             % Set listbox to have no selection (otherwise might be unable
-%             % to delete 1 remaining lick)
-%             guiobj.LickTimesListBox.Value = 1;
-        end
         
         %%    
-        function tabSelected(guiobj,h,e)
+        function tabSelected(guiobj,~,e)
             if e.NewValue == guiobj.tabs.Children(2)...
                     & isempty(guiobj.ephys_data)
                 guiobj.tabs.SelectedTab = e.OldValue;
@@ -2247,7 +2079,7 @@ classdef DAS < handle
         end
         
         %%
-        function ephysProcPopMenuSelected(guiobj,event)
+        function ephysProcPopMenuSelected(guiobj)
             procType = guiobj.ephysProcPopMenu.Value;
             
             switch procType
@@ -2261,29 +2093,25 @@ classdef DAS < handle
         end
         
         %%
-        function ephysProcListBoxValueChanged(guiobj,event)
+        function ephysProcListBoxValueChanged(guiobj)
             idx = guiobj.ephysProcListBox.Value;
             if isempty(idx)
                 return
             end
-            figtitle = guiobj.ephysProcListBox.String(idx);
-            ephysplot(guiobj,guiobj.axesEphysProc1,idx,figtitle)
+            ephysplot(guiobj,guiobj.axesEphysProc1,idx)
         end
         
         %%
-        function ephysProcListBox2ValueChanged(guiobj,event)
+        function ephysProcListBox2ValueChanged(guiobj)
             idx = guiobj.ephysProcListBox2.Value;
             if isempty(idx)
                 return
             end
             ephysplot(guiobj,guiobj.axesEphysProc2,idx)
-%             figtitle = guiobj.ephysProcListBox2.String(idx);
-%             proctypes = guiobj.ephys_proccedInfo(idx,2);
-%             ephysprocplot(guiobj,guiobj.axesEphysProc2,idx,figtitle,proctypes)
         end
                 
         %%
-        function fiterTypePopMenuCallback(guiobj,event)
+        function fiterTypePopMenuCallback(guiobj)
             selIdx = guiobj.filterTypePopMenu.Value;
             
             switch selIdx
@@ -2322,7 +2150,7 @@ classdef DAS < handle
         end
         
         %%
-        function runFilt(guiobj,event)
+        function runFilt(guiobj)
             guiobj.runFiltButton.BackgroundColor = 'r';
             
             selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
@@ -2407,7 +2235,7 @@ classdef DAS < handle
         end
         
         %%
-        function runArtSupp(guiobj,event)
+        function runArtSupp(guiobj)
             guiobj.ephysArtSuppRunButt.BackgroundColor = 'r';
             
             artSuppType = guiobj.ephysArtSuppTypePopMenu.Value;
@@ -2458,7 +2286,7 @@ classdef DAS < handle
         end
         
         %% Callback to monitor radiobutton press
-        function ephysProcProcdRadioButtPushed(guiobj,event)
+        function ephysProcProcdRadioButtPushed(guiobj)
             if isempty(guiobj.ephys_procced)
                 errordlg('No processed data!')
                 guiobj.ephysProcSrcButtGroup.SelectedObject = ...
@@ -2468,7 +2296,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingProcListBoxValueChanged(guiobj,event)
+        function imagingProcListBoxValueChanged(guiobj)
             idx = guiobj.imagingProcListBox.Value;
             if idx == 0 | isnan(idx) | isempty(idx)
                return
@@ -2477,7 +2305,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingProcListBox2ValueChanged(guiobj,event)
+        function imagingProcListBox2ValueChanged(guiobj)
             idx = guiobj.imagingProcListBox2.Value;
             if idx == 0 | isnan(idx) | isempty(idx)
                return
@@ -2486,7 +2314,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingProcPopMenuSelected(guiobj,event)
+        function imagingProcPopMenuSelected(guiobj)
             procType = guiobj.imagingProcPopMenu.Value;
             
             switch procType
@@ -2498,7 +2326,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingFilterTypePopMenuSelected(guiobj,event)
+        function imagingFilterTypePopMenuSelected(guiobj)
             sel = guiobj.imagingFilterTypePopMenu.Value;
             
             switch sel
@@ -2513,7 +2341,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingRunProc(guiobj,event)
+        function imagingRunProc(guiobj)
             selectedButt = guiobj.imagingProcSrcButtGroup.SelectedObject;
             selectedButt = selectedButt.String;
             
@@ -2574,7 +2402,7 @@ classdef DAS < handle
         end
         
         %% Callback to monitor radiobutton press
-        function imagingProcProcdRadioButtPushed(guiobj,event)
+        function imagingProcProcdRadioButtPushed(guiobj)
             if isempty(guiobj.imaging_procced)
                 errordlg('No processed data!')
                 guiobj.imagingProcSrcButtGroup.SelectedObject = ...
@@ -2584,7 +2412,7 @@ classdef DAS < handle
         end
         
         %%
-        function ephysDetPopMenuSelected(guiobj,event)
+        function ephysDetPopMenuSelected(guiobj)
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
             
@@ -2609,7 +2437,7 @@ classdef DAS < handle
         end
         
         %%
-        function ephysDetRun(guiobj,event)
+        function ephysDetRun(guiobj)
             guiobj.ephysDetStatusLabel.String = 'Detection running';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'r';
             drawnow
@@ -2796,7 +2624,7 @@ classdef DAS < handle
                     detinfo.DetSettings.RefCh = refch;
             end
             
-            if (refVal ~= 0) & (~isempty(find(chan==refch,1)))
+            if (refVal ~= 0) && (~isempty(find(chan==refch,1)))
                 temp = dets;
                 temp(chan==refch) = [];
                 detsOnlyInRef = find(cellfun('isempty',temp),1);
@@ -2804,9 +2632,9 @@ classdef DAS < handle
                 detsOnlyInRef = false;
             end
             
-            if ~isempty(find(cellfun('isempty',dets),1)) | detsOnlyInRef
+            if ~sum(~cellfun('isempty',dets)) || detsOnlyInRef
                 
-                guiobj.ephys_detections = [];
+                guiobj.ephys_detections = {};
                 guiobj.ephys_detBorders = {};
                 guiobj.ephys_detParams = {};
                 guiobj.ephys_detectionsInfo = [];
@@ -2834,7 +2662,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingDetPopMenuSelected(guiobj,event)
+        function imagingDetPopMenuSelected(guiobj)
             dettype = guiobj.imagingDetPopMenu.Value;
             dettype = guiobj.imagingDetPopMenu.String{dettype};
             
@@ -2853,7 +2681,7 @@ classdef DAS < handle
         end
         
         %%
-        function simultDetPopMenuSelected(guiobj,event)
+        function simultDetPopMenuSelected(guiobj)
             dettype = guiobj.simultDetPopMenu.Value;
             dettype = guiobj.simultDetPopMenu.String{dettype};
             
@@ -2865,7 +2693,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingDetRun(guiobj,event)
+        function imagingDetRun(guiobj)
             guiobj.imagingDetStatusLabel.String = 'Detection running';
             guiobj.imagingDetStatusLabel.BackgroundColor = 'r';
             drawnow
@@ -2916,7 +2744,7 @@ classdef DAS < handle
                         [],0,[],[],fs,thr,0,minLen,extThr);
                     
                     for i = 1:size(data,1)
-                        detParams{i} = detParamMiner(2,dets(i,:),detBorders{i},fs,...
+                        detParams{i} = detParamMiner(2,dets{i},detBorders{i},fs,...
                             data(i,:),detData(i,:),[]);
                         
                     end
@@ -2944,8 +2772,8 @@ classdef DAS < handle
                     detinfo.DetSettings = par;
             end
             
-            if ~isempty(find(cellfun('isempty',dets), 1))
-                guiobj.imaging_detections = [];
+            if ~sum(~cellfun('isempty',dets))
+                guiobj.imaging_detections = {};
                 guiobj.imaging_detectionsInfo = [];
                 guiobj.imaging_detBorders = {};
                 guiobj.imaging_detParams = {};
@@ -2973,8 +2801,8 @@ classdef DAS < handle
         end
         
         %%
-        function simultDetRun(guiobj,event)
-            if ~isempty(find(cellfun('isempty',guiobj.ephys_detections),1)) | ~isempty(find(cellfun('isempty',guiobj.imaging_detections), 1))
+        function simultDetRun(guiobj)
+            if ~sum(~cellfun('isempty',guiobj.ephys_detections)) || ~sum(~cellfun('isempty',guiobj.imaging_detections))
                 errordlg('Both electrophysiology and imaging detections are needed!')
                 return
             end
@@ -3067,9 +2895,6 @@ classdef DAS < handle
             guiobj.simult_detections = simultDets;
             
             guiobj.simult_detectionsInfo = simultDetInfo;
-                        
-%             assignin('base','simDets',guiobj.simult_detections)
-%             assignin('base','simDetInfo',guiobj.simult_detectionsInfo)
 
             guiobj.evDetTabSimultMode = 1;
 
@@ -3127,7 +2952,7 @@ classdef DAS < handle
         end
         
         %%
-        function changeEventDetTabCutoff(guiobj,event)
+        function changeEventDetTabCutoff(guiobj)
             if isempty(guiobj.ephys_data)
                 warndlg('No electrophysiological data loaded!')
                 return
@@ -3157,7 +2982,7 @@ classdef DAS < handle
         end
         
         %%
-        function changeEventDetTabWinSize(guiobj,~,~)
+        function changeEventDetTabWinSize(guiobj)
             prompt = {'Window size of graphs [ms]'};
             title = 'Window size';
             dims = [1,15];
@@ -3176,7 +3001,7 @@ classdef DAS < handle
         end
         
         %%
-        function mainFigOpenFcn(guiobj,~,~)
+        function mainFigOpenFcn(guiobj)
             % Check if logfile exists
             DASlocation = mfilename('fullpath');
             DASlocation = DASlocation(1:end-3);
@@ -3240,7 +3065,7 @@ classdef DAS < handle
         end
         
         %%
-        function mainFigCloseFcn(guiobj,event)
+        function mainFigCloseFcn(guiobj)
             temp.w1 = guiobj.ephysDoGInstPowDetW1Edit.String;
             temp.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
             temp.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
@@ -3418,8 +3243,9 @@ classdef DAS < handle
         end
         
         %%
-        function saveDets(guiobj,event)
-            if isempty(guiobj.ephys_detections) && isempty(guiobj.imaging_detections)
+        function saveDets(guiobj)
+            if (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))...
+                    && (isempty(guiobj.imaging_detections) || ~sum(~cellfun('isempty',guiobj.imaging_detections)))
                 errordlg('There are no detections for either datatype!')
                 return
             end            
@@ -3443,10 +3269,6 @@ classdef DAS < handle
             if ~tf
                 return
             end
-            
-%             if (length(detTypeToSave) > 1) & (~isempty(find(list(detTypeToSave)=="Simultaneous",1)))
-%                 detTypeToSave = 3;
-%             end
             
             saveAllChans = 0;
             quest = ['Do you want to save the all channels/ROIs, or only those',...
@@ -3608,7 +3430,7 @@ classdef DAS < handle
         end
         
         %%
-        function showEventSpectro(guiobj,~,~)
+        function showEventSpectro(guiobj)
             if isempty(guiobj.ephys_detections)
                 return
             end
@@ -3617,7 +3439,7 @@ classdef DAS < handle
         end
         
         %%
-        function runPosModeMenuSelected(guiobj,~,~)
+        function runPosModeMenuSelected(guiobj)
             switch guiobj.mainTabPosPlotMode
                 case 0
                     guiobj.mainTabPosPlotMode = 1;
@@ -3628,7 +3450,7 @@ classdef DAS < handle
         end
         
         %%
-        function ephysEventParamTableCallback(guiobj,h,e)
+        function ephysEventParamTableCallback(~,h,e)
             tableInd = e.Indices;
             
             if isempty(tableInd)
@@ -3668,7 +3490,7 @@ classdef DAS < handle
         end
         
         %%
-        function imagingEventParamTableCallback(guiobj,h,e)
+        function imagingEventParamTableCallback(~,h,e)
             tableInd = e.Indices;
             
             if isempty(tableInd)
@@ -3702,7 +3524,7 @@ classdef DAS < handle
         end
         
         %%
-        function eventDetParamInputControll(guiobj,source,setting)
+        function eventDetParamInputControll(~,source,setting)
             if strcmp(setting,'sd')
                 if str2double(source.String) < 1
                     source.String = '1';
@@ -3765,7 +3587,7 @@ classdef DAS < handle
                 'MenuSelectedFcn',@(h,e) guiobj.showEphysDetMarkers);
             guiobj.showEphysDetLegendMenu = uimenu(guiobj.showDetMarkersMenu,...
                 'Text','Show ephys detection marker legend',...
-                'MenuSelectedFcn',@ guiobj.showEphysDetLegend);
+                'MenuSelectedFcn',@(h,e) guiobj.showEphysDetLegend);
             guiobj.showImagingDetMarkersMenu = uimenu(guiobj.showDetMarkersMenu,...
                 'Text','Show imaging detection markers',...
                 'MenuSelectedFcn',@(h,e) guiobj.showImagingDetMarkers);
@@ -3774,7 +3596,7 @@ classdef DAS < handle
                 'MenuSelectedFcn',@(h,e) guiobj.showSimultDetMarkers);
             
             guiobj.runPosModeMenu = uimenu(guiobj.MainTabOptionsMenu,...
-                'MenuSelectedFcn',@ guiobj.runPosModeMenuSelected,...
+                'MenuSelectedFcn',@(h,e) guiobj.runPosModeMenuSelected,...
                 'Text','Switch position axes mode (absolute/relative)');
             
             guiobj.EvDetTabOptionsMenu = uimenu(guiobj.mainfig,...
@@ -3787,17 +3609,17 @@ classdef DAS < handle
                 'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabCutoff);
             guiobj.eventDetTabWinSizeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','EventDetTab - change window size',...
-                'MenuSelectedFcn',@ guiobj.changeEventDetTabWinSize);
+                'MenuSelectedFcn',@(h,e) guiobj.changeEventDetTabWinSize);
             guiobj.imagingEventDetTabDataTypeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Imaging data type in EventDetTab',...
                 'MenuSelectedFcn', @(h,e) guiobj.changeEventDetTabDataType(2));
             guiobj.showXtraDetFigsMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show extra detection figures',...
                 'Checked','off',...
-                'MenuSelectedFcn',@ guiobj.showXtraDetFigsMenuSel);
+                'MenuSelectedFcn',@(h,e) guiobj.showXtraDetFigsMenuSel);
             guiobj.showEventSpectroMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show event spectrogram',...
-                'MenuSelectedFcn',@ guiobj.showEventSpectro);
+                'MenuSelectedFcn',@(h,e) guiobj.showEventSpectro);
 
             guiobj.SaveMenu = uimenu(guiobj.mainfig,...
                 'Text','Saving options');
@@ -3813,7 +3635,7 @@ classdef DAS < handle
             guiobj.tabs = uitabgroup(guiobj.mainfig,...
                 'Units','normalized',...
                 'Position',[0, 0, 1, 1],...
-                'SelectionChangedFcn',@guiobj.tabSelected);
+                'SelectionChangedFcn',@ guiobj.tabSelected);
             
             % Create tabs in tabgroup
             guiobj.maintab = uitab(guiobj.tabs,...
@@ -3907,12 +3729,6 @@ classdef DAS < handle
                 'Title','Data selection',...
                 'Position',[0, 0.2, 0.4, 0.4]);
 
-%             % Create DatasetListBoxLabel
-%             guiobj.DatasetListBoxLabel = uilabel(guiobj.Dataselection1Panel);
-%             guiobj.DatasetListBoxLabel.HorizontalAlignment = 'right';
-%             guiobj.DatasetListBoxLabel.Position = [1 226 47 22];
-%             guiobj.DatasetListBoxLabel.Text = 'Dataset';
-
             % Create DatasetListBox
             guiobj.DatasetListBox = uicontrol(guiobj.Dataselection1Panel,...
                 'Style','listbox',...
@@ -3928,13 +3744,7 @@ classdef DAS < handle
                 'Title','Data selection',...
                 'Visible','off',...
                 'Position',[0, 0.2, 0.4, 0.4]);
-
-%             % Create EphysListBoxLabel
-%             guiobj.EphysListBoxLabel = uilabel(guiobj.Dataselection2Panel);
-%             guiobj.EphysListBoxLabel.HorizontalAlignment = 'right';
-%             guiobj.EphysListBoxLabel.Position = [9 286 39 22];
-%             guiobj.EphysListBoxLabel.Text = 'Ephys';
-% 
+            
             % Create EphysListBox
             guiobj.EphysListBox = uicontrol(guiobj.Dataselection2Panel,...
                 'Style','listbox',...
@@ -3944,13 +3754,7 @@ classdef DAS < handle
                 'Min',0,...
                 'Max',10,...
                 'Callback',@(h,e) guiobj.EphysListBoxValueChanged);
-% 
-%             % Create ImagingListBoxLabel
-%             guiobj.ImagingListBoxLabel = uilabel(guiobj.Dataselection2Panel);
-%             guiobj.ImagingListBoxLabel.HorizontalAlignment = 'right';
-%             guiobj.ImagingListBoxLabel.Position = [0 136 48 22];
-%             guiobj.ImagingListBoxLabel.Text = 'Imaging';
-% 
+            
             % Create ImagingListBox
             guiobj.ImagingListBox = uicontrol(guiobj.Dataselection2Panel,...
                 'Style','listbox',...
@@ -3960,44 +3764,10 @@ classdef DAS < handle
                 'Min',0,...
                 'Max',10,...
                 'Callback',@(h,e) guiobj.ImagingListBoxValueChanged);
-
-%             % Create runParamsPanel
-%             guiobj.runSettingsPanel = uipanel(guiobj.maintab,...
-%                 'Visible','off',...
-%                 'Position',[0, 0, 0.4, 0.2]);
-
-%             % Create InputlicktimemsEditFieldLabel
-%             guiobj.InputlicktimemsEditFieldLabel = uicontrol(guiobj.runParamsPanel,...
-%                 'Style','text',...
-%                 'Units','normalized',...
-%                 'Position',[0, 0.7, 0.2, 0.25],...
-%                 'String','Input lick time [ms]');
-% 
-%             % Create InputLickEditField
-%             guiobj.InputLickEditField = uicontrol(guiobj.runParamsPanel,...
-%                 'Style','edit',...
-%                 'Units','normalized',...
-%                 'Position',[0.2, 0.7, 0.1, 0.25],...
-%                 'Callback',@(h,e) guiobj.InputLickEditFieldValueChanged);
-% 
-%             % Create LicksmsListBoxLabel
-%             guiobj.LicksmsListBoxLabel = uicontrol(guiobj.runParamsPanel,...
-%                 'Style','text',...
-%                 'Units','normalized',...
-%                 'Position',[0, 0.5, 0.2, 0.25],...
-%                 'String','Licks [ms]');
-% 
-%             % Create LickTimesListBox
-%             guiobj.LickTimesListBox = uicontrol(guiobj.runParamsPanel,...
-%                 'Style','listbox',...
-%                 'Units','normalized',...
-%                 'Position',[0.2, 0, 0.8, 0.65],...
-%                 'Callback',@(h,e) guiobj.LickTimesListBoxValueChanged);
             
             guiobj.axes11 = axes(guiobj.Panel1Plot,...
                 'Position',[0.1,0.2,0.85,0.6],...
                 'NextPlot','replacechildren');
-%             axis(guiobj.axes11,'tight')
             guiobj.axes11.Toolbar.Visible = 'on';
             
             guiobj.axes21 = axes(guiobj.Panel2Plot,...
@@ -4075,14 +3845,6 @@ classdef DAS < handle
                 'Max',10,...
                 'Callback',@(h,e) guiobj.ephysProcListBox2ValueChanged,...
                 'Tooltip','List of processed electrophysiology data');
-            
-%             % Create button to push processed data to main tab
-%             guiobj.pushEphysProcDataButton = uicontrol(guiobj.ephysProcTab,...
-%                 'Style','pushbutton',...
-%                 'Units','normalized',...
-%                 'Position',[0.01, 0.01, 0.1, 0.1],...
-%                 'String','--> Main tab',...
-%                 'Callback',@(h,e) guiobj.pushEphysProcData);
             
             % Create ephysProcPopMenu
             guiobj.ephysProcPopMenu = uicontrol(guiobj.ephysProcTab,...
@@ -4176,8 +3938,6 @@ classdef DAS < handle
                 'Position',[0.8, 0.65, 0.1, 0.1],...
                 'Visible','off');
             
-            
-%             guiobj.
             guiobj.runFiltButton = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -4215,7 +3975,6 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.runArtSupp,...
                 'BackgroundColor','g');
             
-            
             % Create axes
             guiobj.axesEphysProc1 = axes(guiobj.ephysProcTab,...
                 'Position',[0.4, 0.6, 0.55, 0.35],...
@@ -4250,14 +4009,6 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.imagingProcListBox2ValueChanged,...
                 'Tooltip','List of processed imaging data');
             
-%             % Create button to push processed data to main tab
-%             guiobj.pushEphysProcDataButton = uicontrol(guiobj.ephysProcTab,...
-%                 'Style','pushbutton',...
-%                 'Units','normalized',...
-%                 'Position',[0.01, 0.01, 0.1, 0.1],...
-%                 'String','--> Main tab',...
-%                 'Callback',@(h,e) guiobj.pushEphysProcData);
-            
             % Create imagingProcPopMenu
             guiobj.imagingProcPopMenu = uicontrol(guiobj.imagingProcTab,...
                 'Style','popupmenu',...
@@ -4282,8 +4033,6 @@ classdef DAS < handle
                 'Position',[0.1, 0.05, 0.8, 0.3],...
                 'String','Processed data',...
                 'Callback',@(h,e) guiobj.imagingProcProcdRadioButtPushed);
-            
-            
             
             % Create imagingFiltSettingsPanel
             guiobj.imagingFiltSettingsPanel = uipanel(guiobj.imagingProcTab,...
@@ -4315,7 +4064,6 @@ classdef DAS < handle
                 'Position',[0.85, 0.01, 0.1, 0.1],...
                 'String','Run filter',...
                 'Callback',@(h,e) guiobj.imagingRunProc);
-            
             
             % Create axes
             guiobj.axesImagingProc1 = axes(guiobj.imagingProcTab,...
@@ -4521,11 +4269,6 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.5, 0.4, 0.4, 0.1],...
                 'String','RefChan validate');
-%             guiobj.ephysDoGInstPowDetArtSuppPopMenuLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
-%                 'Style','text',...
-%                 'Units','normalized',...
-%                 'Position',[0.01, 0.25, 0.5, 0.1],...
-%                 'String','Select artifact suppression method');
             guiobj.ephysDoGInstPowDetArtSuppPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
@@ -4573,20 +4316,12 @@ classdef DAS < handle
                 'String','--IDLE--',...
                 'BackgroundColor','g');
             
-            
-            
             guiobj.imagingDetPopMenu = uicontrol(guiobj.eventDetTab,...
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.5, 0.1, 0.1],...
                 'String',{'--Imaging detection methods--','Mean+SD','MLspike based'},...
                 'Callback',@(h,e) guiobj.imagingDetPopMenuSelected);
-            
-%             guiobj.imagingDetChSelPopMenu = uicontrol(guiobj.eventDetTab,...
-%                 'Style','popupmenu',...
-%                 'Units','normalized',...
-%                 'Position',[0.35, 0.9, 0.05, 0.1],...
-%                 'String',{'--Select ROI--'});
             
             guiobj.imagingMeanSdDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.33, 0.2, 0.3],...
