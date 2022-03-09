@@ -322,8 +322,6 @@ classdef DASeV < handle
                             currChan = gO.ephysCurrDetRow;
                             currDet = gO.ephysCurrDetNum;
                             
-%                             allChans = 1:size(gO.ephysData,1);
-%                             allDetChans = 1:size(gO.ephysDets,1);
                             dets = gO.ephysDets;
                             detInfo = gO.ephysDetInfo;
                             detBorders = gO.ephysDetBorders;
@@ -332,24 +330,16 @@ classdef DASeV < handle
                             currChan = gO.imagingCurrDetRow;
                             currDet = gO.imagingCurrDetNum;
                             
-%                             allChans = 1:size(gO.imagingData,1);
-%                             allDetChans = 1:size(gO.imagingDets,1);
                             dets = gO.imagingDets;
                             detInfo = gO.imagingDetInfo;
                             detBorders = gO.imagingDetBorders;
                             detParams = gO.imagingDetParams;
                     end
                     
-                    currDetRows = 1:size(dets,1);
+                    currDetRows = 1:length(dets);
 
-                    emptyRows = [];
-                    for i = 1:length(currDetRows)
-                        if isempty(find(~isnan(dets(i,:)),1))
-                            emptyRows = [emptyRows; i];
-                        end
-                    end
-%                     allDetChans(emptyRows) = [];
-                    dets(emptyRows,:) = [];
+                    emptyRows = cellfun('isempty',dets);
+                    dets(emptyRows) = [];
                     currDetRows(emptyRows) = [];
                     if dTyp==1
                         detInfo.DetChannel(emptyRows) = [];
@@ -363,7 +353,7 @@ classdef DASeV < handle
                         detParams(emptyRows) = [];
                     end
 
-                    numDets = length(find(~isnan(dets(currChan,:))));
+                    numDets = length(dets{currChan});
                     numDetsOg = numDets;
                     numChans = length(currDetRows);
                     
@@ -385,7 +375,7 @@ classdef DASeV < handle
                         return
                     end
                     
-                    detIdx = find(~isnan(dets(currChan,:)));
+                    detIdx = dets{currChan};
                     if ~gO.plotFull 
                         detIdx = detIdx(currDet);
                     end
@@ -454,9 +444,9 @@ classdef DASeV < handle
                             nonSimDetRow = find(nonSimDetInfo.DetChannel==chan);
                             chanOgNum = chan;
                             
-                            detMat = gO.ephysDets(nonSimDetRow,:);
+                            detMat = gO.ephysDets{nonSimDetRow};
                             
-                            detIdx = find(~isnan(detMat));
+                            detIdx = detMat;
                             detNum = currChanEvents(currDet);
                             if ~gO.plotFull
                                 detIdx = detIdx(detNum);
@@ -506,9 +496,9 @@ classdef DASeV < handle
                             nonSimDetRow = find(nonSimDetInfo.Roi==chan);
                             chanOgNum = chan;
                             
-                            detMat = gO.imagingDets(nonSimDetRow,:);
+                            detMat = gO.imagingDets{nonSimDetRow};
                             
-                            detIdx = find(~isnan(detMat));
+                            detIdx = detMat;
                             detNum = currChanEvents(currDet);
                             if ~gO.plotFull
                                 detIdx = detIdx(detNum);
@@ -541,7 +531,7 @@ classdef DASeV < handle
             end
             
             if gO.parallelMode ~= 1
-                [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
+                [numDets,~,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
                 
                 currDetBorders = detBorders;
 
@@ -771,10 +761,6 @@ classdef DASeV < handle
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
-                
-%                 z = zoom(gO.mainFig);
-%                 setAllowAxesZoom(z,ax(i),1)
-%                 getAxesZoomConstraint(z,ax(i))
             end
             
         end
@@ -782,7 +768,7 @@ classdef DASeV < handle
         %%
         function imagingPlot(gO,ax)
             if gO.parallelMode ~= 2
-                [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
+                [numDets,~,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
 
                 currDetBorders = detBorders;
 
@@ -1086,12 +1072,12 @@ classdef DASeV < handle
             end
             switch dTyp
                 case 1
-                    detArray = gO.ephysDets;
+                    detCell = gO.ephysDets;
                     fs = gO.ephysFs;
                     lenData = length(gO.ephysData);
                     detBorders = gO.ephysDetBorders;
                 case 2
-                    detArray = gO.imagingDets;
+                    detCell = gO.imagingDets;
                     fs = gO.imagingFs;
                     lenData = length(gO.imagingData);
                     detBorders = gO.imagingDetBorders;
@@ -1114,8 +1100,7 @@ classdef DASeV < handle
                 end
                 relBorders = detBorders-winStart+1;
             else
-                dets = detArray(chanNum,:);
-                dets = find(~isnan(dets));
+                dets = detCell{chanNum};
                 detInd = dets(detNum);
             
                 if (detInd-winLen) > 1
@@ -1661,7 +1646,7 @@ classdef DASeV < handle
             end
             
             if nargin > 2
-                if (chanUpDwn==0) & (detUpDwn==0)
+                if (chanUpDwn==0) && (detUpDwn==0)
                     currDet = 1;
                     currChan = 1;
                 end
@@ -1674,7 +1659,7 @@ classdef DASeV < handle
 
                 switch chanUpDwn
                     case 0
-    %                     currChan = 1;
+
                     case 1
                         if currChan < numChans
                             currChan = currChan + 1;
@@ -1687,7 +1672,7 @@ classdef DASeV < handle
 
                 switch detUpDwn
                     case 0
-    %                     currDet = 1;
+
                     case 1
                         if currDet < numDets
                             currDet = currDet + 1;
@@ -1926,15 +1911,6 @@ classdef DASeV < handle
         %%
         function keyboardPressFcn(gO,~,kD)
             if gO.tabgrp.SelectedTab == gO.tabgrp.Children(2)
-%                 if strcmp(kD.Key,'p')
-%                     if gO.parallelMode < 2
-%                         gO.parallelMode = gO.parallelMode + 1;
-%                     else
-%                         gO.parallelMode = 0;
-%                     end
-%                     disp('parallelMode:')
-%                     display(gO.parallelMode)
-%                 end
                 
                 if strcmp(kD.Key,'d') & (sum(gO.loaded) > 1)
                     switch gO.keyboardPressDtyp
@@ -1942,8 +1918,6 @@ classdef DASeV < handle
                             gO.keyboardPressDtyp = 2;
                         case 2
                             gO.keyboardPressDtyp = 1;
-    %                     case 3
-
                     end
                 else
 
