@@ -1670,6 +1670,88 @@ classdef DAS < handle
             setXlims(guiobj)
             
         end
+        
+        function ImportMatButtionPushed(guiobj)
+            [filename,path] = uigetfile('*.mat');
+            if filename == 0
+                figure(guiobj.mainfig)
+                return
+            end
+            
+            varName = who('-file',[path,filename]);
+            data = getfield(load([path,filename]),varName{1});
+            XaxisInfo = getfield(load([path,filename]),varName{2});
+            
+            if length(find(diff(cellfun('size',data,1)))) ~= 1
+                groupBounds = find(diff(cellfun('size',data,1)));
+                dataGroupList = cell(length(groupBounds)+1,1);
+                for i = 1:length(groupBounds)
+                    if i == 1
+                        dataGroupList{i} = ['Rows ',num2str(1),' - ',num2str(groupBounds(1))];
+                    else
+                        dataGroupList{i} = ['Rows ',num2str(groupBounds(i-1)+1),' - ',num2str(groupBounds(i))];
+                    end
+                end
+                dataGroupList{end} = ['Rows ',num2str(groupBounds(end)+1),' - ',num2str(length(data))];
+                
+                [selRow,tf] = listdlg('ListString',dataGroupList,'PromptString','Select which rows to load!',...
+                    'SelectionMode','single');
+                if ~tf
+                    return
+                end
+                
+                if selRow == 1
+                    datanames = cell(1,groupBounds(1));
+                    for i = 1:groupBounds(1)
+                        datanames{i} = ['Row ',num2str(i)];
+                    end
+                    
+                    data = cell2mat(data(1:groupBounds(selRow)));
+                    taxis = cell2mat(XaxisInfo(1));
+                elseif selRow == (length(groupBounds)+1)
+                    datanames = cell(1,length(data)-groupBounds(end));
+                    for i = 1:(length(data)-groupBounds(end))
+                        datanames{i} = ['Row ',num2str(i+groupBounds(end))];
+                    end
+                    
+                    data = cell2mat(data(groupBounds(end)+1:end));
+                    taxis = cell2mat(XaxisInfo(groupBounds(end)+1));
+                else
+                    datanames = cell(1,groupBounds(selRow)-groupBounds(selRow-1));
+                    for i = 1:(groupBounds(selRow)-groupBounds(selRow-1))
+                        datanames{i} = ['Row ',num2str(i+groupBounds(selRow-1))];
+                    end
+                    
+                    data = cell2mat(data(groupBounds(selRow-1)+1:groupBounds(selRow)));
+                    taxis = cell2mat(XaxisInfo(groupBounds(selRow-1)+1));
+                end
+                
+                
+            else
+                datanames = cell(1,length(data));
+                for i = 1:length(data)
+                    datanames{i} = ['Row ',num2str(i)];
+                end
+                data = cell2mat(data);
+                taxis = XaxisInfo{1};
+            end
+            
+            if size(data,1) > size(data,2)
+                data = data';
+            end
+            
+            guiobj.imaging_data = data;
+            guiobj.imaging_fs = 1/taxis(2);
+            
+            guiobj.imaging_taxis = linspace(taxis(1),...
+                length(data)/guiobj.imaging_fs+taxis(1),...
+                length(data));
+            
+            guiobj.imag_datanames = datanames;
+            guiobj.ImagingListBox.String = datanames;
+            
+            setXlims(guiobj)
+        end
 
         %% Value changed function: DatasetListBox
         function DatasetListBoxValueChanged(guiobj)
@@ -3247,7 +3329,7 @@ classdef DAS < handle
                     && (isempty(guiobj.imaging_detections) || ~sum(~cellfun('isempty',guiobj.imaging_detections)))
                 errordlg('There are no detections for either datatype!')
                 return
-            end            
+            end
             
             list = [];
             if ~isempty(guiobj.ephys_data)
@@ -3424,6 +3506,10 @@ classdef DAS < handle
                     end
 
                     eventDetAxesButtFcn(guiobj,guiobj.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
+                end
+            else % MATbol importáláshoz
+                if strcmp(kD.Key,'m')
+                    ImportMatButtionPushed(guiobj)
                 end
             end
         end
