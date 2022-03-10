@@ -1153,7 +1153,7 @@ classdef DASeV < handle
         
         %%
         function imagingTypMenuSel(gO,~,~)
-            [idx,tf] = listdlg('ListString',{'Raw','Gauss smoothed'},...
+            [idx,tf] = listdlg('ListString',{'Raw','Smoothed'},...
                 'PromptString','Select data type(s) to show detections on!');
             if ~tf
                 return
@@ -1418,8 +1418,19 @@ classdef DASeV < handle
                     gO.imagingRoiDwnButt.Enable = 'on';
                     gO.save2DbImagingCheckBox.Enable = 'on';
                     
-                    gO.imagingSmoothed = smoothdata(gO.imagingData,...
-                        2,'gaussian',5);
+                    if strcmp(gO.imagingDetInfo.DetType,'Mean+SD')
+                        if strcmp(gO.imagingDetInfo.DetSettings.WinType,'Gaussian')
+                            gWinLen = gO.imagingDetInfo.DetSettings.WinLen;
+                            gO.imagingSmoothed = smoothdata(gO.imagingData,...
+                                2,'gaussian',gWinLen);
+                        elseif strcmp(gO.imagingDetInfo.DetSettings.WinType,'3-point mean')
+                            winLen = gO.imagingDetInfo.DetSettings.WinLen;
+                            gO.imagingSmoothed = movmean(gO.imagingData,winLen);
+                        end
+                    else
+                        gO.imagingSmoothed = smoothdata(gO.imagingData,...
+                            2,'gaussian',10);
+                    end
                     
                     gO.loaded(2) = 1;
                     
