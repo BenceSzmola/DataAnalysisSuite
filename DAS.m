@@ -187,6 +187,8 @@ classdef DAS < handle
         imagingMeanSdDetPanel
         imagingMeanSdDetSdmultLabel
         imagingMeanSdDetSdmultEdit
+        imagingMeanSdDetWinSizeLabel
+        imagingMeanSdDetWinSizeEdit
         imagingMeanSdDetSlideAvgCheck
         
         imagingMlSpDetPanel
@@ -1667,6 +1669,25 @@ classdef DAS < handle
                 end
             end
             
+            if ~isempty(find(dtyp==2,1))
+                upsampMult = 3;
+                data = guiobj.imaging_data;
+                taxis = get(wsgors(find(dtyp==2,1)),'x')*(10^-3/guiobj.timedim);
+                temp = zeros(size(data,1),size(data,2)*upsampMult);
+                taxisOG = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(data));
+                taxisInterp = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(taxisOG)*upsampMult);
+                for i = 1:size(data,1)
+                    temp(i,:) = spline(taxisOG,data(i,:),taxisInterp);
+                end
+                data = temp;
+                clear temp
+
+                guiobj.imaging_data = data;
+                guiobj.imaging_fs = (1/taxis(2))*upsampMult;
+
+                guiobj.imaging_taxis = taxisInterp;
+            end
+            
             setXlims(guiobj)
             
         end
@@ -1679,11 +1700,11 @@ classdef DAS < handle
             end
             
             varName = who('-file',[path,filename]);
-            data = getfield(load([path,filename]),varName{1});
-            XaxisInfo = getfield(load([path,filename]),varName{2});
-            
-            if length(find(diff(cellfun('size',data,1)))) ~= 1
-                groupBounds = find(diff(cellfun('size',data,1)));
+            data = getfield(load([path,filename]),varName{1})';
+            XaxisInfo = getfield(load([path,filename]),varName{2})';
+                        
+            if length(find(diff(cellfun('size',data,2)))) ~= 1
+                groupBounds = find(diff(cellfun('size',data,2)));
                 dataGroupList = cell(length(groupBounds)+1,1);
                 for i = 1:length(groupBounds)
                     if i == 1
@@ -1736,16 +1757,27 @@ classdef DAS < handle
                 taxis = XaxisInfo{1};
             end
             
-            if size(data,1) > size(data,2)
-                data = data';
+%             size(data)
+%             if size(data,1) > size(data,2)
+%                 data = data';
+%             end
+
+            taxis = taxis/1000;
+            
+            upsampMult = 3;
+            temp = zeros(size(data,1),size(data,2)*upsampMult);
+            taxisOG = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(data));
+            taxisInterp = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(taxisOG)*upsampMult);
+            for i = 1:size(data,1)
+                temp(i,:) = spline(taxisOG,data(i,:),taxisInterp);
             end
-            
+            data = temp;
+            clear temp
+
             guiobj.imaging_data = data;
-            guiobj.imaging_fs = 1/taxis(2);
+            guiobj.imaging_fs = (1/taxis(2))*upsampMult;
             
-            guiobj.imaging_taxis = linspace(taxis(1),...
-                length(data)/guiobj.imaging_fs+taxis(1),...
-                length(data));
+            guiobj.imaging_taxis = taxisInterp;
             
             guiobj.imag_datanames = datanames;
             guiobj.ImagingListBox.String = datanames;
@@ -2784,13 +2816,13 @@ classdef DAS < handle
             data = guiobj.imaging_data;
             fs = guiobj.imaging_fs;
             
-            
             dets = cell(min(size(data)),1);
             detBorders = cell(min(size(data)),1);
             detParams = cell(min(size(data)),1);
             switch dettype
                 case 'Mean+SD'
                     sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
+                    winLen = str2double(guiobj.imagingMeanSdDetWinSizeEdit.String);
                     
                     detData = nan(size(data));
                     thr = nan(size(data,1),1);
@@ -2802,13 +2834,13 @@ classdef DAS < handle
 
                     if ~guiobj.imagingMeanSdDetSlideAvgCheck.Value
                         for i = 1:size(data,1)
-                            detData(i,:) = smoothdata(data(i,:),'gaussian',5);
+                            detData(i,:) = smoothdata(data(i,:),'gaussian',winLen);
                             thr(i) = mean(detData(i,:)) + sdmult*std(detData(i,:));
                             extThr(i) = mean(detData(i,:)) + std(detData(i,:));
                         end
                         minLen = 0.03;
                         detinfo.DetSettings.WinType = 'Gaussian';
-                        detinfo.DetSettings.WinLen = 5;
+                        detinfo.DetSettings.WinLen = winLen;
                     else
                         for i = 1:size(data,1)
                             detData(i,:) = movmean(data(i,:),3);
@@ -3025,7 +3057,7 @@ classdef DAS < handle
                     switch idx
                         case 2
                             guiobj.imaging_smoothed = smoothdata(guiobj.imaging_data,...
-                                2,'gaussian',5);
+                                2,'gaussian',str2double(guiobj.imagingMeanSdDetWinSizeEdit.String));
                     end
                     eventDetAxesButtFcn(guiobj,2)
             end
@@ -3608,11 +3640,19 @@ classdef DAS < handle
         end
         
         %%
-        function eventDetParamInputControll(~,source,setting)
+        function eventDetParamInputControll(guiobj,source,setting)
             if strcmp(setting,'sd')
                 if str2double(source.String) < 1
                     source.String = '1';
                     warndlg('This parameter can''t be below 1!')
+                end
+            elseif strcmp(setting,'imgWinLen')
+                if (str2double(source.String) < 1) || (str2double(source.String) > 0.1*length(guiobj.imaging_data))
+                    source.String = '5';
+                    warndlg('This parameter must be at least 1 and maximally 10% of the data''s length!')
+                elseif mod(str2double(source.String),1) ~= 0
+                    source.String = num2str(round(str2double(source.String)));
+                    warndlg('This parameter must be an integer!')
                 end
             end
         end
@@ -4420,12 +4460,23 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.41, 0.85, 0.1, 0.1],...
-                'String','3',...
+                'String','2',...
                 'Callback', @(h,e) guiobj.eventDetParamInputControll(h,'sd'));
+            guiobj.imagingMeanSdDetWinSizeLabel = uicontrol(guiobj.imagingMeanSdDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.7, 0.3, 0.1],...
+                'String','WinSize [samples]');
+            guiobj.imagingMeanSdDetWinSizeEdit = uicontrol(guiobj.imagingMeanSdDetPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.41, 0.7, 0.1, 0.1],...
+                'String','30',...
+                'Callback', @(h,e) guiobj.eventDetParamInputControll(h,'imgWinLen'));
             guiobj.imagingMeanSdDetSlideAvgCheck = uicontrol(guiobj.imagingMeanSdDetPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.1, 0.7, 0.5, 0.1],...
+                'Position',[0.1, 0.3, 0.5, 0.1],...
                 'String','Use 3-point average method');
             
             guiobj.imagingMlSpDetPanel = uipanel(guiobj.eventDetTab,...
