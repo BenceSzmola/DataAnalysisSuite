@@ -2477,8 +2477,7 @@ classdef DAS < handle
             end
             
             guiobj.imaging_procced = [guiobj.imaging_procced; procc];
-            guiobj.imag_proc_datanames = [guiobj.imag_proc_datanames,...
-                procDatanames];
+            guiobj.imag_proc_datanames = procDatanames;
             guiobj.imagingProcListBox2.String = procDatanames;
         end
         
