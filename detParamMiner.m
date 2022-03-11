@@ -44,10 +44,10 @@ for i = 1:numDets
     peak80 = detData(detInds(i))*0.8;
     indsBelow80 = find(detData <= peak80);
     indsBelow20 = find(detData <= peak20);
-    indsBelow80pre = indsBelow80(indsBelow80 < detInds);
-    indsBelow80post = indsBelow80(indsBelow80 > detInds);
-    indsBelow20pre = indsBelow20(indsBelow20 < detInds);
-    indsBelow20post = indsBelow20(indsBelow20 > detInds);
+    indsBelow80pre = indsBelow80(indsBelow80 < detInds(i));
+    indsBelow80post = indsBelow80(indsBelow80 > detInds(i));
+    indsBelow20pre = indsBelow20(indsBelow20 < detInds(i));
+    indsBelow20post = indsBelow20(indsBelow20 > detInds(i));
     pre20Ind = max(indsBelow20pre);
     pre80Ind = max(indsBelow80pre);
     post20Ind = min(indsBelow20post);
