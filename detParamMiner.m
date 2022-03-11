@@ -7,11 +7,13 @@ switch dTyp
     case 1
         detParams = struct('RawAmplitudeP2P',cell(numDets,1),'BpAmplitudeP2P',cell(numDets,1),...
             'Length',cell(numDets,1),'Frequency',cell(numDets,1),'NumCycles',cell(numDets,1),...
-            'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'DecayTime',cell(numDets,1),...
+            'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'RiseTime2080',cell(numDets,1),...
+            'DecayTime',cell(numDets,1),'DecayTime8020',cell(numDets,1),...
             'FWHM',cell(numDets,1),'NumSimultEvents',0);
     case 2
         detParams = struct('RawAmplitudeP2P',cell(numDets,1),'Length',cell(numDets,1),...
-            'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'DecayTime',cell(numDets,1),...
+            'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'RiseTime2080',cell(numDets,1),...
+            'DecayTime',cell(numDets,1),'DecayTime8020',cell(numDets,1),...
             'FWHM',cell(numDets,1),'NumSimultEvents',0);
 end
 
@@ -38,7 +40,20 @@ for i = 1:numDets
     detParams(i).RiseTime = (detInds(i) - detBorders(i,1))/fs;
     detParams(i).DecayTime = (detBorders(i,2) - detInds(i))/fs;
     
-    
+    peak20 = detData(detInds(i))*0.2;
+    peak80 = detData(detInds(i))*0.8;
+    indsBelow80 = find(detData <= peak80);
+    indsBelow20 = find(detData <= peak20);
+    indsBelow80pre = indsBelow80(indsBelow80 < detInds);
+    indsBelow80post = indsBelow80(indsBelow80 > detInds);
+    indsBelow20pre = indsBelow20(indsBelow20 < detInds);
+    indsBelow20post = indsBelow20(indsBelow20 > detInds);
+    pre20Ind = max(indsBelow20pre);
+    pre80Ind = max(indsBelow80pre);
+    post20Ind = min(indsBelow20post);
+    post80Ind = min(indsBelow80post);
+    detParams(i).RiseTime2080 = (pre80Ind - pre20Ind)/fs;
+    detParams(i).DecayTime8020 = (post20Ind - post80Ind)/fs;
     
     halfmax = detData(detInds(i))/2;
     aboveHM = find(detData > halfmax);
