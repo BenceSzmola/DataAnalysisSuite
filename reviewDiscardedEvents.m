@@ -48,6 +48,8 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
             adjInd = refValVictims{chanInd}(detInd);
         
             winInds = winMacher(adjInd,0.5);
+            r = corrCalculator(adjInd);
+            
             plot(ax(2),taxis(winInds),data(chanInd,winInds),'-r')
             hold(ax(2),'on')
             xline(ax(2),taxis(eventsPeak{chanInd}(adjInd)),'g','LineWidth',1);
@@ -63,7 +65,7 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
             ylabel(ax(2),'Voltage [\muV]')
 
             plot(ax(1),taxis(winInds),refData(winInds))
-            title(ax(1),'Reference channel')
+            title(ax(1),['Reference channel - rho=',num2str(r(2))])
             xlabel(ax(1),'Time [s]')
             ylabel(ax(1),'Voltage [\muV]')
             
@@ -92,5 +94,10 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
         end
         
         winInds = winStart:winEnd;
+    end
+
+    function r = corrCalculator(adjInd)
+        winInds = winMacher(adjInd,0.2);
+        r = corrcoef(refData(winInds),data(chanInd,winInds));
     end
 end

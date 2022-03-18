@@ -5,7 +5,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
         valTyp = 1;
     else
         valTyp = 2; % 1=time match based; 2=correlation based
-        corrThr = 0.6;
+        corrThr = 0.5;
     end
 
     if nargin < 13
@@ -71,14 +71,14 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
             eventsPeak{i}(j) = maxIdx + eventsStartStop{i}(j,1) - 1;
             
             if refVal~=0
-                winSize = 0.1*fs;
+                halfWinSize = 0.1*fs;
                 
-                if eventsPeak{i}(j)-winSize < 1
-                    winInds = 1:eventsPeak{i}(j)+winSize;
-                elseif eventsPeak{i}(j)+winSize > length(rawData)
-                    winInds = eventsPeak{i}(j)-winSize:length(rawData);
+                if eventsPeak{i}(j)-halfWinSize < 1
+                    winInds = 1:eventsPeak{i}(j)+halfWinSize;
+                elseif eventsPeak{i}(j)+halfWinSize > length(rawData)
+                    winInds = eventsPeak{i}(j)-halfWinSize:length(rawData);
                 else
-                    winInds = eventsPeak{i}(j)-winSize:eventsPeak{i}(j)+winSize;
+                    winInds = eventsPeak{i}(j)-halfWinSize:eventsPeak{i}(j)+halfWinSize;
                 end
 
                 if valTyp == 1
