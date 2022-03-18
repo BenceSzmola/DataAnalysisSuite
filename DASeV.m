@@ -314,7 +314,6 @@ classdef DASeV < handle
         
         %%
         function [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp)
-            
             switch gO.simultMode
                 case 0
                     switch dTyp
@@ -1461,9 +1460,16 @@ classdef DASeV < handle
             
             if sum(gO.loaded(1:2)) < 2
                 gO.parallelModeMenu.Enable = 'off';
+                if gO.loaded(1)
+                    gO.keyboardPressDtyp = 1;
+                elseif gO.loaded(2)
+                    gO.keyboardPressDtyp = 2;
+                end
             else
                 gO.parallelModeMenu.Enable = 'on';
             end
+            
+            
             
             gO.simultMode = 0;
             gO.loaded(4) = 0;
@@ -1922,28 +1928,48 @@ classdef DASeV < handle
         %%
         function keyboardPressFcn(gO,~,kD)
             if gO.tabgrp.SelectedTab == gO.tabgrp.Children(2)
+                detChanUpDwn = [0,0];
+                switch kD.Key
+                    case 'd'
+                        if sum(gO.loaded) > 1
+                            switch gO.keyboardPressDtyp
+                                case 1
+                                    gO.keyboardPressDtyp = 2;
+                                case 2
+                                    gO.keyboardPressDtyp = 1;
+                            end
+                        end
+                    case 'rightarrow'
+                        detChanUpDwn = [1,0];
+                    case 'leftarrow'
+                        detChanUpDwn = [-1,0];
+                    case 'uparrow'
+                        detChanUpDwn = [0,1];
+                    case 'downarrow'
+                        detChanUpDwn = [0,-1];
+                    case 'e'            
+                        if strcmp(gO.save2DbEphysCheckBox.Enable,'on')
+                            switch gO.save2DbEphysCheckBox.Value
+                                case 0
+                                    gO.save2DbEphysCheckBox.Value = 1;
+                                case 1
+                                    gO.save2DbEphysCheckBox.Value = 0;
+                            end
+                            save2DbCheckBoxPress(gO,1)
+                        end
+                    case 'i'
+                        if strcmp(gO.save2DbImagingCheckBox.Enable,'on')
+                            switch gO.save2DbImagingCheckBox.Value
+                                case 0
+                                    gO.save2DbImagingCheckBox.Value = 1;
+                                case 1
+                                    gO.save2DbImagingCheckBox.Value = 0;
+                            end
+                            save2DbCheckBoxPress(gO,2)
+                        end
+                end
                 
-                if strcmp(kD.Key,'d') & (sum(gO.loaded) > 1)
-                    switch gO.keyboardPressDtyp
-                        case 1
-                            gO.keyboardPressDtyp = 2;
-                        case 2
-                            gO.keyboardPressDtyp = 1;
-                    end
-                else
-
-                    detChanUpDwn = [0,0];
-                    switch kD.Key
-                        case 'rightarrow'
-                            detChanUpDwn = [1,0];
-                        case 'leftarrow'
-                            detChanUpDwn = [-1,0];
-                        case 'uparrow'
-                            detChanUpDwn = [0,1];
-                        case 'downarrow'
-                            detChanUpDwn = [0,-1];
-                    end
-
+                if sum(detChanUpDwn) ~= 0
                     if gO.fixWin == 1
                         axButtPressFixWin(gO,gO.keyboardPressDtyp,detChanUpDwn(2))
                     else
