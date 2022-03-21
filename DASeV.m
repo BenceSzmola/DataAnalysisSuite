@@ -2025,9 +2025,6 @@ classdef DASeV < handle
         end
         
         function save2DbParallelChanSelect(gO,parallel_dTyp)
-            display(gO.save2DbEphysParallelRoiSelection)
-            display(gO.save2DbImagingParallelChanSelection)
-            
             switch parallel_dTyp % type of the parallel data being saved
                 case 1
                     chansLogic = gO.save2DbImagingParallelChanSelection;
@@ -2052,7 +2049,7 @@ classdef DASeV < handle
                     allChans = gO.imagingDetInfo.Roi;
                     chanList = cell(length(allChans),1);
                     for i = 1:length(chanList)
-                        chanList{i} = ['Channel #',num2str(allChans(i))];
+                        chanList{i} = ['ROI #',num2str(allChans(i))];
                     end
 
                     [selRow,tf] = listdlg('ListString',chanList,'PromptString','Select which ROI(s) to save parallel!',...
@@ -2066,9 +2063,6 @@ classdef DASeV < handle
                     gO.save2DbEphysParallelRoiSelection = chansLogic;
                     
             end
-            
-            display(gO.save2DbEphysParallelRoiSelection)
-            display(gO.save2DbImagingParallelChanSelection)
             
         end
         

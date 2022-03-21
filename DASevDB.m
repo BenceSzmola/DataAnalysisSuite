@@ -384,36 +384,34 @@ classdef DASevDB < handle
             if type(1)
                 if ~gO.displayAvgDataWin
                     dataWin = [dataWin; currEv.DataWin.Raw(row2show,:)];
-                    yLabels = [yLabels; "Voltage [\muV]"];
                     plotTitle = [plotTitle; "Raw data"];
                 else
                     dataWin = [dataWin; gO.avgEphysEvents.Raw];
-                    yLabels = [yLabels; "Voltage [\muV]"];
                     plotTitle = [plotTitle; "Average of Raw data"];
                 end
+                yLabels = [yLabels; "Voltage [\muV]"];
             end
             if type(2)
                 if ~gO.displayAvgDataWin
                     dataWin = [dataWin; currEv.DataWin.BP(row2show,:)];
-                    yLabels = [yLabels; "Voltage [\muV]"];
                     plotTitle = [plotTitle; "Bandpass filtered data"];
                 else
                     dataWin = [dataWin; gO.avgEphysEvents.BP];
-                    yLabels = [yLabels; "Voltage [\muV]"];
                     plotTitle = [plotTitle; "Average of Bandpass filtered data"];
                 end
+                yLabels = [yLabels; "Voltage [\muV]"];
             end
             if type(3)
                 if ~gO.displayAvgDataWin
                     dataWin = [dataWin; currEv.DataWin.Power(row2show,:)];
-                    yLabels = [yLabels; "Power [\muV^2]"];
                     plotTitle = [plotTitle; "Instantaneous power of data"];
                 else
                     dataWin = [dataWin; gO.avgEphysEvents.Power];
-                    yLabels = [yLabels; "Power [\muV^2]"];
                     plotTitle = [plotTitle; "Average of Instantaneous power"];
                 end
+                yLabels = [yLabels; "Power [\muV^2]"];
             end
+            
             if ~gO.displayAvgDataWin
                 taxisWin = currEv.Taxis;
             else
@@ -438,7 +436,11 @@ classdef DASevDB < handle
                 hold(ax(i),'off')
                 
                 ylabel(ax(i),yLabels(i))
-                title(ax(i),plotTitle(i))
+                if gO.parallelFromSaveStruct(gO.currEvent) == 1
+                    title(ax(i),strcat(plotTitle(i)," - parallel"))
+                else
+                    title(ax(i),plotTitle(i))
+                end
                 xlabel(ax(i),'Time [s]')
                 axis(ax(i),'tight')
                 ax(i).Tag = axTag{i};
@@ -515,7 +517,11 @@ classdef DASevDB < handle
             hold(ax,'off')
             
             ylabel(ax,yLabels)
-            title(ax,plotTitle)
+            if gO.parallelFromSaveStruct(gO.currEvent) == 2
+                title(ax,strcat(plotTitle," - parallel"))
+            else
+                title(ax,plotTitle)
+            end
             xlabel(ax,'Time [s]')
             axis(ax,'tight')
             ax.Tag = axTag;
@@ -593,6 +599,7 @@ classdef DASevDB < handle
                     end
             end
             gO.currEvent = currEv;
+            gO.currParallelChan = 1;
             smartplot(gO,0)
         end
         
