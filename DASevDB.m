@@ -799,8 +799,7 @@ classdef DASevDB < handle
         
         %%
         function showAvgParamsMenuSel(gO,~,~)
-            
-            if gO.loaded(1)
+            if gO.loaded(1) && ~isempty([gO.ephysEvents.Params])
                 avg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2);
                 sd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
                 avgSd = cell(length(avg),1);
@@ -813,7 +812,7 @@ classdef DASevDB < handle
                 gO.ephysParamTable.ColumnName = {'Electrophysiology','Mean values'};
             end
             
-            if gO.loaded(2)
+            if gO.loaded(2) && ~isempty([gO.imagingEvents.Params])
                 avg = mean(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),2);
                 sd = std(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),[],2);
                 avgSd = cell(length(avg),1);
@@ -825,7 +824,6 @@ classdef DASevDB < handle
                 gO.imagingParamTable.Data = temp;
                 gO.imagingParamTable.ColumnName = {'Imaging','Mean values'};
             end
-            
             
         end
         
