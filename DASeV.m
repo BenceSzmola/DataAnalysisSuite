@@ -67,8 +67,10 @@ classdef DASeV < handle
         save2DbPanel
         save2DbEphysCheckBox
         save2DbEphys_wPar_CheckBox      % save with parallel imaging
+        save2DbEphys_wPar_RoiSelect     % select which ROIs to use in parallel Saving
         save2DbImagingCheckBox
         save2DbImaging_wPar_CheckBox    % save with parallel ephys
+        save2DbImaging_wPar_ChanSelect  % select which channels to use in parallel saving
         save2DbSimultCheckBox
         save2DbRunningChechBox
         save2DbButton
@@ -119,9 +121,9 @@ classdef DASeV < handle
         parallelMode = 0;
         keyboardPressDtyp = 1;
         save2DbEphysSelection = cell(1,1);
-        save2DbEphysParallelRoiSelection = cell(1,1);
+        save2DbEphysParallelRoiSelection = false(1,1);
         save2DbImagingSelection = cell(1,1);
-        save2DbImagingParallelChanSelection = cell(1,1);
+        save2DbImagingParallelChanSelection = false(1,1);
         save2DbSimultSelection = [0,0,0,0];
         
         %% ephys stuff
@@ -1331,6 +1333,7 @@ classdef DASeV < handle
             gO.ephysDetParamsTable.Data = {};
             gO.ephysDetParamsTable.ColumnName = {};
             gO.save2DbEphysCheckBox.Enable = 'off';
+            gO.save2DbEphys_wPar_CheckBox.Enable = 'off';
 
             if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'}))==2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
@@ -1382,6 +1385,7 @@ classdef DASeV < handle
             gO.imagingRoiUpButt.Enable = 'off';
             gO.imagingRoiDwnButt.Enable = 'off';
             gO.save2DbImagingCheckBox.Enable = 'off';
+            gO.save2DbImaging_wPar_CheckBox.Enable = 'off';
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
@@ -1467,6 +1471,8 @@ classdef DASeV < handle
                 end
             else
                 gO.parallelModeMenu.Enable = 'on';
+                gO.save2DbEphys_wPar_CheckBox.Enable = 'on';
+                gO.save2DbImaging_wPar_CheckBox.Enable = 'on';
             end
             
             
@@ -1506,32 +1512,32 @@ classdef DASeV < handle
             gO.save2DbSimultSelection = [0,0,0,0];
             
             gO.save2DbEphysSelection = cell(1,1);
-            gO.save2DbEphysParallelRoiSelection = cell(1,1);
+            gO.save2DbEphysParallelRoiSelection = false(1,1);
             if gO.loaded(1)
                 gO.save2DbEphysSelection = cell(length(gO.ephysDetBorders),1);
                 if gO.loaded(2)
-                    gO.save2DbEphysParallelRoiSelection = cell(length(gO.ephysDetBorders),1);
+                    gO.save2DbEphysParallelRoiSelection = true(length(gO.imagingDetInfo.Roi),1);
                 end
                 for i = 1:length(gO.ephysDetBorders)
                     gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
-                    if gO.loaded(2)
-                        gO.save2DbEphysParallelRoiSelection{i} = false(size(gO.ephysDetBorders{i},1),size(gO.imagingData,1));
-                    end
+%                     if gO.loaded(2)
+%                         gO.save2DbEphysParallelRoiSelection{i} = false(size(gO.ephysDetBorders{i},1),size(gO.imagingData,1));
+%                     end
                 end
             end
             
             gO.save2DbImagingSelection = cell(1,1);
-            gO.save2DbImagingParallelChanSelection = cell(1,1);
+            gO.save2DbImagingParallelChanSelection = false(1,1);
             if gO.loaded(2)
                 gO.save2DbImagingSelection = cell(length(gO.imagingDetBorders),1);
                 if gO.loaded(1)
-                    gO.save2DbImagingParallelChanSelection = cell(length(gO.imagingDetBorders),1);
+                    gO.save2DbImagingParallelChanSelection = true(length(gO.ephysDetInfo.AllChannel),1);
                 end
                 for i = 1:length(gO.imagingDetBorders)
                     gO.save2DbImagingSelection{i} = false(size(gO.imagingDetBorders{i},1),1);
-                    if gO.loaded(1)
-                        gO.save2DbImagingParallelChanSelection{i} = false(size(gO.imagingDetBorders{i},1),size(gO.ephysData,1));
-                    end
+%                     if gO.loaded(1)
+%                         gO.save2DbImagingParallelChanSelection{i} = false(size(gO.imagingDetBorders{i},1),size(gO.ephysData,1));
+%                     end
                 end
             end
             
@@ -2018,6 +2024,54 @@ classdef DASeV < handle
             end
         end
         
+        function save2DbParallelChanSelect(gO,parallel_dTyp)
+            display(gO.save2DbEphysParallelRoiSelection)
+            display(gO.save2DbImagingParallelChanSelection)
+            
+            switch parallel_dTyp % type of the parallel data being saved
+                case 1
+                    chansLogic = gO.save2DbImagingParallelChanSelection;
+                    allChans = gO.ephysDetInfo.AllChannel;
+                    chanList = cell(length(allChans),1);
+                    for i = 1:length(chanList)
+                        chanList{i} = ['Channel #',num2str(allChans(i))];
+                    end
+
+                    [selRow,tf] = listdlg('ListString',chanList,'PromptString','Select which channel(s) to save parallel!',...
+                        'InitialValue',find(chansLogic));
+                    if ~tf
+                        return
+                    end
+                    
+                    chansLogic(:) = false;
+                    chansLogic(selRow) = true;
+                    gO.save2DbImagingParallelChanSelection = chansLogic;
+                    
+                case 2
+                    chansLogic = gO.save2DbEphysParallelRoiSelection;
+                    allChans = gO.imagingDetInfo.Roi;
+                    chanList = cell(length(allChans),1);
+                    for i = 1:length(chanList)
+                        chanList{i} = ['Channel #',num2str(allChans(i))];
+                    end
+
+                    [selRow,tf] = listdlg('ListString',chanList,'PromptString','Select which ROI(s) to save parallel!',...
+                        'InitialValue',find(chansLogic));
+                    if ~tf
+                        return
+                    end
+                    
+                    chansLogic(:) = false;
+                    chansLogic(selRow) = true;
+                    gO.save2DbEphysParallelRoiSelection = chansLogic;
+                    
+            end
+            
+            display(gO.save2DbEphysParallelRoiSelection)
+            display(gO.save2DbImagingParallelChanSelection)
+            
+        end
+        
         %%
         function save2DbButtonPress(gO,~,~)
             
@@ -2080,14 +2134,15 @@ classdef DASeV < handle
                             [~,startInd] = min(abs(gO.imagingTaxis - refWin(1)));
                             [~,stopInd] = min(abs(gO.imagingTaxis - refWin(end)));
                             parWin = startInd:stopInd;
+                            rois2save = gO.save2DbEphysParallelRoiSelection;
                             
                             tempStruct.imagingEvents.Taxis = gO.imagingTaxis(parWin);
-                            tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(:,parWin);
-                            tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(:,parWin);
+                            tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(rois2save,parWin);
+                            tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(rois2save,parWin);
                             tempStruct.imagingEvents.DetBorders = [];
                             tempStruct.imagingEvents.Params = [];
                             tempStruct.imagingEvents.DetSettings = [];
-                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi;
+                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi(rois2save);
                             tempStruct.imagingEvents.DetNum = [];
                         end
                         
@@ -2146,15 +2201,16 @@ classdef DASeV < handle
                             [~,startInd] = min(abs(gO.ephysTaxis - refWin(1)));
                             [~,stopInd] = min(abs(gO.ephysTaxis - refWin(end)));
                             parWin = startInd:stopInd;
+                            chans2save = gO.save2DbImagingParallelChanSelection;
                             
                             tempStruct.ephysEvents.Taxis = gO.ephysTaxis(parWin);
-                            tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(:,parWin);
-                            tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(:,parWin);
-                            tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(:,parWin);
+                            tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(chans2save,parWin);
+                            tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(chans2save,parWin);
+                            tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(chans2save,parWin);
                             tempStruct.ephysEvents.DetBorders = [];
                             tempStruct.ephysEvents.Params = [];
                             tempStruct.ephysEvents.DetSettings = [];
-                            tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.AllChannel;
+                            tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.AllChannel(chans2save);
                             tempStruct.ephysEvents.DetNum = [];
                         end
                         
@@ -2617,27 +2673,39 @@ classdef DASeV < handle
             gO.save2DbEphysCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.85, 0.4, 0.15],...
+                'Position',[0.01, 0.85, 0.35, 0.15],...
                 'String','Select current ephys event',...
                 'Callback',@(h,e) gO.save2DbCheckBoxPress(1));
             gO.save2DbEphys_wPar_CheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.5, 0.85, 0.4, 0.15],...
+                'Position',[0.4, 0.85, 0.35, 0.15],...
                 'String','w/Parallel imaging');%,...
 %                 'Callback',@(h,e) gO.save2DbCheckBoxPress(1));
+            gO.save2DbEphys_wPar_RoiSelect = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.76, 0.85, 0.23, 0.15],...
+                'String','Parallel ROIs',...
+                'Callback',@(h,e) gO.save2DbParallelChanSelect(2));
             gO.save2DbImagingCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.65, 0.4, 0.15],...
+                'Position',[0.01, 0.65, 0.35, 0.15],...
                 'String','Select current imaging event',...
                 'Callback',@(h,e) gO.save2DbCheckBoxPress(2));
             gO.save2DbImaging_wPar_CheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.5, 0.65, 0.4, 0.15],...
+                'Position',[0.4, 0.65, 0.35, 0.15],...
                 'String','w/Parallel ephys');%,...
 %                 'Callback',@(h,e) gO.save2DbCheckBoxPress(2));
+            gO.save2DbImaging_wPar_ChanSelect = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.76, 0.65, 0.23, 0.15],...
+                'String','Parallel Chans',...
+                'Callback',@(h,e) gO.save2DbParallelChanSelect(1));
             gO.save2DbSimultCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
