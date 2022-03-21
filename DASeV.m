@@ -36,6 +36,8 @@ classdef DASeV < handle
         selDirButt
         
         fileList
+        fileListContMenu
+        fileListContMenuUpdate
         
         fileInfoPanel
         fnameLabel
@@ -1290,10 +1292,14 @@ classdef DASeV < handle
         end
         
         %%
-        function selDirButtPress(gO,~,~)
-            newdir = uigetdir;
-            if newdir == 0
-                return
+        function selDirButtPress(gO,changeOrUpdate)
+            if changeOrUpdate == 0
+                newdir = uigetdir;
+                if newdir == 0
+                    return
+                end
+            else
+                newdir = gO.selDir;
             end
             
             newlist = dir([newdir,'\*DASsave*.mat']);
@@ -1304,7 +1310,10 @@ classdef DASeV < handle
             newlist = {newlist.name};
             gO.fileList.Value = 1;
             gO.fileList.String = newlist;
-            gO.selDir = newdir;
+            
+            if changeOrUpdate == 0
+                gO.selDir = newdir;
+            end
         end
         
         %%
@@ -1335,7 +1344,7 @@ classdef DASeV < handle
             gO.save2DbEphysCheckBox.Enable = 'off';
             gO.save2DbEphys_wPar_CheckBox.Enable = 'off';
 
-            if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'}))==2
+            if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'})) == 2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
                 if ~isempty(ephysSaveData) %& ~isempty(ephysSaveInfo)
@@ -1389,7 +1398,7 @@ classdef DASeV < handle
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
-            if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'}))==2
+            if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'})) == 2
                 load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
                 if ~isempty(imagingSaveData) %& ~isempty(imagingSaveInfo)
@@ -2024,6 +2033,7 @@ classdef DASeV < handle
             end
         end
         
+        %%
         function save2DbParallelChanSelect(gO,parallel_dTyp)
             switch parallel_dTyp % type of the parallel data being saved
                 case 1
@@ -2520,7 +2530,7 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.1, 0.05],...
                 'String','Change directory',...
-                'Callback',@ gO.selDirButtPress);%,...
+                'Callback',@(h,e) gO.selDirButtPress(0));%,...
                 %'BackgroundColor',[62,105,225]/255,...
                 %'ForegroundColor',[1,1,1]);
             
@@ -2533,18 +2543,22 @@ classdef DASeV < handle
                 %'BackgroundColor',[62,105,225]/255,...
                 %'ForegroundColor',[1,1,1]);
             
+            gO.fileListContMenu = uicontextmenu(gO.mainFig);
             gO.selDir = cd;
             initFileList = dir('*DASsave*.mat');
-            initFileList(find(strcmp({initFileList.name},'DAS_LOG.mat'))) = [];
+            initFileList(strcmp({initFileList.name},'DAS_LOG.mat')) = [];
             initFileList = {initFileList.name};
             gO.fileList = uicontrol(gO.loadTab,...
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0.12,0.1,0.3,0.9],...
                 'String',initFileList,...
-                'Callback',@ gO.fileListSel);%,...
+                'Callback',@ gO.fileListSel,...
+                'UIContextMenu',gO.fileListContMenu);%,...
                 %'BackgroundColor',[62,105,225]/255,...
                 %'ForegroundColor',[1,1,1]);
+            gO.fileListContMenuUpdate = uimenu(gO.fileListContMenu,'Text','Update list',...
+                'Callback',@(h,e) gO.selDirButtPress(1));
             
             gO.fileInfoPanel = uipanel(gO.loadTab,...
                 'Position',[0.44,0.1,0.55,0.9],...
