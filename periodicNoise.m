@@ -69,8 +69,11 @@ if (nargin > 0 && nargin < 5)
 end
 
 data_filt = data;
-for i = 1:min(size(data))
-    if ~f_fund_given
+
+if ~f_fund_given
+    f_fund = zeros(min(size(data)),1);
+    for i = 1:min(size(data))
+    
         wb1 = waitbar(0,'Calculaing FFT...','Name','Finding the fundamental frequency');
         % Calculate FFT
         [faxis,psd] = freqspec(data(i,:),fs,0);
@@ -133,7 +136,7 @@ for i = 1:min(size(data))
 
 %         dps = zeros(2,10);
         runavg = movmean(autocorr,find(faxis>1,1));
-        f_fund = 0;
+%         f_fund = 0;
         numproms = min([10,length(maxproms)]);
         dps = zeros(2,numproms);
         
@@ -146,32 +149,42 @@ for i = 1:min(size(data))
         bestscore = 20;
         for j = 1:numproms
             if find(inds1==j)+find(inds2==j) < bestscore
-                f_fund = faxis(dps(1,j)+1);
+                f_fund(i) = faxis(dps(1,j)+1);
                 bestscore = find(inds1==j)+find(inds2==j);
             elseif find(inds1==j)+find(inds2==j) == bestscore
-                if faxis(dps(1,j)+1) < f_fund
-                    f_fund = faxis(dps(1,j)+1);
+                if faxis(dps(1,j)+1) < f_fund(i)
+                    f_fund(i) = faxis(dps(1,j)+1);
                 end
             end
         end
         waitbar(1,wb1,'Finished')
         close(wb1)
-        fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund)
+        fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))
     end
+    if length(unique(round(f_fund/2)*2)) > 1
+        modeVal = mode(round(f_fund/2)*2);
+        [uniqVals,~,ic] = unique(round(f_fund/2)*2);
+        f_fund = mean(f_fund(ic == find(uniqVals == modeVal,1)));
+    else
+        f_fund = mean(f_fund);
+    end
+    fprintf(1,'The final result for the fundamental frequency of the periodic noise in the whole recording is: %f Hz\n',f_fund)
+end
     
-    % fmax is the frequency up to which the algorithm will run
-    if isempty(fmax) || isnan(fmax)
-        fmax = ((fs/2)-f_fund-1);
-    end
+% fmax is the frequency up to which the algorithm will run
+if isempty(fmax) || isnan(fmax)
+    fmax = ((fs/2)-f_fund-1);
+end
 
+for i = 1:min(size(data))
     % Use series of bandstop filters to eliminate the periodic noise
-    f = 0;
+    f = f_fund;
     wb2 = waitbar(0,'Initializing filtering...','Name','Filtering the data');
     while f < fmax
-        f = f+f_fund;
         waitbar(f/fmax,wb2,['Filtering at ',num2str(f),' Hz'])
         [b,a] = butter(2,[f-stopbandwidth, f+stopbandwidth]/(fs/2),'stop');
         data_filt(i,:) = filtfilt(b,a,data_filt(i,:));
+        f = f+f_fund;
 %         freqz(b,a)
 %         [data_filt(i,:),d] = bandstop(data(i,:),[f-1,f+1],fs);
 %         freqz(d)
