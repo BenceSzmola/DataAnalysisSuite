@@ -132,6 +132,9 @@ classdef DAS < handle
         ephysDetPopMenu
         ephysDetChSelLabel
         ephysDetChSelListBox
+        ephysDetRefChanLabel
+        ephysDetRefChanEdit
+        ephysDetArtSuppPopMenu
         
         ephysCwtDetPanel
         ephysCwtDetMinlenLabel
@@ -142,9 +145,6 @@ classdef DAS < handle
         ephysCwtDetW1Edit
         ephysCwtDetW2Edit
         ephysCwtDetRefValCheck
-        ephysCwtDetArtSuppPopMenu
-        ephysCwtDetRefChanLabel
-        ephysCwtDetRefChanEdit
         ephysCwtDetPresetPopMenu
         ephysCwtDetPresetSaveButt
         ephysCwtDetPresetDelButt
@@ -167,11 +167,7 @@ classdef DAS < handle
         ephysDoGInstPowDetSdMultEdit
         ephysDoGInstPowDetMinLenLabel
         ephysDoGInstPowDetMinLenEdit
-        ephysDoGInstPowDetRefChanLabel
-        ephysDoGInstPowDetRefChanEdit
         ephysDogInstPowDetRefValChBox
-        ephysDoGInstPowDetArtSuppPopMenuLabel
-        ephysDoGInstPowDetArtSuppPopMenu
         ephysDoGInstPowDetPresetPopMenu
         ephysDoGInstPowDetPresetSaveButt
         ephysDoGInstPowDetPresetDelButt
@@ -2639,7 +2635,29 @@ classdef DAS < handle
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
+            refch = str2double(guiobj.ephysDetRefChanEdit.String);
+            refchData = guiobj.ephys_data(refch,:);
             
+            % Handling no input case when artsupp is enabled
+            if (guiobj.ephysDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
+                errordlg('Specifiy reference channel to use artifact suppression!')
+                guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                return
+            end
+            
+            switch guiobj.ephysDetArtSuppPopMenu.Value 
+                case 2 % periodic
+                    data_cl = periodicNoise(guiobj.ephys_data,fs);
+                    data = data_cl(chan,:);
+                case 3 % wICA
+                    data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
+                    data = data_cl(chan,:);
+                case 4 % ref chan subtract
+                    data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
+                    data = data_cl(chan,:);
+            end
+                        
             switch dettype
                 case 'CWT based'
                     minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String);
@@ -2656,18 +2674,7 @@ classdef DAS < handle
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                         return
                     end
-                    
-                    refch = str2double(guiobj.ephysCwtDetRefChanEdit.String);
-                    refchData = guiobj.ephys_data(refch,:);
-                    
-                    % Handling no input case when artsupp is enabled
-                    if (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
-                        errordlg('No reference channel specified!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                    
+                                                            
                     if refVal && (isempty(refch)||isnan(refch))
                         errordlg('No reference channel specified!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -2675,22 +2682,13 @@ classdef DAS < handle
                         return
                     end
                     
-                    if (refVal || (guiobj.ephysCwtDetArtSuppPopMenu.Value~=1)) & ((length(chan)==1) & (chan == refch))
+                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value~=1)) && ((length(chan)==1) && (chan == refch))
                         errordlg('Requested channel and the reference channel are the same!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                         return
                     end
-                    
-                    switch guiobj.ephysCwtDetArtSuppPopMenu.Value 
-                        case 2 % wICA
-                            data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            data = data_cl(chan,:);
-                        case 3 % ref chan subtract
-                            data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            data = data_cl(chan,:);
-                    end
-                    
+                                        
                     if ~refVal
                         [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen/1000,sdmult,w1,w2,0,[],showFigs);
                     elseif refVal
@@ -2757,17 +2755,6 @@ classdef DAS < handle
                         return
                     end
                     
-                    refch = str2double(guiobj.ephysDoGInstPowDetRefChanEdit.String);
-                    refchData = guiobj.ephys_data(refch,:);
-                    
-                    % Handling no input case when artsupp is enabled
-                    if (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
-                        errordlg('No reference channel specified!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                    
                     if refVal && (isempty(refch)||isnan(refch))
                         errordlg('No reference channel specified!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -2775,20 +2762,11 @@ classdef DAS < handle
                         return
                     end
                     
-                    if (refVal || (guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value~=1)) & ((length(chan)==1) & (chan == refch))
+                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value~=1)) && ((length(chan)==1) && (chan == refch))
                         errordlg('Requested channel and the reference channel are the same!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                         return
-                    end
-                    
-                    switch guiobj.ephysDoGInstPowDetArtSuppPopMenu.Value 
-                        case 2 % wICA
-                            data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                            data = data_cl(chan,:);
-                        case 3 % ref chan subtract
-                            data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                            data = data_cl(chan,:);
                     end
                     
                     if ~refVal
@@ -3194,27 +3172,38 @@ classdef DAS < handle
                 try
                     load([DASlocation,'DAS_LOG.mat'])
                     disp('Log file found and loaded.')
-
+                catch
+                    disp('Log file could not be loaded! A new one will be generated when you close the GUI.')
+                    return
+                end
+                
+                try
                     temp = DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow;
                     guiobj.ephysDoGInstPowDetW1Edit.String = temp.w1;
                     guiobj.ephysDoGInstPowDetW2Edit.String = temp.w2;
                     guiobj.ephysDoGInstPowDetSdMultEdit.String = temp.sdmult;
                     guiobj.ephysDoGInstPowDetMinLenEdit.String = temp.minLen;
-                    guiobj.ephysDoGInstPowDetRefChanEdit.String = temp.refch;
                     guiobj.ephysDogInstPowDetRefValChBox.Value = temp.refVal;
                     clear temp
-
+                catch
+                    disp('Last state of DoG+InstPow detection settings could not be loaded! They will be saved when you close the GUI.')
+                end
+                
+                try
                     temp = DAS_LOG.lastState.eventDetTab.ephys.CWT; 
                     guiobj.ephysCwtDetMinlenEdit.String = temp.minlen;
                     guiobj.ephysCwtDetSdMultEdit.String = temp.sdmult;
                     guiobj.ephysCwtDetW1Edit.String = temp.w1;
                     guiobj.ephysCwtDetW2Edit.String = temp.w2;
-                    guiobj.ephysCwtDetRefChanEdit.String = temp.refch;
                     guiobj.ephysCwtDetRefValCheck.Value = temp.refVal;
                     clear temp
+                catch
+                    disp('Last state of CWT based detection settings could not be loaded! They will be saved when you close the GUI.')
+                end
+                
+                    guiobj.ephysDetRefChanEdit.String = DAS_LOG.lastState.eventDetTab.ephys.refChan;
                     
                     temp = DAS_LOG.presets.ephys;
-%                     assignin('base','daslogpresetsephys',temp)
                     guiobj.ephys_presets = temp;
                     try
                         presetList = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
@@ -3236,15 +3225,33 @@ classdef DAS < handle
                         disp('CwtDet presets could not be loaded!')
                     end
                     clear temp
-                catch ME
-                    disp('Error in reading logfile! It will be genereted anew upon closing the GUI.')
-%                     rethrow(ME)
                     
-                end
-                fclose(fID);
+                    try
+                        temp = DAS_LOG.lastState.eventDetTab.imaging.MeanSd;
+                        guiobj.imagingMeanSdDetSdmultEdit.String = temp.sdMult;
+                        guiobj.imagingMeanSdDetWinSizeEdit.String = temp.winSize;
+                        guiobj.imagingMeanSdDetSlideAvgCheck.Value = temp.slideAvgCheck;
+                        clear temp
+                    catch
+                        disp('Last state of Mean+Sd based imaging detection settings could not be loaded! They will be saved when you close the GUI.')
+                    end
+                    
+                    try
+                        temp = DAS_LOG.lastState.eventDetTab.imaging.MLspike;
+                        guiobj.imagingMlSpDetDFFSpikeEdit.String = temp.dFF;
+                        guiobj.imagingMlSpDetSigmaEdit.String = temp.sigma;
+                        guiobj.imagingMlSpDetTauEdit.String = temp.tau;
+                        clear temp
+                    catch
+                        disp('Last state of MLspike based detection settings could not be loaded! They will be saved when you close the GUI.')
+                    end
+                    
+%                 fclose(fID);
             else
                 disp('No log file found! It will be created when closing the GUI.')
             end
+            
+            fclose(fID);
         end
         
         %%
@@ -3253,7 +3260,6 @@ classdef DAS < handle
             temp.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
             temp.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
             temp.minLen = guiobj.ephysDoGInstPowDetMinLenEdit.String;
-            temp.refch = guiobj.ephysDoGInstPowDetRefChanEdit.String;
             temp.refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
             
             DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow = temp;
@@ -3263,13 +3269,28 @@ classdef DAS < handle
             temp.sdmult = guiobj.ephysCwtDetSdMultEdit.String;
             temp.w1 = guiobj.ephysCwtDetW1Edit.String;
             temp.w2 = guiobj.ephysCwtDetW2Edit.String;
-            temp.refch = guiobj.ephysCwtDetRefChanEdit.String;
             temp.refVal = guiobj.ephysCwtDetRefValCheck.Value;
             
             DAS_LOG.lastState.eventDetTab.ephys.CWT = temp;
             clear temp
+                        
+            DAS_LOG.lastState.eventDetTab.ephys.refChan = guiobj.ephysDetRefChanEdit.String;
             
             DAS_LOG.presets.ephys = guiobj.ephys_presets;
+            
+            temp.sdMult = guiobj.imagingMeanSdDetSdmultEdit.String;
+            temp.winSize = guiobj.imagingMeanSdDetWinSizeEdit.String;
+            temp.slideAvgCheck = guiobj.imagingMeanSdDetSlideAvgCheck.Value;
+            
+            DAS_LOG.lastState.eventDetTab.imaging.MeanSd = temp;
+            clear temp
+            
+            temp.dFF = guiobj.imagingMlSpDetDFFSpikeEdit.String;
+            temp.sigma = guiobj.imagingMlSpDetSigmaEdit.String;
+            temp.tau = guiobj.imagingMlSpDetTauEdit.String;
+            
+            DAS_LOG.lastState.eventDetTab.imaging.MLspike = temp;
+            clear temp
             
             DASlocation = mfilename('fullpath');
             DASlocation = DASlocation(1:end-3);
@@ -3306,16 +3327,13 @@ classdef DAS < handle
                             new.w2 = guiobj.ephysCwtDetW2Edit.String;
                             new.sdmult = guiobj.ephysCwtDetSdMultEdit.String;
                             new.minLen = guiobj.ephysCwtDetMinlenEdit.String;
-                            new.refch = guiobj.ephysCwtDetRefChanEdit.String;
                             new.refVal = guiobj.ephysCwtDetRefValCheck.Value;
                             
                             if isempty(guiobj.ephys_presets) || ~isfield(guiobj.ephys_presets.evDetTab,'Cwt')
                                 guiobj.ephys_presets.evDetTab.Cwt = [];
                             end
                             
-                            guiobj.ephys_presets.evDetTab.Cwt = [...
-                                guiobj.ephys_presets.evDetTab.Cwt,...
-                                new];
+                            guiobj.ephys_presets.evDetTab.Cwt = [guiobj.ephys_presets.evDetTab.Cwt, new];
                         case 2 % adaptive thresh
                             
                         case 3 % DogInstpow
@@ -3332,16 +3350,13 @@ classdef DAS < handle
                             new.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
                             new.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
                             new.minLen = guiobj.ephysDoGInstPowDetMinLenEdit.String;
-                            new.refch = guiobj.ephysDoGInstPowDetRefChanEdit.String;
                             new.refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
                             
                             if isempty(guiobj.ephys_presets) || ~isfield(guiobj.ephys_presets.evDetTab,'DoGInstPow')
                                 guiobj.ephys_presets.evDetTab.DoGInstPow = [];
                             end
                             
-                            guiobj.ephys_presets.evDetTab.DoGInstPow = [...
-                                guiobj.ephys_presets.evDetTab.DoGInstPow,...
-                                new];
+                            guiobj.ephys_presets.evDetTab.DoGInstPow = [guiobj.ephys_presets.evDetTab.DoGInstPow, new];
 %                             temp = guiobj.ephys_presets.evDetTab.DoGInstPow;
                             
 %                             temp = [temp, new];
@@ -3403,7 +3418,6 @@ classdef DAS < handle
                             guiobj.ephysCwtDetW2Edit.String = temp.w2;
                             guiobj.ephysCwtDetSdMultEdit.String = temp.sdmult;
                             guiobj.ephysCwtDetMinlenEdit.String = temp.minLen;
-                            guiobj.ephysCwtDetRefChanEdit.String = temp.refch;
                             guiobj.ephysCwtDetRefValCheck.Value = temp.refVal;
                         case 2 % adaptive thresh
                             
@@ -3417,7 +3431,6 @@ classdef DAS < handle
                             guiobj.ephysDoGInstPowDetW2Edit.String = temp.w2;
                             guiobj.ephysDoGInstPowDetSdMultEdit.String = temp.sdmult;
                             guiobj.ephysDoGInstPowDetMinLenEdit.String = temp.minLen;
-                            guiobj.ephysDoGInstPowDetRefChanEdit.String = temp.refch;
                             guiobj.ephysDogInstPowDetRefValChBox.Value = temp.refVal;
                     end
                 case 2 % imaging
@@ -4302,6 +4315,22 @@ classdef DAS < handle
                 'String',{'--Select channel--'},...
                 'Max',2);
             
+            guiobj.ephysDetRefChanLabel = uicontrol(guiobj.eventDetTab,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.12, 0.96, 0.1, 0.03],...
+                'String','Reference channel');
+            guiobj.ephysDetRefChanEdit = uicontrol(guiobj.eventDetTab,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.22, 0.96, 0.03, 0.03]);
+            
+            guiobj.ephysDetArtSuppPopMenu = uicontrol(guiobj.eventDetTab,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.255, 0.96, 0.1, 0.03],...
+                'String',{'--Select artifact suppression method!--','Periodic','wICA','RefSubtract'});
+            
             guiobj.ephysCwtDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...
                 'Title','Settings for CWT based detection',...
@@ -4309,55 +4338,42 @@ classdef DAS < handle
             guiobj.ephysCwtDetCutoffLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01 0.85, 0.45, 0.1],...
+                'Position',[0.01 0.85, 0.5, 0.1],...
                 'String','Frequency band [Hz]');
             guiobj.ephysCwtDetW1Edit = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.5, 0.85, 0.1, 0.1]);
+                'Position',[0.55, 0.85, 0.1, 0.1]);
             guiobj.ephysCwtDetW2Edit = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.6, 0.85, 0.1, 0.1]);
+                'Position',[0.65, 0.85, 0.1, 0.1]);
             guiobj.ephysCwtDetSdMultLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.75, 0.45, 0.1],...
+                'Position',[0.01, 0.7, 0.5, 0.1],...
                 'String','SD multiplier');
             guiobj.ephysCwtDetSdMultEdit = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.5, 0.75, 0.1, 0.1],...
+                'Position',[0.55, 0.7, 0.1, 0.1],...
                 'String','3',...
                 'Callback', @(h,e) guiobj.eventDetParamInputControll(h,'sd'));
             guiobj.ephysCwtDetMinlenLabel = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.65, 0.45, 0.1],...
+                'Position',[0.01, 0.55, 0.5, 0.1],...
                 'String','Min event length [ms]');
             guiobj.ephysCwtDetMinlenEdit = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.5, 0.65, 0.1, 0.1],...
+                'Position',[0.55, 0.55, 0.1, 0.1],...
                 'String','10');
-            guiobj.ephysCwtDetRefChanLabel = uicontrol(guiobj.ephysCwtDetPanel,...
-                'Style','text',...
-                'Units','normalized',...
-                'Position',[0.01, 0.55, 0.45, 0.1],...
-                'String','RefChannel');
-            guiobj.ephysCwtDetRefChanEdit = uicontrol(guiobj.ephysCwtDetPanel,...
-                'Style','edit',...
-                'Units','normalized',...
-                'Position',[0.5, 0.55, 0.1, 0.1]);
             guiobj.ephysCwtDetRefValCheck = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.65, 0.55, 0.3, 0.1],...
+                'Position',[0.01, 0.4, 0.5, 0.1],...
                 'String','RefChan validate');
-            guiobj.ephysCwtDetArtSuppPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
-                'Style','popupmenu',...
-                'Units','normalized',...
-                'Position',[0.01, 0.35, 0.5, 0.1],...
             guiobj.ephysCwtDetPresetPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
@@ -4458,24 +4474,11 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.55, 0.55, 0.1, 0.1]);
-            guiobj.ephysDoGInstPowDetRefChanLabel = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
-                'Style','text',...
-                'Units','normalized',...
-                'Position',[0.01, 0.4, 0.3, 0.1],...
-                'String','Referece channel');
-            guiobj.ephysDoGInstPowDetRefChanEdit = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
-                'Style','edit',...
-                'Units','normalized',...
-                'Position',[0.35, 0.4, 0.1, 0.1]);
             guiobj.ephysDogInstPowDetRefValChBox = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.5, 0.4, 0.4, 0.1],...
+                'Position',[0.01, 0.4, 0.4, 0.1],...
                 'String','RefChan validate');
-            guiobj.ephysDoGInstPowDetArtSuppPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
-                'Style','popupmenu',...
-                'Units','normalized',...
-                'Position',[0.01, 0.25, 0.5, 0.1],...
             guiobj.ephysDoGInstPowDetPresetPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
