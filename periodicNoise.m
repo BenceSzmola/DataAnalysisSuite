@@ -14,7 +14,7 @@ if nargin == 0
         'Fundamental frequency of the periodic noise (if not given, the algorithm will find it) [Hz]:',...
         'Stopband width [Hz]:'};
     title = 'Parameter input for periodic noise filter';
-    definput = {'20000','500','','1'};
+    definput = {'20000','1000','','5'};
     opts.Interpreter = 'tex';
     parameters = inputdlg(prompt,title,1,definput,opts);
     if isempty(parameters)
@@ -24,6 +24,22 @@ if nargin == 0
     fmax = str2double(parameters{2});
     f_fund = str2double(parameters{3});
     stopbandwidth = str2double(parameters{4})/2;
+end
+
+if nargin == 2 % e.g. being called from DAS
+    prompt = {'Upper frequency limit for filtering (if left empty the algorithm will run until fs/2) [Hz]:',...
+        'Fundamental frequency of the periodic noise (if not given, the algorithm will find it) [Hz]:',...
+        'Stopband width [Hz]:'};
+    title = 'Parameter input for periodic noise filter';
+    definput = {'1000','','5'};
+    opts.Interpreter = 'tex';
+    parameters = inputdlg(prompt,title,1,definput,opts);
+    if isempty(parameters)
+        return
+    end
+    fmax = str2double(parameters{1});
+    f_fund = str2double(parameters{2});
+    stopbandwidth = str2double(parameters{3})/2;
 end
 
 if nargin == 0 || isempty(data)
@@ -42,14 +58,14 @@ if nargin > 0 && nargin < 2
     errordlg('Pls specifiy the sampling frequency!')
 end
 
-if (nargin > 0 && nargin < 4) || isempty(f_fund) || isnan(f_fund)
+if isempty(f_fund) || isnan(f_fund)
     f_fund_given = false;
 else
     f_fund_given = true;
 end
 
 if (nargin > 0 && nargin < 5)
-    stopbandwidth = 1;
+    stopbandwidth = 5;
 end
 
 data_filt = data;
@@ -144,7 +160,7 @@ for i = 1:min(size(data))
     end
     
     % fmax is the frequency up to which the algorithm will run
-    if (nargin > 0 && nargin < 3) || isempty(fmax) || isnan(fmax)
+    if isempty(fmax) || isnan(fmax)
         fmax = ((fs/2)-f_fund-1);
     end
 
