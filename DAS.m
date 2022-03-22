@@ -48,6 +48,7 @@ classdef DAS < handle
         ImportRHDButton
         ImportgorobjButton
         ImportruncsvButton
+        importSettingsButton
         Dataselection1Panel
         DatasetListBoxLabel
         DatasetListBox
@@ -237,6 +238,8 @@ classdef DAS < handle
         evDetTabSimultMode = 0;
         simultFocusTyp = 1;                 % this stores from which datatype we are approaching
         mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
+        importUpSamp = 0;
+        importUpSamp_targetFs = 150;
         
         xtitle = 'Time [s]';
         
@@ -1415,6 +1418,8 @@ classdef DAS < handle
 
             dtyp = guiobj.datatyp;
             showXtraFigs = guiobj.showXtraDetFigs;
+            importUpSamp = guiobj.importUpSamp;
+            importUpSamp_targetFs = guiobj.importUpSamp_targetFs;
             close(guiobj.mainfig)
             delete(guiobj)
             
@@ -1422,6 +1427,10 @@ classdef DAS < handle
             
             guiobj = DAS;
             toRun = [0,0,0,0,0,0];
+            
+            guiobj.importUpSamp = importUpSamp;
+            guiobj.importUpSamp_targetFs = importUpSamp_targetFs;
+            
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
                 toRun(1) = 1;
@@ -1464,8 +1473,46 @@ classdef DAS < handle
             if showXtraFigs
                 showXtraDetFigsMenuSel(guiobj)                
             end
-            
+                        
             delete(mbox)
+        end
+        
+        %%
+        function importSettingsUpdate(guiobj,h,~)
+            runUpSamp = findobj(h,'String','Run upsampling after GOR import');
+            guiobj.importUpSamp = runUpSamp.Value;
+            targetFs = findobj(h,'Position',[0.5, 0.7, 0.4, 0.15]);
+            guiobj.importUpSamp_targetFs = str2double(targetFs.String);
+        end
+        
+        %%
+        function runImportUpSamp(guiobj,dTyp)
+            targetFs = guiobj.importUpSamp_targetFs;
+            
+            switch dTyp
+                case 1
+                    ogFs = guiobj.ephys_fs;
+                    ogTaxis = guiobj.ephys_taxis;
+                    ogData = guiobj.ephys_data;
+                case 2
+                    ogFs = guiobj.imaging_fs;
+                    ogTaxis = guiobj.imaging_taxis;
+                    ogData = guiobj.imaging_data;
+            end
+            
+            upsampMult = ceil(targetFs/ogFs);
+            temp = zeros(size(ogData,1),size(ogData,2)*upsampMult);
+            interpTaxis = linspace(ogTaxis(1),length(ogData)/ogFs+ogTaxis(1),length(ogTaxis)*upsampMult);
+            for i = 1:size(ogData,1)
+                temp(i,:) = spline(ogTaxis,ogData(i,:),interpTaxis);
+            end
+            ogData = temp;
+            clear temp
+
+            guiobj.imaging_data = ogData;
+            guiobj.imaging_fs = ogFs*upsampMult;
+
+            guiobj.imaging_taxis = interpTaxis;
         end
         
     end
@@ -1669,29 +1716,18 @@ classdef DAS < handle
                 end
             end
             
-            if ~isempty(find(dtyp==2,1))
-                upsampMult = 3;
-                data = guiobj.imaging_data;
-                taxis = get(wsgors(find(dtyp==2,1)),'x')*(10^-3/guiobj.timedim);
-                temp = zeros(size(data,1),size(data,2)*upsampMult);
-                taxisOG = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(data));
-                taxisInterp = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(taxisOG)*upsampMult);
-                for i = 1:size(data,1)
-                    temp(i,:) = spline(taxisOG,data(i,:),taxisInterp);
+            % upsampling call
+            if guiobj.importUpSamp == 1
+                if ~isempty(find(dtyp==2,1))
+                    runImportUpSamp(guiobj,2)
                 end
-                data = temp;
-                clear temp
-
-                guiobj.imaging_data = data;
-                guiobj.imaging_fs = (1/taxis(2))*upsampMult;
-
-                guiobj.imaging_taxis = taxisInterp;
             end
             
             setXlims(guiobj)
             
         end
         
+        %%
         function ImportMatButtionPushed(guiobj)
             [filename,path] = uigetfile('*.mat');
             if filename == 0
@@ -1783,6 +1819,41 @@ classdef DAS < handle
             guiobj.ImagingListBox.String = datanames;
             
             setXlims(guiobj)
+        end
+        
+        %%
+        function importSettingsButtonPushed(guiobj)
+            importSettingsFig = figure('Visible','off',...
+                'Units','normalized',...
+                'Position',[0.2, 0.2, 0.3, 0.5],...
+                'NumberTitle','off',...
+                'Name','Import settings',...
+                'MenuBar','none',...
+                'IntegerHandle','off',...
+                'HandleVisibility','Callback',...
+                'DeleteFcn',@ guiobj.importSettingsUpdate);
+            
+            upSampPanel = uipanel(importSettingsFig,...
+                'Position',[0.01, 0.5, 0.98, 0.5],...
+                'Title','Upsampling');
+            runUpSamp = uicontrol(upSampPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.1, 0.85, 0.5, 0.15],...
+                'String','Run upsampling after GOR import',...
+                'Value',guiobj.importUpSamp);
+            fsGoalLabel = uicontrol(upSampPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.7, 0.4, 0.15],...
+                'String','Target sampling rate [Hz]');
+            fsGoalEdit = uicontrol(upSampPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.5, 0.7, 0.4, 0.15],...
+                'String',num2str(guiobj.importUpSamp_targetFs));
+            
+            importSettingsFig.Visible = 'on';
         end
 
         %% Value changed function: DatasetListBox
@@ -3847,6 +3918,13 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.7, 0.3, 0.3, 0.3],...
                 'String','Import run csv');
+            
+            guiobj.importSettingsButton = uicontrol(guiobj.importPanel,...
+                'Style','pushbutton',...
+                'Callback',@(h,e) guiobj.importSettingsButtonPushed,...
+                'Units','normalized',...
+                'Position',[0.7, 0.01, 0.3, 0.15],...
+                'String','Import settings');
 
             % Create Dataselection1Panel
             guiobj.Dataselection1Panel = uipanel(guiobj.maintab,...
