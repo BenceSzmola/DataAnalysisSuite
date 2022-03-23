@@ -65,7 +65,7 @@ else
 end
 
 if (nargin > 0 && nargin < 5)
-    stopbandwidth = 5;
+    stopbandwidth = 5/2;
 end
 
 data_filt = data;
