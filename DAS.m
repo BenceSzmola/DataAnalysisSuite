@@ -109,6 +109,8 @@ classdef DAS < handle
         stopbandwidthEdit
         runFiltButton
         
+        ephysRunFFTButton
+        
         %% Members of imagingProcTab
         imagingProcListBox
         imagingProcListBox2
@@ -2266,9 +2268,15 @@ classdef DAS < handle
                 case 2
                     guiobj.ephysFiltSettingsPanel.Visible = 'on';
                     guiobj.ephysArtSuppPanel.Visible = 'off';
+                    guiobj.ephysRunFFTButton.Visible = 'off';
                 case 3
                     guiobj.ephysArtSuppPanel.Visible = 'on';
                     guiobj.ephysFiltSettingsPanel.Visible = 'off';
+                    guiobj.ephysRunFFTButton.Visible = 'off';
+                case 4
+                    guiobj.ephysArtSuppPanel.Visible = 'off';
+                    guiobj.ephysFiltSettingsPanel.Visible = 'off';
+                    guiobj.ephysRunFFTButton.Visible = 'on';
             end
         end
         
@@ -2463,6 +2471,27 @@ classdef DAS < handle
             guiobj.ephysProcListBox2.String = procDatanames;
             
             guiobj.ephysArtSuppRunButt.BackgroundColor = 'g';
+        end
+        
+        %%
+        function ephysRunFFT(guiobj)
+            guiobj.ephysRunFFTButton.BackgroundColor = 'r';
+            
+            selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
+            selectedButt = selectedButt.String;
+
+            switch selectedButt
+                case 'Raw data'
+                    data_idx = guiobj.ephysProcListBox.Value;
+                    data = guiobj.ephys_data(data_idx,:);
+                case 'Processed data'
+                    data_idx = guiobj.ephysProcListBox2.Value;
+                    data = guiobj.ephys_procced(data_idx,:);
+            end
+            
+            freqspec(data,guiobj.ephys_fs,1,0,1000)
+            
+            guiobj.ephysRunFFTButton.BackgroundColor = 'g';
         end
         
         %% Callback to monitor radiobutton press
@@ -4066,7 +4095,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.8, 0.15, 0.15],...
-                'String',{'--Choose processing type--','Filtering','Artifact Suppression'},...
+                'String',{'--Choose processing type--','Filtering','Artifact Suppression','Compute FFT'},...
                 'Callback',@(h,e) guiobj.ephysProcPopMenuSelected);
             
             % Create buttongroup to choose between processing raw or
@@ -4191,6 +4220,15 @@ classdef DAS < handle
                 'String','Run artifact suppression',...
                 'Callback',@(h,e) guiobj.runArtSupp,...
                 'BackgroundColor','g');
+            
+            guiobj.ephysRunFFTButton = uicontrol(guiobj.ephysProcTab,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.8, 0.15, 0.05],...
+                'String','Run FFT on selected channel(s)',...
+                'Visible','off',...
+                'BackgroundColor','g',...
+                'Callback', @(h,e) guiobj.ephysRunFFT);
             
             % Create axes
             guiobj.axesEphysProc1 = axes(guiobj.ephysProcTab,...
