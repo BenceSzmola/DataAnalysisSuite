@@ -174,6 +174,8 @@ end
 % fmax is the frequency up to which the algorithm will run
 if isempty(fmax) || isnan(fmax)
     fmax = ((fs/2)-f_fund-1);
+elseif fmax > ((fs/2)-f_fund-1)
+    fmax = ((fs/2)-f_fund-1);
 end
 
 for i = 1:min(size(data))

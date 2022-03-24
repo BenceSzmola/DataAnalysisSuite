@@ -236,6 +236,8 @@ classdef DAS < handle
         evDetTabSimultMode = 0;
         simultFocusTyp = 1;                 % this stores from which datatype we are approaching
         mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
+        doEphysDownSamp = 0;
+        doEphysDownSamp_targetFs = 1250;
         importUpSamp = 0;
         importUpSamp_targetFs = 150;
         
@@ -1416,8 +1418,11 @@ classdef DAS < handle
 
             dtyp = guiobj.datatyp;
             showXtraFigs = guiobj.showXtraDetFigs;
-            importUpSamp = guiobj.importUpSamp;
-            importUpSamp_targetFs = guiobj.importUpSamp_targetFs;
+            doImportUpSamp = guiobj.importUpSamp;
+            doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
+            doImportEphysDownSamp = guiobj.doEphysDownSamp;
+            doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
+            
             close(guiobj.mainfig)
             delete(guiobj)
             
@@ -1426,8 +1431,10 @@ classdef DAS < handle
             guiobj = DAS;
             toRun = [0,0,0,0,0,0];
             
-            guiobj.importUpSamp = importUpSamp;
-            guiobj.importUpSamp_targetFs = importUpSamp_targetFs;
+            guiobj.importUpSamp = doImportUpSamp;
+            guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
+            guiobj.doEphysDownSamp = doImportEphysDownSamp;
+            guiobj.doEphysDownSamp_targetFs = doImportEphysDownSamp_targetFs;
             
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
@@ -1479,8 +1486,13 @@ classdef DAS < handle
         function importSettingsUpdate(guiobj,h,~)
             runUpSamp = findobj(h,'String','Run upsampling after GOR import');
             guiobj.importUpSamp = runUpSamp.Value;
-            targetFs = findobj(h,'Position',[0.5, 0.7, 0.4, 0.15]);
+            targetFs = findobj(h,'Tag','fsGoalEdit');
             guiobj.importUpSamp_targetFs = str2double(targetFs.String);
+            
+            ephysDownSampChB = findobj(h,'String','Downsample electrophysiology data');
+            guiobj.doEphysDownSamp = ephysDownSampChB.Value;
+            downSampFs = findobj(h,'Tag','ephysDownSampTargetEdit');
+            guiobj.doEphysDownSamp_targetFs = str2double(downSampFs.String);
         end
         
         %%
@@ -1511,6 +1523,31 @@ classdef DAS < handle
             guiobj.imaging_fs = ogFs*upsampMult;
 
             guiobj.imaging_taxis = interpTaxis;
+        end
+        
+        %%
+        function runImportDownSamp(guiobj)
+            targetFs = guiobj.doEphysDownSamp_targetFs;
+            
+            ogFs = guiobj.ephys_fs;
+            ogTaxis = guiobj.ephys_taxis;
+            ogData = guiobj.ephys_data;
+            
+            lpFilt = makegausslpfir( targetFs/3, ogFs, 6 );
+            lpFilt_data = zeros(size(ogData));
+            downSampFactor = ogFs/targetFs;
+            downSamp_data = zeros(size(ogData,1),size(ogData,2)/downSampFactor);
+            for i = 1:min(size(ogData))
+                lpFilt_data(i,:) = firfilt( ogData(i,:), lpFilt );
+                downSamp_data(i,:) = downsample(lpFilt_data(i,:),downSampFactor);
+            end
+            
+            newTaxis = linspace(ogTaxis(1),ogTaxis(end),length(ogTaxis)/downSampFactor);
+            newFs = targetFs;
+            
+            guiobj.ephys_data = downSamp_data;
+            guiobj.ephys_fs = newFs;
+            guiobj.ephys_taxis = newTaxis;
         end
         
     end
@@ -1574,6 +1611,10 @@ classdef DAS < handle
 %             elseif guiobj.datatyp(2) == 1
                 guiobj.EphysListBox.String = datanames;
 %             end
+
+            if guiobj.doEphysDownSamp
+                runImportDownSamp(guiobj)
+            end
 
             setXlims(guiobj)
         end
@@ -1721,6 +1762,12 @@ classdef DAS < handle
                 end
             end
             
+            if guiobj.doEphysDownSamp
+                if ~isempty(find(dtyp==1,1))
+                    runImportDownSamp(guiobj)
+                end
+            end
+            
             setXlims(guiobj)
             
         end
@@ -1837,19 +1884,41 @@ classdef DAS < handle
             runUpSamp = uicontrol(upSampPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.1, 0.85, 0.5, 0.15],...
+                'Position',[0.1, 0.85, 0.5, 0.1],...
                 'String','Run upsampling after GOR import',...
                 'Value',guiobj.importUpSamp);
             fsGoalLabel = uicontrol(upSampPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.1, 0.7, 0.4, 0.15],...
+                'Position',[0.1, 0.7, 0.4, 0.1],...
                 'String','Target sampling rate [Hz]');
             fsGoalEdit = uicontrol(upSampPanel,...
+                'Tag','fsGoalEdit',...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.5, 0.7, 0.4, 0.15],...
+                'Position',[0.55, 0.7, 0.2, 0.1],...
                 'String',num2str(guiobj.importUpSamp_targetFs));
+            
+            ephysDownSampPanel = uipanel(importSettingsFig,...
+                'Position',[0.01,0,0.98,0.5],...
+                'Title','Ephys downsampling');
+            runDownSamp = uicontrol(ephysDownSampPanel,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.1, 0.85, 0.5, 0.1],...
+                'String','Downsample electrophysiology data',...
+                'Value',guiobj.doEphysDownSamp);
+            ephysDownSampTargetLabel = uicontrol(ephysDownSampPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.7, 0.4, 0.1],...
+                'String','Target sampling rate [Hz]');
+            ephysDownSampTargetEdit = uicontrol(ephysDownSampPanel,...
+                'Tag','ephysDownSampTargetEdit',...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.55, 0.7, 0.2, 0.1],...
+                'String',num2str(guiobj.doEphysDownSamp_targetFs));
             
             importSettingsFig.Visible = 'on';
         end
