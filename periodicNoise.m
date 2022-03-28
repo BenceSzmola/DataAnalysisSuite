@@ -69,7 +69,7 @@ if (nargin > 0 && nargin < 5)
 end
 
 data_filt = data;
-
+% assignin('base','data',data)
 if ~f_fund_given
     f_fund = zeros(min(size(data)),1);
     for i = 1:min(size(data))
@@ -77,86 +77,157 @@ if ~f_fund_given
         wb1 = waitbar(0,'Calculaing FFT...','Name','Finding the fundamental frequency');
         % Calculate FFT
         [faxis,psd] = freqspec(data(i,:),fs,0);
-
-        % Check FFT for extreme peaks
-        fftRunavg = movmean(psd,find(faxis>10,1));
-        
         
         % Cutting out low frequencies from PSD
-        cutpsd = psd(find(faxis>20,1):end);
+        cutpsd = psd(find(faxis > 30,1):end);
+        cutfaxis = faxis(find(faxis > 30,1):end);
 
-        waitbar(.33,wb1,'Calculating autocorrelation...')
-        % Calculate autocorrelation
-        [autocorr,lag] = xcorr(cutpsd);
-
-        % Peaks in autocorrelation
-        [~,locs,~,proms] = findpeaks(autocorr,'MinPeakDistance',find(faxis>10,1),'Threshold',10);
-
-        % Sort prominences to find the prominent peaks
-        maxproms = sort(proms,'descend');
-        % Maximal prominence is at 0 lag -> not needed
-        maxproms = maxproms(2:end);
-        % Every peak is repeated because of negative and positive shifts
-        maxproms = maxproms(1:2:end);
-
-        waitbar(.66,wb1,'Computing the fundamental frequency...')
-        % Find the maximal prominence with the lowest lag value (absolute value)
-        % => fundamental freq
-%         maxharmos = 0;
-%         for j = 1:length(maxproms)
-%                 freqs(j) = faxis(abs(lag(locs(find(proms==maxproms(j),1))))+1);
-%         end
-%         freqs = unique(freqs,'stable');
-%         
-%         f_fund = 0;
-%         for j = 1:10
-%             temp = mod(mod(freqs(1:10),freqs(j)),1);
-%             temp2 = length(find(temp<0.1));
-%             temp3 = length(find(abs(temp-1)<0.1));
-% %             fprintf(1,'%.2f Hz has %d harmonics\n',freqs(j),temp2+temp3)
-%             if temp2+temp3 > maxharmos
-%                 maxharmos = temp2+temp3;
-%                 f_fund = freqs(j);
-%             elseif temp2+temp3 == maxharmos
-%                 if freqs(j) < f_fund
-%                     f_fund = freqs(j);
-%                 end
-%             end
-%         end
-%         if ~isempty(find(abs(freqs-f_fund/2)<0.1))
-%             f_fund = freqs(find(abs(freqs-f_fund/2)<0.1));
-%         end
+        % Computing the running average and std
+        cutpsd_runAvg = movmean(cutpsd,find(faxis > 10,1));
+        cutpsd_runSd = movstd(cutpsd,find(faxis > 10,1));
         
-%         minloc = length(cutpsd);
-%         for j = 1:10
-%             if abs(lag(locs(find(proms==maxproms(j),1)))) < minloc
-%                 minloc = abs(lag(locs(find(proms==maxproms(j),1))));
-%             end
-%         f_fund = faxis(minloc+1);
-
-%         dps = zeros(2,10);
-        runavg = movmean(autocorr,find(faxis>1,1));
-%         f_fund = 0;
-        numproms = min([10,length(maxproms)]);
-        dps = zeros(2,numproms);
+        % simply detect the prominent peaks on the fft
+        [peaks,locs,~,proms] = findpeaks(cutpsd,'MinPeakDistance',find(faxis > 30,1));
         
-        for j = 1:numproms
-            dps(1,j) = abs(lag(locs(find(proms==maxproms(j),1))));
-            dps(2,j) = autocorr(locs(find(proms==maxproms(j),1)))-runavg(locs(find(proms==maxproms(j),1)));
+        % check if findpeaks' detections are above the moving average+4*std
+        lowPeaks = false(size(locs));
+        for j = 1:length(peaks)
+            if peaks(j) < (cutpsd_runAvg(locs(j)) + 4*cutpsd_runSd(locs(j)))
+                lowPeaks(j) = true;
+            end
         end
-        [~,inds1] = sort(dps(1,:));
-        [~,inds2] = sort(dps(2,:),'descend');
-        bestscore = 20;
+        if isempty(find(~lowPeaks, 1))
+            close(wb1)
+            warndlg(['The algorithm did not find any periodic noise! You can set the',...
+                ' fundamental frequency manually if you want the filter to run anyway.'])
+            data_filt = [];
+            return
+        end
+        peaks = peaks(~lowPeaks);
+        locs = locs(~lowPeaks);
+        proms = proms(~lowPeaks);
+        
+        [~,maxPromInds] = sort(proms,'descend');
+        maxLocs = locs(maxPromInds);
+        
+        numproms = min([10,length(maxPromInds)]);
+        putative_f_fund = zeros(1,numproms);
         for j = 1:numproms
-            if find(inds1==j)+find(inds2==j) < bestscore
-                f_fund(i) = faxis(dps(1,j)+1);
-                bestscore = find(inds1==j)+find(inds2==j);
-            elseif find(inds1==j)+find(inds2==j) == bestscore
-                if faxis(dps(1,j)+1) < f_fund(i)
-                    f_fund(i) = faxis(dps(1,j)+1);
+            putative_f_fund(j) = cutfaxis(maxLocs(j));
+        end
+%         putative_f_fund
+        howManyCanItDivide = 0;
+        for j = 1:numproms
+%             putative_f_fund(j)
+            ratios = putative_f_fund/putative_f_fund(j);
+            goodRatios = length(find(abs(round(ratios)-ratios) < 0.01));
+            if goodRatios > howManyCanItDivide
+                f_fund(i) = putative_f_fund(j);
+                howManyCanItDivide = goodRatios;
+            elseif goodRatios == howManyCanItDivide
+                if f_fund(i) < putative_f_fund(j)
+                    f_fund(i) = putative_f_fund(j);
                 end
             end
         end
+        
+%         waitbar(.33,wb1,'Calculating autocorrelation...')
+%         % Calculate autocorrelation
+%         [autocorr,lag] = xcorr(cutpsd);
+%         autocorr = autocorr(find(lag >= find(faxis > 20,1),1):end);
+%         lag = lag(find(lag >= find(faxis > 20,1),1):end);
+% 
+%         % Peaks in autocorrelation, MaxPeakWidth should only allow through
+%         % the nice narrow peaks we are looking for
+%         [~,locs,~,proms] = findpeaks(autocorr,'MinPeakDistance',find(faxis>10,1),'MaxPeakWidth',10);
+% 
+%         % Sort prominences to find the prominent peaks
+%         maxproms = sort(proms,'descend');
+% %         % Maximal prominence is at 0 lag -> not needed
+% %         maxproms = maxproms(2:end);
+%         % Every peak is repeated because of negative and positive shifts
+% %         maxproms = maxproms(1:2:end);
+%         
+% 
+%         waitbar(.66,wb1,'Computing the fundamental frequency...')
+%         % Find the maximal prominence with the lowest lag value (absolute value)
+%         % => fundamental freq
+% %         maxharmos = 0;
+% %         for j = 1:length(maxproms)
+% %                 freqs(j) = faxis(abs(lag(locs(find(proms==maxproms(j),1))))+1);
+% %         end
+% %         freqs = unique(freqs,'stable');
+% %         
+% %         f_fund = 0;
+% %         for j = 1:10
+% %             temp = mod(mod(freqs(1:10),freqs(j)),1);
+% %             temp2 = length(find(temp<0.1));
+% %             temp3 = length(find(abs(temp-1)<0.1));
+% % %             fprintf(1,'%.2f Hz has %d harmonics\n',freqs(j),temp2+temp3)
+% %             if temp2+temp3 > maxharmos
+% %                 maxharmos = temp2+temp3;
+% %                 f_fund = freqs(j);
+% %             elseif temp2+temp3 == maxharmos
+% %                 if freqs(j) < f_fund
+% %                     f_fund = freqs(j);
+% %                 end
+% %             end
+% %         end
+% %         if ~isempty(find(abs(freqs-f_fund/2)<0.1))
+% %             f_fund = freqs(find(abs(freqs-f_fund/2)<0.1));
+% %         end
+%         
+% %         minloc = length(cutpsd);
+% %         for j = 1:10
+% %             if abs(lag(locs(find(proms==maxproms(j),1)))) < minloc
+% %                 minloc = abs(lag(locs(find(proms==maxproms(j),1))));
+% %             end
+% %         f_fund = faxis(minloc+1);
+% 
+% %         dps = zeros(2,10);
+%         runavg = movmean(autocorr,find(faxis>1,1));
+% %         f_fund = 0;
+%         numproms = min([10,length(maxproms)]);
+%         dps = zeros(2,numproms);
+%         
+%         for j = 1:numproms
+%             dps(1,j) = abs(lag(locs(find(proms==maxproms(j),1))));
+%             dps(2,j) = autocorr(locs(find(proms==maxproms(j),1)))-runavg(locs(find(proms==maxproms(j),1)));
+%         end
+%         [~,inds1] = sort(dps(1,:));
+%         faxis(dps(1,inds1)+1)
+%         [~,inds2] = sort(dps(2,:),'descend');
+%         sumOfInds = inds1+inds2;
+%         [~,indsSum] = sort(sumOfInds);
+%         
+%         maxproms = maxproms(indsSum);
+%         putative_f_fund = zeros(1,numproms);
+%         for j = 1:numproms
+%             putative_f_fund(j) = faxis(dps(1,j)+1);
+%         end
+%         putative_f_fund
+%         howManyCanItDivide = 0;
+%         for j = 1:numproms
+%             putative_f_fund(j)
+%             ratios = putative_f_fund/putative_f_fund(j)
+%             goodRatios = length(find(abs(round(ratios)-ratios) < 0.01));
+%             if goodRatios > howManyCanItDivide
+%                 f_fund(i) = putative_f_fund(j);
+%                 howManyCanItDivide = goodRatios;
+%             end
+%         end
+% %         bestscore = 20;
+% %         for j = 1:numproms
+% %             if find(inds1==j)+find(inds2==j) < bestscore
+% %                 f_fund(i) = faxis(dps(1,j)+1);
+% %                 bestscore = find(inds1==j)+find(inds2==j);
+% %             elseif find(inds1==j)+find(inds2==j) == bestscore
+% %                 if faxis(dps(1,j)+1) < f_fund(i)
+% %                     f_fund(i) = faxis(dps(1,j)+1);
+% %                 end
+% %             end
+% %         end
+
         waitbar(1,wb1,'Finished')
         close(wb1)
         fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))
