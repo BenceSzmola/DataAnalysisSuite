@@ -792,6 +792,8 @@ classdef DASevDB < handle
                 gO.runData = saveStruct.runData;
             end
             
+            gO.mainFig.Name = ['DAS Event DataBase - ',gO.loadedEntryFname];
+            
             computeMeanDataWin(gO)
             
             smartplot(gO,1)

@@ -1556,6 +1556,8 @@ classdef DASeV < handle
                 end
             end
             
+            gO.mainFig.Name = ['DAS Event Viewer - ',fname];
+            
             if ~isempty(find(gO.loaded, 1))
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
                 gO.path2loadedSave = fnameFull;
