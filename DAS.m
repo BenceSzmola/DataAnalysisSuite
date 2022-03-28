@@ -1422,6 +1422,7 @@ classdef DAS < handle
             doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
             doImportEphysDownSamp = guiobj.doEphysDownSamp;
             doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
+            figLastPos = guiobj.mainfig.Position;
             
             close(guiobj.mainfig)
             delete(guiobj)
@@ -1431,6 +1432,7 @@ classdef DAS < handle
             guiobj = DAS;
             toRun = [0,0,0,0,0,0];
             
+            guiobj.mainfig.Position = figLastPos;
             guiobj.importUpSamp = doImportUpSamp;
             guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
             guiobj.doEphysDownSamp = doImportEphysDownSamp;

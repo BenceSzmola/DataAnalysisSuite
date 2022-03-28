@@ -2301,7 +2301,8 @@ classdef DASeV < handle
             dbFiles = ['Start a new database entry', dbFiles];
             
             [ind,tf] = listdlg('ListString',dbFiles,...
-                'PromptString','Select DB to save in','SelectionMode','single');
+                'PromptString','Select DB to save in','SelectionMode','single',...
+                'ListSize',[230,300]);
             if ~tf
                 return
             end
