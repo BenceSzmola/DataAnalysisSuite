@@ -1533,12 +1533,14 @@ classdef DAS < handle
             ogTaxis = guiobj.ephys_taxis;
             ogData = guiobj.ephys_data;
             
-            lpFilt = makegausslpfir( targetFs/3, ogFs, 6 );
+%             lpFilt = makegausslpfir( targetFs/5, ogFs, 6 );
+            [b,a] = butter(4,(targetFs/4)/(ogFs/2),'low');
             lpFilt_data = zeros(size(ogData));
             downSampFactor = ogFs/targetFs;
             downSamp_data = zeros(size(ogData,1),size(ogData,2)/downSampFactor);
             for i = 1:min(size(ogData))
-                lpFilt_data(i,:) = firfilt( ogData(i,:), lpFilt );
+%                 lpFilt_data(i,:) = firfilt( ogData(i,:), lpFilt );
+                lpFilt_data(i,:) = filtfilt(b,a,ogData(i,:));
                 downSamp_data(i,:) = downsample(lpFilt_data(i,:),downSampFactor);
             end
             
@@ -1918,9 +1920,21 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.55, 0.7, 0.2, 0.1],...
-                'String',num2str(guiobj.doEphysDownSamp_targetFs));
+                'String',num2str(guiobj.doEphysDownSamp_targetFs),...
+                'Callback',@(h,e) lpInfoUpdate);
+            ephysDownSampLpInfoText = uicontrol(ephysDownSampPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.55, 0.4, 0.1],...
+                'String',['The anti-aliasing filter will cut at ',num2str(guiobj.doEphysDownSamp_targetFs/4),' Hz']);
             
             importSettingsFig.Visible = 'on';
+            
+            function lpInfoUpdate
+                targetFs = str2double(ephysDownSampTargetEdit.String);
+                cutFs = targetFs/4;
+                ephysDownSampLpInfoText.String = ['The anti-aliasing filter will cut at ',num2str(cutFs),' Hz'];
+            end
         end
 
         %% Value changed function: DatasetListBox
@@ -2468,6 +2482,10 @@ classdef DAS < handle
                     ffund = str2double(guiobj.ffundEdit.String);
                     stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
                     procced = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                    if isempty(procced)
+                        guiobj.runFiltButton.BackgroundColor = 'g';
+                        return
+                    end
                     guiobj.ephys_proccedInfo = [guiobj.ephys_proccedInfo;...
                         [data_idx', 2*ones(size(data_idx'))]];
                     
