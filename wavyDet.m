@@ -94,7 +94,7 @@ for i = 1:min(size(data))
         continue
     end
     
-    detParams{i} = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:));
+    detParams{i} = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
 
     %% Plotting
     if showFigs
