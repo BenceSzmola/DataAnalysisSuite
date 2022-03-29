@@ -254,6 +254,8 @@ classdef DAS < handle
         ephys_proccedInfo
         % Stores which proc type is which 
         ephys_procTypes = ["DoG"; "Periodic"];
+        ephys_artSupp4Det = 0;
+        ephys_artSuppedData4Det
         ephys_detections                    % Location of detections on time axis
         ephys_detBorders
         ephys_detectionsInfo
@@ -921,7 +923,11 @@ classdef DAS < handle
                     
                     switch guiobj.eventDet1DataType
                         case 1
-                            data = guiobj.ephys_data;
+                            if guiobj.ephys_artSupp4Det == 0
+                                data = guiobj.ephys_data;
+                            else
+                                data = guiobj.ephys_artSuppedData4Det;
+                            end
                         case 2
                             data = guiobj.ephys_dogged;
                         case 3
@@ -1554,6 +1560,20 @@ classdef DAS < handle
             guiobj.ephys_taxis = newTaxis;
         end
         
+        %%
+        function computeEphysDataTypes(guiobj)
+            if guiobj.ephys_artSupp4Det == 0
+                ephysData4Dets = guiobj.ephys_data;
+            else 
+                ephysData4Dets = guiobj.ephys_artSuppedData4Det;
+            end
+
+            guiobj.ephys_dogged = DoG(ephysData4Dets,guiobj.ephys_fs,...
+                guiobj.eventDet1W1,guiobj.eventDet1W2);
+            guiobj.ephys_instPowed = instPow(ephysData4Dets,guiobj.ephys_fs,...
+                guiobj.eventDet1W1,guiobj.eventDet1W2);
+        end
+        
     end
     
     %% Callback functions
@@ -1619,6 +1639,8 @@ classdef DAS < handle
             if guiobj.doEphysDownSamp
                 runImportDownSamp(guiobj)
             end
+            
+            computeEphysDataTypes(guiobj)
 
             setXlims(guiobj)
         end
@@ -1766,10 +1788,16 @@ classdef DAS < handle
                 end
             end
             
+            % check if downsampling ephys is needed
             if guiobj.doEphysDownSamp
                 if ~isempty(find(dtyp==1,1))
                     runImportDownSamp(guiobj)
                 end
+            end
+            
+            % compute the various forms of ephys if it was loaded
+            if ~isempty(find(dtyp==1,1))
+                computeEphysDataTypes(guiobj)
             end
             
             setXlims(guiobj)
@@ -2769,20 +2797,37 @@ classdef DAS < handle
             end
             
             switch guiobj.ephysDetArtSuppPopMenu.Value 
+                case 1 % no artifact suppression
+                    guiobj.ephys_artSupp4Det = 0;
+                    detinfo.DetSettings.ArtSupp = 'None';
                 case 2 % periodic
                     data_cl = periodicNoise(guiobj.ephys_data,fs);
                     data = data_cl(chan,:);
+                    guiobj.ephys_artSupp4Det = 1;
+                    detinfo.DetSettings.ArtSupp = 'Periodic';
                 case 3 % wICA
                     data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
                     data = data_cl(chan,:);
+                    guiobj.ephys_artSupp4Det = 2;
+                    detinfo.DetSettings.ArtSupp = 'wICA';
                 case 4 % ref chan subtract
                     data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
                     data = data_cl(chan,:);
+                    guiobj.ephys_artSupp4Det = 3;
+                    detinfo.DetSettings.ArtSupp = 'RefSubtract';
             end
-                        
+            if guiobj.ephys_artSupp4Det ~= 0
+                guiobj.ephys_artSuppedData4Det = data_cl;
+            else
+                guiobj.ephys_artSuppedData4Det = [];
+            end
+            
+            % recompute the ephys data types
+            computeEphysDataTypes(guiobj)
+            
             switch dettype
                 case 'CWT based'
-                    minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String);
+                    minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String)/1000;
                     sdmult = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                     w1 = str2double(guiobj.ephysCwtDetW1Edit.String);
                     w2 = str2double(guiobj.ephysCwtDetW2Edit.String);
@@ -2812,9 +2857,9 @@ classdef DAS < handle
                     end
                                         
                     if ~refVal
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen/1000,sdmult,w1,w2,0,[],showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen,sdmult,w1,w2,0,[],showFigs);
                     elseif refVal
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen/1000,sdmult,w1,w2,refch,refchData,showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
                     end
                     
                     detinfo.DetChannel = chan;
@@ -3028,7 +3073,7 @@ classdef DAS < handle
                     
                     for i = 1:size(data,1)
                         detParams{i} = detParamMiner(2,dets{i},detBorders{i},fs,...
-                            data(i,:),detData(i,:),[]);
+                            data(i,:),detData(i,:),[],guiobj.imaging_taxis);
                         
                     end
 
@@ -3204,14 +3249,23 @@ classdef DAS < handle
                         return
                     end
                     guiobj.eventDet1DataType = idx;
-                    switch idx
-                        case 2
-                            guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
-                                guiobj.eventDet1W1,guiobj.eventDet1W2);
-                        case 3
-                            guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
-                                guiobj.eventDet1W1,guiobj.eventDet1W2);
-                    end
+                    
+%                     % check whether the detections were made on artifact
+%                     % suppressed data
+%                     if guiobj.ephys_artSupp4Det == 0
+%                         ephysData4Dets = guiobj.ephys_data;
+%                     else 
+%                         ephysData4Dets = guiobj.ephys_artSuppedData4Det;
+%                     end
+%                     
+%                     switch idx
+%                         case 2
+%                             guiobj.ephys_dogged = DoG(ephysData4Dets,guiobj.ephys_fs,...
+%                                 guiobj.eventDet1W1,guiobj.eventDet1W2);
+%                         case 3
+%                             guiobj.ephys_instPowed = instPow(ephysData4Dets,guiobj.ephys_fs,...
+%                                 guiobj.eventDet1W1,guiobj.eventDet1W2);
+%                     end
                     eventDetAxesButtFcn(guiobj,1)
                 case 2
                     if isempty(guiobj.imaging_data)
@@ -3253,13 +3307,15 @@ classdef DAS < handle
             guiobj.eventDet1W1 = str2double(answer{1});
             guiobj.eventDet1W2 = str2double(answer{2});
             
-            if ~isempty(find(guiobj.eventDet1DataType==2,1))
-                    guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
-                        guiobj.eventDet1W1,guiobj.eventDet1W2);
-            elseif ~isempty(find(guiobj.eventDet1DataType==3,1))
-                    guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
-                        guiobj.eventDet1W1,guiobj.eventDet1W2);
-            end
+            computeEphysDataTypes(guiobj)
+            
+%             if ~isempty(find(guiobj.eventDet1DataType==2,1))
+%                     guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
+%                         guiobj.eventDet1W1,guiobj.eventDet1W2);
+%             elseif ~isempty(find(guiobj.eventDet1DataType==3,1))
+%                     guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
+%                         guiobj.eventDet1W1,guiobj.eventDet1W2);
+%             end
             
             eventDetAxesButtFcn(guiobj,1)
         end
@@ -3615,17 +3671,25 @@ classdef DAS < handle
                 else
                     guiobj.ephys_detectionsInfo.DetType = "";
                     guiobj.ephys_detectionsInfo.DetSettings = [];
+                    guiobj.ephys_detectionsInfo.ArtSupp = "";
                     guiobj.ephys_detectionsInfo.AllChannel = 1:min(size(guiobj.ephys_data));
                     guiobj.ephys_detectionsInfo.DetChannel = 1:min(size(guiobj.ephys_data));
                     ephysSaveInfo = guiobj.ephys_detectionsInfo;
                 end
                 
+                if guiobj.ephys_artSupp4Det == 0
+                    ephysData2Save = guiobj.ephys_data;
+                else
+                    ephysData2Save = guiobj.ephys_artSuppedData4Det;                   
+                end
                 if ~saveAllChans
                     chans2Save = guiobj.ephys_detectionsInfo.DetChannel;
-                    ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
+%                     ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
+                    ephysSaveData.RawData = ephysData2Save(chans2Save,:);
                     ephysSaveInfo.AllChannel = chans2Save;
                 else
-                    ephysSaveData.RawData = guiobj.ephys_data;
+%                     ephysSaveData.RawData = guiobj.ephys_data;
+                    ephysSaveData.RawData = ephysData2Save;
                     ephysSaveInfo.AllChannel = 1:min(size(guiobj.ephys_data));
                 end
                 
