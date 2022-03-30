@@ -71,11 +71,15 @@ end
 data_filt = data;
 % assignin('base','data',data)
 if ~f_fund_given
+    [progRepFig,progBarPlot,progBarText,feedbackText] = progressReportWindow;
     f_fund = zeros(min(size(data)),1);
     for i = 1:min(size(data))
     
-        wb1 = waitbar(0,'Calculaing FFT...','Name','Finding the fundamental frequency');
+%         wb1 = waitbar(0,'Calculaing FFT...','Name','Finding the fundamental frequency');
+
         % Calculate FFT
+        progBarPlot.Position = [0, 0, 0.3, 0.1]; 
+        progBarText.String = ['Ch#',num2str(i),' - computing FFT...']; drawnow
         [faxis,psd] = freqspec(data(i,:),fs,0);
         
         % Cutting out low frequencies from PSD
@@ -87,6 +91,8 @@ if ~f_fund_given
         cutpsd_runSd = movstd(cutpsd,find(faxis > 10,1));
         
         % simply detect the prominent peaks on the fft
+        progBarPlot.Position = [0, 0, 0.6, 0.1]; 
+        progBarText.String = ['Ch#',num2str(i),' - detecting peaks on FFT...']; drawnow
         [peaks,locs,~,proms] = findpeaks(cutpsd,'MinPeakDistance',find(faxis > 30,1));
         
         % check if findpeaks' detections are above the moving average+4*std
@@ -109,6 +115,9 @@ if ~f_fund_given
         
         [~,maxPromInds] = sort(proms,'descend');
         maxLocs = locs(maxPromInds);
+        
+        progBarPlot.Position = [0, 0, 0.9, 0.1]; 
+        progBarText.String = ['Ch#',num2str(i),' - checking possible frequencies...']; drawnow
         
         numproms = min([10,length(maxPromInds)]);
         putative_f_fund = zeros(1,numproms);
@@ -228,8 +237,13 @@ if ~f_fund_given
 % %             end
 % %         end
 
-        waitbar(1,wb1,'Finished')
-        close(wb1)
+%         waitbar(1,wb1,'Finished')
+%         close(wb1)
+
+        progBarPlot.Position = [0, 0, 1, 0.1]; 
+        progBarText.String = ['Ch#',num2str(i),' - found the fundamental frequency!...'];
+        feedbackText_old = feedbackText.String;
+        feedbackText.String = [feedbackText_old; strcat("Ch#",num2str(i)," fund freq = ",num2str(f_fund(i))," Hz")]; drawnow
         fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))
     end
     if length(unique(round(f_fund/2)*2)) > 1
@@ -239,7 +253,14 @@ if ~f_fund_given
     else
         f_fund = mean(f_fund);
     end
+    
     fprintf(1,'The final result for the fundamental frequency of the periodic noise in the whole recording is: %f Hz\n',f_fund)
+    
+    progBarPlot.Position = [0, 0, 1, 0.1]; 
+    progBarText.String = ['Done with all channels!'];
+    feedbackText_old = feedbackText.String;
+    feedbackText.String = [feedbackText_old; strcat("Overall fund freq = ",num2str(f_fund)," Hz")]; drawnow
+%     delete(progRepFig)
 end
     
 % fmax is the frequency up to which the algorithm will run
@@ -279,4 +300,42 @@ end
 
 if nargout == 0
     clear data_filt
+end
+
+    function [progRepFig,progBarPlot,progBarText,feedbackText] = progressReportWindow
+        progRepFig = figure('Visible','off',...
+            'Units','normalized',...
+            'Position',[0.2, 0.2, 0.3, 0.5],...
+            'NumberTitle','off',...
+            'Name','Periodic Noise Filter - Progress',...
+            'MenuBar','none',...
+            'IntegerHandle','off',...
+            'HandleVisibility','Callback');
+        
+        progBarHandle = axes(progRepFig,...
+            'Units', 'normalized',...
+            'Position', [0.1, 0.8, 0.8, 0.1]);
+        axis(progBarHandle, 'off')
+        hold(progBarHandle, 'on')
+        xlim(progBarHandle, [0, 1])
+        ylim(progBarHandle, [0, 0.1])
+        progBarPlot = rectangle(progBarHandle,...
+            'Position', [0, 0, 0.1, 0.1],...
+            'FaceColor', [0 0 1]);
+        
+        progBarText = uicontrol(progRepFig,...
+            'Style', 'text',...
+            'Units', 'normalized',...
+            'Position', [0.4, 0.65, 0.2, 0.1],...
+            'String', 'Initializing...');
+        
+        feedbackText = uicontrol(progRepFig,...
+            'Style', 'text',...
+            'Units', 'normalized',...
+            'Position', [0.1, 0.1, 0.8, 0.45]);
+        
+        progRepFig.Visible = 'on';
+    end
+
+
 end
