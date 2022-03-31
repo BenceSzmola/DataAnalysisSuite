@@ -1318,12 +1318,16 @@ classdef DASeV < handle
         
         %%
         function loadSaveButtPress(gO,~,~)
+            
+            wb1 = waitbar(0,'Starting to load file...');
+            
             val = gO.fileList.Value;
             if ~isempty(gO.fileList.String)
                 fname = gO.fileList.String{val};
                 fnameFull = [gO.selDir,'\',fname];
             else
                 warndlg('No file selected!')
+                close(wb1)
                 return
             end
             
@@ -1344,10 +1348,15 @@ classdef DASeV < handle
             gO.save2DbEphysCheckBox.Enable = 'off';
             gO.save2DbEphys_wPar_CheckBox.Enable = 'off';
 
+            waitbar(0.25,wb1,'Looking for ephys data...')
+            
             if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'})) == 2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
                 if ~isempty(ephysSaveData) %& ~isempty(ephysSaveInfo)
+                    
+                    waitbar(0.3,wb1,'Loading ephys data...')
+                    
                     gO.ephysData = ephysSaveData.RawData;
                     gO.ephysFs = ephysSaveData.Fs;
                     gO.ephysTaxis = ephysSaveData.TAxis;
@@ -1398,10 +1407,15 @@ classdef DASeV < handle
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
+            waitbar(0.5,wb1,'Looking for imaging data...')
+            
             if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'})) == 2
                 load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
                 if ~isempty(imagingSaveData) %& ~isempty(imagingSaveInfo)
+                    
+                    waitbar(0.6,wb1,'Loading imaging data...')
+                    
                     gO.imagingData = imagingSaveData.RawData;
                     gO.imagingFs = imagingSaveData.Fs;
                     gO.imagingTaxis = imagingSaveData.TAxis;
@@ -1451,10 +1465,16 @@ classdef DASeV < handle
             
             gO.loaded(3) = 0;
             gO.save2DbRunningChechBox.Enable = 'off';
+            
+            waitbar(0.75,wb1,'Looking for running data...')
+            
             if sum(ismember(fieldnames(testload),'runData'))==1
                 load(fnameFull,'runData')
                 
                 if ~isempty(runData)
+                    
+                    waitbar(0.8,wb1,'Loading running data...')
+                    
                     gO.runTaxis = runData.taxis;
                     gO.runAbsPos = runData.absPos;
                     gO.runRelPos = runData.relPos;
@@ -1492,10 +1512,15 @@ classdef DASeV < handle
             gO.simultModeSwitch.Enable = 'off';
             gO.save2DbSimultCheckBox.Enable = 'off';
             
+            waitbar(0.9,wb1,'Looking for simult data...')
+            
             if sum(ismember(fieldnames(testload),{'simultSaveData';'simultSaveInfo'}))==2
                 load(fnameFull,'simultSaveData','simultSaveInfo')
                 
                 if ~isempty(simultSaveData) & ~isempty(simultSaveInfo)
+                    
+                    waitbar(0.95,wb1,'Loading simult data...')
+                    
                     gO.simultDets = simultSaveData;
                     gO.simultDetInfo = simultSaveInfo;
                     
@@ -1513,6 +1538,8 @@ classdef DASeV < handle
                 end
             end
                         
+            waitbar(0.99,wb1,'Finishing loading process...')
+            
             %Preparing selection vectors for database saving
             gO.save2DbEphysCheckBox.Value = 0;
             gO.save2DbImagingCheckBox.Value = 0;
@@ -1562,6 +1589,10 @@ classdef DASeV < handle
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
                 gO.path2loadedSave = fnameFull;
             end
+            
+            waitbar(1,wb1,'Done!')
+            pause(0.5)
+            close(wb1)
         end
         
         %%
