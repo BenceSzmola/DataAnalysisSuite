@@ -1,4 +1,4 @@
-function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
+function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,...
         refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
 
     if isempty(corrData) | isempty(refCorrData)
@@ -45,6 +45,13 @@ function [dets,detBorders] = commDetAlg(taxis,chan,rawData,detData,corrData,...
         aboveThr = unique(aboveThr);
         if isempty(aboveThr)
             continue
+        end
+        if ~isempty(inds2use)
+            assignin('base','taxis',taxis)
+            assignin('base','i2u',inds2use)
+            assignin('base','aboveThrBefore',aboveThr)
+            aboveThr = aboveThr(ismember(aboveThr,inds2use));
+            assignin('base','aboveThrAfter',aboveThr)
         end
         steps = diff(aboveThr);
         steps = [0,steps];
