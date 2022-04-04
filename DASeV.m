@@ -1123,7 +1123,7 @@ classdef DASeV < handle
         
         %%
         function win = runWindowMacher(gO,tWin)
-            if (tWin(1) < gO.runTaxis(1)) || (tWin(1) > gO.runTaxis(1))
+            if (tWin(1) > gO.runTaxis(end)) || (tWin(end) < gO.runTaxis(1))
                 win = [];
                 return
             end
@@ -2187,10 +2187,10 @@ classdef DASeV < handle
                             refWin = gO.ephysTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                             if ~isempty(runWin)
-                                tempStruct.runData.Taxis = gO.runTaxis;
+                                tempStruct.runData.Taxis = gO.runTaxis(runWin);
                                 tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
                                 tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
                                 tempStruct.runData.Lap = gO.runLap(runWin);
                                 tempStruct.runData.Licks = gO.runLicks(runWin);
                                 tempStruct.runData.ActState = gO.runActState(runWin);
@@ -2255,10 +2255,10 @@ classdef DASeV < handle
                             refWin = gO.imagingTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                             if ~isempty(runWin)
-                                tempStruct.runData.Taxis = gO.runTaxis;
+                                tempStruct.runData.Taxis = gO.runTaxis(runWin);
                                 tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
                                 tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
                                 tempStruct.runData.Lap = gO.runLap(runWin);
                                 tempStruct.runData.Licks = gO.runLicks(runWin);
                                 tempStruct.runData.ActState = gO.runActState(runWin);
@@ -2305,10 +2305,10 @@ classdef DASeV < handle
                         refWin = gO.ephysTaxis(ephysWin);
                         runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                         if ~isempty(runWin)
-                            tempStruct.runData.Taxis = gO.runTaxis;
+                            tempStruct.runData.Taxis = gO.runTaxis(runWin);
                             tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
                             tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                            tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWIn);
+                            tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
                             tempStruct.runData.Lap = gO.runLap(runWin);
                             tempStruct.runData.Licks = gO.runLicks(runWin);
                             tempStruct.runData.ActState = gO.runActState(runWin);
