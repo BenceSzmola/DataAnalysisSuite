@@ -46,12 +46,16 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         if isempty(aboveThr)
             continue
         end
-        if ~isempty(inds2use)
-            assignin('base','taxis',taxis)
-            assignin('base','i2u',inds2use)
-            assignin('base','aboveThrBefore',aboveThr)
-            aboveThr = aboveThr(ismember(aboveThr,inds2use));
-            assignin('base','aboveThrAfter',aboveThr)
+        
+        if ~(ischar(inds2use) && strcmp(inds2use,'all'))
+            if ~isempty(inds2use)
+                aboveThr = aboveThr(ismember(aboveThr,inds2use));
+                if isempty(aboveThr)
+                    continue
+                end
+            else
+                continue
+            end
         end
         steps = diff(aboveThr);
         steps = [0,steps];

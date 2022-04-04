@@ -210,6 +210,8 @@ classdef DAS < handle
         speedRange4DetsLabel
         speedRange4DetsEdit1
         speedRange4DetsEdit2
+        minTimeInSpeedRangeLabel
+        minTimeInSpeedRangeEdit
         
         simultDetPopMenu
         
@@ -1594,14 +1596,9 @@ classdef DAS < handle
                 (guiobj.run_veloc <= str2double(guiobj.speedRange4DetsEdit2.String)));
             indDiffs = diff(inSpeedRangeInds);
             indDiffsBreaks = find(indDiffs > 1);
-            assignin('base','inRangeInds',inSpeedRangeInds)
-            assignin('base','indDiff',indDiffs)
-            assignin('base','indDiffBreak',indDiffsBreaks)
 
             runTaxis = guiobj.run_taxis;
-            assignin('base','runTaxis',runTaxis)
             
-%             segmentsBorders = zeros(length(indDiffsBreaks),2);
             inds2use = [];
             for i = 1:length(indDiffsBreaks)
                 if i == 1
@@ -1609,13 +1606,14 @@ classdef DAS < handle
                 else
                     segmentRunTaxis = runTaxis([inSpeedRangeInds(indDiffsBreaks(i-1)+1),inSpeedRangeInds(indDiffsBreaks(i))]);
                 end
-                segmentRunTaxis
-                [~,segmentsBorders(1)] = min(abs(taxis - segmentRunTaxis(1)));
-                
-                [~,segmentsBorders(2)] = min(abs(taxis - segmentRunTaxis(2)));
-                inds2use = [inds2use, [segmentsBorders(1):segmentsBorders(2)] ];
+
+                if (segmentRunTaxis(2) - segmentRunTaxis(1)) > (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
+                    [~,segmentsBorders(1)] = min(abs(taxis - segmentRunTaxis(1)));
+
+                    [~,segmentsBorders(2)] = min(abs(taxis - segmentRunTaxis(2)));
+                    inds2use = [inds2use, segmentsBorders(1):segmentsBorders(2) ];
+                end
             end
-            assignin('base','fresh_i2u',inds2use)
         end
         
     end
@@ -2815,6 +2813,14 @@ classdef DAS < handle
             guiobj.ephysDetStatusLabel.BackgroundColor = 'r';
             drawnow
             
+            chan = guiobj.ephysDetChSelListBox.Value;
+            data = guiobj.ephys_data(chan,:);
+            fs = guiobj.ephys_fs;
+            tAxis = guiobj.ephys_taxis;
+            showFigs = guiobj.showXtraDetFigs;
+            refch = str2double(guiobj.ephysDetRefChanEdit.String);
+            refchData = guiobj.ephys_data(refch,:);
+            
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
             if strcmp(dettype,'--Ephys detection methods--')
@@ -2827,15 +2833,33 @@ classdef DAS < handle
             % check whether running data based detection was requested
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 inds2use = convertRunInds4Dets(guiobj,1);
+                
+                detinfo.DetSettings.SpeedRange = ['[',guiobj.speedRange4DetsEdit1.String,' , '...
+                    guiobj.speedRange4DetsEdit2.String,']'];
+                detinfo.DetSettings.MinTimeInRange = str2double(guiobj.minTimeInSpeedRangeEdit.String);
+                
+                if isempty(inds2use)
+                    warndlg('No sections satisfied the running specifications!')
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                elseif (length(inds2use) / fs) < (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
+                    errordlg('The section falling in the specified speed range is too short!')
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                end
+            else
+                inds2use = 'all';
             end            
             
-            chan = guiobj.ephysDetChSelListBox.Value;
-            data = guiobj.ephys_data(chan,:);
-            fs = guiobj.ephys_fs;
-            tAxis = guiobj.ephys_taxis;
-            showFigs = guiobj.showXtraDetFigs;
-            refch = str2double(guiobj.ephysDetRefChanEdit.String);
-            refchData = guiobj.ephys_data(refch,:);
+%             chan = guiobj.ephysDetChSelListBox.Value;
+%             data = guiobj.ephys_data(chan,:);
+%             fs = guiobj.ephys_fs;
+%             tAxis = guiobj.ephys_taxis;
+%             showFigs = guiobj.showXtraDetFigs;
+%             refch = str2double(guiobj.ephysDetRefChanEdit.String);
+%             refchData = guiobj.ephys_data(refch,:);
             
             % Handling no input case when artsupp is enabled
             if (guiobj.ephysDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
@@ -2906,9 +2930,9 @@ classdef DAS < handle
                     end
                                         
                     if ~refVal
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen,sdmult,w1,w2,0,[],showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,0,[],showFigs);
                     elseif refVal
-                        [dets,detBorders,detParams] = wavyDet(data,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
+                        [dets,detBorders,detParams] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
                     end
                     
                     detinfo.DetChannel = chan;
@@ -3081,6 +3105,29 @@ classdef DAS < handle
             data = guiobj.imaging_data;
             fs = guiobj.imaging_fs;
             
+            % check whether running data based detection was requested
+            if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
+                inds2use = convertRunInds4Dets(guiobj,2);
+                
+                detinfo.DetSettings.SpeedRange = ['[',guiobj.speedRange4DetsEdit1.String,' , '...
+                    guiobj.speedRange4DetsEdit2.String,']'];
+                detinfo.DetSettings.MinTimeInRange = str2double(guiobj.minTimeInSpeedRangeEdit.String);
+                
+                if isempty(inds2use)
+                    warndlg('No sections satisfied the running specifications!')
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                elseif (length(inds2use) / fs) < (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
+                    errordlg('The section falling in the specified speed range is too short!')
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                end
+            else
+                inds2use = 'all';
+            end            
+            
             dets = cell(min(size(data)),1);
             detBorders = cell(min(size(data)),1);
             detParams = cell(min(size(data)),1);
@@ -3117,7 +3164,7 @@ classdef DAS < handle
                         detinfo.DetSettings.WinLen = 3;
                     end
                     
-                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,1:size(data,1),data,detData,...
+                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,1:size(data,1),inds2use,data,detData,...
                         [],0,[],[],fs,thr,0,minLen,extThr);
                     
                     for i = 1:size(data,1)
@@ -3126,7 +3173,7 @@ classdef DAS < handle
                         
                     end
 
-                case 'MLspike based'
+                case 'MLspike based' % in experimental phase
                     par = tps_mlspikes('par');
                     par.dt = 1/fs;
                     par.a = str2double(guiobj.imagingMlSpDetDFFSpikeEdit.String);
@@ -4899,6 +4946,16 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.7, 0.75, 0.1, 0.2],...
                 'String','5');
+            guiobj.minTimeInSpeedRangeLabel = uicontrol(guiobj.useRunData4DetsPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.1, 0.5, 0.4, 0.2],...
+                'String','Min T in range [ms]');
+            guiobj.minTimeInSpeedRangeEdit = uicontrol(guiobj.useRunData4DetsPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.6, 0.5, 0.1, 0.2],...
+                'String','500');
             
             guiobj.simultDetPopMenu = uicontrol(guiobj.eventDetTab,...
                 'Style','popupmenu',...

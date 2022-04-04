@@ -1,4 +1,4 @@
-function [dets,detBorders,detParams] = wavyDet(data,taxis,chan,fs,minLen,sdmult,w1,w2,refCh,refChData,showFigs)
+function [dets,detBorders,detParams] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refCh,refChData,showFigs)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -86,7 +86,7 @@ for i = 1:size(data,1)
     
 end
     
-[dets,detBorders] = commDetAlg(taxis,chan,data,instE,dogged,refCh,refDogged,refDets,fs,...
+[dets,detBorders] = commDetAlg(taxis,chan,inds2use,data,instE,dogged,refCh,refDogged,refDets,fs,...
     thr,refVal,minLen,extThr);
 
 for i = 1:min(size(data))
