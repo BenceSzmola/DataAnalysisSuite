@@ -3045,6 +3045,22 @@ classdef DAS < handle
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return                
             end
+            
+            if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
+                for i = 1:length(detParams) % looping over channels
+                    for j = 1:length(detParams{i}) % looping over dets
+                        ephysBorders = detBorders{i}(j,:);
+                        
+                        runTaxis = guiobj.run_taxis;
+                        ephysTaxis = guiobj.ephys_taxis;
+                        [~,runBorders(1)] = min(abs(runTaxis - ephysTaxis(ephysBorders(1))));
+                        [~,runBorders(2)] = min(abs(runTaxis - ephysTaxis(ephysBorders(2))));
+                        
+                        avgSpd = mean(guiobj.run_veloc(runBorders(1):runBorders(2)));
+                        detParams{i}(j).AvgSpeed = avgSpd;
+                    end
+                end
+            end
                         
             guiobj.ephys_detections = dets;
             
@@ -3206,6 +3222,22 @@ classdef DAS < handle
                 guiobj.imagingDetStatusLabel.String = '--IDLE--';
                 guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
                 return
+            end
+            
+            if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
+                for i = 1:length(detParams) % looping over channels
+                    for j = 1:length(detParams{i}) % looping over dets
+                        imagingBorders = detBorders{i}(j,:);
+                        
+                        runTaxis = guiobj.run_taxis;
+                        imagingTaxis = guiobj.imaging_taxis;
+                        [~,runBorders(1)] = min(abs(runTaxis - imagingTaxis(imagingBorders(1))));
+                        [~,runBorders(2)] = min(abs(runTaxis - imagingTaxis(imagingBorders(2))));
+                        
+                        avgSpd = mean(guiobj.run_veloc(runBorders(1):runBorders(2)));
+                        detParams{i}(j).AvgSpeed = avgSpd;
+                    end
+                end
             end
             
             guiobj.imaging_detections = dets;
