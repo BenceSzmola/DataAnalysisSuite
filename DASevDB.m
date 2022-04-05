@@ -789,7 +789,7 @@ classdef DASevDB < handle
             
             if ismember('runData',string(fieldnames(saveStruct)))
                 gO.loaded(3) = 1;
-                gO.runData = saveStruct.runData;
+                gO.runData = [saveStruct.runData];
             end
             
             gO.mainFig.Name = ['DAS Event DataBase - ',gO.loadedEntryFname];
