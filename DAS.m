@@ -3057,7 +3057,9 @@ classdef DAS < handle
                         [~,runBorders(2)] = min(abs(runTaxis - ephysTaxis(ephysBorders(2))));
                         
                         avgSpd = mean(guiobj.run_veloc(runBorders(1):runBorders(2)));
+                        avgPos = mean(guiobj.run_relPos(runBorders(1):runBorders(2)));
                         detParams{i}(j).AvgSpeed = avgSpd;
+                        detParams{i}(j).RelPos = avgPos;
                     end
                 end
             end
@@ -3235,7 +3237,9 @@ classdef DAS < handle
                         [~,runBorders(2)] = min(abs(runTaxis - imagingTaxis(imagingBorders(2))));
                         
                         avgSpd = mean(guiobj.run_veloc(runBorders(1):runBorders(2)));
+                        avgPos = mean(guiobj.run_relPos(runBorders(1):runBorders(2)));
                         detParams{i}(j).AvgSpeed = avgSpd;
+                        detParams{i}(j).RelPos = avgPos;
                     end
                 end
             end
