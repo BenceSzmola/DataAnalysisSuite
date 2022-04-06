@@ -33,13 +33,9 @@ if ~isempty(eParams)
     numVars = length(eParamNames);
     numEvs = length(eParams);
     
-    if size(eParamNames,1) == numVars
-        eParamNames = eParamNames';
-    end
+    eParamNames = eParamNames';
     
-    if size(eParamsCell,1) ~= numEvs
-        eParamsCell = eParamsCell';
-    end
+    eParamsCell = eParamsCell';
     
     cellsRange1 = get(eSheetEphys,'Cells',1,1);
     cellsRange2 = get(eSheetEphys,'Cells',1,numVars);
@@ -62,13 +58,9 @@ if ~isempty(iParams)
     numVars = length(iParamNames);
     numEvs = length(iParams);
     
-    if size(iParamNames,1) == numVars
-        iParamNames = iParamNames';
-    end
+    iParamNames = iParamNames';
     
-    if size(iParamsCell,1) ~= numEvs
-        iParamsCell = iParamsCell';
-    end
+    iParamsCell = iParamsCell';
     
     cellsRange1 = get(eSheetImaging,'Cells',1,1);
     cellsRange2 = get(eSheetImaging,'Cells',1,numVars);
