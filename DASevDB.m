@@ -21,6 +21,9 @@ classdef DASevDB < handle
         changeDbMenu
         deleteEventMenu
         
+        exportMenu
+        exportCurrLoadedParamsMenu
+        
         %% tabs
         tabgroup
         eventTab
@@ -1063,6 +1066,25 @@ classdef DASevDB < handle
         end
         
         %%
+        function exportCurrLoadedParamsMenuSel(gO)
+            if ~isempty(gO.ephysEvents)
+                eEvs = [gO.ephysEvents];
+                eParams = [eEvs.Params];
+            else
+                eParams = [];
+            end
+            
+            if ~isempty(gO.imagingEvents)
+                iEvs = [gO.imagingEvents];
+                iParams = [iEvs.Params];
+            else
+                iParams = [];
+            end
+            
+            DAS2Excel(eParams,iParams)
+        end
+        
+        %%
         function statSelectPopMenuCB(gO,~,~)
             switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
                 case '--Select statistic!--'
@@ -1454,6 +1476,12 @@ classdef DASevDB < handle
                 'Text','Delete current event',...
                 'Callback',@(h,e) gO.deleteEventMenuSel);
             
+            gO.exportMenu = uimenu(gO.mainFig,...
+                'Text','Export');
+            gO.exportCurrLoadedParamsMenu = uimenu(gO.exportMenu,...
+                'Text','Export currently loaded event parameters --> Excel',...
+                'Callback',@(h,e) gO.exportCurrLoadedParamsMenuSel);
+            
             %% tabs
             gO.tabgroup = uitabgroup(gO.mainFig,...
                 'Units','normalized',...
@@ -1491,7 +1519,7 @@ classdef DASevDB < handle
             
             %% info panel
             gO.infoPanel = uipanel(gO.eventTab,...
-                'Position',[0.01, 0.67, 0.2, 0.12],...
+                'Position',[0.01, 0.59, 0.2, 0.2],...
                 'BorderType','beveledout',...
                 'Title','Event info');
             gO.sourceFileLabel = uicontrol(gO.infoPanel,...
@@ -1514,7 +1542,7 @@ classdef DASevDB < handle
             
             %% param panel
             gO.paramPanel = uipanel(gO.eventTab,...
-                'Position',[0.01, 0.01, 0.2, 0.65],...
+                'Position',[0.01, 0.01, 0.2, 0.58],...
                 'BorderType','beveledout',...
                 'Title','Event parameters');
             gO.ephysParamTable = uitable(gO.paramPanel,...
