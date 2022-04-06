@@ -1600,18 +1600,28 @@ classdef DAS < handle
             runTaxis = guiobj.run_taxis;
             
             inds2use = [];
-            for i = 1:length(indDiffsBreaks)
-                if i == 1
-                    segmentRunTaxis = runTaxis([inSpeedRangeInds(1),inSpeedRangeInds(indDiffsBreaks(i))]);
-                else
-                    segmentRunTaxis = runTaxis([inSpeedRangeInds(indDiffsBreaks(i-1)+1),inSpeedRangeInds(indDiffsBreaks(i))]);
-                end
-
+            if isempty(indDiffsBreaks)
+                segmentRunTaxis = runTaxis([inSpeedRangeInds(1),inSpeedRangeInds(end)]);
                 if (segmentRunTaxis(2) - segmentRunTaxis(1)) > (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
                     [~,segmentsBorders(1)] = min(abs(taxis - segmentRunTaxis(1)));
 
                     [~,segmentsBorders(2)] = min(abs(taxis - segmentRunTaxis(2)));
-                    inds2use = [inds2use, segmentsBorders(1):segmentsBorders(2) ];
+                    inds2use = segmentsBorders(1):segmentsBorders(2);
+                end
+            else
+                for i = 1:length(indDiffsBreaks)
+                    if i == 1
+                        segmentRunTaxis = runTaxis([inSpeedRangeInds(1),inSpeedRangeInds(indDiffsBreaks(i))]);
+                    else
+                        segmentRunTaxis = runTaxis([inSpeedRangeInds(indDiffsBreaks(i-1)+1),inSpeedRangeInds(indDiffsBreaks(i))]);
+                    end
+
+                    if (segmentRunTaxis(2) - segmentRunTaxis(1)) > (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
+                        [~,segmentsBorders(1)] = min(abs(taxis - segmentRunTaxis(1)));
+
+                        [~,segmentsBorders(2)] = min(abs(taxis - segmentRunTaxis(2)));
+                        inds2use = [inds2use, segmentsBorders(1):segmentsBorders(2) ];
+                    end
                 end
             end
         end
@@ -2834,10 +2844,6 @@ classdef DAS < handle
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 inds2use = convertRunInds4Dets(guiobj,1);
                 
-                detinfo.DetSettings.SpeedRange = ['[',guiobj.speedRange4DetsEdit1.String,' , '...
-                    guiobj.speedRange4DetsEdit2.String,']'];
-                detinfo.DetSettings.MinTimeInRange = str2double(guiobj.minTimeInSpeedRangeEdit.String);
-                
                 if isempty(inds2use)
                     warndlg('No sections satisfied the running specifications!')
                     guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -2849,6 +2855,11 @@ classdef DAS < handle
                     guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                     return
                 end
+                
+                detinfo.DetSettings.SpeedRange = ['[',guiobj.speedRange4DetsEdit1.String,' , '...
+                    guiobj.speedRange4DetsEdit2.String,']'];
+                detinfo.DetSettings.MinTimeInRange = str2double(guiobj.minTimeInSpeedRangeEdit.String);
+                
             else
                 inds2use = 'all';
             end            
