@@ -1,4 +1,4 @@
-function data_filt = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
+function [data_filt,f_fund] = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
 
 % Detect and filter out periodic Noise (fundamental and harmonics)
 % data_filt = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)

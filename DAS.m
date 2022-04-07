@@ -2563,7 +2563,7 @@ classdef DAS < handle
                     fmax = str2double(guiobj.fmaxEdit.String);
                     ffund = str2double(guiobj.ffundEdit.String);
                     stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
-                    procced = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                    [procced,f_fund] = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
                     if isempty(procced)
                         guiobj.runFiltButton.BackgroundColor = 'g';
                         return
@@ -2573,16 +2573,16 @@ classdef DAS < handle
                     
                     for i = 1:length(data_idx)
                         if isempty(procDatanames)
-                            procDatanames = {['Periodic| ',...
+                            procDatanames = {['Periodic @',num2str(f_fund),' Hz| ',...
                                 datanames{data_idx(i)}]};
                         elseif ~isempty(procDatanames)
                             switch selectedButt
                                 case 'Raw data'    
                                     procDatanames = [procDatanames,...
-                                            ['Periodic| ',datanames{data_idx(i)}]];
+                                            ['Periodic@',num2str(f_fund),' Hz| ',datanames{data_idx(i)}]];
                                 case 'Processed data'
                                     procDatanames = [procDatanames,...
-                                            ['Periodic| ',procDatanames{data_idx(i)}]];
+                                            ['Periodic@',num2str(f_fund),' Hz| ',procDatanames{data_idx(i)}]];
                             end
                         end
                     end
