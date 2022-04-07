@@ -1081,7 +1081,7 @@ classdef DASevDB < handle
                 iParams = [];
             end
             
-            DAS2Excel(eParams,iParams)
+            DAS2Excel(gO.loadedEntryFname,eParams,iParams)
         end
         
         %%
