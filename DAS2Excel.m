@@ -37,7 +37,7 @@ eSheetInfo = eSheets.get('Item','info');
 eSheetInfo.Activate;
 range = get(eSheetInfo,'Range','A1');
 range.Value = 'Name of database entry';
-range.EntireColumn.AutoFit
+range.EntireColumn.AutoFit;
 range = get(eSheetInfo,'Range','B1');
 range.Value = DBname;
 range.EntireColumn.AutoFit;
@@ -60,7 +60,6 @@ if ~isempty(eParams)
     cellsRange2 = get(eSheetEphys,'Cells',1,numVars);
     range = get(eSheetEphys,'Range',cellsRange1,cellsRange2);
     range.Value = eParamNames;
-%     range.EntireColumn.AutoFit;
     
     cellsRange1 = get(eSheetEphys,'Cells',2,1);
     cellsRange2 = get(eSheetEphys,'Cells',numEvs + 1,numVars);
@@ -87,7 +86,6 @@ if ~isempty(iParams)
     cellsRange2 = get(eSheetImaging,'Cells',1,numVars);
     range = get(eSheetImaging,'Range',cellsRange1,cellsRange2);
     range.Value = iParamNames;
-%     range.EntireColumn.AutoFit;
 
     cellsRange1 = get(eSheetImaging,'Cells',2,1);
     cellsRange2 = get(eSheetImaging,'Cells',numEvs + 1,numVars);
