@@ -233,6 +233,9 @@ classdef DAS < handle
         axesEventDet2DetDownButt
         axesEventDet2RoiUpButt
         axesEventDet2RoiDownButt
+        
+        delCurrEphysEventButton
+        delCurrImagingEventButton
     end
     
     %% Initializing data stored in GUI
@@ -4006,6 +4009,123 @@ classdef DAS < handle
         end
         
         %%
+        function delCurrEventButtonCB(guiobj,dTyp)
+            switch guiobj.evDetTabSimultMode
+                case 0
+                    switch dTyp
+                        case 1
+                            quest = 'Are you sure you want to delete the currently displayed ephys event?';
+                        case 2
+                            quest = 'Are you sure you want to delete the currently displayed imaging event?';
+                    end
+                    answer = questdlg(quest,'Detection deletion confirmation');
+                    switch answer
+                        case {'','No','Cancel'}
+                            return
+                    end
+                    
+                    switch dTyp
+                        case 1 % ephys
+                            currChan = guiobj.eventDet1CurrChan;
+                            currDet = guiobj.eventDet1CurrDet;
+
+                            guiobj.ephys_detections{currChan}(currDet) = [];
+                            guiobj.ephys_detParams{currChan}(currDet) = [];
+                            guiobj.ephys_detBorders{currChan}(currDet,:) = [];
+
+                            % if after deleting no detections are left on the given
+                            % channel, delete that channel from the detection
+                            % storage
+                            detsLeft = length(guiobj.ephys_detections{currChan});
+                            if detsLeft == 0
+                                guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
+                                guiobj.ephys_detections(currChan) = [];
+                                guiobj.ephys_detParams(currChan) = [];
+                                guiobj.ephys_detBorders(currChan) = [];
+
+                                % make sure event display switches correctly
+                                if currChan ~= 1
+                                    currChan = currChan - 1;
+                                    currDet = 1;
+                                end
+                            else
+                                if currDet ~= 1
+                                    currDet = currDet - 1;
+                                end
+                            end
+
+                            guiobj.eventDet1CurrChan = currChan;
+                            guiobj.eventDet1CurrDet = currDet;
+
+                        case 2 % imaging
+                            currChan = guiobj.eventDet2CurrRoi;
+                            currDet = guiobj.eventDet2CurrDet;
+
+                            guiobj.imaging_detections{currChan}(currDet) = [];
+                            guiobj.imaging_detParams{currChan}(currDet) = [];
+                            guiobj.imaging_detBorders{currChan}(currDet,:) = [];
+
+                            detsLeft = length(guiobj.imaging_detections{currChan});
+                            if detsLeft == 0                        
+                                % make sure event display switches correctly
+                                if currChan ~= 1
+                                    currChan = currChan - 1;
+                                    currDet = 1;
+                                end
+                            else
+                                if currDet ~= 1
+                                    currDet = currDet - 1;
+                                end
+                            end
+
+                            guiobj.eventDet2CurrRoi = currChan;
+                            guiobj.eventDet2CurrDet = currDet;
+                    end
+                    eventDetAxesButtFcn(guiobj,dTyp)
+                    
+                case 1 % simult mode on
+                    
+                    switch dTyp
+                        case 1
+                            quest = 'Are you sure you want to delete the currently displayed ephys event from the simultaneous events?';
+                        case 2
+                            quest = 'Are you sure you want to delete the currently displayed imaging event from the simultaneous events?';
+                    end
+                    answer = questdlg(quest,'Detection deletion confirmation');
+                    switch answer
+                        case {'','No','Cancel'}
+                            return
+                    end
+                    
+                    [~,~,detNum,~,~,chan,~] = extractDetStructs(guiobj,dTyp);
+                    simDets = guiobj.simult_detections;
+                    simDetInfo = guiobj.simult_detectionsInfo;
+                    
+                    switch dTyp
+                        case 1
+                            rows2nuke = (simDets(:,1) == chan) & (simDets(:,2) == detNum);
+                            simDets(rows2nuke,:) = [];
+                            
+                            if isempty(find(simDets(:,1) == chan, 1))
+                                simDetInfo.EphysChannels(simDetInfo.EphysChannels == chan) = [];
+                            end
+                        case 2
+                            rows2nuke = (simDets(:,3) == chan) & (simDets(:,4) == detNum);
+                            simDets(rows2nuke,:) = [];
+                            
+                            if isempty(find(simDets(:,3) == chan, 1))
+                                simDetInfo.ROIs(simDetInfo.ROIs == chan) = [];
+                            end
+                    end
+                    guiobj.simult_detections = simDets;
+                    guiobj.simult_detectionsInfo = simDetInfo;
+                    
+                    eventDetAxesButtFcn(guiobj,1,0,0)
+                    eventDetAxesButtFcn(guiobj,2,0,0)
+            end
+        end
+        
+        %%
         function testcallback(varargin)
             display(varargin)
 %             assignin('base','testinput',varargin)
@@ -4998,6 +5118,15 @@ classdef DAS < handle
                 'Position',[0.96, 0.7, 0.03, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) guiobj.eventDetAxesButtFcn(1,-1,0));
+                        
+            guiobj.delCurrEphysEventButton = uicontrol(guiobj.eventDetTab,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.96, 0.6, 0.03, 0.05],...
+                'String','Del',...
+                'Tooltip','Delete currently displayed ephys event',...
+                'Callback',@(h,e) guiobj.delCurrEventButtonCB(1));
+            
             guiobj.axesEventDet2 = axes(guiobj.eventDetTab,...
                 'Position',[0.5, 0.1, 0.45, 0.35],...
                 'NextPlot','replacechildren');
@@ -5005,27 +5134,35 @@ classdef DAS < handle
             guiobj.axesEventDet2DetUpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.35, 0.03, 0.05],...
+                'Position',[0.96, 0.4, 0.03, 0.05],...
                 'String','<HTML>Det&uarr',...
                 'Callback',@(h,e) guiobj.eventDetAxesButtFcn(2,0,1));
             guiobj.axesEventDet2DetDownButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.3, 0.03, 0.05],...
+                'Position',[0.96, 0.35, 0.03, 0.05],...
                 'String','<HTML>Det&darr',...
                 'Callback',@(h,e) guiobj.eventDetAxesButtFcn(2,0,-1));
             guiobj.axesEventDet2RoiUpButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.2, 0.03, 0.05],...
+                'Position',[0.96, 0.25, 0.03, 0.05],...
                 'String','<HTML>ROI&uarr',...
                 'Callback',@(h,e) guiobj.eventDetAxesButtFcn(2,1,0));
             guiobj.axesEventDet2RoiDownButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.96, 0.15, 0.03, 0.05],...
+                'Position',[0.96, 0.2, 0.03, 0.05],...
                 'String','<HTML>ROI&darr',...
                 'Callback',@(h,e) guiobj.eventDetAxesButtFcn(2,-1,0));
+            
+            guiobj.delCurrImagingEventButton = uicontrol(guiobj.eventDetTab,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.96, 0.1, 0.03, 0.05],...
+                'String','Del',...
+                'Tooltip','Delete currently displayed imaging event',...
+                'Callback',@(h,e) guiobj.delCurrEventButtonCB(2));
             
         end
     end
