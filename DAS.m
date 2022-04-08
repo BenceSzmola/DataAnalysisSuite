@@ -923,7 +923,17 @@ classdef DAS < handle
         end
         
         %%
-        function eventDetPlotFcn(guiobj,dTyp,forSpectro)
+        function eventDetPlotFcn(guiobj,dTyp,forSpectro,clrAx)
+            if (nargin > 3) && clrAx
+                switch dTyp
+                    case 1
+                        cla(guiobj.axesEventDet1,'reset');
+                    case 2
+                        cla(guiobj.axesEventDet2,'reset');
+                end
+                return
+            end
+            
             if nargin < 3
                 forSpectro = 0;
             end
@@ -3797,7 +3807,7 @@ classdef DAS < handle
             answer = questdlg(quest,title,'All','Those used in detection','Cancel','All');
             if strcmp(answer,'All')
                 saveAllChans = 1;
-            elseif isempty(answer)
+            elseif isempty(answer) || strcmp(answer,'Cancel')
                 return
             end
                 
@@ -4014,8 +4024,16 @@ classdef DAS < handle
                 case 0
                     switch dTyp
                         case 1
+                            if ~sum(~cellfun('isempty',guiobj.ephys_detections))
+                                return
+                            end
+                            
                             quest = 'Are you sure you want to delete the currently displayed ephys event?';
                         case 2
+                            if ~sum(~cellfun('isempty',guiobj.imaging_detections))
+                                return
+                            end
+                            
                             quest = 'Are you sure you want to delete the currently displayed imaging event?';
                     end
                     answer = questdlg(quest,'Detection deletion confirmation');
@@ -4024,25 +4042,30 @@ classdef DAS < handle
                             return
                     end
                     
+                    [~,~,detNum,~,~,chan,~] = extractDetStructs(guiobj,dTyp);
+                    
                     switch dTyp
                         case 1 % ephys
+                            chanNum = guiobj.ephys_detectionsInfo.DetChannel(guiobj.ephys_detectionsInfo.DetChannel == chan);
                             currChan = guiobj.eventDet1CurrChan;
                             currDet = guiobj.eventDet1CurrDet;
-
-                            guiobj.ephys_detections{currChan}(currDet) = [];
-                            guiobj.ephys_detParams{currChan}(currDet) = [];
-                            guiobj.ephys_detBorders{currChan}(currDet,:) = [];
+                            
+                            guiobj.ephys_detections{chanNum}(detNum) = [];
+                            guiobj.ephys_detParams{chanNum}(detNum) = [];
+                            guiobj.ephys_detBorders{chanNum}(detNum,:) = [];
 
                             % if after deleting no detections are left on the given
                             % channel, delete that channel from the detection
                             % storage
-                            detsLeft = length(guiobj.ephys_detections{currChan});
+                            detsLeft = length(guiobj.ephys_detections{chanNum});
                             if detsLeft == 0
-                                guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
-                                guiobj.ephys_detections(currChan) = [];
-                                guiobj.ephys_detParams(currChan) = [];
-                                guiobj.ephys_detBorders(currChan) = [];
-
+                                % check whether there are any detections on
+                                % any channel
+                                if ~sum(~cellfun('isempty',guiobj.ephys_detections))
+                                    eventDetPlotFcn(guiobj,1,0,1)
+                                    return
+                                end
+                                
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
@@ -4058,19 +4081,27 @@ classdef DAS < handle
                             guiobj.eventDet1CurrDet = currDet;
 
                         case 2 % imaging
+                            chanNum = guiobj.imaging_detectionsInfo.Roi(guiobj.imaging_detectionsInfo.Roi == chan);
                             currChan = guiobj.eventDet2CurrRoi;
                             currDet = guiobj.eventDet2CurrDet;
+                            
+                            guiobj.imaging_detections{chanNum}(detNum) = [];
+                            guiobj.imaging_detParams{chanNum}(detNum) = [];
+                            guiobj.imaging_detBorders{chanNum}(detNum,:) = [];
 
-                            guiobj.imaging_detections{currChan}(currDet) = [];
-                            guiobj.imaging_detParams{currChan}(currDet) = [];
-                            guiobj.imaging_detBorders{currChan}(currDet,:) = [];
-
-                            detsLeft = length(guiobj.imaging_detections{currChan});
-                            if detsLeft == 0                        
+                            detsLeft = length(guiobj.imaging_detections{chanNum});
+                            if detsLeft == 0
+                                % check whether there are any detections on
+                                % any channel
+                                if ~sum(~cellfun('isempty',guiobj.imaging_detections))
+                                    eventDetPlotFcn(guiobj,2,0,1)
+                                    return
+                                end
+                                
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
-                                    currDet = 1;
+                                    detNum = 1;
                                 end
                             else
                                 if currDet ~= 1
@@ -4084,6 +4115,9 @@ classdef DAS < handle
                     eventDetAxesButtFcn(guiobj,dTyp)
                     
                 case 1 % simult mode on
+                    if isempty(guiobj.simult_detections)
+                        return
+                    end
                     
                     switch dTyp
                         case 1
@@ -4119,6 +4153,12 @@ classdef DAS < handle
                     end
                     guiobj.simult_detections = simDets;
                     guiobj.simult_detectionsInfo = simDetInfo;
+                    
+                    if isempty(simDets)
+                        eventDetPlotFcn(guiobj,1,0,1)
+                        eventDetPlotFcn(guiobj,2,0,1)
+                        return
+                    end
                     
                     eventDetAxesButtFcn(guiobj,1,0,0)
                     eventDetAxesButtFcn(guiobj,2,0,0)
