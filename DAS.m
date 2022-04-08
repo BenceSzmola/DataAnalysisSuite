@@ -3979,80 +3979,6 @@ classdef DAS < handle
         end
         
         %%
-        function ephysEventParamTableCallback(~,h,e)
-            tableInd = e.Indices;
-            
-            if isempty(tableInd)
-                return
-            end
-            
-            msg = '';
-            switch tableInd(1)
-                case 1
-                    msg = 'Peak to peak amplitude of the raw event';
-                case 2
-                    msg = 'Peak to peak amplitude of the band pass filtered event';
-                case 3
-                    msg = 'Length of the event';
-                case 4
-                    msg = 'Frequency of the event, computed using continuous wavelet transform';
-                case 5
-                    msg = 'Number of cycles over the duration of the event';
-                case 6
-                    msg = 'Area under curve, computed from the power of the event';
-                case 7
-                    msg = 'Time it takes the event to reach peak power';
-                case 8
-                    msg = 'Duration from the peak power until the end of the event';
-                case 9
-                    msg = 'Full width at half of the maximal amplitude';
-            end
-            
-            if ~isempty(msg)
-                msgbox(msg,'modal')
-            end
-            
-            temp = get(h,'Data');
-            set(h,'Data',{ '' });
-            set(h,'Data', temp );
-            
-        end
-        
-        %%
-        function imagingEventParamTableCallback(~,h,e)
-            tableInd = e.Indices;
-            
-            if isempty(tableInd)
-                return
-            end
-            
-            msg = '';
-            switch tableInd(1)
-                case 1
-                    msg = 'Peak to peak amplitude of the raw event';
-                case 2
-                    msg = 'Length of the event';
-                case 3
-                    msg = 'Area under curve, computed from the power of the event';
-                case 4
-                    msg = 'Time it takes the event to reach peak power';
-                case 5
-                    msg = 'Duration from the peak power until the end of the event';
-                case 6
-                    msg = 'Full width at half of the maximal amplitude';
-            end
-            
-            if ~isempty(msg)
-                msgbox(msg,'modal')
-            end
-            
-            temp = get(h,'Data');
-            set(h,'Data',{ '' });
-            set(h,'Data', temp );
-            
-        end
-        
-        %%
         function eventDetParamInputControll(guiobj,source,setting)
             if strcmp(setting,'sd')
                 if str2double(source.String) < 1
@@ -4855,7 +4781,7 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
                 'ColumnWidth',{100,75},...
-                'CellSelectionCallback',@ guiobj.ephysEventParamTableCallback);
+                'CellSelectionCallback',@(h,e) paramTableHints(e));
                           
             guiobj.ephysDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
@@ -4952,7 +4878,7 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.01, 0.98, 0.98],...
                 'ColumnWidth',{100,75},...
-                'CellSelectionCallback',@ guiobj.imagingEventParamTableCallback);
+                'CellSelectionCallback',@(h,e) paramTableHints(e));
             
             guiobj.imagingDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
