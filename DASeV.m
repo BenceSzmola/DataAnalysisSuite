@@ -70,10 +70,16 @@ classdef DASeV < handle
         save2DbEphysCheckBox
         save2DbEphys_wPar_CheckBox      % save with parallel imaging
         save2DbEphys_wPar_RoiSelect     % select which ROIs to use in parallel Saving
+        save2DbEphysClrSelButton
+        save2DbEphysSelAllButton
         save2DbImagingCheckBox
         save2DbImaging_wPar_CheckBox    % save with parallel ephys
         save2DbImaging_wPar_ChanSelect  % select which channels to use in parallel saving
+        save2DbImagingClrSelButton
+        save2DbImagingSelAllButton
         save2DbSimultCheckBox
+        save2DbSimultClrSelButton
+        save2DbSimultSelAllButton
         save2DbRunningChechBox
         save2DbButton
         
@@ -317,21 +323,25 @@ classdef DASeV < handle
         end
         
         %%
-        function [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp)
+        function [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp,currChan,currDet)
             switch gO.simultMode
                 case 0
                     switch dTyp
                         case 1
-                            currChan = gO.ephysCurrDetRow;
-                            currDet = gO.ephysCurrDetNum;
+                            if nargin < 3
+                                currChan = gO.ephysCurrDetRow;
+                                currDet = gO.ephysCurrDetNum;
+                            end
                             
                             dets = gO.ephysDets;
                             detInfo = gO.ephysDetInfo;
                             detBorders = gO.ephysDetBorders;
                             detParams = gO.ephysDetParams;
                         case 2
-                            currChan = gO.imagingCurrDetRow;
-                            currDet = gO.imagingCurrDetNum;
+                            if nargin < 3
+                                currChan = gO.imagingCurrDetRow;
+                                currDet = gO.imagingCurrDetNum;
+                            end
                             
                             dets = gO.imagingDets;
                             detInfo = gO.imagingDetInfo;
@@ -347,7 +357,7 @@ classdef DASeV < handle
                     if dTyp==1
                         detInfo.DetChannel(emptyRows) = [];
                     elseif dTyp==2
-                        detInfo.Roi(emptyRows) = [];
+                        detInfo.DetROI(emptyRows) = [];
                     end
                     if ~isempty(detBorders)
                         detBorders(emptyRows) = [];
@@ -366,10 +376,10 @@ classdef DASeV < handle
                     
                     if dTyp == 1
                         chanOgNum = detInfo.DetChannel(currChan);
-                        chanNum = find(detInfo.AllChannel==chanOgNum);
+                        chanNum = find(detInfo.AllChannel == chanOgNum);
                     elseif dTyp == 2
-                        chanOgNum = detInfo.Roi(currChan);
-                        chanNum = chanOgNum;
+                        chanOgNum = detInfo.DetROI(currChan);
+                        chanNum = find(detInfo.AllROI == chanOgNum);
                     end
                     
                     detNum = currDet;
@@ -420,8 +430,10 @@ classdef DASeV < handle
                     
                     switch dTyp
                         case 1
-                            currChan = gO.simultEphysCurrDetRow;
-                            currDet = gO.simultEphysCurrDetNum;
+                            if nargin < 3
+                                currChan = gO.simultEphysCurrDetRow;
+                                currDet = gO.simultEphysCurrDetNum;
+                            end
                             
                             if gO.simultFocusTyp==1
                                 chan = chanFocus;
@@ -472,8 +484,10 @@ classdef DASeV < handle
                             end
                             
                         case 2
-                            currChan = gO.simultImagingCurrDetRow;
-                            currDet = gO.simultImagingCurrDetNum;
+                            if nargin < 3
+                                currChan = gO.simultImagingCurrDetRow;
+                                currDet = gO.simultImagingCurrDetNum;
+                            end
                             
                             if gO.simultFocusTyp==2
                                 chan = chanFocus;
@@ -496,7 +510,7 @@ classdef DASeV < handle
                             currChanEvents = unique(detStructFocus(detStructFocus(:,3)==chan,4));
                             
                             nonSimDetInfo = gO.imagingDetInfo;
-                            nonSimDetRow = find(nonSimDetInfo.Roi==chan);
+                            nonSimDetRow = find(nonSimDetInfo.DetROI==chan);
                             chanOgNum = chan;
                             
                             detMat = gO.imagingDets{nonSimDetRow};
@@ -824,7 +838,7 @@ classdef DASeV < handle
                     end
 
                     if gO.fixWin == 1
-                        chanOgNum = gO.imagingDetInfo.Roi(gO.imagingFixWinDetRow);
+                        chanOgNum = gO.imagingDetInfo.AllROI(gO.imagingFixWinDetRow);
                         chanNum = gO.imagingFixWinDetRow;
                         axTitle = ['ROI #',num2str(chanOgNum)];
                     elseif gO.fixWin == 0
@@ -862,7 +876,7 @@ classdef DASeV < handle
                 end
             elseif gO.parallelMode == 2
                 chanNum = gO.imagingParallDetRow;
-                chanOgNum = gO.imagingDetInfo.Roi(chanNum);
+                chanOgNum = gO.imagingDetInfo.AllROI(chanNum);
                 [~,~,ephysChanNum,~,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
                 iAdj = find(gO.ephysDetInfo.DetChannel == ephysChanNum(1));
                 [ephysWinIdx,~] = windowMacher(gO,1,iAdj,ephysDetNum,0.5);
@@ -1347,6 +1361,7 @@ classdef DASeV < handle
             gO.ephysDetParamsTable.ColumnName = {};
             gO.save2DbEphysCheckBox.Enable = 'off';
             gO.save2DbEphys_wPar_CheckBox.Enable = 'off';
+            gO.save2DbEphys_wPar_RoiSelect.Enable = 'off';
 
             waitbar(0.25,wb1,'Looking for ephys data...')
             
@@ -1404,6 +1419,7 @@ classdef DASeV < handle
             gO.imagingRoiDwnButt.Enable = 'off';
             gO.save2DbImagingCheckBox.Enable = 'off';
             gO.save2DbImaging_wPar_CheckBox.Enable = 'off';
+            gO.save2DbImaging_wPar_ChanSelect.Enable = 'off';
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
@@ -1501,7 +1517,9 @@ classdef DASeV < handle
             else
                 gO.parallelModeMenu.Enable = 'on';
                 gO.save2DbEphys_wPar_CheckBox.Enable = 'on';
+                gO.save2DbEphys_wPar_RoiSelect.Enable = 'off';
                 gO.save2DbImaging_wPar_CheckBox.Enable = 'on';
+                gO.save2DbImaging_wPar_ChanSelect.Enable = 'off';
             end
             
             
@@ -1552,7 +1570,7 @@ classdef DASeV < handle
             if gO.loaded(1)
                 gO.save2DbEphysSelection = cell(length(gO.ephysDetBorders),1);
                 if gO.loaded(2)
-                    gO.save2DbEphysParallelRoiSelection = true(length(gO.imagingDetInfo.Roi),1);
+                    gO.save2DbEphysParallelRoiSelection = true(length(gO.imagingDetInfo.DetROI),1);
                 end
                 for i = 1:length(gO.ephysDetBorders)
                     gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
@@ -1639,7 +1657,12 @@ classdef DASeV < handle
                 load(fnameFull,'imagingSaveInfo')
                 if ~isempty(imagingSaveInfo)
                     gO.imagingDetTypeTxt.String = imagingSaveInfo.DetType;
-                    gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
+                    % account for earlier save files
+                    try
+                        gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.DetROI]);
+                    catch
+                        gO.imagingRoiTxt.String = sprintf('%d ',[imagingSaveInfo.Roi]);
+                    end
                     if ~isempty(imagingSaveInfo(1).DetSettings)
                         gO.imagingDetSettingsTable.Data = squeeze(struct2cell(imagingSaveInfo(1).DetSettings))';
                         gO.imagingDetSettingsTable.ColumnName = fieldnames(imagingSaveInfo(1).DetSettings);
@@ -1840,7 +1863,7 @@ classdef DASeV < handle
                         altCurrDetRow = gO.ephysFixWinDetRow;
                     end
                 case 2
-                    currDetRows = 1:length(gO.imagingDetInfo.Roi);
+                    currDetRows = 1:length(gO.imagingDetInfo.AllROI);
                     
                     if gO.parallelMode
                         altCurrDetRow = gO.imagingParallDetRow;
@@ -2033,18 +2056,15 @@ classdef DASeV < handle
             switch checkboxID
                 case 1
                     val = gO.save2DbEphysCheckBox.Value;
-%                     if gO.parallelMode ~= 1
                         temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
                         temp = temp(gO.ephysCurrDetRow);
-                        gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum) = val;                        
-%                     end
+                        gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum) = val;
+                        assignin('base','eEvSel',gO.save2DbEphysSelection)
                 case 2
                     val = gO.save2DbImagingCheckBox.Value;
-%                     if gO.parallelMode ~= 1
                         temp = find(~cellfun('isempty',gO.save2DbImagingSelection));
                         temp = temp(gO.imagingCurrDetRow);
                         gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum) = val;
-%                     end
                 case 3
                     val = gO.save2DbSimultCheckBox.Value;
                     
@@ -2089,7 +2109,7 @@ classdef DASeV < handle
                     
                 case 2
                     chansLogic = gO.save2DbEphysParallelRoiSelection;
-                    allChans = gO.imagingDetInfo.Roi;
+                    allChans = gO.imagingDetInfo.AllROI;
                     chanList = cell(length(allChans),1);
                     for i = 1:length(chanList)
                         chanList{i} = ['ROI #',num2str(allChans(i))];
@@ -2107,6 +2127,61 @@ classdef DASeV < handle
                     
             end
             
+        end
+        
+        %%
+        function save2DbModifySelCB(gO,dTyp,operation)
+            switch dTyp
+                case 1 % ephys
+                    selections = gO.save2DbEphysSelection;
+                case 2 % imaging
+                    selections = gO.save2DbImagingSelection;
+                case 4 % simult
+                    selections = gO.save2DbSimultSelection;
+            end
+            
+            switch operation
+                case 'clrAll'
+                    if dTyp ~= 4
+                        for i = 1:length(selections)
+                            selections{i} = false(size(selections{i}));
+                        end
+                    else
+                        selections = [0,0,0,0];
+                    end
+                case 'selAll'
+                    if dTyp ~= 4
+                        for i = 1:length(selections)
+                            selections{i} = true(size(selections{i}));
+                        end
+                    else
+                        simDets = gO.simultDets;
+                        selections = [0,0,0,0];
+                        for i = 1:size(simDets,1)
+                            chanNum = find(gO.ephysDetInfo.AllChannel == simDets(i,1));
+                            ephysDetNum = simDets(i,2);
+                            
+                            roiNum = find(gO.imagingDetInfo.AllROI == simDets(i,3));
+                            imagingDetNum = simDets(i,4);
+                            
+                            temp = [chanNum,ephysDetNum,roiNum,imagingDetNum];
+                            selections = [selections; temp];
+                        end
+                    end
+            end
+            
+            switch dTyp
+                case 1 % ephys
+                    gO.save2DbEphysSelection = selections;
+                    axButtPress(gO,1)
+                case 2 % imaging
+                    gO.save2DbImagingSelection = selections;
+                    axButtPress(gO,2)
+                case 4 % simult
+                    gO.save2DbSimultSelection = selections;
+                    axButtPress(gO,1)
+                    axButtPress(gO,2)
+            end
         end
         
         %%
@@ -2152,12 +2227,12 @@ classdef DASeV < handle
                         tempStruct.simult = 0;
                         tempStruct.parallel = 0;
                         
-                        iAdj = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(i));
+                        e_iAdj = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(i));
                         
                         tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
-                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(iAdj,win);
-                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(iAdj,win);
-                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(iAdj,win);
+                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(e_iAdj,win);
+                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(e_iAdj,win);
+                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(e_iAdj,win);
                         tempStruct.ephysEvents.DetBorders = relBorders;
                         tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
                         tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
@@ -2179,7 +2254,7 @@ classdef DASeV < handle
                             tempStruct.imagingEvents.DetBorders = [];
                             tempStruct.imagingEvents.Params = [];
                             tempStruct.imagingEvents.DetSettings = [];
-                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi(rois2save);
+                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(rois2save);
                             tempStruct.imagingEvents.DetNum = [];
                         end
                         
@@ -2220,15 +2295,17 @@ classdef DASeV < handle
                         
                         tempStruct.source = string(gO.path2loadedSave);
                         tempStruct.simult = 0;
-                        tempStruct.parallel = 0;                         
+                        tempStruct.parallel = 0;
+                        
+                        i_iAdj = find(gO.imagingDetInfo.AllROI == gO.imagingDetInfo.DetROI(i));
                         
                         tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
-                        tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i,win);
-                        tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i,win);
+                        tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i_iAdj,win);
+                        tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i_iAdj,win);
                         tempStruct.imagingEvents.DetBorders = relBorders;
                         tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
                         tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
-                        tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi(i);
+                        tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i);
                         tempStruct.imagingEvents.DetNum = j;
                         
                         if gO.save2DbImaging_wPar_CheckBox.Value
@@ -2274,9 +2351,10 @@ classdef DASeV < handle
             if selected(3)
                 for i = 2:size(gO.save2DbSimultSelection,1)
                     currRow = gO.save2DbSimultSelection(i,:);
-                    iAdj = find(gO.ephysDetInfo.DetChannel == currRow(1));
-                    [ephysWin,ephysRelBorders] = windowMacher(gO,1,iAdj,currRow(2),0.25);
-                    [imagingWin,imagingRelBorders] = windowMacher(gO,2,currRow(3),currRow(4),0.25);
+                    e_iAdj = find(gO.ephysDetInfo.DetChannel == currRow(1));
+                    [ephysWin,ephysRelBorders] = windowMacher(gO,1,e_iAdj,currRow(2),0.25);
+                    i_iAdj = find(gO.imagingDetInfo.DetROI == currRow(3));
+                    [imagingWin,imagingRelBorders] = windowMacher(gO,2,i_iAdj,currRow(4),0.25);
                     
                     tempStruct.source = string(gO.path2loadedSave);
                     tempStruct.simult = 1;
@@ -2287,18 +2365,18 @@ classdef DASeV < handle
                     tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
                     tempStruct.ephysEvents.DetBorders = ephysRelBorders;
-                    tempStruct.ephysEvents.Params = gO.ephysDetParams{iAdj}(currRow(2));
+                    tempStruct.ephysEvents.Params = gO.ephysDetParams{e_iAdj}(currRow(2));
                     tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(iAdj);
+                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(e_iAdj);
                     tempStruct.ephysEvents.DetNum = currRow(2);
                     
                     tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
                     tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
                     tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
                     tempStruct.imagingEvents.DetBorders = imagingRelBorders;
-                    tempStruct.imagingEvents.Params = gO.imagingDetParams{currRow(3)}(currRow(4));
+                    tempStruct.imagingEvents.Params = gO.imagingDetParams{i_iAdj}(currRow(4));
                     tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
-                    tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.Roi(currRow(3));
+                    tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i_iAdj);
                     tempStruct.imagingEvents.DetNum = currRow(4);
                     
                     if gO.save2DbRunningChechBox.Value
@@ -2641,55 +2719,89 @@ classdef DASeV < handle
             gO.save2DbEphysCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.85, 0.35, 0.15],...
+                'Position',[0.01, 0.89, 0.35, 0.1],...
                 'String','Select current ephys event',...
                 'Callback',@(h,e) gO.save2DbCheckBoxPress(1));
             gO.save2DbEphys_wPar_CheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.4, 0.85, 0.35, 0.15],...
-                'String','w/Parallel imaging');%,...
-%                 'Callback',@(h,e) gO.save2DbCheckBoxPress(1));
+                'Position',[0.4, 0.89, 0.35, 0.15],...
+                'String','w/Parallel imaging');
             gO.save2DbEphys_wPar_RoiSelect = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.76, 0.85, 0.23, 0.15],...
+                'Position',[0.76, 0.89, 0.23, 0.1],...
                 'String','Parallel ROIs',...
                 'Callback',@(h,e) gO.save2DbParallelChanSelect(2));
+            gO.save2DbEphysClrSelButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.78, 0.3, 0.1],...
+                'String','Clear all selected events',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(1,'clrAll'));
+            gO.save2DbEphysSelAllButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.33, 0.78, 0.3, 0.1],...
+                'String','Select all events',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAll'));
             gO.save2DbImagingCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.65, 0.35, 0.15],...
+                'Position',[0.01, 0.65, 0.35, 0.1],...
                 'String','Select current imaging event',...
                 'Callback',@(h,e) gO.save2DbCheckBoxPress(2));
             gO.save2DbImaging_wPar_CheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.4, 0.65, 0.35, 0.15],...
-                'String','w/Parallel ephys');%,...
-%                 'Callback',@(h,e) gO.save2DbCheckBoxPress(2));
+                'Position',[0.4, 0.65, 0.35, 0.1],...
+                'String','w/Parallel ephys');
             gO.save2DbImaging_wPar_ChanSelect = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.76, 0.65, 0.23, 0.15],...
+                'Position',[0.76, 0.65, 0.23, 0.1],...
                 'String','Parallel Chans',...
                 'Callback',@(h,e) gO.save2DbParallelChanSelect(1));
+            gO.save2DbImagingClrSelButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.54, 0.3, 0.1],...
+                'String','Clear all selected events',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(2,'clrAll'));
+            gO.save2DbImagingSelAllButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.33, 0.54, 0.3, 0.1],...
+                'String','Select all events',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAll'));
             gO.save2DbSimultCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.45, 0.4, 0.15],...
+                'Position',[0.01, 0.4, 0.4, 0.1],...
                 'String','Select current simult. event pair',...
                 'Callback',@(h,e) gO.save2DbCheckBoxPress(3));
+            gO.save2DbSimultClrSelButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.29, 0.3, 0.1],...
+                'String','Clear all selected events',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(4,'clrAll'));
+            gO.save2DbSimultSelAllButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.33, 0.29, 0.3, 0.1],...
+                'String','Select all events',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(4,'selAll'));
             gO.save2DbRunningChechBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
-                'Position',[0.5, 0.45, 0.4, 0.15],...
+                'Position',[0.5, 0.4, 0.4, 0.1],...
                 'String','Save running data',...
                 'Callback',@(h,e) gO.save2DbCheckBoxPress(4));
             gO.save2DbButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.1, 0.1, 0.8, 0.2],...
+                'Position',[0.5, 0.01, 0.49, 0.2],...
                 'String','Save current selection to DB',...
                 'Callback',@ gO.save2DbButtonPress);
             

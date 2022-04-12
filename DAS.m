@@ -928,8 +928,10 @@ classdef DAS < handle
                 switch dTyp
                     case 1
                         cla(guiobj.axesEventDet1,'reset');
+                        guiobj.ephysDetParamsTable.Data = '';
                     case 2
                         cla(guiobj.axesEventDet2,'reset');
+                        guiobj.imagingDetParamsTable.Data = '';
                 end
                 return
             end
@@ -1302,7 +1304,7 @@ classdef DAS < handle
                     if dTyp==1
                         detInfo.DetChannel(emptyRows) = [];
                     elseif dTyp==2
-                        detInfo.Roi(emptyRows) = [];
+                        detInfo.DetROI(emptyRows) = [];
                     end
                     if ~isempty(detBorders)
                         detBorders(emptyRows,:) = [];
@@ -1321,7 +1323,7 @@ classdef DAS < handle
                     if dTyp == 1
                         chan = detInfo.DetChannel(currChan);
                     elseif dTyp == 2
-                        chan = detInfo.Roi(currChan);
+                        chan = detInfo.DetROI(currChan);
                     end
 
                     detNum = currDet;
@@ -1420,7 +1422,7 @@ classdef DAS < handle
                             currChanEvents = unique(detStructFocus(detStructFocus(:,3)==chan,4));
                             
                             nonSimDetInfo = guiobj.imaging_detectionsInfo;
-                            nonSimDetRow = find(nonSimDetInfo.Roi==chan);
+                            nonSimDetRow = find(nonSimDetInfo.DetROI==chan);
                             detMat = guiobj.imaging_detections{nonSimDetRow};
                             detNum = currChanEvents(currDet);
                             detInd = detMat(detNum);
@@ -2877,14 +2879,6 @@ classdef DAS < handle
                 inds2use = 'all';
             end            
             
-%             chan = guiobj.ephysDetChSelListBox.Value;
-%             data = guiobj.ephys_data(chan,:);
-%             fs = guiobj.ephys_fs;
-%             tAxis = guiobj.ephys_taxis;
-%             showFigs = guiobj.showXtraDetFigs;
-%             refch = str2double(guiobj.ephysDetRefChanEdit.String);
-%             refchData = guiobj.ephys_data(refch,:);
-            
             % Handling no input case when artsupp is enabled
             if (guiobj.ephysDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
                 errordlg('Specifiy reference channel to use artifact suppression!')
@@ -2959,7 +2953,6 @@ classdef DAS < handle
                         [dets,detBorders,detParams] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
                     end
                     
-                    detinfo.DetChannel = chan;
                     detinfo.DetType = "CWT";
                     detinfo.DetSettings.W1 = w1;
                     detinfo.DetSettings.W2 = w2;
@@ -2993,7 +2986,6 @@ classdef DAS < handle
                     end
                     detParams = cell(min(size(data)),1);
                     
-                    detinfo.DetChannel = chan;
                     detinfo.DetType = "Adapt";
                     detinfo.DetSettings.Step = step*1000;
                     detinfo.DetSettings.MinLen = minLen*1000;
@@ -3039,7 +3031,6 @@ classdef DAS < handle
                         [dets,detBorders,detParams] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refch,refchData,showFigs);
                     end
                     
-                    detinfo.DetChannel = chan;
                     detinfo.DetType = "DoGInstPow";
                     detinfo.DetSettings.W1 = w1;
                     detinfo.DetSettings.W2 = w2;
@@ -3049,6 +3040,18 @@ classdef DAS < handle
                     detinfo.DetSettings.RefCh = refch;
             end
             
+            % eliminate channels from detection cell with no dets
+            emptyCells = cellfun('isempty',dets);
+            if ~isempty(find(emptyCells, 1))
+                dets(emptyCells) = [];
+                detBorders(emptyCells) = [];
+                detParams(emptyCells) = [];
+                chan(emptyCells) = [];
+            end
+            detinfo.DetChannel = chan;
+            
+            % check whether the only detections are in the reference
+            % channel
             if (refVal ~= 0) && (~isempty(find(chan==refch,1)))
                 temp = dets;
                 temp(chan==refch) = [];
@@ -3070,6 +3073,7 @@ classdef DAS < handle
                 return                
             end
             
+            % add running related parameters if relevant
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 for i = 1:length(detParams) % looping over channels
                     for j = 1:length(detParams{i}) % looping over dets
@@ -3145,6 +3149,7 @@ classdef DAS < handle
             dettype = guiobj.imagingDetPopMenu.String{dettype};
             
             data = guiobj.imaging_data;
+            roi = 1:size(data,1);
             fs = guiobj.imaging_fs;
             
             % check whether running data based detection was requested
@@ -3182,7 +3187,6 @@ classdef DAS < handle
                     thr = nan(size(data,1),1);
                     extThr = nan(size(data,1),1);
                     
-                    detinfo.Roi = [1:size(data,1)];
                     detinfo.DetType = 'Mean+SD';
                     detinfo.DetSettings.SdMult = sdmult;
 
@@ -3233,10 +3237,19 @@ classdef DAS < handle
                         end
                     end
                     
-                    detinfo.Roi = [1:size(data,1)];
                     detinfo.DetType = 'MLspike based';
                     detinfo.DetSettings = par;
             end
+            
+            % eliminating empty rois from detection cell
+            emptyCells = cellfun('isempty',dets);
+            if ~isempty(find(emptyCells, 1))
+                dets(emptyCells) = [];
+                detBorders(emptyCells) = [];
+                detParams(emptyCells) = [];
+                roi(emptyCells) = [];
+            end
+            detinfo.DetROI = roi;
             
             if ~sum(~cellfun('isempty',dets))
                 guiobj.imaging_detections = {};
@@ -3250,6 +3263,7 @@ classdef DAS < handle
                 return
             end
             
+            % computing running related parameters if relevant
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 for i = 1:length(detParams) % looping over channels
                     for j = 1:length(detParams{i}) % looping over dets
@@ -3304,9 +3318,17 @@ classdef DAS < handle
             end
             
             ephys_tAx = guiobj.ephys_taxis;
+            ephysDetParams = guiobj.ephys_detParams;
+            for i = 1:length(ephysDetParams)
+                [ephysDetParams{i}.NumSimultEvents] = deal(0);
+            end
             
             imaging_tAx = guiobj.imaging_taxis;
-                        
+            imDetParams = guiobj.imaging_detParams;
+            for i = 1:length(imDetParams)
+                [imDetParams{i}.NumSimultEvents] = deal(0);
+            end
+            
             simultDets = [];
             
             switch dettype
@@ -3319,7 +3341,7 @@ classdef DAS < handle
                         
                         for imRowNum = 1:size(guiobj.imaging_detections,1)
                             imaging_detInds = guiobj.imaging_detections{imRowNum};
-                            roi = guiobj.imaging_detectionsInfo.Roi(imRowNum);
+                            roi = guiobj.imaging_detectionsInfo.DetROI(imRowNum);
                                                         
                             for i = 1:length(ephys_detInds)
                                 for j = 1:length(imaging_detInds)
@@ -3328,21 +3350,23 @@ classdef DAS < handle
                                     if (tDiff > delay1) && (tDiff < delay2)
                                         eventPair = [chan,i,roi,j];
                                         
-                                        temp = guiobj.ephys_detParams{ephysRowNum}(i).NumSimultEvents;
+                                        % appending #simult events to
+                                        % parameters
+                                        temp = ephysDetParams{ephysRowNum}(i).NumSimultEvents;
                                         if ~isempty(temp)
                                             temp = temp + 1;
                                         else
                                             temp = 1;
                                         end
-                                        guiobj.ephys_detParams{ephysRowNum}(i).NumSimultEvents = temp;
-                                        
-                                        temp = guiobj.imaging_detParams{roi}(j).NumSimultEvents;
+                                        ephysDetParams{ephysRowNum}(i).NumSimultEvents = temp;
+
+                                        temp = imDetParams{imRowNum}(j).NumSimultEvents;
                                          if ~isempty(temp)
                                             temp = temp + 1;
                                         else
                                             temp = 1;
                                         end
-                                        guiobj.imaging_detParams{roi}(j).NumSimultEvents = temp;
+                                        imDetParams{imRowNum}(j).NumSimultEvents = temp;
                                         
                                         simultDets = [simultDets; eventPair];
                                     end
@@ -3379,6 +3403,9 @@ classdef DAS < handle
             guiobj.simult_detections = simultDets;
             
             guiobj.simult_detectionsInfo = simultDetInfo;
+            
+            guiobj.ephys_detParams = ephysDetParams;
+            guiobj.imaging_detParams = imDetParams;
 
             guiobj.evDetTabSimultMode = 1;
 
@@ -3535,51 +3562,51 @@ classdef DAS < handle
                     disp('Last state of CWT based detection settings could not be loaded! They will be saved when you close the GUI.')
                 end
                 
-                    guiobj.ephysDetRefChanEdit.String = DAS_LOG.lastState.eventDetTab.ephys.refChan;
-                    
-                    temp = DAS_LOG.presets.ephys;
-                    guiobj.ephys_presets = temp;
-                    try
-                        presetList = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
-                        for i = 1:length(temp.evDetTab.DoGInstPow)
-                             presetList = [presetList; string(temp.evDetTab.DoGInstPow(i).name)];
-                        end
-                        guiobj.ephysDoGInstPowDetPresetPopMenu.String = presetList;
-                    catch
-                        disp('DoGInstPow presets could not be loaded!')
+                guiobj.ephysDetRefChanEdit.String = DAS_LOG.lastState.eventDetTab.ephys.refChan;
+
+                temp = DAS_LOG.presets.ephys;
+                guiobj.ephys_presets = temp;
+                try
+                    presetList = guiobj.ephysDoGInstPowDetPresetPopMenu.String;
+                    for i = 1:length(temp.evDetTab.DoGInstPow)
+                         presetList = [presetList; string(temp.evDetTab.DoGInstPow(i).name)];
                     end
-                    
-                    try
-                        presetList = guiobj.ephysCwtDetPresetPopMenu.String;
-                        for i = 1:length(temp.evDetTab.Cwt)
-                             presetList = [presetList; string(temp.evDetTab.Cwt(i).name)];
-                        end
-                        guiobj.ephysCwtDetPresetPopMenu.String = presetList;
-                    catch
-                        disp('CwtDet presets could not be loaded!')
+                    guiobj.ephysDoGInstPowDetPresetPopMenu.String = presetList;
+                catch
+                    disp('DoGInstPow presets could not be loaded!')
+                end
+
+                try
+                    presetList = guiobj.ephysCwtDetPresetPopMenu.String;
+                    for i = 1:length(temp.evDetTab.Cwt)
+                         presetList = [presetList; string(temp.evDetTab.Cwt(i).name)];
                     end
+                    guiobj.ephysCwtDetPresetPopMenu.String = presetList;
+                catch
+                    disp('CwtDet presets could not be loaded!')
+                end
+                clear temp
+
+                try
+                    temp = DAS_LOG.lastState.eventDetTab.imaging.MeanSd;
+                    guiobj.imagingMeanSdDetSdmultEdit.String = temp.sdMult;
+                    guiobj.imagingMeanSdDetWinSizeEdit.String = temp.winSize;
+                    guiobj.imagingMeanSdDetSlideAvgCheck.Value = temp.slideAvgCheck;
                     clear temp
-                    
-                    try
-                        temp = DAS_LOG.lastState.eventDetTab.imaging.MeanSd;
-                        guiobj.imagingMeanSdDetSdmultEdit.String = temp.sdMult;
-                        guiobj.imagingMeanSdDetWinSizeEdit.String = temp.winSize;
-                        guiobj.imagingMeanSdDetSlideAvgCheck.Value = temp.slideAvgCheck;
-                        clear temp
-                    catch
-                        disp('Last state of Mean+Sd based imaging detection settings could not be loaded! They will be saved when you close the GUI.')
-                    end
-                    
-                    try
-                        temp = DAS_LOG.lastState.eventDetTab.imaging.MLspike;
-                        guiobj.imagingMlSpDetDFFSpikeEdit.String = temp.dFF;
-                        guiobj.imagingMlSpDetSigmaEdit.String = temp.sigma;
-                        guiobj.imagingMlSpDetTauEdit.String = temp.tau;
-                        clear temp
-                    catch
-                        disp('Last state of MLspike based detection settings could not be loaded! They will be saved when you close the GUI.')
-                    end
-                    
+                catch
+                    disp('Last state of Mean+Sd based imaging detection settings could not be loaded! They will be saved when you close the GUI.')
+                end
+
+                try
+                    temp = DAS_LOG.lastState.eventDetTab.imaging.MLspike;
+                    guiobj.imagingMlSpDetDFFSpikeEdit.String = temp.dFF;
+                    guiobj.imagingMlSpDetSigmaEdit.String = temp.sigma;
+                    guiobj.imagingMlSpDetTauEdit.String = temp.tau;
+                    clear temp
+                catch
+                    disp('Last state of MLspike based detection settings could not be loaded! They will be saved when you close the GUI.')
+                end
+
 %                 fclose(fID);
             else
                 disp('No log file found! It will be created when closing the GUI.')
@@ -3840,11 +3867,9 @@ classdef DAS < handle
                 end
                 if ~saveAllChans
                     chans2Save = guiobj.ephys_detectionsInfo.DetChannel;
-%                     ephysSaveData.RawData = guiobj.ephys_data(chans2Save,:);
                     ephysSaveData.RawData = ephysData2Save(chans2Save,:);
                     ephysSaveInfo.AllChannel = chans2Save;
                 else
-%                     ephysSaveData.RawData = guiobj.ephys_data;
                     ephysSaveData.RawData = ephysData2Save;
                     ephysSaveInfo.AllChannel = 1:min(size(guiobj.ephys_data));
                 end
@@ -3872,8 +3897,18 @@ classdef DAS < handle
                 else
                     guiobj.imaging_detectionsInfo.DetType = '';
                     guiobj.imaging_detectionsInfo.DetSettings = [];
-                    guiobj.imaging_detectionsInfo.Roi = 1:min(size(guiobj.imaging_data));
+                    guiobj.imaging_detectionsInfo.DetROI = 1:size(guiobj.imaging_data,1);
+                    guiobj.imaging_detectionsInfo.AllROI = 1:size(guiobj.imaging_data,1);
                     imagingSaveInfo = guiobj.imaging_detectionsInfo;
+                end
+                
+                if ~saveAllChans
+                    chans2Save = guiobj.imaging_detectionsInfo.DetROI;
+                    imagingSaveData.RawData = guiobj.imaging_data(chans2Save,:);
+                    imagingSaveInfo.AllROI = chans2Save;
+                else
+                    imagingSaveData.RawData = guiobj.imaging_data;
+                    imagingSaveInfo.AllROI = 1:size(guiobj.imaging_data,1);
                 end
                                 
             else
@@ -4029,36 +4064,38 @@ classdef DAS < handle
                             end
                             
                             quest = 'Are you sure you want to delete the currently displayed ephys event?';
+                            butt2 = 'Delete every detection on channel';
                         case 2
                             if ~sum(~cellfun('isempty',guiobj.imaging_detections))
                                 return
                             end
                             
                             quest = 'Are you sure you want to delete the currently displayed imaging event?';
+                            butt2 = 'Delete every detection on ROI';
                     end
-                    answer = questdlg(quest,'Detection deletion confirmation');
+                    answer = questdlg(quest,'Detection deletion confirmation','Yes',butt2,'Cancel','Yes');
                     switch answer
-                        case {'','No','Cancel'}
+                        case 'Delete every detection on channel/ROI'
+                            delFullChan = true;
+                        case {'','Cancel'}
                             return
+                        otherwise
+                            delFullChan = false;
                     end
                     
-                    [~,~,detNum,~,~,chan,~] = extractDetStructs(guiobj,dTyp);
+                    [~,~,detNum,~,~,~,~] = extractDetStructs(guiobj,dTyp);
                     
                     switch dTyp
                         case 1 % ephys
-                            chanNum = guiobj.ephys_detectionsInfo.DetChannel(guiobj.ephys_detectionsInfo.DetChannel == chan);
                             currChan = guiobj.eventDet1CurrChan;
                             currDet = guiobj.eventDet1CurrDet;
                             
-                            guiobj.ephys_detections{chanNum}(detNum) = [];
-                            guiobj.ephys_detParams{chanNum}(detNum) = [];
-                            guiobj.ephys_detBorders{chanNum}(detNum,:) = [];
-
-                            % if after deleting no detections are left on the given
-                            % channel, delete that channel from the detection
-                            % storage
-                            detsLeft = length(guiobj.ephys_detections{chanNum});
-                            if detsLeft == 0
+                            if delFullChan
+                                guiobj.ephys_detections(currChan) = [];
+                                guiobj.ephys_detParams(currChan) = [];
+                                guiobj.ephys_detBorders(currChan) = [];
+                                guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
+                                
                                 % check whether there are any detections on
                                 % any channel
                                 if ~sum(~cellfun('isempty',guiobj.ephys_detections))
@@ -4072,25 +4109,53 @@ classdef DAS < handle
                                     currDet = 1;
                                 end
                             else
-                                if currDet ~= 1
-                                    currDet = currDet - 1;
+                                guiobj.ephys_detections{currChan}(detNum) = [];
+                                guiobj.ephys_detParams{currChan}(detNum) = [];
+                                guiobj.ephys_detBorders{currChan}(detNum,:) = [];
+
+                                % if after deleting no detections are left on the given
+                                % channel, delete that channel from the detection
+                                % storage
+                                detsLeft = length(guiobj.ephys_detections{currChan});
+                            
+                                if detsLeft == 0
+                                    % check whether there are any detections on
+                                    % any channel
+                                    if ~sum(~cellfun('isempty',guiobj.ephys_detections))
+                                        eventDetPlotFcn(guiobj,1,0,1)
+                                        return
+                                    end
+
+                                    guiobj.ephys_detections(currChan) = [];
+                                    guiobj.ephys_detParams(currChan) = [];
+                                    guiobj.ephys_detBorders(currChan) = [];
+                                    guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
+
+                                    % make sure event display switches correctly
+                                    if currChan ~= 1
+                                        currChan = currChan - 1;
+                                        currDet = 1;
+                                    end
+                                else
+                                    if currDet ~= 1
+                                        currDet = currDet - 1;
+                                    end
                                 end
                             end
-
+                            
                             guiobj.eventDet1CurrChan = currChan;
                             guiobj.eventDet1CurrDet = currDet;
 
                         case 2 % imaging
-                            chanNum = guiobj.imaging_detectionsInfo.Roi(guiobj.imaging_detectionsInfo.Roi == chan);
                             currChan = guiobj.eventDet2CurrRoi;
                             currDet = guiobj.eventDet2CurrDet;
                             
-                            guiobj.imaging_detections{chanNum}(detNum) = [];
-                            guiobj.imaging_detParams{chanNum}(detNum) = [];
-                            guiobj.imaging_detBorders{chanNum}(detNum,:) = [];
-
-                            detsLeft = length(guiobj.imaging_detections{chanNum});
-                            if detsLeft == 0
+                            if delFullChan
+                                guiobj.imaging_detections(currChan) = [];
+                                guiobj.imaging_detParams(currChan) = [];
+                                guiobj.imaging_detBorders(currChan) = [];
+                                guiobj.imaging_detectionsInfo.DetROI(currChan) = [];
+                                
                                 % check whether there are any detections on
                                 % any channel
                                 if ~sum(~cellfun('isempty',guiobj.imaging_detections))
@@ -4101,14 +4166,38 @@ classdef DAS < handle
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
-                                    detNum = 1;
+                                    currDet = 1;
                                 end
                             else
-                                if currDet ~= 1
-                                    currDet = currDet - 1;
+                                guiobj.imaging_detections{currChan}(detNum) = [];
+                                guiobj.imaging_detParams{currChan}(detNum) = [];
+                                guiobj.imaging_detBorders{currChan}(detNum,:) = [];
+
+                                detsLeft = length(guiobj.imaging_detections{currChan});
+                                if detsLeft == 0
+                                    % check whether there are any detections on
+                                    % any channel
+                                    if ~sum(~cellfun('isempty',guiobj.imaging_detections))
+                                        eventDetPlotFcn(guiobj,2,0,1)
+                                        return
+                                    end
+
+                                    guiobj.imaging_detections(currChan) = [];
+                                    guiobj.imaging_detParams(currChan) = [];
+                                    guiobj.imaging_detBorders(currChan) = [];
+                                    guiobj.imaging_detectionsInfo.DetROI(currChan) = [];
+
+                                    % make sure event display switches correctly
+                                    if currChan ~= 1
+                                        currChan = currChan - 1;
+                                        currDet = 1;
+                                    end
+                                else
+                                    if currDet ~= 1
+                                        currDet = currDet - 1;
+                                    end
                                 end
                             end
-
                             guiobj.eventDet2CurrRoi = currChan;
                             guiobj.eventDet2CurrDet = currDet;
                     end
