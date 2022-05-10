@@ -383,8 +383,9 @@ switch meth
                 linkaxes([sp1,sp2,sp3],'x')
                 decision = questdlg('Keep IC?');
                 if strcmp(decision,'No')
-%                     icaSwt(j,:) = 0;
-                    A(j,:) = 0;
+                    icaSwt(j,:) = 0;
+%                     A(j,:) = 0;
+%                     A(:,j) = 0;
                 end
             end
             close(icfig)

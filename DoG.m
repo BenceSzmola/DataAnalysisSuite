@@ -3,7 +3,6 @@ function dogged = DoG(varargin)
 %output = DoG(w1,w2)
 %output = DoG(fs,w1,w2)
 %output = DoG(data,fs,w1,w2)
-
 %(from BuzsakiLab)
 
 if nargin < 2

@@ -1673,21 +1673,22 @@ classdef DAS < handle
             guiobj.rhdName = filename(1:end-4);
 %             drawnow;
             figure(guiobj.mainfig)
-            oldpath = cd(path);
-            data = read_Intan_RHD2000_file_szb(filename);
-            cd(oldpath)
-            guiobj.ephys_fs = data.fs;
-            t_amp = data.t_amplifier;
-            data = data.amplifier_data;
+%             oldpath = cd(path);
+            rhdStruct = read_Intan_RHD2000_file_szb([path,filename]);
+%             cd(oldpath)
+            guiobj.ephys_fs = rhdStruct.fs;
+%             t_amp = rhdStruct.t_amplifier;
+            data = rhdStruct.amplifier_data;
             % Check data dimensions
             if size(data,1) > size(data,2)
                 data = data';
             end
             
             % Create and store time axis
-            guiobj.ephys_taxis = linspace(t_amp(1),...
-                length(data)/guiobj.ephys_fs+t_amp(1),length(data));
-                        
+%             guiobj.ephys_taxis = linspace(t_amp(1),...
+%                 length(data)/guiobj.ephys_fs+t_amp(1),length(data));
+            guiobj.ephys_taxis = rhdStruct.tAxis;
+            
             % Store imported data in guiobj
             guiobj.ephys_data = data;
             datanames = cell(1,size(data,1));
@@ -1706,10 +1707,11 @@ classdef DAS < handle
             if guiobj.doEphysDownSamp
                 runImportDownSamp(guiobj)
             end
-            
+%             assignin('base','downSampedRHD',guiobj.ephys_data)
             computeEphysDataTypes(guiobj)
 
             setXlims(guiobj)
+            clear rhdStruct
         end
 
         %% Button pushed function: ImportgorobjButton
