@@ -550,6 +550,12 @@ classdef DASeV < handle
             if gO.parallelMode ~= 1
                 [numDets,~,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
                 
+                if gO.simultMode
+                    [~,~,~,~,~,~,simDetIdx,simDetBorders,~] = extractDetStruct(gO,2);
+                    simTaxis = gO.imagingTaxis;
+                    simFs = gO.imagingFs;
+                end
+                
                 currDetBorders = detBorders;
 
                 if numDets == 0
@@ -572,10 +578,28 @@ classdef DASeV < handle
 
                     win = 0.5;
                     win = round(win*gO.ephysFs,4);
+                    if gO.simultMode
+                        simTDetInd = simTaxis(simDetIdx);
+                        simWin = 0.5;
+                        simWin = round(simWin*simFs,4);
+                    end
 
                     if ~isempty(currDetBorders)
-                        winStart = currDetBorders(1)-win;
-                        winEnd = currDetBorders(2)+win;
+                        if gO.simultMode
+                            winStart = currDetBorders(1)-win;
+                            winEnd = currDetBorders(2)+win;
+                            simWinStart = simDetBorders(1)-simWin;
+                            simWinEnd = simDetBorders(2)+simWin;
+                            if gO.ephysTaxis(winStart) > simTaxis(simWinStart)
+                                winStart = find(gO.ephysTaxis > simTaxis(simWinStart), 1);
+                            end
+                            if gO.ephysTaxis(winEnd) < simTaxis(simWinEnd)
+                                winEnd = find(gO.ephysTaxis > simTaxis(simWinEnd), 1);
+                            end
+                        else
+                            winStart = currDetBorders(1)-win;
+                            winEnd = currDetBorders(2)+win;
+                        end
                         if (winStart > 0) & (winEnd <= length(gO.ephysTaxis))
                             winIdx = winStart:winEnd;
                             tWin = gO.ephysTaxis(winIdx);
@@ -787,6 +811,12 @@ classdef DASeV < handle
             if gO.parallelMode ~= 2
                 [numDets,~,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
 
+                if gO.simultMode
+                    [~,~,~,~,~,~,simDetIdx,simDetBorders,~] = extractDetStruct(gO,1);
+                    simTaxis = gO.ephysTaxis;
+                    simFs = gO.ephysFs;
+                end
+                
                 currDetBorders = detBorders;
 
                 if numDets == 0
@@ -808,12 +838,29 @@ classdef DASeV < handle
 
                     win = 0.5;
                     win = round(win*gO.imagingFs,0);
-
+                    if gO.simultMode
+                        simTDetInd = simTaxis(simDetIdx);
+                        simWin = 0.5;
+                        simWin = round(simWin*simFs,4);
+                    end
 
                     if ~isempty(currDetBorders)
 
-                        winStart = currDetBorders(1)-win;
-                        winEnd = currDetBorders(2)+win;
+                        if gO.simultMode
+                            winStart = currDetBorders(1)-win;
+                            winEnd = currDetBorders(2)+win;
+                            simWinStart = simDetBorders(1)-simWin;
+                            simWinEnd = simDetBorders(2)+simWin;
+                            if gO.ephysTaxis(winStart) > simTaxis(simWinStart)
+                                winStart = find(gO.ephysTaxis > simTaxis(simWinStart), 1);
+                            end
+                            if gO.ephysTaxis(winEnd) < simTaxis(simWinEnd)
+                                winEnd = find(gO.ephysTaxis > simTaxis(simWinEnd), 1);
+                            end
+                        else
+                            winStart = currDetBorders(1)-win;
+                            winEnd = currDetBorders(2)+win;
+                        end
                         if (winStart > 0) & (winEnd <= length(gO.imagingTaxis))
                             winIdx = winStart:winEnd;
                             tWin = gO.imagingTaxis(winIdx);

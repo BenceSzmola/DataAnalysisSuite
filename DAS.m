@@ -981,6 +981,18 @@ classdef DAS < handle
             end
             
             [numDets,~,detNum,detInd,detBorders,chan,detParams] = extractDetStructs(guiobj,dTyp);
+            if guiobj.evDetTabSimultMode
+                if dTyp == 1
+                    simDtyp = 2;
+                    simTaxis = guiobj.imaging_taxis;
+                    simFs = guiobj.imaging_fs;
+                else
+                    simDtyp = 1;
+                    simTaxis = guiobj.ephys_taxis;
+                    simFs = guiobj.ephys_fs;
+                end
+                [~,~,~,simDetInd,simDetBorders,~,~] = extractDetStructs(guiobj,simDtyp);
+            end
             
             axYMinMax = [min(data(chan,:)), max(data(chan,:))];
             
@@ -1004,10 +1016,29 @@ classdef DAS < handle
             tStamp = taxis(detInd);
             win = guiobj.eventDet1Win/2000;
             win = round(win*fs,0);
+            if guiobj.evDetTabSimultMode
+                simTStamp = simTaxis(simDetInd);
+                simWin = guiobj.eventDet1Win/2000;
+                simWin = round(simWin*simFs,0);
+                
+            end
             
             if ~isempty(detBorders)
-                winStart = detBorders(1)-win;
-                winEnd = detBorders(2)+win;
+                if guiobj.evDetTabSimultMode
+                    winStart = detBorders(1)-win;
+                    winEnd = detBorders(2)+win;
+                    simWinStart = simDetBorders(1)-simWin;
+                    simWinEnd = simDetBorders(2)+simWin;
+                    if taxis(winStart) > simTaxis(simWinStart)
+                        winStart = find(taxis > simTaxis(simWinStart), 1);
+                    end
+                    if taxis(winEnd) < simTaxis(simWinEnd)
+                        winEnd = find(taxis > simTaxis(simWinEnd), 1);
+                    end
+                else
+                    winStart = detBorders(1)-win;
+                    winEnd = detBorders(2)+win;
+                end
                 if (winStart>0) & (winEnd <= length(taxis))
                     tWin = taxis(winStart:winEnd);
                     dataWin = data(chan,winStart:winEnd);
@@ -1802,22 +1833,32 @@ classdef DAS < handle
                     guiobj.DatasetListBox.String = datanames(dtyp==1);
                     guiobj.EphysListBox.String = datanames(dtyp==1);
                     guiobj.ephys_datanames = datanames(dtyp==1);
-                    taxis = get(wsgors(find(dtyp==1,1)),'x')*...
-                        (10^-3/guiobj.timedim);
-                    guiobj.ephys_fs = 1/taxis(2);
-                    guiobj.ephys_taxis = linspace(taxis(1),...
-                        length(guiobj.ephys_data)/guiobj.ephys_fs+taxis(1),...
-                        length(guiobj.ephys_data));
+                    if length(get(wsgors(find(dtyp==1,1)),'x')) == 2
+                        taxis = get(wsgors(find(dtyp==1,1)),'x')*...
+                            (10^-3/guiobj.timedim);
+                        guiobj.ephys_fs = 1/taxis(2);
+                        guiobj.ephys_taxis = linspace(taxis(1),...
+                            length(guiobj.ephys_data)/guiobj.ephys_fs+taxis(1),...
+                            length(guiobj.ephys_data));
+                    else
+                        guiobj.ephys_taxis = get(wsgors(find(dtyp==1,1)),'x');
+                        guiobj.ephys_fs = 1/(guiobj.ephys_taxis(2)-guiobj.ephys_taxis(1));
+                    end
                 elseif guiobj.datatyp(2)
                     guiobj.DatasetListBox.String = datanames(dtyp==2);
                     guiobj.ImagingListBox.String = datanames(dtyp==2);
                     guiobj.imag_datanames = datanames(dtyp==2);
-                    taxis = get(wsgors(find(dtyp==2,1)),'x')*...
-                        (10^-3/guiobj.timedim);
-                    guiobj.imaging_fs = 1/taxis(2);
-                    guiobj.imaging_taxis = linspace(taxis(1),...
-                        length(guiobj.imaging_data)/guiobj.imaging_fs+taxis(1),...
-                        length(guiobj.imaging_data));
+                    if length(get(wsgors(find(dtyp==2,1)),'x')) == 2
+                        taxis = get(wsgors(find(dtyp==2,1)),'x')*...
+                            (10^-3/guiobj.timedim);
+                        guiobj.imaging_fs = 1/taxis(2);
+                        guiobj.imaging_taxis = linspace(taxis(1),...
+                            length(guiobj.imaging_data)/guiobj.imaging_fs+taxis(1),...
+                            length(guiobj.imaging_data));
+                    else
+                        guiobj.imaging_taxis = get(wsgors(find(dtyp==2,1)),'x');
+                        guiobj.imaging_fs = 1/(guiobj.imaging_taxis(2)-guiobj.imaging_taxis(1));
+                    end
                 end
             elseif guiobj.datatyp(1) && guiobj.datatyp(2)
 %                 guiobj.EphysListBox.String = datanames(dtyp==1);
@@ -1829,24 +1870,46 @@ classdef DAS < handle
                     guiobj.EphysListBox.String = datanames(dtyp==1);
                     guiobj.ephys_datanames = datanames(dtyp==1);
                     
-                    taxis = get(wsgors(find(dtyp==1,1)),'x')*...
-                        (10^-3/guiobj.timedim);
-                    guiobj.ephys_fs = 1/taxis(2);
-                    guiobj.ephys_taxis = linspace(taxis(1),...
-                        length(guiobj.ephys_data)/guiobj.ephys_fs+taxis(1),...
-                        length(guiobj.ephys_data));
+%                     taxis = get(wsgors(find(dtyp==1,1)),'x')*...
+%                         (10^-3/guiobj.timedim);
+%                     guiobj.ephys_fs = 1/taxis(2);
+%                     guiobj.ephys_taxis = linspace(taxis(1),...
+%                         length(guiobj.ephys_data)/guiobj.ephys_fs+taxis(1),...
+%                         length(guiobj.ephys_data));
+                    if length(get(wsgors(find(dtyp==1,1)),'x')) == 2
+                        taxis = get(wsgors(find(dtyp==1,1)),'x')*...
+                            (10^-3/guiobj.timedim);
+                        guiobj.ephys_fs = 1/taxis(2);
+                        guiobj.ephys_taxis = linspace(taxis(1),...
+                            length(guiobj.ephys_data)/guiobj.ephys_fs+taxis(1),...
+                            length(guiobj.ephys_data));
+                    else
+                        guiobj.ephys_taxis = get(wsgors(find(dtyp==1,1)),'x');
+                        guiobj.ephys_fs = 1/(guiobj.ephys_taxis(2)-guiobj.ephys_taxis(1));
+                    end
                 end
                 
                 if ~isempty(find(dtyp==2,1))
                     guiobj.ImagingListBox.String = datanames(dtyp==2);
                     guiobj.imag_datanames = datanames(dtyp==2);
                 
-                    taxis = get(wsgors(find(dtyp==2,1)),'x')*...
-                        (10^-3/guiobj.timedim);
-                    guiobj.imaging_fs = 1/taxis(2);
-                    guiobj.imaging_taxis = linspace(taxis(1),...
-                        length(guiobj.imaging_data)/guiobj.imaging_fs+taxis(1),...
-                        length(guiobj.imaging_data));
+%                     taxis = get(wsgors(find(dtyp==2,1)),'x')*...
+%                         (10^-3/guiobj.timedim);
+%                     guiobj.imaging_fs = 1/taxis(2);
+%                     guiobj.imaging_taxis = linspace(taxis(1),...
+%                         length(guiobj.imaging_data)/guiobj.imaging_fs+taxis(1),...
+%                         length(guiobj.imaging_data));
+                    if length(get(wsgors(find(dtyp==2,1)),'x')) == 2
+                        taxis = get(wsgors(find(dtyp==2,1)),'x')*...
+                            (10^-3/guiobj.timedim);
+                        guiobj.imaging_fs = 1/taxis(2);
+                        guiobj.imaging_taxis = linspace(taxis(1),...
+                            length(guiobj.imaging_data)/guiobj.imaging_fs+taxis(1),...
+                            length(guiobj.imaging_data));
+                    else
+                        guiobj.imaging_taxis = get(wsgors(find(dtyp==2,1)),'x');
+                        guiobj.imaging_fs = 1/(guiobj.imaging_taxis(2)-guiobj.imaging_taxis(1));
+                    end
                 end
             end
             
