@@ -576,20 +576,32 @@ classdef DASeV < handle
 
                     tDetInds = gO.ephysTaxis(detIdx);
 
-                    win = 0.5;
+                    win = 0.25;
                     win = round(win*gO.ephysFs,4);
                     if gO.simultMode
                         simTDetInd = simTaxis(simDetIdx);
-                        simWin = 0.5;
-                        simWin = round(simWin*simFs,4);
+                        simWin = 0.25;
+                        simWin = round(simWin*simFs,0);
                     end
 
                     if ~isempty(currDetBorders)
                         if gO.simultMode
                             winStart = currDetBorders(1)-win;
+                            if winStart < 0
+                                winStart = 0;
+                            end
                             winEnd = currDetBorders(2)+win;
+                            if winEnd > length(gO.ephysTaxis)
+                                winEnd = length(gO.ephysTaxis);
+                            end
                             simWinStart = simDetBorders(1)-simWin;
+                            if simWinStart < 0
+                                simWinStart = 0;
+                            end
                             simWinEnd = simDetBorders(2)+simWin;
+                            if simWinEnd > length(simTaxis)
+                                simWinEnd = length(simTaxis);
+                            end
                             if gO.ephysTaxis(winStart) > simTaxis(simWinStart)
                                 winStart = find(gO.ephysTaxis > simTaxis(simWinStart), 1);
                             end
@@ -836,11 +848,11 @@ classdef DASeV < handle
 
                     tDetInds = gO.imagingTaxis(detIdx);
 
-                    win = 0.5;
+                    win = 0.25;
                     win = round(win*gO.imagingFs,0);
                     if gO.simultMode
                         simTDetInd = simTaxis(simDetIdx);
-                        simWin = 0.5;
+                        simWin = 0.25;
                         simWin = round(simWin*simFs,4);
                     end
 
@@ -848,14 +860,26 @@ classdef DASeV < handle
 
                         if gO.simultMode
                             winStart = currDetBorders(1)-win;
-                            winEnd = currDetBorders(2)+win;
-                            simWinStart = simDetBorders(1)-simWin;
-                            simWinEnd = simDetBorders(2)+simWin;
-                            if gO.ephysTaxis(winStart) > simTaxis(simWinStart)
-                                winStart = find(gO.ephysTaxis > simTaxis(simWinStart), 1);
+                            if winStart < 0
+                                winStart = 0;
                             end
-                            if gO.ephysTaxis(winEnd) < simTaxis(simWinEnd)
-                                winEnd = find(gO.ephysTaxis > simTaxis(simWinEnd), 1);
+                            winEnd = currDetBorders(2)+win;
+                            if winEnd > length(gO.imagingTaxis)
+                                winEnd = length(gO.imagingTaxis);
+                            end
+                            simWinStart = simDetBorders(1)-simWin;
+                            if simWinStart < 0
+                                simWinStart = 0;
+                            end
+                            simWinEnd = simDetBorders(2)+simWin;
+                            if simWinEnd > length(simTaxis)
+                                simWinEnd = length(simTaxis);
+                            end
+                            if gO.imagingTaxis(winStart) > simTaxis(simWinStart)
+                                winStart = find(gO.imagingTaxis > simTaxis(simWinStart), 1);
+                            end
+                            if gO.imagingTaxis(winEnd) < simTaxis(simWinEnd)
+                                winEnd = find(gO.imagingTaxis > simTaxis(simWinEnd), 1);
                             end
                         else
                             winStart = currDetBorders(1)-win;
@@ -1013,7 +1037,7 @@ classdef DASeV < handle
         %% 
         function smartplot(gO)
             axVisSwitch(gO,sum(gO.loaded(1:3))+(sum(gO.ephysTypSelected)-1))
-            
+
             switch sum(gO.loaded(1:3))
                 case 1
                     if gO.loaded(1)
@@ -1127,6 +1151,7 @@ classdef DASeV < handle
                         runPlot(gO,ax)
                     end
             end
+            
         end
         
         %%

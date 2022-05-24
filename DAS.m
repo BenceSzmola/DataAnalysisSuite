@@ -1025,10 +1025,10 @@ classdef DAS < handle
             
             if ~isempty(detBorders)
                 if guiobj.evDetTabSimultMode
-                    winStart = detBorders(1)-win;
-                    winEnd = detBorders(2)+win;
-                    simWinStart = simDetBorders(1)-simWin;
-                    simWinEnd = simDetBorders(2)+simWin;
+                    winStart = max(0, detBorders(1)-win);
+                    winEnd = min(length(taxis), detBorders(2)+win);
+                    simWinStart = max(0, simDetBorders(1)-simWin);
+                    simWinEnd = min(length(simTaxis), simDetBorders(2)+simWin);
                     if taxis(winStart) > simTaxis(simWinStart)
                         winStart = find(taxis > simTaxis(simWinStart), 1);
                     end
