@@ -586,22 +586,10 @@ classdef DASeV < handle
 
                     if ~isempty(currDetBorders)
                         if gO.simultMode
-                            winStart = currDetBorders(1)-win;
-                            if winStart < 0
-                                winStart = 0;
-                            end
-                            winEnd = currDetBorders(2)+win;
-                            if winEnd > length(gO.ephysTaxis)
-                                winEnd = length(gO.ephysTaxis);
-                            end
-                            simWinStart = simDetBorders(1)-simWin;
-                            if simWinStart < 0
-                                simWinStart = 0;
-                            end
-                            simWinEnd = simDetBorders(2)+simWin;
-                            if simWinEnd > length(simTaxis)
-                                simWinEnd = length(simTaxis);
-                            end
+                            winStart = max(0, currDetBorders(1)-win);
+                            winEnd = min(length(gO.ephysTaxis), currDetBorders(2)+win);
+                            simWinStart = max(0, simDetBorders(1)-simWin);
+                            simWinEnd = min(length(simTaxis), simDetBorders(2)+simWin);
                             if gO.ephysTaxis(winStart) > simTaxis(simWinStart)
                                 winStart = find(gO.ephysTaxis > simTaxis(simWinStart), 1);
                             end
@@ -859,22 +847,10 @@ classdef DASeV < handle
                     if ~isempty(currDetBorders)
 
                         if gO.simultMode
-                            winStart = currDetBorders(1)-win;
-                            if winStart < 0
-                                winStart = 0;
-                            end
-                            winEnd = currDetBorders(2)+win;
-                            if winEnd > length(gO.imagingTaxis)
-                                winEnd = length(gO.imagingTaxis);
-                            end
-                            simWinStart = simDetBorders(1)-simWin;
-                            if simWinStart < 0
-                                simWinStart = 0;
-                            end
-                            simWinEnd = simDetBorders(2)+simWin;
-                            if simWinEnd > length(simTaxis)
-                                simWinEnd = length(simTaxis);
-                            end
+                            winStart = max(0, currDetBorders(1)-win);
+                            winEnd = min(length(gO.imagingTaxis), currDetBorders(2)+win);
+                            simWinStart = max(0, simDetBorders(1)-simWin);
+                            simWinEnd = min(length(simTaxis), simDetBorders(2)+simWin);
                             if gO.imagingTaxis(winStart) > simTaxis(simWinStart)
                                 winStart = find(gO.imagingTaxis > simTaxis(simWinStart), 1);
                             end
@@ -2427,6 +2403,21 @@ classdef DASeV < handle
                     [ephysWin,ephysRelBorders] = windowMacher(gO,1,e_iAdj,currRow(2),0.25);
                     i_iAdj = find(gO.imagingDetInfo.DetROI == gO.imagingDetInfo.AllROI(currRow(3)));
                     [imagingWin,imagingRelBorders] = windowMacher(gO,2,i_iAdj,currRow(4),0.25);
+                    
+                    eTaxis = gO.ephysTaxis;
+                    iTaxis = gO.imagingTaxis;
+                    
+                    if eTaxis(ephysWin(1)) > iTaxis(imagingWin(1))
+                        ephysWin = find(eTaxis > iTaxis(imagingWin(1)), 1):ephysWin(end);
+                    elseif eTaxis(ephysWin(1)) < iTaxis(imagingWin(1))
+                        imagingWin = find(iTaxis > eTaxis(ephysWin(1)), 1):imagingWin(end);
+                    end
+                    
+                    if eTaxis(ephysWin(end)) < iTaxis(imagingWin(end))
+                        ephysWin = ephysWin(1):find(eTaxis > iTaxis(imagingWin(end)), 1);
+                    elseif eTaxis(ephysWin(end)) > iTaxis(imagingWin(end))
+                        ephysWin = imagingWin(1):find(iTaxis > eTaxis(ephysWin(end)), 1);
+                    end
                     
                     tempStruct.source = string(gO.path2loadedSave);
                     tempStruct.simult = 1;
