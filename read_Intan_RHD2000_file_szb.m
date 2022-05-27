@@ -475,6 +475,8 @@ rhdStruct.frequency_parameters = frequency_parameters;
 rhdStruct.t_amplifier = t_amplifier;
 rhdStruct.amplifier_data = amplifier_data;
 rhdStruct.amplifier_channels = amplifier_channels;
+rhdStruct.board_dig_in_channels = board_dig_in_channels;
+rhdStruct.board_dig_in_data = board_dig_in_data;
 
 
 % move_to_base_workspace(filename);
