@@ -260,11 +260,9 @@ classdef DAS < handle
         ephys_instPowed
         % For storing processed electrophysiology data
         ephys_procced
-        % Info on processed data: 2 column array, [channel, type of
-        % processing]
-        ephys_proccedInfo
+        % Info on processed data
+        ephys_proccedInfo = struct('Channel',{},'ProcDetails',{});
         % Stores which proc type is which 
-        ephys_procTypes = ["DoG"; "Periodic"];
         ephys_artSupp4Det = 0;
         ephys_artSuppedData4Det
         ephys_detections                    % Location of detections on time axis
@@ -426,45 +424,7 @@ classdef DAS < handle
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.ephys_ylabel)
         end
-        
-        %%
-        function ephysprocplot(guiobj,ax,index,value,proctype)
-            if isempty(index) | index == 0
-                return
-            end
-            
-            axParent = ax.Parent;
-            if isempty(findobj(axParent,'Type','line'))
-                firstplot = true;
-                ax.NextPlot = 'replace';
-            else
-                ax.NextPlot = 'replacechildren';
-                firstplot = false;
-            end
-            
-            plot(ax,guiobj.ephys_taxis,guiobj.ephys_procced(index,:))
-            if firstplot
-                axis(ax,'tight')
-                ax.NextPlot = 'replacechildren';
-            end
-            if length(index) == 1
-                title(ax,value,'Interpreter','none')
-            elseif length(index) > 1
-                multitle = sprintf(' #%d',sort(guiobj.ephys_proccedInfo(index,1)));
-                if length(unique(proctype)) == 1
-                    temp = char(guiobj.ephys_procTypes(unique(proctype)));
-                    title(ax,[temp,'| Channels:',multitle])
-                elseif length(unique(proctype)) > 1
-                    title(ax,['Mixed| Channels:',multitle]);
-                end
-            end
-            xlabel(ax,guiobj.xtitle)
-            switch guiobj.ephys_procTypes(proctype)
-                case 'DoG'
-                    ylabel(ax,guiobj.ephys_ylabel)
-            end
-        end
-        
+                
         %%
         function imagingplot(guiobj,ax,index)
             if isempty(index) | index == 0
@@ -1215,97 +1175,7 @@ classdef DAS < handle
                     end
             end
         end
-        
-        %%
-        function simEventDetPlotFcn(guiobj,dTyp)
-            
-            switch dTyp
-                case 1
-                    ax = guiobj.axesEventDet1;
-                    taxis = guiobj.ephys_taxis;
-                    fs = guiobj.ephys_fs;
-                    
-                    switch guiobj.eventDet1DataType
-                        case 1
-                            data = guiobj.ephys_data;
-                        case 2
-                            data = guiobj.ephys_dogged;
-                        case 3
-                            data = guiobj.ephys_instPowed;
-                    end
-                    
-                case 2
-                    ax = guiobj.axesEventDet2;
-                    taxis = guiobj.imaging_taxis;
-                    fs = guiobj.imaging_fs;
-                    
-                    switch guiobj.eventDet2DataType
-                        case 1
-                            data = guiobj.imaging_data;
-                        case 2
-                            data = guiobj.imaging_smoothed;
-                    end
-            end
-            
-            [numDets,numChans,detNum,detInd,detBorders,chan] = extractDetStructs(guiobj,dTyp);
-            
-            tStamp = taxis(detInd);
-            win = guiobj.eventDet1Win/2000;
-            win = round(win*fs,0);
-            
-            if ~isempty(detBorders)
-                winStart = detBorders(1)-win;
-                winEnd = detBorders(2)+win;
-                if (winStart>0) & (winEnd <= length(taxis))
-                    tWin = taxis(winStart:winEnd);
-                    dataWin = data(chan,winStart:winEnd);
-                    winInds = winStart:winEnd;
-                elseif winStart <= 0
-                    tWin = taxis(1:winEnd);
-                    dataWin = data(chan,1:winEnd);
-                    winInds = 1:winEnd;
-                elseif winEnd > length(taxis)
-                    tWin = taxis(winStart:end);
-                    dataWin = data(chan,winStart:end);
-                    winInds = winStart:length(taxis);
-                end
-            else
-                if (detInd-win > 0) & (detInd+win <= length(taxis))
-                    tWin = taxis(detInd-win:detInd+win);
-                    dataWin = data(chan,detInd-win:detInd+win);
-                elseif detInd-win <= 0
-                    tWin = taxis(1:detInd+win);
-                    dataWin = data(chan,1:detInd+win);
-                elseif detInd+win > length(taxis)
-                    tWin = taxis(detInd-win:end);
-                    dataWin = data(chan,detInd-win:end);
-                end
-            end
-            
-            plot(ax,tWin,dataWin)
-            hold(ax,'on')
-            xline(ax,tStamp,'Color','g','LineWidth',1);
-            if ~isempty(detBorders)
-                xline(ax,taxis(detBorders(1)),'--b','LineWidth',1);
-                xline(ax,taxis(detBorders(2)),'--b','LineWidth',1);
-                hL = dataWin;
-                temp1 = find(tWin==taxis(detBorders(1)));
-                temp2 = find(tWin==taxis(detBorders(2)));
-                hL(1:temp1-1) = nan;
-                hL(temp2+1:end) = nan;
-                plot(ax,tWin,hL,'-r','LineWidth',0.75)
-            end
-            hold(ax,'off')
-            axis(ax,'tight')
-            ylim(ax,axYMinMax)
-            xlabel(ax,guiobj.xtitle)
-            ylabel(ax,yAxLbl);
-            title(ax,[plotTitle,num2str(chan),'      Detection#',num2str(detNum),...
-                '/',num2str(numDets)])
-            
-            
-        end
-        
+                
         %%
         function [numDets,numChans,detNum,detInd,detBorders,chan,detParams] = extractDetStructs(guiobj,dTyp)
             switch guiobj.evDetTabSimultMode
@@ -2102,20 +1972,13 @@ classdef DAS < handle
         %% Value changed function: DatasetListBox
         function DatasetListBoxValueChanged(guiobj)
             index = guiobj.DatasetListBox.Value;
-            % Check which data mode we are in and plot accordingly
-            if guiobj.datatyp(3)
-                if guiobj.datatyp(1)
-                    guiobj.ephys_select = index;
-                elseif guiobj.datatyp(2)
-                    guiobj.imag_select = index;
-                end
-            elseif ~guiobj.datatyp(3)
-                if guiobj.datatyp(1)
-                    guiobj.ephys_select = index;
-                elseif guiobj.datatyp(2)
-                    guiobj.imag_select = index;
-                end
+            
+            if guiobj.datatyp(1)
+                guiobj.ephys_select = index;
+            elseif guiobj.datatyp(2)
+                guiobj.imag_select = index;
             end
+
             smartplot(guiobj)
             
             ephysDetMarkerPlot(guiobj)
@@ -2600,15 +2463,28 @@ classdef DAS < handle
                 case 'Raw data'
                     data_idx = guiobj.ephysProcListBox.Value;
                     data = guiobj.ephys_data(data_idx,:);
+                    
+                    temp = num2cell(data_idx)';
+                    newProcInfo = struct('Channel',temp,'ProcDetails',cell(size(temp)));
+                    clear temp
                 case 'Processed data'
                     data_idx = guiobj.ephysProcListBox2.Value;
                     data = guiobj.ephys_procced(data_idx,:);
+                    
+                    oldProcInfo = guiobj.ephys_proccedInfo;
+                    temp = num2cell([oldProcInfo(data_idx).Channel])';
+                    newProcInfo = struct('Channel',temp,'ProcDetails',cell(size(temp)));
+                    for i = 1:length(data_idx)
+                        newProcInfo(i).ProcDetails = oldProcInfo(data_idx(i)).ProcDetails;
+                    end
+                    clear temp
             end
             w1 = str2double(guiobj.w1Edit.String);
             w2 = str2double(guiobj.w2Edit.String);
             
             datanames = guiobj.ephys_datanames;
             procDatanames = guiobj.ephys_procdatanames;
+            
             switch filtype
                 case 'DoG'
                     if isnan(w1) || isnan(w2)
@@ -2617,8 +2493,12 @@ classdef DAS < handle
                         return
                     end
                     procced = DoG(data,guiobj.ephys_fs,w1,w2);
-                    guiobj.ephys_proccedInfo = [guiobj.ephys_proccedInfo;...
-                        [data_idx', 1*ones(size(data_idx'))]];
+                    
+                    procDetails = struct('Type','Filt-DoG','Settings',cell(1));
+                    procDetails.Settings = struct('W1',w1,'W2',w2);
+                    for i = 1:length(data_idx)
+                        newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                    end
                     
                     for i = 1:length(data_idx)
                         if isempty(procDatanames)
@@ -2648,8 +2528,12 @@ classdef DAS < handle
                         guiobj.runFiltButton.BackgroundColor = 'g';
                         return
                     end
-                    guiobj.ephys_proccedInfo = [guiobj.ephys_proccedInfo;...
-                        [data_idx', 2*ones(size(data_idx'))]];
+                    
+                    procDetails = struct('Type','Filt-Periodic','Settings',cell(1));
+                    procDetails.Settings = struct('Fmax',fmax,'Ffund',f_fund,'Stopband',stopbandwidth);
+                    for i = 1:length(data_idx)
+                        newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                    end
                     
                     for i = 1:length(data_idx)
                         if isempty(procDatanames)
@@ -2669,6 +2553,7 @@ classdef DAS < handle
             end
             
             guiobj.ephys_procced = [guiobj.ephys_procced; procced];
+            guiobj.ephys_proccedInfo = [guiobj.ephys_proccedInfo; newProcInfo];
             guiobj.ephys_procdatanames = procDatanames;
             guiobj.ephysProcListBox2.String = procDatanames;
             
@@ -2834,7 +2719,7 @@ classdef DAS < handle
                                 return
                             end
                             procc = smoothdata(data,2,'gaussian',winsize);
-                            guiobj.imaging_proccedInfo = [guiobj.ephys_proccedInfo;...
+                            guiobj.imaging_proccedInfo = [guiobj.imaging_proccedInfo;...
                                 [data_idx', 1*ones(size(data_idx'))]];
                             
                             for i = 1:length(data_idx)
