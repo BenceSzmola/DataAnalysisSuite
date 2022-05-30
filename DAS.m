@@ -80,8 +80,6 @@ classdef DAS < handle
         ephysProcListBox
         ephysProcListBox2
         
-        pushEphysProcDataButton
-        
         axesEphysProc1
         axesEphysProc2
         
@@ -94,7 +92,6 @@ classdef DAS < handle
         ephysArtSuppTypePopMenu
         ephysArtSuppRefChanLabel
         ephysArtSuppRefChanEdit
-        ephysArtSuppRunButt
         
         ephysFiltSettingsPanel
         filterTypePopMenu
@@ -107,9 +104,8 @@ classdef DAS < handle
         ffundEdit
         stopbandwidthLabel
         stopbandwidthEdit
-        runFiltButton
-        
-        ephysRunFFTButton
+                
+        ephysRunProcButton
         
         %% Members of imagingProcTab
         imagingProcListBox
@@ -2376,19 +2372,15 @@ classdef DAS < handle
                 case 1
                     guiobj.ephysFiltSettingsPanel.Visible = 'off';
                     guiobj.ephysArtSuppPanel.Visible = 'off';
-                    guiobj.ephysRunFFTButton.Visible = 'off';
                 case 2
                     guiobj.ephysFiltSettingsPanel.Visible = 'on';
                     guiobj.ephysArtSuppPanel.Visible = 'off';
-                    guiobj.ephysRunFFTButton.Visible = 'off';
                 case 3
                     guiobj.ephysArtSuppPanel.Visible = 'on';
                     guiobj.ephysFiltSettingsPanel.Visible = 'off';
-                    guiobj.ephysRunFFTButton.Visible = 'off';
                 case 4
                     guiobj.ephysArtSuppPanel.Visible = 'off';
                     guiobj.ephysFiltSettingsPanel.Visible = 'off';
-                    guiobj.ephysRunFFTButton.Visible = 'on';
             end
         end
         
@@ -2450,15 +2442,11 @@ classdef DAS < handle
         end
         
         %%
-        function runFilt(guiobj)
-            guiobj.runFiltButton.BackgroundColor = 'r';
+        function ephysRunProc(guiobj)
+            guiobj.ephysRunProcButton.BackgroundColor = 'r';
             
             selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
             selectedButt = selectedButt.String;
-            
-            filtype = guiobj.filterTypePopMenu.Value;
-            filtype = guiobj.filterTypePopMenu.String{filtype};
-
             switch selectedButt
                 case 'Raw data'
                     data_idx = guiobj.ephysProcListBox.Value;
@@ -2479,77 +2467,86 @@ classdef DAS < handle
                     end
                     clear temp
             end
-            w1 = str2double(guiobj.w1Edit.String);
-            w2 = str2double(guiobj.w2Edit.String);
             
             datanames = guiobj.ephys_datanames;
             procDatanames = guiobj.ephys_procdatanames;
             
-            switch filtype
-                case 'DoG'
-                    if isnan(w1) || isnan(w2)
-                        errordlg('DoG needs both upper and lower cutoff!')
-                        guiobj.runFiltButton.BackgroundColor = 'g';
-                        return
-                    end
-                    procced = DoG(data,guiobj.ephys_fs,w1,w2);
-                    
-                    procDetails = struct('Type','Filt-DoG','Settings',cell(1));
-                    procDetails.Settings = struct('W1',w1,'W2',w2);
-                    for i = 1:length(data_idx)
-                        newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
-                    end
-                    
-                    for i = 1:length(data_idx)
-                        if isempty(procDatanames)
-                            procDatanames = {['DoG(',num2str(w1),'-',num2str(w2),')| ',...
-                                datanames{data_idx(i)}]};
-                        elseif ~isempty(procDatanames)
-                            switch selectedButt
-                                case 'Raw data'
-                                    procDatanames = [procDatanames,...
-                                        ['DoG(',num2str(w1),'-',num2str(w2),')| ',...
-                                        datanames{data_idx(i)}]];
-                                case 'Processed data'
-                                    procDatanames = [procDatanames,...
-                                        ['DoG(',num2str(w1),'-',num2str(w2),')| ',...
-                                        procDatanames{data_idx(i)}]];
+            procGrp = guiobj.ephysProcPopMenu.Value;
+            procGrp = guiobj.ephysProcPopMenu.String{procGrp};
+            switch procGrp
+                case 'Filtering'
+                    filtype = guiobj.filterTypePopMenu.Value;
+                    filtype = guiobj.filterTypePopMenu.String{filtype};
+                    switch filtype
+                        case 'DoG'
+                            w1 = str2double(guiobj.w1Edit.String);
+                            w2 = str2double(guiobj.w2Edit.String);
+                            if isnan(w1) || isnan(w2)
+                                errordlg('DoG needs both upper and lower cutoff!')
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end
+                            procced = DoG(data,guiobj.ephys_fs,w1,w2);
+
+                            procDetails = struct('Type','Filt-DoG','Settings',cell(1));
+                            procDetails.Settings = struct('W1',w1,'W2',w2);
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
                             
-                        end
+                            txt4name = ['DoG(',num2str(w1),'-',num2str(w2),')| '];
+                            
+                        case 'Periodic'
+                            fmax = str2double(guiobj.fmaxEdit.String);
+                            ffund = str2double(guiobj.ffundEdit.String);
+                            stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
+                            [procced,f_fund] = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                            if isempty(procced)
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end
+
+                            procDetails = struct('Type','Filt-Periodic','Settings',cell(1));
+                            procDetails.Settings = struct('Fmax',fmax,'Ffund',f_fund,'Stopband',stopbandwidth);
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                            end
+                            txt4name = sprintf('Periodic @%.2f',num2str(f_fund));
                     end
                     
-                case 'Periodic'
-                    fmax = str2double(guiobj.fmaxEdit.String);
-                    ffund = str2double(guiobj.ffundEdit.String);
-                    stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
-                    [procced,f_fund] = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
-                    if isempty(procced)
-                        guiobj.runFiltButton.BackgroundColor = 'g';
-                        return
-                    end
                     
-                    procDetails = struct('Type','Filt-Periodic','Settings',cell(1));
-                    procDetails.Settings = struct('Fmax',fmax,'Ffund',f_fund,'Stopband',stopbandwidth);
+                case 'Artifact Suppression'
+                    procDetails = struct('Type','ArtSupp','Settings',cell(1));
+                    [procced,settingStr] = artSuppMaster(data,guiobj.ephys_taxis,guiobj.ephys_fs);
+                    procDetails.Settings = settingStr;
                     for i = 1:length(data_idx)
                         newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                     end
+                    txt4name = 'ArtSupp';
                     
-                    for i = 1:length(data_idx)
-                        if isempty(procDatanames)
-                            procDatanames = {['Periodic @',num2str(f_fund),' Hz| ',...
-                                datanames{data_idx(i)}]};
-                        elseif ~isempty(procDatanames)
-                            switch selectedButt
-                                case 'Raw data'    
-                                    procDatanames = [procDatanames,...
-                                            ['Periodic@',num2str(f_fund),' Hz| ',datanames{data_idx(i)}]];
-                                case 'Processed data'
-                                    procDatanames = [procDatanames,...
-                                            ['Periodic@',num2str(f_fund),' Hz| ',procDatanames{data_idx(i)}]];
-                            end
-                        end
+                case 'Compute FFT'
+                    freqspec(data,guiobj.ephys_fs,1,0,1000)
+                    
+                    guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                    return
+                    
+            end
+            
+            for i = 1:length(data_idx)
+                if isempty(procDatanames)
+                    procDatanames = {[txt4name,' | ',...
+                        datanames{data_idx(i)}]};
+                elseif ~isempty(procDatanames)
+                    switch selectedButt
+                        case 'Raw data'
+                            procDatanames = [procDatanames,...
+                                [txt4name,' | ',datanames{data_idx(i)}]];
+                        case 'Processed data'
+                            procDatanames = [procDatanames,...
+                                [txt4name,' | ',procDatanames{data_idx(i)}]];
                     end
+
+                end
             end
             
             guiobj.ephys_procced = [guiobj.ephys_procced; procced];
@@ -2557,7 +2554,7 @@ classdef DAS < handle
             guiobj.ephys_procdatanames = procDatanames;
             guiobj.ephysProcListBox2.String = procDatanames;
             
-            guiobj.runFiltButton.BackgroundColor = 'g';
+            guiobj.ephysRunProcButton.BackgroundColor = 'g';
         end
         
         %%
@@ -2610,28 +2607,7 @@ classdef DAS < handle
             
             guiobj.ephysArtSuppRunButt.BackgroundColor = 'g';
         end
-        
-        %%
-        function ephysRunFFT(guiobj)
-            guiobj.ephysRunFFTButton.BackgroundColor = 'r';
-            
-            selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
-            selectedButt = selectedButt.String;
-
-            switch selectedButt
-                case 'Raw data'
-                    data_idx = guiobj.ephysProcListBox.Value;
-                    data = guiobj.ephys_data(data_idx,:);
-                case 'Processed data'
-                    data_idx = guiobj.ephysProcListBox2.Value;
-                    data = guiobj.ephys_procced(data_idx,:);
-            end
-            
-            freqspec(data,guiobj.ephys_fs,1,0,1000)
-            
-            guiobj.ephysRunFFTButton.BackgroundColor = 'g';
-        end
-        
+                
         %% Callback to monitor radiobutton press
         function ephysProcProcdRadioButtPushed(guiobj)
             if isempty(guiobj.ephys_procced)
@@ -4553,7 +4529,7 @@ classdef DAS < handle
             
             % Create ephysFiltSettingsPanel
             guiobj.ephysFiltSettingsPanel = uipanel(guiobj.ephysProcTab,...
-                'Position',[0.01, 0.5, 0.3, 0.4],...
+                'Position',[0.01, 0.6, 0.3, 0.3],...
                 'Title','Filtering settings',...
                 'Visible','off');
             
@@ -4620,17 +4596,9 @@ classdef DAS < handle
                 'Visible','off',...
                 'String','5');
             
-            guiobj.runFiltButton = uicontrol(guiobj.ephysFiltSettingsPanel,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.85, 0.01, 0.1, 0.1],...
-                'String','Run filter',...
-                'Callback',@(h,e) guiobj.runFilt,...
-                'BackgroundColor','g');
-            
             % Create ephysArtSuppPanel
             guiobj.ephysArtSuppPanel = uipanel(guiobj.ephysProcTab,...
-                'Position',[0.01, 0.5, 0.3, 0.4],...
+                'Position',[0.01, 0.6, 0.3, 0.3],...
                 'Title','Artifact Suppression',...
                 'Visible','off');
             
@@ -4649,22 +4617,15 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.75, 0.85, 0.1, 0.1]);
-            guiobj.ephysArtSuppRunButt = uicontrol(guiobj.ephysArtSuppPanel,...
+                        
+            guiobj.ephysRunProcButton = uicontrol(guiobj.ephysProcTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.6, 0.01, 0.3, 0.1],...
-                'String','Run artifact suppression',...
-                'Callback',@(h,e) guiobj.runArtSupp,...
-                'BackgroundColor','g');
-            
-            guiobj.ephysRunFFTButton = uicontrol(guiobj.ephysProcTab,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.01, 0.8, 0.15, 0.05],...
-                'String','Run FFT on selected channel(s)',...
-                'Visible','off',...
+                'Position',[0.25, 0.47, 0.05, 0.05],...
+                'String','Run',...
+                'Visible','on',...
                 'BackgroundColor','g',...
-                'Callback', @(h,e) guiobj.ephysRunFFT);
+                'Callback', @(h,e) guiobj.ephysRunProc);
             
             % Create axes
             guiobj.axesEphysProc1 = axes(guiobj.ephysProcTab,...
