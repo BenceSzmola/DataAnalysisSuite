@@ -124,7 +124,8 @@ classdef DAS < handle
         imagingFilterTypePopMenu
         imagingFiltWinSizeText
         imagingFiltWinSizeEdit
-        imagingRunFiltButton
+        
+        imagingRunProcButton
         
         %% Members of eventDetTab
         ephysDetPopMenu
@@ -258,7 +259,6 @@ classdef DAS < handle
         ephys_procced
         % Info on processed data
         ephys_proccedInfo = struct('Channel',{},'ProcDetails',{});
-        % Stores which proc type is which 
         ephys_artSupp4Det = 0;
         ephys_artSuppedData4Det
         ephys_detections                    % Location of detections on time axis
@@ -280,8 +280,7 @@ classdef DAS < handle
         imaging_data                        % Currently imported imaging data
         imaging_smoothed
         imaging_procced
-        imaging_proccedInfo
-        imaging_procTypes = ["GaussAvg"];
+        imaging_proccedInfo = struct('ROI',{},'ProcDetails',{});
         imaging_detections
         imaging_detBorders
         imaging_detParams
@@ -2556,58 +2555,7 @@ classdef DAS < handle
             
             guiobj.ephysRunProcButton.BackgroundColor = 'g';
         end
-        
-        %%
-        function runArtSupp(guiobj)
-            guiobj.ephysArtSuppRunButt.BackgroundColor = 'r';
-            
-            artSuppType = guiobj.ephysArtSuppTypePopMenu.Value;
-            artSuppName = guiobj.ephysArtSuppTypePopMenu.String{artSuppType};
-            
-            datanames = guiobj.ephys_datanames;
-            procDatanames = guiobj.ephys_procdatanames;
-            
-            selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
-            selectedButt = selectedButt.String;
-            
-            refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
-            
-            switch selectedButt
-                case 'Raw data'
-                    data_idx = guiobj.ephysProcListBox.Value;
-                    data = guiobj.ephys_data(data_idx,:);
-                case 'Processed data'
-                    data_idx = guiobj.ephysProcListBox2.Value;
-                    data = guiobj.ephys_procced(data_idx,:);
-            end
-            
-            fs = guiobj.ephys_fs;
-            data_cl = ArtSupp(data,fs,artSuppType,refChan);
-            
-            
-            for i = 1:length(data_idx)
-                if isempty(procDatanames)
-                    procDatanames = {[artSuppName,'| ',...
-                        datanames{data_idx(i)}]};
-                elseif ~isempty(procDatanames)
-                    switch selectedButt
-                        case 'Raw data'
-                            procDatanames = [procDatanames,...
-                                [artSuppName,'| ',datanames{data_idx(i)}]];
-                        case 'Processed data'
-                            procDatanames = [procDatanames,...
-                                [artSuppName,'| ',procDatanames{data_idx(i)}]];
-                    end
-                end
-            end
-            
-            guiobj.ephys_procced = [guiobj.ephys_procced; data_cl];
-            guiobj.ephys_procdatanames = procDatanames;
-            guiobj.ephysProcListBox2.String = procDatanames;
-            
-            guiobj.ephysArtSuppRunButt.BackgroundColor = 'g';
-        end
-                
+                        
         %% Callback to monitor radiobutton press
         function ephysProcProcdRadioButtPushed(guiobj)
             if isempty(guiobj.ephys_procced)
@@ -2665,6 +2613,15 @@ classdef DAS < handle
         
         %%
         function imagingRunProc(guiobj)
+            guiobj.imagingRunProcButton.BackgroundColor = 'r';
+            
+            proctype = guiobj.imagingProcPopMenu.Value;
+            if proctype == 1
+                guiobj.imagingRunProcButton.BackgroundColor = 'g';
+                return
+            end 
+            proctype = guiobj.imagingProcPopMenu.String{proctype};
+            
             selectedButt = guiobj.imagingProcSrcButtGroup.SelectedObject;
             selectedButt = selectedButt.String;
             
@@ -2672,13 +2629,22 @@ classdef DAS < handle
                 case 'Raw data'
                     data_idx = guiobj.imagingProcListBox.Value;
                     data = guiobj.imaging_data(data_idx,:);
+                    
+                    temp = num2cell(data_idx)';
+                    newProcInfo = struct('ROI',temp,'ProcDetails',cell(size(temp)));
+                    clear temp
                 case 'Processed data'
                     data_idx = guiobj.imagingProcListBox2.Value;
                     data = guiobj.imaging_procced(data_idx,:);
+                    
+                    oldProcInfo = guiobj.imaging_proccedInfo;
+                    temp = num2cell([oldProcInfo(data_idx).ROI])';
+                    newProcInfo = struct('ROI',temp,'ProcDetails',cell(size(temp)));
+                    for i = 1:length(data_idx)
+                        newProcInfo(i).ProcDetails = oldProcInfo(data_idx(i)).ProcDetails;
+                    end
+                    clear temp
             end
-            
-            proctype = guiobj.imagingProcPopMenu.Value;
-            proctype = guiobj.imagingProcPopMenu.String{proctype};
             
             winsize = str2double(guiobj.imagingFiltWinSizeEdit.String);
             
@@ -2687,40 +2653,55 @@ classdef DAS < handle
             switch proctype
                 case 'Filtering'
                     filtype = guiobj.imagingFilterTypePopMenu.Value;
+                    if filtype == 1
+                        guiobj.imagingRunProcButton.BackgroundColor = 'g';
+                        return
+                    end
                     filtype = guiobj.imagingFilterTypePopMenu.String{filtype};
                     switch filtype
                         case 'Gauss average'
                             if isnan(winsize)
                                 errordlg('Specify window size!')
+                                guiobj.imagingRunProcButton.BackgroundColor = 'g';
                                 return
                             end
                             procc = smoothdata(data,2,'gaussian',winsize);
-                            guiobj.imaging_proccedInfo = [guiobj.imaging_proccedInfo;...
-                                [data_idx', 1*ones(size(data_idx'))]];
                             
+                            procDetails = struct('Type','Filt-Gavg','Settings',cell(1));
+                            procDetails.Settings = struct('WinSize',winsize);
                             for i = 1:length(data_idx)
-                                if isempty(procDatanames)
-                                    procDatanames = {['GaussAvg(win:',num2str(winsize),')| ',...
-                                        datanames{data_idx(i)}]};
-                                elseif ~isempty(procDatanames)
-                                    switch selectedButt
-                                        case 'Raw data'
-                                            procDatanames = [procDatanames,...
-                                                ['GaussAvg(win:',num2str(winsize),')| ',...
-                                                datanames{data_idx(i)}]];
-                                        case 'Processed data'
-                                            procDatanames = [procDatanames,...
-                                                ['GaussAvg(win:',num2str(winsize),')| ',...
-                                                procDatanames{data_idx(i)}]];
-                                    end
-                                end
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
+                            
+                            txt4name = ['GaussAvg(win:',num2str(winsize),')'];
+                            
                     end
             end
             
+            for i = 1:length(data_idx)
+                if isempty(procDatanames)
+                    procDatanames = {[txt4name,' | ',...
+                        datanames{data_idx(i)}]};
+                elseif ~isempty(procDatanames)
+                    switch selectedButt
+                        case 'Raw data'
+                            procDatanames = [procDatanames,...
+                                [txt4name,' | ',...
+                                datanames{data_idx(i)}]];
+                        case 'Processed data'
+                            procDatanames = [procDatanames,...
+                                [txt4name,' | ',...
+                                procDatanames{data_idx(i)}]];
+                    end
+                end
+            end
+            
             guiobj.imaging_procced = [guiobj.imaging_procced; procc];
+            guiobj.imaging_proccedInfo = [guiobj.imaging_proccedInfo; newProcInfo];
             guiobj.imag_proc_datanames = procDatanames;
             guiobj.imagingProcListBox2.String = procDatanames;
+            
+            guiobj.imagingRunProcButton.BackgroundColor = 'g';
         end
         
         %% Callback to monitor radiobutton press
@@ -4688,7 +4669,7 @@ classdef DAS < handle
             
             % Create imagingFiltSettingsPanel
             guiobj.imagingFiltSettingsPanel = uipanel(guiobj.imagingProcTab,...
-                'Position',[0.01, 0.5, 0.3, 0.4],...
+                'Position',[0.01, 0.6, 0.3, 0.3],...
                 'Title','Filtering settings',...
                 'Visible','off');
             
@@ -4702,19 +4683,21 @@ classdef DAS < handle
             guiobj.imagingFiltWinSizeText = uicontrol(guiobj.imagingFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.3, 0.85, 0.15, 0.1],...
+                'Position',[0.3, 0.85, 0.3, 0.1],...
                 'String','Window size in samples',...
                 'Visible','off');
             guiobj.imagingFiltWinSizeEdit = uicontrol(guiobj.imagingFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
-                'Position',[0.45, 0.85, 0.1, 0.1],...
+                'Position',[0.65, 0.85, 0.1, 0.1],...
                 'Visible','off');
-            guiobj.imagingRunFiltButton = uicontrol(guiobj.imagingFiltSettingsPanel,...
+            
+            guiobj.imagingRunProcButton = uicontrol(guiobj.imagingProcTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.85, 0.01, 0.1, 0.1],...
-                'String','Run filter',...
+                'Position',[0.2, 0.5, 0.1, 0.05],...
+                'String','Run',...
+                'BackgroundColor','g',...
                 'Callback',@(h,e) guiobj.imagingRunProc);
             
             % Create axes
