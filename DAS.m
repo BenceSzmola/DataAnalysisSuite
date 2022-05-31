@@ -129,8 +129,8 @@ classdef DAS < handle
         
         %% Members of eventDetTab
         ephysDetPopMenu
-        ephysDetChSelLabel
         ephysDetChSelListBox
+        ephysDetUseProcDataCheckBox
         ephysDetRefChanLabel
         ephysDetRefChanEdit
         ephysDetArtSuppPopMenu
@@ -1537,6 +1537,58 @@ classdef DAS < handle
             end
         end
         
+        %%
+        function selInds = makeProcDataSelFig(guiobj,dTyp)
+            if dTyp == 1
+                procInfo = guiobj.ephys_proccedInfo;
+                chanTxt = 'Channel';
+            elseif dTyp == 2
+                procInfo = guiobj.imaging_proccedInfo;
+                chanTxt = 'ROI';
+            end
+            
+            fig = figure('NumberTitle','off','Name','Select processed data for detection');
+            
+            listboxString = cell(1,length(procInfo));
+            for i = 1:length(procInfo)
+                ch = struct2cell(procInfo(i));
+                ch = ch{1};
+                numProcs = length(procInfo(i).ProcDetails);
+                procTxt = [chanTxt,'#',num2str(ch),' | '];
+                for j = 1:numProcs
+                    procTxt = [procTxt,procInfo(i).ProcDetails(j).Type,', '];
+                    fields = fieldnames(procInfo(i).ProcDetails(j).Settings);
+                    vals = struct2cell(procInfo(i).ProcDetails(j).Settings);
+                    for k = 1:length(fields)
+                        if ~ischar(vals{k})
+                                currVal = num2str(vals{k});
+                        else
+                                currVal = vals{k};
+                        end
+                        procTxt = [procTxt,fields{k},'=',currVal,' | '];
+                    end
+                    procTxt = [procTxt,' || '];
+                end
+                listboxString{i} = procTxt;
+            end
+            selList = uicontrol(fig,...
+                'Style','listbox',...
+                'Units','normalized',...
+                'Position',[0.01, 0.1, 0.98, 0.89],...
+                'String',listboxString,...
+                'Max',2);
+            
+            uicontrol(fig,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.8, 0.01, 0.19, 0.05],...
+                'String','Use selected data',...
+                'Callback','uiresume');
+            uiwait
+            selInds = selList.Value;
+            close(fig)
+        end
+        
     end
     
     %% Callback functions
@@ -2510,7 +2562,7 @@ classdef DAS < handle
                             for i = 1:length(data_idx)
                                 newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
-                            txt4name = sprintf('Periodic @%.2f',num2str(f_fund));
+                            txt4name = sprintf('Periodic @%.2f',f_fund);
                     end
                     
                     
@@ -2740,13 +2792,34 @@ classdef DAS < handle
         end
         
         %%
+        function ephysDetUseProcDataCheckBoxCB(guiobj)
+            % disable channel selection listbox if processed data selection is enabled
+            if guiobj.ephysDetUseProcDataCheckBox.Value
+               guiobj.ephysDetChSelListBox.Enable = 'off';
+            else
+               guiobj.ephysDetChSelListBox.Enable = 'on';                
+            end
+            
+            
+        end
+        
+        %%
         function ephysDetRun(guiobj)
             guiobj.ephysDetStatusLabel.String = 'Detection running';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'r';
             drawnow
             
-            chan = guiobj.ephysDetChSelListBox.Value;
-            data = guiobj.ephys_data(chan,:);
+            % check whether the raw or processed data should be used
+            if ~guiobj.ephysDetUseProcDataCheckBox.Value
+                chan = guiobj.ephysDetChSelListBox.Value;
+                data = guiobj.ephys_data(chan,:);
+            else
+                selInds = makeProcDataSelFig(guiobj,1);
+                data = guiobj.ephys_procced(selInds,:);
+                chan = [guiobj.ephys_proccedInfo(selInds).Channel];
+                guiobj.ephys_artSupp4Det = 4;
+                detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
+            end
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
@@ -2794,30 +2867,34 @@ classdef DAS < handle
                 return
             end
             
-            switch guiobj.ephysDetArtSuppPopMenu.Value 
-                case 1 % no artifact suppression
-                    guiobj.ephys_artSupp4Det = 0;
-                    detinfo.DetSettings.ArtSupp = 'None';
-                case 2 % periodic
-                    data_cl = periodicNoise(guiobj.ephys_data,fs);
-                    data = data_cl(chan,:);
-                    guiobj.ephys_artSupp4Det = 1;
-                    detinfo.DetSettings.ArtSupp = 'Periodic';
-                case 3 % wICA
-                    data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                    data = data_cl(chan,:);
-                    guiobj.ephys_artSupp4Det = 2;
-                    detinfo.DetSettings.ArtSupp = 'wICA';
-                case 4 % ref chan subtract
-                    data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                    data = data_cl(chan,:);
-                    guiobj.ephys_artSupp4Det = 3;
-                    detinfo.DetSettings.ArtSupp = 'RefSubtract';
-            end
-            if guiobj.ephys_artSupp4Det ~= 0
-                guiobj.ephys_artSuppedData4Det = data_cl;
+            if guiobj.ephysDetUseProcDataCheckBox.Value
+                guiobj.ephys_artSuppedData4Det = data;
             else
-                guiobj.ephys_artSuppedData4Det = [];
+                switch guiobj.ephysDetArtSuppPopMenu.Value 
+                    case 1 % no artifact suppression
+                        guiobj.ephys_artSupp4Det = 0;
+                        detinfo.DetSettings.ArtSupp = 'None';
+                    case 2 % periodic
+                        data_cl = periodicNoise(guiobj.ephys_data,fs);
+                        data = data_cl(chan,:);
+                        guiobj.ephys_artSupp4Det = 1;
+                        detinfo.DetSettings.ArtSupp = 'Periodic';
+                    case 3 % wICA
+                        data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
+                        data = data_cl(chan,:);
+                        guiobj.ephys_artSupp4Det = 2;
+                        detinfo.DetSettings.ArtSupp = 'wICA';
+                    case 4 % ref chan subtract
+                        data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
+                        data = data_cl(chan,:);
+                        guiobj.ephys_artSupp4Det = 3;
+                        detinfo.DetSettings.ArtSupp = 'RefSubtract';
+                end
+                if guiobj.ephys_artSupp4Det ~= 0
+                    guiobj.ephys_artSuppedData4Det = data_cl;
+                else
+                    guiobj.ephys_artSuppedData4Det = [];
+                end
             end
             
             % recompute the ephys data types
@@ -4716,22 +4793,23 @@ classdef DAS < handle
             guiobj.ephysDetPopMenu = uicontrol(guiobj.eventDetTab,...
                 'Style','popupmenu',...
                 'Units','normalized',...
-                'Position',[0.01, 0.89, 0.1, 0.1],...
+                'Position',[0.01, 0.94, 0.1, 0.05],...
                 'String',{'--Ephys detection methods--','CWT based',...
                 'Adaptive threshold','DoG+InstPow'},...
                 'Callback',@(h,e) guiobj.ephysDetPopMenuSelected);
             
-            guiobj.ephysDetChSelLabel = uicontrol(guiobj.eventDetTab,...
-                'Style','text',...
-                'Units','normalized',...
-                'Position',[0.01, 0.82, 0.1, 0.1],...
-                'String','Channel selection');
             guiobj.ephysDetChSelListBox = uicontrol(guiobj.eventDetTab,...
                 'Style','listbox',...
                 'Units','normalized',...
-                'Position',[0.01, 0.78, 0.1, 0.15],...
+                'Position',[0.01, 0.785, 0.1, 0.15],...
                 'String',{'--Select channel--'},...
                 'Max',2);
+            guiobj.ephysDetUseProcDataCheckBox = uicontrol(guiobj.eventDetTab,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.01, 0.76, 0.1, 0.025],...
+                'String','Select from processed',...
+                'Callback',@(h,e) guiobj.ephysDetUseProcDataCheckBoxCB);
             
             guiobj.ephysDetRefChanLabel = uicontrol(guiobj.eventDetTab,...
                 'Style','text',...
@@ -4929,13 +5007,13 @@ classdef DAS < handle
             guiobj.ephysDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.01, 0.72, 0.1, 0.05],...
+                'Position',[0.01, 0.705, 0.1, 0.05],...
                 'String','Run ephys detection',...
                 'Callback',@(h,e) guiobj.ephysDetRun);
             guiobj.ephysDetStatusLabel = uicontrol(guiobj.eventDetTab,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.665, 0.1, 0.05],...
+                'Position',[0.01, 0.65, 0.1, 0.05],...
                 'String','--IDLE--',...
                 'BackgroundColor','g');
             
