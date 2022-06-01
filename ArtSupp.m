@@ -299,7 +299,7 @@ switch meth
         title('reconstructed lfp')
         linkaxes([ax1,ax2],'x')
         
-    case 1
+    case {1,'wICA'}
         %% Different kind of wICA (preferred kind)
         
         lvl = 14;
@@ -522,7 +522,7 @@ switch meth
 %         title('DoG of refchan')
 %         linkaxes([sp1,sp2,sp3,sp4],'x')
         
-    case 2
+    case {2,'classic ref subtract'}
         %% classic refchan subtraction
         if nargin < 4
             refchan = inputdlg('# of reference channel');

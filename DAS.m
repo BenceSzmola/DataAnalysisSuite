@@ -1585,6 +1585,12 @@ classdef DAS < handle
                 'String','Use selected data',...
                 'Callback','uiresume');
             uiwait
+            
+            if ~ishandle(fig)
+                selInds = [];
+                return
+            end
+            
             selInds = selList.Value;
             close(fig)
         end
@@ -2567,18 +2573,40 @@ classdef DAS < handle
                     
                     
                 case 'Artifact Suppression'
-                    procDetails = struct('Type','ArtSupp','Settings',cell(1));
-                    [procced,settingStr] = artSuppMaster(data,guiobj.ephys_taxis,guiobj.ephys_fs);
-                    if isempty(procced)
-                        guiobj.ephysRunProcButton.BackgroundColor = 'g';
-                        return
-                    end
-                    procDetails.Settings = settingStr;
-                    for i = 1:length(data_idx)
-                        newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
-                    end
-                    txt4name = 'ArtSupp';
+                    artSuppType = guiobj.ephysArtSuppTypePopMenu.Value;
+                    artSuppName = guiobj.ephysArtSuppTypePopMenu.String{artSuppType};
                     
+                    switch artSuppName
+                        case 'DFER'
+                            procDetails = struct('Type','DFER','Settings',cell(1));
+                            [procced,settingStr] = artSuppMaster(data,guiobj.ephys_taxis,guiobj.ephys_fs);
+                            if isempty(procced)
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end
+                            procDetails.Settings = settingStr;
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                            end
+                            txt4name = 'DFER';
+                        case {'wICA','classic ref subtract'}
+                            refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
+                            procced = ArtSupp(data,guiobj.ephys_fs,artSuppName,refChan);
+                            if isempty(procced)
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end
+                            procDetails = struct('Type',artSuppName,'Settings',cell(1));
+                            procDetails.Settings = struct('RefCh',refChan);
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                            end
+                            if strcmp('wICA',artSuppName)
+                                txt4name = 'wICA';
+                            else
+                                txt4name = 'refSubstr';
+                            end
+                    end
                 case 'Compute FFT'
                     freqspec(data,guiobj.ephys_fs,1,0,1000)
                     
@@ -2816,9 +2844,29 @@ classdef DAS < handle
             % check whether the raw or processed data should be used
             if ~guiobj.ephysDetUseProcDataCheckBox.Value
                 chan = guiobj.ephysDetChSelListBox.Value;
+                if isempty(chan)
+                    ed = errordlg('No channel selected!');
+                    pause(1)
+                    if ishandle(ed)
+                        close(ed)
+                    end
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                end
                 data = guiobj.ephys_data(chan,:);
             else
                 selInds = makeProcDataSelFig(guiobj,1);
+                if isempty(selInds)
+                    ed = errordlg('No channel selected!');
+                    pause(1)
+                    if ishandle(ed)
+                        close(ed)
+                    end
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                end
                 data = guiobj.ephys_procced(selInds,:);
                 chan = [guiobj.ephys_proccedInfo(selInds).Channel];
                 guiobj.ephys_artSupp4Det = 4;
@@ -4669,7 +4717,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
-                'String',{'wICA','classic ref subtract'});
+                'String',{'wICA','classic ref subtract','DFER'});
             guiobj.ephysArtSuppRefChanLabel = uicontrol(guiobj.ephysArtSuppPanel,...
                 'Style','text',...
                 'Units','normalized',...
