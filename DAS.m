@@ -2569,6 +2569,10 @@ classdef DAS < handle
                 case 'Artifact Suppression'
                     procDetails = struct('Type','ArtSupp','Settings',cell(1));
                     [procced,settingStr] = artSuppMaster(data,guiobj.ephys_taxis,guiobj.ephys_fs);
+                    if isempty(procced)
+                        guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                        return
+                    end
                     procDetails.Settings = settingStr;
                     for i = 1:length(data_idx)
                         newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
