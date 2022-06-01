@@ -22,8 +22,9 @@ classdef DAS < handle
         showXtraDetFigsMenu
         showEventSpectroMenu
         
-        MakewindowlargerMenu
-        MakewindowsmallerMenu
+        procDataMenu
+        showEphysProcInfoMenu
+        showImagingProcInfoMenu
         
         SaveMenu
         SaveDetsMenu
@@ -1538,16 +1539,30 @@ classdef DAS < handle
         end
         
         %%
-        function selInds = makeProcDataSelFig(guiobj,dTyp)
+        function selInds = makeProcDataSelFig(guiobj,dTyp,selMode)
+            if nargin < 3
+                selMode = true;
+            end
             if dTyp == 1
                 procInfo = guiobj.ephys_proccedInfo;
                 chanTxt = 'Channel';
+                dTypTxt = 'ephys';
             elseif dTyp == 2
                 procInfo = guiobj.imaging_proccedInfo;
                 chanTxt = 'ROI';
+                dTypTxt = 'imaging';
             end
             
-            fig = figure('NumberTitle','off','Name','Select processed data for detection');
+            if selMode
+                figTitle = ['Select processed ',dTypTxt,' data for detection'];
+            else
+                figTitle = ['Processed ',dTypTxt,' data in memory'];
+            end
+            fig = figure('NumberTitle','off',...
+                'Name',figTitle,...
+                'Units','normalized',...
+                'Position',[0.2, 0.4, 0.6, 0.3],...
+                'MenuBar','none');
             
             listboxString = cell(1,length(procInfo));
             for i = 1:length(procInfo)
@@ -1577,22 +1592,23 @@ classdef DAS < handle
                 'Position',[0.01, 0.1, 0.98, 0.89],...
                 'String',listboxString,...
                 'Max',2);
-            
-            uicontrol(fig,...
-                'Style','pushbutton',...
-                'Units','normalized',...
-                'Position',[0.8, 0.01, 0.19, 0.05],...
-                'String','Use selected data',...
-                'Callback','uiresume');
-            uiwait
-            
-            if ~ishandle(fig)
-                selInds = [];
-                return
+            if selMode
+                uicontrol(fig,...
+                    'Style','pushbutton',...
+                    'Units','normalized',...
+                    'Position',[0.8, 0.01, 0.19, 0.05],...
+                    'String','Use selected data',...
+                    'Callback','uiresume');
+                uiwait
+
+                if ~ishandle(fig)
+                    selInds = [];
+                    return
+                end
+
+                selInds = selList.Value;
+                close(fig)
             end
-            
-            selInds = selList.Value;
-            close(fig)
         end
         
     end
@@ -4355,6 +4371,15 @@ classdef DAS < handle
             guiobj.runPosModeMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'MenuSelectedFcn',@(h,e) guiobj.runPosModeMenuSelected,...
                 'Text','Switch position axes mode (absolute/relative)');
+            
+            guiobj.procDataMenu = uimenu(guiobj.mainfig,...
+                'Text','Processed data options');
+            guiobj.showEphysProcInfoMenu = uimenu(guiobj.procDataMenu,...
+                'Text','Show info on processed ephys data',...
+                'MenuSelectedFcn',@(h,e) guiobj.makeProcDataSelFig(1,false));
+            guiobj.showImagingProcInfoMenu = uimenu(guiobj.procDataMenu,...
+                'Text','Show info on processed imaging data',...
+                'MenuSelectedFcn',@(h,e) guiobj.makeProcDataSelFig(2,false));
             
             guiobj.EvDetTabOptionsMenu = uimenu(guiobj.mainfig,...
                 'Text','EventDetTab Options');
