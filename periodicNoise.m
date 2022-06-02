@@ -243,7 +243,9 @@ if ~f_fund_given
         progBarPlot.Position = [0, 0, 1, 0.1]; 
         progBarText.String = ['Ch#',num2str(i),' - found the fundamental frequency!...'];
         feedbackText_old = feedbackText.String;
-        feedbackText.String = [feedbackText_old; strcat("Ch#",num2str(i)," fund freq = ",num2str(f_fund(i))," Hz")]; drawnow
+        feedbackText.String = [strcat("Ch#",num2str(i)," fund freq = ",num2str(f_fund(i))," Hz"); feedbackText_old];
+        drawnow
+
         fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))
     end
     if length(unique(round(f_fund/2)*2)) > 1
@@ -259,7 +261,7 @@ if ~f_fund_given
     progBarPlot.Position = [0, 0, 1, 0.1]; 
     progBarText.String = ['Done with all channels!'];
     feedbackText_old = feedbackText.String;
-    feedbackText.String = [feedbackText_old; strcat("Overall fund freq = ",num2str(f_fund)," Hz")]; drawnow
+    feedbackText.String = [strcat("Overall fund freq = ",num2str(f_fund)," Hz"); feedbackText_old]; drawnow
 %     delete(progRepFig)
 end
     
@@ -330,12 +332,14 @@ end
             'String', 'Initializing...');
         
         feedbackText = uicontrol(progRepFig,...
-            'Style', 'text',...
+            'Style', 'edit',...
             'Units', 'normalized',...
-            'Position', [0.1, 0.1, 0.8, 0.45]);
+            'Position', [0.1, 0.1, 0.8, 0.45],...
+            'Max', 2,...
+            'Enable','inactive');
         
         progRepFig.Visible = 'on';
+        
     end
-
 
 end
