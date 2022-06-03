@@ -261,7 +261,7 @@ classdef DAS < handle
         % Info on processed data
         ephys_proccedInfo = struct('Channel',{},'ProcDetails',{});
         ephys_artSupp4Det = 0;
-        ephys_artSuppedData4Det
+        ephys_artSuppedData4DetListInds
         ephys_detections                    % Location of detections on time axis
         ephys_detBorders
         ephys_detectionsInfo
@@ -293,9 +293,9 @@ classdef DAS < handle
         imaging_taxis                       % Time axis for imaging data
         imaging_fs                          % Sampling frequency of imaging data
         imaging_ylabel = '\DeltaF/F';
-        imag_select                         % Currently selected ROI
-        imag_datanames = {};              % Names of the imported imaging data
-        imag_proc_datanames = {};
+        imaging_select                         % Currently selected ROI
+        imaging_datanames = {};              % Names of the imported imaging data
+        imaging_procDatanames = {};
         imaging_presets
         
         run_absPos                          % absolute position
@@ -450,7 +450,7 @@ classdef DAS < handle
                     if ~isempty(rawInds)
                         plot(ax,guiobj.imaging_taxis,guiobj.imaging_data(rawInds,:))
                         hold(ax,'on')
-                        dataname = guiobj.imag_datanames(rawInds);
+                        dataname = guiobj.imaging_datanames(rawInds);
                     end
                     if ~isempty(procInds)
                         plot(ax,guiobj.imaging_taxis,guiobj.imaging_procced(procInds,:))
@@ -463,11 +463,11 @@ classdef DAS < handle
                     if ax == guiobj.axesImagingProc1
                         plot(ax,guiobj.imaging_taxis,...
                             guiobj.imaging_data(index,:))
-                        dataname = guiobj.imag_datanames(index);
+                        dataname = guiobj.imaging_datanames(index);
                     elseif ax == guiobj.axesImagingProc2
                         plot(ax,guiobj.imaging_taxis,...
                             guiobj.imaging_procced(index,:))
-                        dataname = guiobj.imag_proc_datanames(index);
+                        dataname = guiobj.imaging_procDatanames(index);
                     end
             end
             
@@ -589,7 +589,7 @@ classdef DAS < handle
                                 guiobj.ephys_select)
                         elseif guiobj.datatyp(2)
                             imagingplot(guiobj,guiobj.axes21,...
-                                guiobj.imag_select)
+                                guiobj.imaging_select)
                         end
                     case 3
                         guiobj.Panel1Plot.Visible = 'off';
@@ -600,7 +600,7 @@ classdef DAS < handle
                         runvelocplot(guiobj)
                         
                         ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select)
-                        imagingplot(guiobj,guiobj.axes32,guiobj.imag_select)
+                        imagingplot(guiobj,guiobj.axes32,guiobj.imaging_select)
                 end
             elseif ~guiobj.runCheckBox.Value
                 switch sum(guiobj.datatyp)
@@ -619,7 +619,7 @@ classdef DAS < handle
                                 guiobj.ephys_select)
                         elseif guiobj.datatyp(2)
                             imagingplot(guiobj,guiobj.axes11,...
-                                guiobj.imag_select)
+                                guiobj.imaging_select)
                         end
                     case 2
                         guiobj.Panel1Plot.Visible = 'off';
@@ -632,7 +632,7 @@ classdef DAS < handle
                         guiobj.Panel3Plot.Visible = 'off';
                         
                         ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select)
-                        imagingplot(guiobj,guiobj.axes22,guiobj.imag_select)
+                        imagingplot(guiobj,guiobj.axes22,guiobj.imaging_select)
                     case 3
                         warndlg('Something isn''t right')
                 end
@@ -846,7 +846,7 @@ classdef DAS < handle
                             if dtyp(1)
                                 ephysplot(guiobj,guiobj.axes11,guiobj.ephys_select)
                             elseif dtyp(2)
-                                imagingplot(guiobj,guiobj.axes11,guiobj.imag_select)
+                                imagingplot(guiobj,guiobj.axes11,guiobj.imaging_select)
                             elseif dtyp(3)
                                 runposplot(guiobj)
                                 runvelocplot(guiobj)
@@ -856,9 +856,9 @@ classdef DAS < handle
                                 ephysplot(guiobj,guiobj.axes21,guiobj.ephys_select)
                             end
                             if dtyp(2) && dtyp(1)
-                                imagingplot(guiobj,guiobj.axes22,guiobj.imag_select)
+                                imagingplot(guiobj,guiobj.axes22,guiobj.imaging_select)
                             elseif dtyp(2) && ~dtyp(1)
-                                imagingplot(guiobj,guiobj.axes21,guiobj.imag_select)
+                                imagingplot(guiobj,guiobj.axes21,guiobj.imaging_select)
                             end
                             if dtyp(3)
                                 runposplot(guiobj)
@@ -866,7 +866,7 @@ classdef DAS < handle
                             end
                         case 3
                             ephysplot(guiobj,guiobj.axes31,guiobj.ephys_select)
-                            imagingplot(guiobj,guiobj.axes32,guiobj.imag_select)
+                            imagingplot(guiobj,guiobj.axes32,guiobj.imaging_select)
                             runposplot(guiobj)
                             runvelocplot(guiobj)
                     end
@@ -905,7 +905,7 @@ classdef DAS < handle
                             if guiobj.ephys_artSupp4Det == 0
                                 data = guiobj.ephys_data;
                             else
-                                data = guiobj.ephys_artSuppedData4Det;
+                                data = guiobj.ephys_procced;
                             end
                         case 2
                             data = guiobj.ephys_dogged;
@@ -937,6 +937,20 @@ classdef DAS < handle
             end
             
             [numDets,~,detNum,detInd,detBorders,chan,detParams] = extractDetStructs(guiobj,dTyp);
+            if dTyp == 1
+                if guiobj.ephys_artSupp4Det == 0
+                    chanName = chan;
+                    chanInd = chan;
+                else
+                    chanName = chan;
+                    temp = guiobj.ephys_proccedInfo(guiobj.ephys_artSuppedData4DetListInds);
+                    chanInd = find([temp.Channel] == chanName);
+                end
+            end
+            if dTyp == 2
+                chanName = chan;
+                chanInd = chan;
+            end
             if guiobj.evDetTabSimultMode
                 if dTyp == 1
                     simDtyp = 2;
@@ -950,7 +964,7 @@ classdef DAS < handle
                 [~,~,~,simDetInd,simDetBorders,~,~] = extractDetStructs(guiobj,simDtyp);
             end
             
-            axYMinMax = [min(data(chan,:)), max(data(chan,:))];
+            axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
             
             switch dTyp
                 case 1
@@ -997,27 +1011,27 @@ classdef DAS < handle
                 end
                 if (winStart>0) & (winEnd <= length(taxis))
                     tWin = taxis(winStart:winEnd);
-                    dataWin = data(chan,winStart:winEnd);
+                    dataWin = data(chanInd,winStart:winEnd);
                     winInds = winStart:winEnd;
                 elseif winStart <= 0
                     tWin = taxis(1:winEnd);
-                    dataWin = data(chan,1:winEnd);
+                    dataWin = data(chanInd,1:winEnd);
                     winInds = 1:winEnd;
                 elseif winEnd > length(taxis)
                     tWin = taxis(winStart:end);
-                    dataWin = data(chan,winStart:end);
+                    dataWin = data(chanInd,winStart:end);
                     winInds = winStart:length(taxis);
                 end
             else
                 if (detInd-win > 0) & (detInd+win <= length(taxis))
                     tWin = taxis(detInd-win:detInd+win);
-                    dataWin = data(chan,detInd-win:detInd+win);
+                    dataWin = data(chanInd,detInd-win:detInd+win);
                 elseif detInd-win <= 0
                     tWin = taxis(1:detInd+win);
-                    dataWin = data(chan,1:detInd+win);
+                    dataWin = data(chanInd,1:detInd+win);
                 elseif detInd+win > length(taxis)
                     tWin = taxis(detInd-win:end);
-                    dataWin = data(chan,detInd-win:end);
+                    dataWin = data(chanInd,detInd-win:end);
                 end
             end
             
@@ -1031,7 +1045,7 @@ classdef DAS < handle
                     warning('Cutoff frequencies set to default 150-250')
                 end
                 
-                spectrogramMacher(guiobj.ephys_data(chan,winInds),fs,w1,w2)
+                spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
                 
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
@@ -1053,10 +1067,10 @@ classdef DAS < handle
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
                 if ~guiobj.evDetTabSimultMode
-                    title(ax,[plotTitle,num2str(chan),'      Detection #',num2str(detNum),...
+                    title(ax,[plotTitle,num2str(chanName),'      Detection #',num2str(detNum),...
                         '/',num2str(numDets)])
                 else
-                    title(ax,[plotTitle,num2str(chan),'      Simultan Detection #',num2str(simultDetNum),...
+                    title(ax,[plotTitle,num2str(chanName),'      Simultan Detection #',num2str(simultDetNum),...
                         '/',num2str(numDets),' (nonSimult #',num2str(detNum),')'])
                 end
             end
@@ -1485,7 +1499,7 @@ classdef DAS < handle
             if guiobj.ephys_artSupp4Det == 0
                 ephysData4Dets = guiobj.ephys_data;
             else 
-                ephysData4Dets = guiobj.ephys_artSuppedData4Det;
+                ephysData4Dets = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
             end
 
             guiobj.ephys_dogged = DoG(ephysData4Dets,guiobj.ephys_fs,...
@@ -1786,7 +1800,7 @@ classdef DAS < handle
                 elseif guiobj.datatyp(2)
                     guiobj.DatasetListBox.String = datanames(dtyp==2);
                     guiobj.ImagingListBox.String = datanames(dtyp==2);
-                    guiobj.imag_datanames = datanames(dtyp==2);
+                    guiobj.imaging_datanames = datanames(dtyp==2);
                     if length(get(wsgors(find(dtyp==2,1)),'x')) == 2
                         taxis = get(wsgors(find(dtyp==2,1)),'x')*...
                             (10^-3/guiobj.timedim);
@@ -1803,7 +1817,7 @@ classdef DAS < handle
 %                 guiobj.EphysListBox.String = datanames(dtyp==1);
 %                 guiobj.ephys_datanames = datanames(dtyp==1);
 %                 guiobj.ImagingListBox.String = datanames(dtyp==2);
-%                 guiobj.imag_datanames = datanames(dtyp==2);
+%                 guiobj.imaging_datanames = datanames(dtyp==2);
                 
                 if ~isempty(find(dtyp==1, 1))
                     guiobj.EphysListBox.String = datanames(dtyp==1);
@@ -1830,7 +1844,7 @@ classdef DAS < handle
                 
                 if ~isempty(find(dtyp==2,1))
                     guiobj.ImagingListBox.String = datanames(dtyp==2);
-                    guiobj.imag_datanames = datanames(dtyp==2);
+                    guiobj.imaging_datanames = datanames(dtyp==2);
                 
 %                     taxis = get(wsgors(find(dtyp==2,1)),'x')*...
 %                         (10^-3/guiobj.timedim);
@@ -1963,7 +1977,7 @@ classdef DAS < handle
             
             guiobj.imaging_taxis = taxisInterp;
             
-            guiobj.imag_datanames = datanames;
+            guiobj.imaging_datanames = datanames;
             guiobj.ImagingListBox.String = datanames;
             
             setXlims(guiobj)
@@ -2045,7 +2059,7 @@ classdef DAS < handle
             if guiobj.datatyp(1)
                 guiobj.ephys_select = index;
             elseif guiobj.datatyp(2)
-                guiobj.imag_select = index;
+                guiobj.imaging_select = index;
             end
 
             smartplot(guiobj)
@@ -2101,7 +2115,7 @@ classdef DAS < handle
                         guiobj.ephysProcListBox2.String];
                     guiobj.EphysListBox.String = ephys_names;
 
-                    imag_names = [guiobj.imag_datanames';...
+                    imag_names = [guiobj.imaging_datanames';...
                         guiobj.imagingProcListBox2.String];
                     guiobj.ImagingListBox.String = imag_names;
                 elseif guiobj.datatyp(1)
@@ -2109,7 +2123,7 @@ classdef DAS < handle
                         guiobj.ephysProcListBox2.String];
                     guiobj.DatasetListBox.String = names;
                 elseif guiobj.datatyp(2)
-                    names = [guiobj.imag_datanames';...
+                    names = [guiobj.imaging_datanames';...
                         guiobj.imagingProcListBox2.String];
                     guiobj.DatasetListBox.String = names;
                 end
@@ -2122,20 +2136,20 @@ classdef DAS < handle
                     guiobj.EphysListBox.Value = 1;
                     guiobj.ephys_select = 1;
 
-                    imag_names = guiobj.imag_datanames(1:size(guiobj.imaging_data,1))';
+                    imag_names = guiobj.imaging_datanames(1:size(guiobj.imaging_data,1))';
                     guiobj.ImagingListBox.String = imag_names;
                     guiobj.ImagingListBox.Value = 1;
-                    guiobj.imag_select = 1;
+                    guiobj.imaging_select = 1;
                 elseif guiobj.datatyp(1)
                     names = guiobj.ephys_datanames(1:size(guiobj.ephys_data,1))';
                     guiobj.DatasetListBox.String = names;
                     guiobj.DatasetListBox.Value = 1;
                     guiobj.ephys_select = 1;
                 elseif guiobj.datatyp(2)
-                    names = guiobj.imag_datanames(1:size(guiobj.imaging_data,1))';
+                    names = guiobj.imaging_datanames(1:size(guiobj.imaging_data,1))';
                     guiobj.DatasetListBox.String = names;
                     guiobj.DatasetListBox.Value = 1;
-                    guiobj.imag_select = 1;
+                    guiobj.imaging_select = 1;
                 end
                 
                 guiobj.showProcDataMenu.Checked = 'off';
@@ -2292,7 +2306,7 @@ classdef DAS < handle
             if value && guiobj.imagingCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'off';
                 guiobj.EphysListBox.String = guiobj.ephys_datanames;
-                guiobj.ImagingListBox.String = guiobj.imag_datanames;
+                guiobj.ImagingListBox.String = guiobj.imaging_datanames;
                 guiobj.Dataselection2Panel.Visible = 'on';
             elseif value && ~guiobj.imagingCheckBox.Value
                 guiobj.Dataselection2Panel.Visible = 'off';
@@ -2300,7 +2314,7 @@ classdef DAS < handle
                 guiobj.Dataselection1Panel.Visible = 'on';                
             elseif ~value && guiobj.imagingCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
-                guiobj.DatasetListBox.String = guiobj.imag_datanames;
+                guiobj.DatasetListBox.String = guiobj.imaging_datanames;
                 guiobj.Dataselection2Panel.Visible = 'off';
             elseif ~value && ~guiobj.imagingCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
@@ -2329,11 +2343,11 @@ classdef DAS < handle
             if value && guiobj.ephysCheckBox.Value
                 guiobj.Dataselection2Panel.Visible = 'on';
                 guiobj.EphysListBox.String = guiobj.ephys_datanames;
-                guiobj.ImagingListBox.String = guiobj.imag_datanames;
+                guiobj.ImagingListBox.String = guiobj.imaging_datanames;
                 guiobj.Dataselection1Panel.Visible = 'off';
             elseif value && ~guiobj.ephysCheckBox.Value
                 guiobj.Dataselection1Panel.Visible = 'on';
-                guiobj.DatasetListBox.String = guiobj.imag_datanames;
+                guiobj.DatasetListBox.String = guiobj.imaging_datanames;
                 guiobj.DatasetListBox.Value = 1;
                 guiobj.Dataselection2Panel.Visible = 'off';
             elseif ~value && guiobj.ephysCheckBox.Value
@@ -2382,7 +2396,7 @@ classdef DAS < handle
         %% Value changed function: ImagingListBox
         function ImagingListBoxValueChanged(guiobj)
             index = guiobj.ImagingListBox.Value;
-            guiobj.imag_select = index;
+            guiobj.imaging_select = index;
             
             smartplot(guiobj)
             
@@ -2417,12 +2431,12 @@ classdef DAS < handle
                         end
                         
                     case guiobj.tabs.Children(3)
-                        guiobj.imagingProcListBox.String = guiobj.imag_datanames;
-                        if guiobj.imag_select...
+                        guiobj.imagingProcListBox.String = guiobj.imaging_datanames;
+                        if guiobj.imaging_select...
                                 <= size(guiobj.imaging_data,1)
-                            guiobj.imagingProcListBox.Value = guiobj.imag_select;
+                            guiobj.imagingProcListBox.Value = guiobj.imaging_select;
                         else
-                            guiobj.imag_select = 1;
+                            guiobj.imaging_select = 1;
                             guiobj.imagingProcListBox.Value = 1;
                         end
                         
@@ -2515,14 +2529,27 @@ classdef DAS < handle
         end
         
         %%
-        function ephysRunProc(guiobj)
+        function ephysRunProc(guiobj,callFromDetRun)
             guiobj.ephysRunProcButton.BackgroundColor = 'r';
             
-            selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
-            selectedButt = selectedButt.String;
+            if (nargin == 2) && isstruct(callFromDetRun)
+                selectedButt = 'Raw data';
+                data_idx = callFromDetRun.data_idx;
+                procGrp = callFromDetRun.procGrp;
+                filtype = callFromDetRun.filtype;
+                artSuppName = callFromDetRun.artSuppName;
+                refChan = callFromDetRun.refChan;
+            end
+            
+            if nargin == 1
+                selectedButt = guiobj.ephysProcSrcButtGroup.SelectedObject;
+                selectedButt = selectedButt.String;
+            end
             switch selectedButt
                 case 'Raw data'
-                    data_idx = guiobj.ephysProcListBox.Value;
+                    if nargin == 1
+                        data_idx = guiobj.ephysProcListBox.Value;
+                    end
                     data = guiobj.ephys_data(data_idx,:);
                     
                     temp = num2cell(data_idx)';
@@ -2544,12 +2571,16 @@ classdef DAS < handle
             datanames = guiobj.ephys_datanames;
             procDatanames = guiobj.ephys_procdatanames;
             
-            procGrp = guiobj.ephysProcPopMenu.Value;
-            procGrp = guiobj.ephysProcPopMenu.String{procGrp};
+            if nargin == 1
+                procGrp = guiobj.ephysProcPopMenu.Value;
+                procGrp = guiobj.ephysProcPopMenu.String{procGrp};
+            end
             switch procGrp
                 case 'Filtering'
-                    filtype = guiobj.filterTypePopMenu.Value;
-                    filtype = guiobj.filterTypePopMenu.String{filtype};
+                    if nargin == 1
+                        filtype = guiobj.filterTypePopMenu.Value;
+                        filtype = guiobj.filterTypePopMenu.String{filtype};
+                    end
                     switch filtype
                         case 'DoG'
                             w1 = str2double(guiobj.w1Edit.String);
@@ -2589,8 +2620,10 @@ classdef DAS < handle
                     
                     
                 case 'Artifact Suppression'
-                    artSuppType = guiobj.ephysArtSuppTypePopMenu.Value;
-                    artSuppName = guiobj.ephysArtSuppTypePopMenu.String{artSuppType};
+                    if nargin == 1
+                        artSuppType = guiobj.ephysArtSuppTypePopMenu.Value;
+                        artSuppName = guiobj.ephysArtSuppTypePopMenu.String{artSuppType};
+                    end
                     
                     switch artSuppName
                         case 'DFER'
@@ -2606,7 +2639,9 @@ classdef DAS < handle
                             end
                             txt4name = 'DFER';
                         case {'wICA','classic ref subtract'}
-                            refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
+                            if nargin == 1
+                                refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
+                            end
                             procced = ArtSupp(data,guiobj.ephys_fs,artSuppName,refChan);
                             if isempty(procced)
                                 guiobj.ephysRunProcButton.BackgroundColor = 'g';
@@ -2748,8 +2783,8 @@ classdef DAS < handle
             
             winsize = str2double(guiobj.imagingFiltWinSizeEdit.String);
             
-            datanames = guiobj.imag_datanames;
-            procDatanames = guiobj.imag_proc_datanames;
+            datanames = guiobj.imaging_datanames;
+            procDatanames = guiobj.imaging_procDatanames;
             switch proctype
                 case 'Filtering'
                     filtype = guiobj.imagingFilterTypePopMenu.Value;
@@ -2798,7 +2833,7 @@ classdef DAS < handle
             
             guiobj.imaging_procced = [guiobj.imaging_procced; procc];
             guiobj.imaging_proccedInfo = [guiobj.imaging_proccedInfo; newProcInfo];
-            guiobj.imag_proc_datanames = procDatanames;
+            guiobj.imaging_procDatanames = procDatanames;
             guiobj.imagingProcListBox2.String = procDatanames;
             
             guiobj.imagingRunProcButton.BackgroundColor = 'g';
@@ -2885,7 +2920,7 @@ classdef DAS < handle
                 end
                 data = guiobj.ephys_procced(selInds,:);
                 chan = [guiobj.ephys_proccedInfo(selInds).Channel];
-                guiobj.ephys_artSupp4Det = 4;
+                guiobj.ephys_artSupp4Det = 1;
                 detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
             end
             fs = guiobj.ephys_fs;
@@ -2928,40 +2963,55 @@ classdef DAS < handle
             end            
             
             % Handling no input case when artsupp is enabled
-            if (guiobj.ephysDetArtSuppPopMenu.Value~=1) && (isempty(refch)||isnan(refch))
-                errordlg('Specifiy reference channel to use artifact suppression!')
+            if (ismember(guiobj.ephysDetArtSuppPopMenu.Value, [4,5])) && (isempty(refch)||isnan(refch))
+                errordlg('Specifiy reference channel to use this type of artifact suppression!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return
             end
             
+            % saving the artifact suppressed data as 
             if guiobj.ephysDetUseProcDataCheckBox.Value
-                guiobj.ephys_artSuppedData4Det = data;
+                guiobj.ephys_artSuppedData4DetListInds = selInds;
             else
                 switch guiobj.ephysDetArtSuppPopMenu.Value 
                     case 1 % no artifact suppression
                         guiobj.ephys_artSupp4Det = 0;
-                        detinfo.DetSettings.ArtSupp = 'None';
                     case 2 % periodic
-                        data_cl = periodicNoise(guiobj.ephys_data,fs);
-                        data = data_cl(chan,:);
                         guiobj.ephys_artSupp4Det = 1;
-                        detinfo.DetSettings.ArtSupp = 'Periodic';
-                    case 3 % wICA
-                        data_cl = ArtSupp(guiobj.ephys_data,fs,1,refch);
-                        data = data_cl(chan,:);
-                        guiobj.ephys_artSupp4Det = 2;
-                        detinfo.DetSettings.ArtSupp = 'wICA';
-                    case 4 % ref chan subtract
-                        data_cl = ArtSupp(guiobj.ephys_data,fs,2,refch);
-                        data = data_cl(chan,:);
-                        guiobj.ephys_artSupp4Det = 3;
-                        detinfo.DetSettings.ArtSupp = 'RefSubtract';
+                        callFromDetRun.procGrp = 'Filtering';
+                        callFromDetRun.filtype = 'Periodic';
+                        callFromDetRun.artSuppName = [];
+                        callFromDetRun.refChan = [];
+                    case 3
+                        guiobj.ephys_artSupp4Det = 1;
+                        callFromDetRun.procGrp = 'Artifact Suppression';
+                        callFromDetRun.filtype = [];
+                        callFromDetRun.artSuppName = 'DFER';
+                        callFromDetRun.refChan = [];
+                    case 4 % wICA
+                        guiobj.ephys_artSupp4Det = 1;
+                        callFromDetRun.procGrp = 'Artifact Suppression';
+                        callFromDetRun.filtype = [];
+                        callFromDetRun.artSuppName = 'wICA';
+                        callFromDetRun.refChan = refch;
+                    case 5 % ref chan subtract
+                        guiobj.ephys_artSupp4Det = 1;
+                        callFromDetRun.procGrp = 'Artifact Suppression';
+                        callFromDetRun.filtype = [];
+                        callFromDetRun.artSuppName = 'classic ref subtract';
+                        callFromDetRun.refChan = refch;
                 end
                 if guiobj.ephys_artSupp4Det ~= 0
-                    guiobj.ephys_artSuppedData4Det = data_cl;
+                    callFromDetRun.data_idx = chan;
+                    ephysRunProc(guiobj,callFromDetRun)
+                    temp = 1:size(guiobj.ephys_procced, 1);
+                    selInds = temp(end - (length(chan)-1):end);
+                    guiobj.ephys_artSuppedData4DetListInds = selInds;
+                    data = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
+                    detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
                 else
-                    guiobj.ephys_artSuppedData4Det = [];
+                    guiobj.ephys_artSuppedData4DetListInds = [];
                 end
             end
             
@@ -3485,22 +3535,6 @@ classdef DAS < handle
                     end
                     guiobj.eventDet1DataType = idx;
                     
-%                     % check whether the detections were made on artifact
-%                     % suppressed data
-%                     if guiobj.ephys_artSupp4Det == 0
-%                         ephysData4Dets = guiobj.ephys_data;
-%                     else 
-%                         ephysData4Dets = guiobj.ephys_artSuppedData4Det;
-%                     end
-%                     
-%                     switch idx
-%                         case 2
-%                             guiobj.ephys_dogged = DoG(ephysData4Dets,guiobj.ephys_fs,...
-%                                 guiobj.eventDet1W1,guiobj.eventDet1W2);
-%                         case 3
-%                             guiobj.ephys_instPowed = instPow(ephysData4Dets,guiobj.ephys_fs,...
-%                                 guiobj.eventDet1W1,guiobj.eventDet1W2);
-%                     end
                     eventDetAxesButtFcn(guiobj,1)
                 case 2
                     if isempty(guiobj.imaging_data)
@@ -3915,11 +3949,17 @@ classdef DAS < handle
                 if guiobj.ephys_artSupp4Det == 0
                     ephysData2Save = guiobj.ephys_data;
                 else
-                    ephysData2Save = guiobj.ephys_artSuppedData4Det;                   
+                    ephysData2Save = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
                 end
                 if ~saveAllChans
                     chans2Save = guiobj.ephys_detectionsInfo.DetChannel;
-                    ephysSaveData.RawData = ephysData2Save(chans2Save,:);
+                    if guiobj.ephys_artSupp4Det ~= 0
+                        temp = guiobj.ephys_proccedInfo(guiobj.ephys_artSuppedData4DetListInds);
+                        temp = ismember([temp.Channel],chans2Save);
+                        ephysSaveData.RawData = ephysData2Save(temp,:);
+                    else
+                        ephysSaveData.RawData = ephysData2Save(chans2Save,:);
+                    end
                     ephysSaveInfo.AllChannel = chans2Save;
                 else
                     ephysSaveData.RawData = ephysData2Save;
@@ -4902,7 +4942,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.255, 0.96, 0.1, 0.03],...
-                'String',{'--Select artifact suppression method!--','Periodic','wICA','RefSubtract'});
+                'String',{'--Select artifact suppression method!--','Periodic','DFER','wICA','RefSubtract'});
             
             guiobj.ephysCwtDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...
