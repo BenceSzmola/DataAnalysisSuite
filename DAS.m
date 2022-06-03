@@ -180,6 +180,7 @@ classdef DAS < handle
         
         imagingDetPopMenu
         imagingDetChSelPopMenu
+        imagingDetUseProcDataCheckBox
         
         imagingMeanSdDetPanel
         imagingMeanSdDetSdmultLabel
@@ -282,6 +283,8 @@ classdef DAS < handle
         imaging_smoothed
         imaging_procced
         imaging_proccedInfo = struct('ROI',{},'ProcDetails',{});
+        imaging_artSupp4Det = 0;
+        imaging_artSuppedData4DetListInds
         imaging_detections
         imaging_detBorders
         imaging_detParams
@@ -328,6 +331,9 @@ classdef DAS < handle
         eventDet2CurrDet = 1;
         eventDet2CurrRoi = 1;
         eventDet2DataType = 1;
+        
+        eventDet2GwinSize = 30;
+        eventDet2Win = 500;
         
         eventDetSim1CurrDet = 1;
         eventDetSim1CurrChan = 1;
@@ -914,7 +920,7 @@ classdef DAS < handle
                     end
                     taxis = guiobj.ephys_taxis;
                     fs = guiobj.ephys_fs;
-                    
+                    win = guiobj.eventDet1Win;
                     
                     yAxLbl = guiobj.ephys_ylabel;
                     plotTitle = 'Channel #';
@@ -923,13 +929,18 @@ classdef DAS < handle
                     ax = guiobj.axesEventDet2;
                     
                     switch guiobj.eventDet2DataType
-                        case 1    
-                            data = guiobj.imaging_data;
+                        case 1
+                            if guiobj.imaging_artSupp4Det == 0
+                                data = guiobj.imaging_data;
+                            else
+                                data = guiobj.imaging_procced;
+                            end
                         case 2
                             data = guiobj.imaging_smoothed;     
                     end
                     taxis = guiobj.imaging_taxis;
                     fs = guiobj.imaging_fs;
+                    win = guiobj.eventDet2Win;
                     
                     yAxLbl = guiobj.imaging_ylabel;
                     plotTitle = 'ROI #';
@@ -948,8 +959,14 @@ classdef DAS < handle
                 end
             end
             if dTyp == 2
-                chanName = chan;
-                chanInd = chan;
+                if guiobj.imaging_artSupp4Det == 0
+                    chanName = chan;
+                    chanInd = chan;
+                else
+                    chanName = chan;
+                    temp = guiobj.imaging_proccedInfo(guiobj.imaging_artSuppedData4DetListInds);
+                    chanInd = find([temp.ROI] == chanName);
+                end
             end
             if guiobj.evDetTabSimultMode
                 if dTyp == 1
@@ -961,7 +978,7 @@ classdef DAS < handle
                     simTaxis = guiobj.ephys_taxis;
                     simFs = guiobj.ephys_fs;
                 end
-                [~,~,~,simDetInd,simDetBorders,~,~] = extractDetStructs(guiobj,simDtyp);
+                [~,~,~,~,simDetBorders,~,~] = extractDetStructs(guiobj,simDtyp);
             end
             
             axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
@@ -984,10 +1001,10 @@ classdef DAS < handle
             end
 
             tStamp = taxis(detInd);
-            win = guiobj.eventDet1Win/2000;
+%             win = guiobj.eventDet1Win/2000;
+            win = win/2000;
             win = round(win*fs,0);
             if guiobj.evDetTabSimultMode
-                simTStamp = simTaxis(simDetInd);
                 simWin = guiobj.eventDet1Win/2000;
                 simWin = round(simWin*simFs,0);
                 
@@ -1509,6 +1526,17 @@ classdef DAS < handle
         end
         
         %%
+        function computeImagingDataTypes(guiobj)
+            if guiobj.imaging_artSupp4Det == 0
+                data4dets = guiobj.imaging_data;
+            else 
+                data4dets = guiobj.imaging_procced(guiobj.imaging_artSuppedData4DetListInds,:);
+            end
+
+            guiobj.imaging_smoothed = smoothdata(data4dets,2,'gaussian',guiobj.eventDet2GwinSize);
+        end
+        
+        %%
         function inds2use = convertRunInds4Dets(guiobj,dTyp)
             
             switch dTyp
@@ -1619,8 +1647,12 @@ classdef DAS < handle
                     selInds = [];
                     return
                 end
-
-                selInds = selList.Value;
+                
+                if isempty(listboxString)
+                    selInds = [];
+                else
+                    selInds = selList.Value;
+                end
                 close(fig)
             end
         end
@@ -2780,9 +2812,7 @@ classdef DAS < handle
                     end
                     clear temp
             end
-            
-            winsize = str2double(guiobj.imagingFiltWinSizeEdit.String);
-            
+                        
             datanames = guiobj.imaging_datanames;
             procDatanames = guiobj.imaging_procDatanames;
             switch proctype
@@ -2793,6 +2823,7 @@ classdef DAS < handle
                         return
                     end
                     filtype = guiobj.imagingFilterTypePopMenu.String{filtype};
+                    winsize = str2double(guiobj.imagingFiltWinSizeEdit.String);
                     switch filtype
                         case 'Gauss average'
                             if isnan(winsize)
@@ -3014,10 +3045,7 @@ classdef DAS < handle
                     guiobj.ephys_artSuppedData4DetListInds = [];
                 end
             end
-            
-            % recompute the ephys data types
-            computeEphysDataTypes(guiobj)
-            
+                        
             switch dettype
                 case 'CWT based'
                     minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String)/1000;
@@ -3175,6 +3203,13 @@ classdef DAS < handle
                 return                
             end
             
+            % recompute the ephys data types
+            if (exist('w1','var') == 1) && (exist('w2','var') == 1)
+                guiobj.eventDet1W1 = w1;
+                guiobj.eventDet1W2 = w2;
+            end
+            computeEphysDataTypes(guiobj)
+            
             % add running related parameters if relevant
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 for i = 1:length(detParams) % looping over channels
@@ -3250,8 +3285,28 @@ classdef DAS < handle
             dettype = guiobj.imagingDetPopMenu.Value;
             dettype = guiobj.imagingDetPopMenu.String{dettype};
             
-            data = guiobj.imaging_data;
-            roi = 1:size(data,1);
+            if ~guiobj.imagingDetUseProcDataCheckBox.Value
+                data = guiobj.imaging_data;
+                roi = 1:size(data,1);
+                guiobj.imaging_artSupp4Det = 0;
+            else
+                selInds = makeProcDataSelFig(guiobj,2);
+                guiobj.imaging_artSuppedData4DetListInds = selInds;
+                if isempty(selInds)
+                    ed = errordlg('No ROI selected!');
+                    pause(1)
+                    if ishandle(ed)
+                        close(ed)
+                    end
+                    guiobj.imagingDetStatusLabel.String = '--IDLE--';
+                    guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
+                    return
+                end
+                data = guiobj.imaging_procced(selInds,:);
+                roi = [guiobj.imaging_proccedInfo(selInds).ROI];
+                guiobj.imaging_artSupp4Det = 1;
+                detinfo.DetSettings.ArtSupp = guiobj.imaging_proccedInfo(selInds(1)).ProcDetails(1).Type;
+            end
             fs = guiobj.imaging_fs;
             
             % check whether running data based detection was requested
@@ -3364,6 +3419,12 @@ classdef DAS < handle
                 guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
                 return
             end
+            
+            % recompute the ephys data types
+            if (exist('winLen','var') == 1)
+                guiobj.eventDet2GwinSize = winLen;
+            end
+            computeImagingDataTypes(guiobj)
             
             % computing running related parameters if relevant
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
@@ -3577,33 +3638,28 @@ classdef DAS < handle
             guiobj.eventDet1W2 = str2double(answer{2});
             
             computeEphysDataTypes(guiobj)
-            
-%             if ~isempty(find(guiobj.eventDet1DataType==2,1))
-%                     guiobj.ephys_dogged = DoG(guiobj.ephys_data,guiobj.ephys_fs,...
-%                         guiobj.eventDet1W1,guiobj.eventDet1W2);
-%             elseif ~isempty(find(guiobj.eventDet1DataType==3,1))
-%                     guiobj.ephys_instPowed = instPow(guiobj.ephys_data,guiobj.ephys_fs,...
-%                         guiobj.eventDet1W1,guiobj.eventDet1W2);
-%             end
-            
+                        
             eventDetAxesButtFcn(guiobj,1)
         end
         
         %%
         function changeEventDetTabWinSize(guiobj)
-            prompt = {'Window size of graphs [ms]'};
-            title = 'Window size';
+            prompt = {'Ephys | Window size around event [ms]', 'Imaging | Window size around event [ms]'};
+            title = 'Window size around detected event';
             dims = [1,15];
-            definput = {num2str(guiobj.eventDet1Win)};
+            definput = {num2str(guiobj.eventDet1Win), num2str(guiobj.eventDet2Win)};
+            
             answer = inputdlg(prompt,title,dims,definput);
             if isempty(answer)
                 return
             end
-            guiobj.eventDet1Win = str2double(answer{1});
+            
             if guiobj.datatyp(1)
+                guiobj.eventDet1Win = str2double(answer{1});
                 eventDetAxesButtFcn(guiobj,1)
             end
             if guiobj.datatyp(2)
+                guiobj.eventDet2Win = str2double(answer{2});
                 eventDetAxesButtFcn(guiobj,2)
             end
         end
@@ -3994,12 +4050,23 @@ classdef DAS < handle
                     imagingSaveInfo = guiobj.imaging_detectionsInfo;
                 end
                 
+                if guiobj.imaging_artSupp4Det == 0
+                    imagingData2Save = guiobj.imaging_data;
+                else
+                    imagingData2Save = guiobj.imaging_procced(guiobj.imaging_artSuppedData4DetListInds,:);
+                end
                 if ~saveAllChans
                     chans2Save = guiobj.imaging_detectionsInfo.DetROI;
-                    imagingSaveData.RawData = guiobj.imaging_data(chans2Save,:);
+                    if guiobj.imaging_artSupp4Det ~= 0
+                        temp = guiobj.imaging_proccedInfo(guiobj.imaging_artSuppedData4DetListInds);
+                        temp = ismember([temp.ROI],chans2Save);
+                        imagingSaveData.RawData = imagingData2Save(temp,:);
+                    else
+                        imagingSaveData.RawData = imagingData2Save(chans2Save,:);
+                    end
                     imagingSaveInfo.AllROI = chans2Save;
                 else
-                    imagingSaveData.RawData = guiobj.imaging_data;
+                    imagingSaveData.RawData = imagingData2Save;
                     imagingSaveInfo.AllROI = 1:size(guiobj.imaging_data,1);
                 end
                                 
@@ -5137,9 +5204,14 @@ classdef DAS < handle
             guiobj.imagingDetPopMenu = uicontrol(guiobj.eventDetTab,...
                 'Style','popupmenu',...
                 'Units','normalized',...
-                'Position',[0.01, 0.5, 0.1, 0.1],...
+                'Position',[0.01, 0.58, 0.1, 0.05],...
                 'String',{'--Imaging detection methods--','Mean+SD','MLspike based'},...
                 'Callback',@(h,e) guiobj.imagingDetPopMenuSelected);
+            guiobj.imagingDetUseProcDataCheckBox = uicontrol(guiobj.eventDetTab,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.01, 0.5, 0.1, 0.05],...
+                'String','Use processed data');
             
             guiobj.imagingMeanSdDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.33, 0.2, 0.3],...
@@ -5221,14 +5293,14 @@ classdef DAS < handle
             guiobj.imagingDetRunButt = uicontrol(guiobj.eventDetTab,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.01, 0.44, 0.1, 0.05],...
+                'Position',[0.01, 0.385, 0.1, 0.05],...
                 'String','Run imaging detection',...
                 'Callback',@(h,e) guiobj.imagingDetRun);
             
             guiobj.imagingDetStatusLabel = uicontrol(guiobj.eventDetTab,...
                 'Style','text',...
                 'Units','normalized',...
-                'Position',[0.01, 0.385, 0.1, 0.05],...
+                'Position',[0.01, 0.33, 0.1, 0.05],...
                 'String','--IDLE--',...
                 'BackgroundColor','g');
             
