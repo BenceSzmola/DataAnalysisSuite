@@ -814,8 +814,8 @@ classdef DASevDB < handle
         %%
         function showAvgParamsMenuSel(gO,~,~)
             if gO.loaded(1) && ~isempty([gO.ephysEvents.Params])
-                avg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2);
-                sd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2);
+                avg = mean(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),2,'omitnan');
+                sd = std(cell2mat(squeeze(struct2cell([gO.ephysEvents.Params]))),[],2,'omitnan');
                 avgSd = cell(length(avg),1);
                 for i = 1:length(avg)
                     avgSd{i} = [num2str(avg(i)),' ± ',num2str(sd(i))];
@@ -827,8 +827,8 @@ classdef DASevDB < handle
             end
             
             if gO.loaded(2) && ~isempty([gO.imagingEvents.Params])
-                avg = mean(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),2);
-                sd = std(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),[],2);
+                avg = mean(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),2,'omitnan');
+                sd = std(cell2mat(squeeze(struct2cell([gO.imagingEvents.Params]))),[],2,'omitnan');
                 avgSd = cell(length(avg),1);
                 for i = 1:length(avg)
                     avgSd{i} = [num2str(avg(i)),' ± ',num2str(sd(i))];
@@ -1122,17 +1122,17 @@ classdef DASevDB < handle
                     
                     if sum(ismember(fieldnames(statEntries),'ephysEvents'))
                         eEvs = [statEntries.ephysEvents];
-                        eAvg = mat2cell(mean(cell2mat(squeeze(struct2cell([eEvs.Params]))),2),ones(1,length(fieldnames(eEvs(1).Params))));
-                        eSd = mat2cell(std(cell2mat(squeeze(struct2cell([eEvs.Params]))),[],2),ones(1,length(fieldnames(eEvs(1).Params))));
-                        eMed = mat2cell(median(cell2mat(squeeze(struct2cell([eEvs.Params]))),2),ones(1,length(fieldnames(eEvs(1).Params))));
+                        eAvg = mat2cell(mean(cell2mat(squeeze(struct2cell([eEvs.Params]))),2,'omitnan'),ones(1,length(fieldnames(eEvs(1).Params))));
+                        eSd = mat2cell(std(cell2mat(squeeze(struct2cell([eEvs.Params]))),[],2,'omitnan'),ones(1,length(fieldnames(eEvs(1).Params))));
+                        eMed = mat2cell(median(cell2mat(squeeze(struct2cell([eEvs.Params]))),2,'omitnan'),ones(1,length(fieldnames(eEvs(1).Params))));
                         loaded4Stat(1) = 1;
                     end
                     
                     if sum(ismember(fieldnames(statEntries),'imagingEvents'))
                         iEvs = [statEntries.imagingEvents];
-                        iAvg = mat2cell(mean(cell2mat(squeeze(struct2cell([iEvs.Params]))),2),ones(1,length(fieldnames(iEvs(1).Params))));
-                        iSd = mat2cell(std(cell2mat(squeeze(struct2cell([iEvs.Params]))),[],2),ones(1,length(fieldnames(iEvs(1).Params))));
-                        iMed = mat2cell(median(cell2mat(squeeze(struct2cell([iEvs.Params]))),2),ones(1,length(fieldnames(iEvs(1).Params))));
+                        iAvg = mat2cell(mean(cell2mat(squeeze(struct2cell([iEvs.Params]))),2,'omitnan'),ones(1,length(fieldnames(iEvs(1).Params))));
+                        iSd = mat2cell(std(cell2mat(squeeze(struct2cell([iEvs.Params]))),[],2,'omitnan'),ones(1,length(fieldnames(iEvs(1).Params))));
+                        iMed = mat2cell(median(cell2mat(squeeze(struct2cell([iEvs.Params]))),2,'omitnan'),ones(1,length(fieldnames(iEvs(1).Params))));
                         loaded4Stat(2) = 1;
                     end
                     

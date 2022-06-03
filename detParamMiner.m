@@ -57,11 +57,17 @@ for i = 1:numDets
     pre80Ind = max(indsBelow80pre);
     post20Ind = min(indsBelow20post);
     post80Ind = min(indsBelow80post);
-    detParams(i).RiseTime2080 = (pre80Ind - pre20Ind)/fs;
-    detParams(i).DecayTime8020 = (post20Ind - post80Ind)/fs;
-    if ~isempty(detParams(i).DecayTime8020)
-        expFit = fit(linspace(1,(post20Ind-post80Ind)+1,(post20Ind-post80Ind)+1)',detData(post80Ind:post20Ind)','exp1');
-        detParams(i).DecayTau = expFit.b;
+    if ~isempty(pre20Ind) && ~isempty(pre80Ind) && ~isempty(post20Ind) && ~isempty(post80Ind)
+        detParams(i).RiseTime2080 = (pre80Ind - pre20Ind)/fs;
+        detParams(i).DecayTime8020 = (post20Ind - post80Ind)/fs;
+        if ~isempty(detParams(i).DecayTime8020)
+            expFit = fit(linspace(1,(post20Ind-post80Ind)+1,(post20Ind-post80Ind)+1)',detData(post80Ind:post20Ind)','exp1');
+            detParams(i).DecayTau = expFit.b;
+        end
+    else
+        detParams(i).RiseTime2080 = nan;
+        detParams(i).DecayTime8020 = nan;
+        detParams(i).DecayTau = nan;
     end
     
     halfmax = detData(detInds(i))/2;

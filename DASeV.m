@@ -655,7 +655,7 @@ classdef DASeV < handle
                     gO.ephysCurrDetNum = 1;
 
                     if ~isempty(detParams)
-                        currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),2);
+                        currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),2,'omitnan');
                         temp = [fieldnames([detParams(1)]),...
                             mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
                         gO.ephysDetParamsTable.Data = temp;
@@ -905,7 +905,7 @@ classdef DASeV < handle
                     gO.imagingCurrDetNum = 1;
 
                     if ~isempty(detParams)
-                        currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),2);
+                        currDetParamsAvg = mean(cell2mat(struct2cell(detParams)),2,'omitnan');
                         temp = [fieldnames([detParams(1)]),...
                             mat2cell(currDetParamsAvg,ones(1,length(currDetParamsAvg)))];
                         gO.imagingDetParamsTable.Data = temp;
