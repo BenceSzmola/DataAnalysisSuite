@@ -925,8 +925,7 @@ classdef DASeV < handle
                 chanNum = gO.imagingParallDetRow;
                 chanOgNum = gO.imagingDetInfo.AllROI(chanNum);
                 [~,~,ephysChanNum,~,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
-                iAdj = find(gO.ephysDetInfo.DetChannel == ephysChanNum(1));
-                [ephysWinIdx,~] = windowMacher(gO,1,iAdj,ephysDetNum,0.5);
+                [ephysWinIdx,~] = windowMacher(gO,1,ephysChanNum,ephysDetNum,0.5);
                 ephysTWinIdx = gO.ephysTaxis(ephysWinIdx);
                 [~,winStart] = min(abs(gO.imagingTaxis-ephysTWinIdx(1)));
                 [~,winEnd] = min(abs(gO.imagingTaxis-ephysTWinIdx(end)));
