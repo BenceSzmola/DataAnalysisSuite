@@ -2308,6 +2308,7 @@ classdef DASeV < handle
                         if gO.save2DbRunningChechBox.Value
                             refWin = gO.ephysTaxis(win);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                            
                             if ~isempty(runWin)
                                 tempStruct.runData.Taxis = gO.runTaxis(runWin);
                                 tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
@@ -2316,6 +2317,8 @@ classdef DASeV < handle
                                 tempStruct.runData.Lap = gO.runLap(runWin);
                                 tempStruct.runData.Licks = gO.runLicks(runWin);
                                 tempStruct.runData.ActState = gO.runActState(runWin);
+                            else
+                                tempStruct.runData = [];
                             end
                         end
                         
@@ -2386,6 +2389,8 @@ classdef DASeV < handle
                                 tempStruct.runData.Lap = gO.runLap(runWin);
                                 tempStruct.runData.Licks = gO.runLicks(runWin);
                                 tempStruct.runData.ActState = gO.runActState(runWin);
+                            else
+                                tempStruct.runData = [];
                             end
                         end
                         
@@ -2452,6 +2457,8 @@ classdef DASeV < handle
                             tempStruct.runData.Lap = gO.runLap(runWin);
                             tempStruct.runData.Licks = gO.runLicks(runWin);
                             tempStruct.runData.ActState = gO.runActState(runWin);
+                        else
+                            tempStruct.runData = [];
                         end
                     end
                     

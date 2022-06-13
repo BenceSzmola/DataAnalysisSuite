@@ -546,6 +546,11 @@ classdef DASevDB < handle
         function runPlot(gO,ax)
             type = gO.runTypeSelected;
             currEv = gO.runData(gO.currEvent);
+            currEv = currEv.runData;
+            if isempty(currEv)
+                cla(ax,'reset')
+                return
+            end
             axTag = ax.Tag;
             
             if type(1)
@@ -801,7 +806,9 @@ classdef DASevDB < handle
             
             if ismember('runData',string(fieldnames(saveStruct)))
                 gO.loaded(3) = 1;
-                gO.runData = [saveStruct.runData];
+                fns = fieldnames(saveStruct);
+                toRemove = fns(~ismember(fns,'runData'));
+                gO.runData = rmfield(saveStruct,toRemove);
             end
             
             gO.mainFig.Name = ['DAS Event DataBase - ',gO.loadedEntryFname];

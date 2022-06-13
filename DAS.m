@@ -2958,7 +2958,11 @@ classdef DAS < handle
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
             refch = str2double(guiobj.ephysDetRefChanEdit.String);
-            refchData = guiobj.ephys_data(refch,:);
+            if ~isempty(refch) && ~isnan(refch)
+                refchData = guiobj.ephys_data(refch,:);
+            else
+                refchData = [];
+            end
             
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
