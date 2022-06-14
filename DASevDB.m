@@ -129,27 +129,36 @@ classdef DASevDB < handle
         ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
         avgEphysEvents
-        ephysParamNames = [{'RawAmplitudeP2P'},{['[',char(956),'V',']']};...
-            {'BpAmplitudeP2P' },{['[',char(956),'V]']};...
-            {'Length'         },{'[s]'};...
-            {'Frequency'      },{'[Hz]'};...
-            {'NumCycles'      },{'[#Cycles]'};...
-            {'AUC'            },{['[',char(956),'V*s]']};...
-            {'RiseTime'       },{'[s]'};...
-            {'DecayTime'      },{'[s]'};...
-            {'FWHM'           },{'[s]'};...
-            {'NumSimultEvents'},{'[#Events]'}];
+        ephysParamUnits = [{'RawAmplitudePeakT'}, {'[s]'};...
+            {'RawAmplitudeP2P'  }, {['[',char(956),'V',']']};...
+            {'BpAmplitudePeakT' }, {'[s]'};...
+            {'BpAmplitudeP2P'   }, {['[',char(956),'V',']']};...
+            {'Length'           }, {'[s]'};...
+            {'Frequency'        }, {'[Hz]'};...
+            {'NumCycles'        }, {'[#Cycles]'};...
+            {'AUC'              }, {['[',char(956),'V*s]']};...
+            {'RiseTime'         }, {'[s]'};...
+            {'RiseTime2080'     }, {'[s]'};...
+            {'DecayTime'        }, {'[s]'};...
+            {'DecayTime8020'    }, {'[s]'};...
+            {'DecayTau'         }, {'[a.u.]'};...
+            {'FWHM'             }, {'[s]'};...
+            {'NumSimultEvents'  }, {'[# Events]'}];
         
         imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
         imagingEvents
         avgImagingEvents
-        imagingParamNames = [{'RawAmplitudeP2P'},{['[',char(916),'F/F]']};...
-            {'Length'         },{'[s]'};...
-            {'AUC'            },{['[',char(916),'F/F]']};...
-            {'RiseTime'       },{'[s]'};...
-            {'DecayTime'      },{'[s]'};...
-            {'FWHM'           },{'[s]'};...
-            {'NumSimultEvents'},{'[#Events]'}];
+        imagingParamUnits = [{'RawAmplitudePeakT'}, {'[s]'};...
+            {'RawAmplitudeP2P'  }, {['[',char(916),'F/F]']};...
+            {'Length'           }, {'[s]'};...
+            {'AUC'              },{['[',char(916),'F/F * s]']};...
+            {'RiseTime'         }, {'[s]'};...
+            {'RiseTime2080'     }, {'[s]'};...
+            {'DecayTime'        }, {'[s]'};...
+            {'DecayTime8020'    }, {'[s]'};...
+            {'DecayTau'         }, {'[a.u.]'};...
+            {'FWHM'             }, {'[s]'};...
+            {'NumSimultEvents'  }, {'[# Events]'}];
         
         runTypeSelected = [1,0,0,0]; % 1==Velocity; 2==AbsPos; 3==RelPos; 4==ActivityStates
         showLicks = 0;
@@ -1083,15 +1092,31 @@ classdef DASevDB < handle
                     load(file2load,'saveStruct');
                     
                     if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                        if isempty(saveStruct(1).ephysEvents.Params)
+                            return
+                        end
+                        
                         gO.tTestMu0EphysTable.Enable = 'on';
+                        fns = fieldnames(saveStruct(1).ephysEvents.Params);
+                        temp = [fns, mat2cell(zeros(length(fns),1), ones(length(fns),1))];
+                        gO.tTestMu0EphysTable.Data = temp;
                     else
                         gO.tTestMu0EphysTable.Enable = 'off';
+                        gO.tTestMu0EphysTable.Data = [];
                     end
                     
                     if sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                        if isempty(saveStruct(1).imagingEvents.Params)
+                            return
+                        end
+                        
                         gO.tTestMu0ImagingTable.Enable = 'on';
+                        fns = fieldnames(saveStruct(1).imagingEvents.Params);
+                        temp = [fns, mat2cell(zeros(length(fns),1), ones(length(fns),1))];
+                        gO.tTestMu0ImagingTable.Data = temp;
                     else
                         gO.tTestMu0ImagingTable.Enable = 'off';
+                        gO.tTestMu0ImagingTable.Data = [];
                     end
                 otherwise
                     return
@@ -1109,7 +1134,6 @@ classdef DASevDB < handle
                 load(file2load,'saveStruct');
                 statEntries{i} = saveStruct;
             end
-%             assignin('base','sEs',statEntries)
 
             switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
                 case '--Select statistic!--'
@@ -1183,12 +1207,11 @@ classdef DASevDB < handle
                         return
                     end
                     alpha = str2double(gO.tTestCritPEdit.String);
-                    e_mu0 = cell2mat(gO.tTestMu0EphysTable.Data(:,2));
-                    i_mu0 = cell2mat(gO.tTestMu0ImagingTable.Data(:,2));
                     
                     statEntries = statEntries{1};
                     
                     if sum(ismember(fieldnames(statEntries),'ephysEvents'))
+                        e_mu0 = cell2mat(gO.tTestMu0EphysTable.Data(:,2));
                         eEvs = [statEntries.ephysEvents];
                         eParamNames = fieldnames(eEvs(1).Params);
                         eEvsMat = cell2mat(squeeze(struct2cell([eEvs.Params])));
@@ -1208,6 +1231,7 @@ classdef DASevDB < handle
                     end
                     
                     if sum(ismember(fieldnames(statEntries),'imagingEvents'))
+                        i_mu0 = cell2mat(gO.tTestMu0ImagingTable.Data(:,2));
                         iEvs = [statEntries.imagingEvents];
                         iParamNames = fieldnames(iEvs(1).Params);
                         iEvsMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
@@ -1253,13 +1277,18 @@ classdef DASevDB < handle
                     alpha = str2double(gO.tTestCritPEdit.String);
                     
                     if sum(ismember(fieldnames(statEntries{1}),'ephysEvents')) && sum(ismember(fieldnames(statEntries{2}),'ephysEvents'))
-                        eParamNames = gO.ephysParamNames(:,1);
-                        
                         eEvs1 = [statEntries{1}.ephysEvents];
                         eEvsMat1 = cell2mat(squeeze(struct2cell([eEvs1.Params])));
+                        fns1 = fieldnames(eEvs1(1).Params);
                         
                         eEvs2 = [statEntries{2}.ephysEvents];
                         eEvsMat2 = cell2mat(squeeze(struct2cell([eEvs2.Params])));
+                        fns2 = fieldnames(eEvs2(1).Params);
+                        
+                        [~,ia,ib] = intersect(fns1,fns2);
+                        eParamNames = fns1(sort(ia));
+                        eEvsMat1 = eEvsMat1(sort(ia),:);
+                        eEvsMat2 = eEvsMat2(sort(ib),:);
                         
                         loaded4Stat(1) = 1;
                         
@@ -1275,14 +1304,19 @@ classdef DASevDB < handle
                         e_p = mat2cell(e_p,ones(length(eParamNames),1));
                     end
                     
-                    if sum(ismember(fieldnames(statEntries{1}),'imagingEvents')) && sum(ismember(fieldnames(statEntries{2}),'imagingEvents'))
-                        iParamNames = gO.imagingParamNames(:,1);
-                        
+                    if sum(ismember(fieldnames(statEntries{1}),'imagingEvents')) && sum(ismember(fieldnames(statEntries{2}),'imagingEvents'))                        
                         iEvs1 = [statEntries{1}.imagingEvents];
                         iEvsMat1 = cell2mat(squeeze(struct2cell([iEvs1.Params])));
+                        fns1 = fieldnames(iEvs1(1).Params);
                         
                         iEvs2 = [statEntries{2}.imagingEvents];
                         iEvsMat2 = cell2mat(squeeze(struct2cell([iEvs2.Params])));
+                        fns2 = fieldnames(iEvs2(1).Params);
+                                                
+                        [~,ia,ib] = intersect(fns1,fns2);
+                        iParamNames = fns1(sort(ia));
+                        iEvsMat1 = iEvsMat1(sort(ia),:);
+                        iEvsMat2 = iEvsMat2(sort(ib),:);
                         
                         loaded4Stat(2) = 1;
                         
@@ -1319,35 +1353,68 @@ classdef DASevDB < handle
         end
         
         %%
+        function statGraphDataListboxCB(gO,~,~)
+            fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
+            DASloc = mfilename('fullpath');
+
+            file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{1}];
+            load(file2load,'saveStruct');
+
+            temp = {'Select which parameter to use!'};
+            
+            if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                if isempty(saveStruct(1).ephysEvents.Params)
+                    return
+                end
+
+                eFns = fieldnames(saveStruct(1).ephysEvents.Params);
+                temp = [temp; {'---Ephys parameters---'}; eFns];
+            end
+
+            if sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                if isempty(saveStruct(1).imagingEvents.Params)
+                    return
+                end
+
+                iFns = fieldnames(saveStruct(1).imagingEvents.Params);
+                temp = [temp; {'---Imaging parameters---'}; iFns];
+            end
+            
+            gO.statGraphParamSelPopMenu.String = temp;
+        end
+        
+        %%
         function statGraphPlotButtonPress(gO,~,~)
             paramSel = gO.statGraphParamSelPopMenu.String{gO.statGraphParamSelPopMenu.Value};
-            paramSelVal = gO.statGraphParamSelPopMenu.Value-1;
-            if paramSelVal==0
+            
+            if gO.statGraphParamSelPopMenu.Value == 0
                 return
             end
+            
             plotTypeSel = gO.statGraphTypePopMenu.String{gO.statGraphTypePopMenu.Value};
             if strcmp(plotTypeSel,'---Select plot type---')
                 return
             end
             
-            fNames = gO.db4StatListBox.String{gO.statGraphDataListbox.Value};
+            fNames = gO.statGraphDataListbox.String{gO.statGraphDataListbox.Value};
             DASloc = mfilename('fullpath');
             file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames];
             load(file2load,'saveStruct');
-            
-            if contains(paramSel,'Ephys') && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
-                dTyp = 1;
+
+            if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
                 eEvs = [saveStruct.ephysEvents];
                 paramMat = cell2mat(squeeze(struct2cell([eEvs.Params])));
-                paramMat = paramMat(paramSelVal,:);
-                xTitle = [gO.ephysParamNames{paramSelVal,1},' ',gO.ephysParamNames{paramSelVal,2}];
-            elseif contains(paramSel,'Imaging') && sum(ismember(fieldnames(saveStruct),'imagingEvents'))
-                paramSelVal = paramSelVal-size(gO.ephysParamNames,1);
-                dTyp = 2;
+                paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(eEvs(1).Params));
+                paramMat = paramMat(paramMatInd,:);
+                paramUnitInd = strcmp(gO.ephysParamUnits(:,1),paramSel);
+                xTitle = [gO.ephysParamUnits{paramUnitInd,1},' ',gO.ephysParamUnits{paramUnitInd,2}];
+            elseif sum(ismember(fieldnames(saveStruct),'imagingEvents'))
                 iEvs = [saveStruct.imagingEvents];
                 paramMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
-                paramMat = paramMat(paramSelVal,:);
-                xTitle = [gO.imagingParamNames{paramSelVal,1},' ',gO.imagingParamNames{paramSelVal,2}];
+                paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(iEvs(1).Params));
+                paramMat = paramMat(paramMatInd,:);
+                paramUnitInd = strcmp(gO.imagingParamUnits(:,1),paramSel);
+                xTitle = [gO.imagingParamUnits{paramUnitInd,1},' ',gO.imagingParamUnits{paramUnitInd,2}];
             else
                 errordlg('Unexpected error!')
             end
@@ -1668,21 +1735,19 @@ classdef DASevDB < handle
                 'Units','normalized',...
                 'Position',[0.55, 0.85, 0.3, 0.1],...
                 'String','0.05');
-            temp = [gO.ephysParamNames(:,1), mat2cell(zeros(size(gO.ephysParamNames,1),1),ones(size(gO.ephysParamNames,1),1))];
             gO.tTestMu0EphysTable = uitable(gO.tTestSetupPanel,...
                 'Units','normalized',...
                 'Position',[0.01, 0.1, 0.48, 0.7],...
                 'RowName','',...
                 'ColumnName',{'Electrophysiology',['Edit ',char(956),char(8320),' value']},...
-                'Data',temp,...
+                'Data',[],...
                 'ColumnEditable',[false, true]);
-            temp = [gO.imagingParamNames(:,1), mat2cell(zeros(size(gO.imagingParamNames,1),1),ones(size(gO.imagingParamNames,1),1))];
             gO.tTestMu0ImagingTable = uitable(gO.tTestSetupPanel,...
                 'Units','normalized',...
                 'Position',[0.51, 0.1, 0.48, 0.7],...
                 'RowName','',...
                 'ColumnName',{'Imaging',['Edit ',char(956),char(8320),' value']},...
-                'Data',temp,...
+                'Data',[],...
                 'ColumnEditable',[false, true]);
             
             gO.tTestResultPanel = uipanel(gO.dataPanel,...
@@ -1714,7 +1779,8 @@ classdef DASevDB < handle
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0.01,0.8,0.3,0.19],...
-                'String','');
+                'String','',...
+                'Callback',@ gO.statGraphDataListboxCB);
             getDBlist(gO,2)
             gO.statGraphTypePopMenu = uicontrol(gO.graphPanel,...
                 'Style','popupmenu',...
@@ -1725,16 +1791,7 @@ classdef DASevDB < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.4, 0.88, 0.4, 0.05],...
-                'String','');
-            temp = cell(1+size(gO.ephysParamNames,1)+size(gO.imagingParamNames,1),1);
-            temp{1} = '---Select paramter to use---';
-            for i = 1:size(gO.ephysParamNames,1)
-                temp{i+1} = ['Ephys - ',gO.ephysParamNames{i,1}];
-            end
-            for i = 1:size(gO.imagingParamNames,1)
-                temp{i+1+size(gO.ephysParamNames,1)} = ['Imaging - ',gO.imagingParamNames{i,1}];
-            end
-            gO.statGraphParamSelPopMenu.String = temp;
+                'String',{''});
             gO.statGraphPlotButton = uicontrol(gO.graphPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
