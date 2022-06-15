@@ -1290,18 +1290,24 @@ classdef DASevDB < handle
                         eEvsMat1 = eEvsMat1(sort(ia),:);
                         eEvsMat2 = eEvsMat2(sort(ib),:);
                         
-                        loaded4Stat(1) = 1;
-                        
-                        e_h = zeros(length(eParamNames),1);
-                        e_p = zeros(length(eParamNames),1);
-                        e_ci = cell(length(eParamNames),1);
-                        for i = 1:length(eParamNames)
-                            [e_h(i),e_p(i),ciNum] = ttest2(eEvsMat1(i,:),eEvsMat2(i,:),'Alpha',alpha);
-                            e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                        nonZeroRows = any(eEvsMat1,2) & any(eEvsMat2,2);
+                        if any(nonZeroRows)
+                            eParamNames(~nonZeroRows) = [];
+                            eEvsMat1(~nonZeroRows,:) = [];
+                            eEvsMat2(~nonZeroRows,:) = [];
+                            loaded4Stat(1) = 1;
+
+                            e_h = zeros(length(eParamNames),1);
+                            e_p = zeros(length(eParamNames),1);
+                            e_ci = cell(length(eParamNames),1);
+                            for i = 1:length(eParamNames)
+                                [e_h(i),e_p(i),ciNum] = ttest2(eEvsMat1(i,:),eEvsMat2(i,:),'Alpha',alpha);
+                                e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                            end
+
+                            e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
+                            e_p = mat2cell(e_p,ones(length(eParamNames),1));
                         end
-                        
-                        e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
-                        e_p = mat2cell(e_p,ones(length(eParamNames),1));
                     end
                     
                     if sum(ismember(fieldnames(statEntries{1}),'imagingEvents')) && sum(ismember(fieldnames(statEntries{2}),'imagingEvents'))                        
@@ -1318,18 +1324,24 @@ classdef DASevDB < handle
                         iEvsMat1 = iEvsMat1(sort(ia),:);
                         iEvsMat2 = iEvsMat2(sort(ib),:);
                         
-                        loaded4Stat(2) = 1;
-                        
-                        i_h = zeros(length(iParamNames),1);
-                        i_p = zeros(length(iParamNames),1);
-                        i_ci = cell(length(iParamNames),1);
-                        for i = 1:length(iParamNames)
-                            [i_h(i),i_p(i),ciNum] = ttest2(iEvsMat1(i,:),iEvsMat2(i,:),'Alpha',alpha);
-                            i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                        nonZeroRows = any(iEvsMat1,2) & any(iEvsMat2,2);
+                        if any(nonZeroRows)
+                            iParamNames(~nonZeroRows) = [];
+                            iEvsMat1(~nonZeroRows,:) = [];
+                            iEvsMat2(~nonZeroRows,:) = [];
+                            loaded4Stat(2) = 1;
+
+                            i_h = zeros(length(iParamNames),1);
+                            i_p = zeros(length(iParamNames),1);
+                            i_ci = cell(length(iParamNames),1);
+                            for i = 1:length(iParamNames)
+                                [i_h(i),i_p(i),ciNum] = ttest2(iEvsMat1(i,:),iEvsMat2(i,:),'Alpha',alpha);
+                                i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                            end
+
+                            i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
+                            i_p = mat2cell(i_p,ones(length(iParamNames),1));
                         end
-                        
-                        i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
-                        i_p = mat2cell(i_p,ones(length(iParamNames),1));
                     end
                     
                     
@@ -1340,6 +1352,8 @@ classdef DASevDB < handle
                         temp = [eParamNames,e_h,e_p,e_ci];
                         gO.tTestEphysResultTable.Data = temp;
                         gO.tTestEphysResultTable.ColumnWidth = {100,150,100,150};
+                    else
+                        gO.tTestEphysResultTable.Data = [];
                     end
                     if loaded4Stat(2)
                         gO.tTestImagingResultTable.ColumnName = {'Imaging',...
@@ -1348,6 +1362,8 @@ classdef DASevDB < handle
                         temp = [iParamNames,i_h,i_p,i_ci];
                         gO.tTestImagingResultTable.Data = temp;
                         gO.tTestImagingResultTable.ColumnWidth = {100,150,100,150};
+                    else
+                        gO.tTestImagingResultTable.Data = [];
                     end
             end
         end
