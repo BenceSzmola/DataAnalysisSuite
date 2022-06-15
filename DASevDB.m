@@ -1228,7 +1228,7 @@ classdef DASevDB < handle
                             eEvsMat = cell2mat(paramsCell);
                             nonZeroRows = any(eEvsMat,2);
                             if any(nonZeroRows)
-                                iParamNames(~nonZeroRows) = [];
+                                eParamNames(~nonZeroRows) = [];
                                 eEvsMat(~nonZeroRows,:) = [];
                                 loaded4Stat(1) = 1;
 
