@@ -115,7 +115,7 @@ classdef DASevDB < handle
     
     %% Initializing data stored in GUI
     properties (Access = private)
-        loaded = [0,0,0];
+        loaded = [0, 0, 0];
         dbFileNames
         currEvent = 1;
         currParallelChan = 1;
@@ -126,7 +126,7 @@ classdef DASevDB < handle
         loadedEntryFname
         displayAvgDataWin = 0;
         
-        ephysTypeSelected = [1,0,0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
+        ephysTypeSelected = [1, 0, 0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
         avgEphysEvents
         ephysParamUnits = [{'RawAmplitudePeakT'}, {'[s]'};...
@@ -1353,40 +1353,77 @@ classdef DASevDB < handle
         end
         
         %%
+        function statGraphTypePopMenuCB(gO,~,~)
+            graphType = gO.statGraphTypePopMenu.String{gO.statGraphTypePopMenu.Value};
+            switch graphType
+                case '---Select plot type---'
+                    gO.statGraphDataListbox.Enable = 'off';
+                
+                case 'Histogram with fitted distribution'
+                    gO.statGraphDataListbox.Enable = 'on';
+                    gO.statGraphDataListbox.Value = gO.statGraphDataListbox.Value(1);
+                    gO.statGraphDataListbox.Max = 1;
+                    
+                case 'Boxplot'
+                    gO.statGraphDataListbox.Enable = 'on';
+                    gO.statGraphDataListbox.Max = 2;
+                
+            end
+        end
+        
+        %%
         function statGraphDataListboxCB(gO,~,~)
             fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
             DASloc = mfilename('fullpath');
 
-            file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{1}];
-            load(file2load,'saveStruct');
-
-            temp = {'Select which parameter to use!'};
+            eParamList = [];
+            iParamList = [];
             
-            if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
-                if isempty(saveStruct(1).ephysEvents.Params)
-                    return
+            for i = 1:length(fNames)
+                file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
+                load(file2load,'saveStruct');
+                
+                if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                    if isempty(saveStruct(1).ephysEvents.Params)
+                        return
+                    end
+                    
+                    if i == 1
+                        eFns = fieldnames(saveStruct(1).ephysEvents.Params);
+                        eParamList = [{'---Ephys parameters---'}; eFns];
+                    else
+                        if ~isempty(setxor(eFns, fieldnames(saveStruct(1).ephysEvents.Params)))
+                            [eFns,~,~] = intersect(eFns, fieldnames(saveStruct(1).ephysEvents.Params), 'stable');
+                            eParamList = [{'---Ephys parameters---'}; eFns];
+                        end
+                    end
                 end
 
-                eFns = fieldnames(saveStruct(1).ephysEvents.Params);
-                temp = [temp; {'---Ephys parameters---'}; eFns];
-            end
+                if sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                    if isempty(saveStruct(1).imagingEvents.Params)
+                        return
+                    end
 
-            if sum(ismember(fieldnames(saveStruct),'imagingEvents'))
-                if isempty(saveStruct(1).imagingEvents.Params)
-                    return
+                    if i == 1
+                        iFns = fieldnames(saveStruct(1).imagingEvents.Params);
+                        iParamList = [{'---Imaging parameters---'}; iFns];
+                    else
+                        if ~isempty(setxor(iFns, fieldnames(saveStruct(1).imagingEvents.Params)))
+                            [iFns,~,~] = intersect(iFns, fieldnames(saveStruct(1).imagingEvents.Params), 'stable');
+                            iParamList = [{'---Imaging parameters---'}; iFns];
+                        end
+                    end
                 end
-
-                iFns = fieldnames(saveStruct(1).imagingEvents.Params);
-                temp = [temp; {'---Imaging parameters---'}; iFns];
             end
             
+            temp = [{'Select which parameter to use!'}; eParamList; iParamList];
+                        
+            gO.statGraphParamSelPopMenu.Value = 1;
             gO.statGraphParamSelPopMenu.String = temp;
         end
         
         %%
-        function statGraphPlotButtonPress(gO,~,~)
-            paramSel = gO.statGraphParamSelPopMenu.String{gO.statGraphParamSelPopMenu.Value};
-            
+        function statGraphPlotButtonPress(gO,~,~)            
             if gO.statGraphParamSelPopMenu.Value == 0
                 return
             end
@@ -1396,35 +1433,77 @@ classdef DASevDB < handle
                 return
             end
             
-            fNames = gO.statGraphDataListbox.String{gO.statGraphDataListbox.Value};
+            paramSel = gO.statGraphParamSelPopMenu.String{gO.statGraphParamSelPopMenu.Value};
+            if ~isempty(intersect(paramSel, {'Select which parameter to use!','---Imaging parameters---','---Ephys parameters---'}))
+                return
+            end
+            eStart = find(cellfun(@(x) strcmp('---Ephys parameters---',x), gO.statGraphParamSelPopMenu.String), 1);
+            iStart = find(cellfun(@(x) strcmp('---Imaging parameters---',x), gO.statGraphParamSelPopMenu.String), 1);
+            
+            fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
             DASloc = mfilename('fullpath');
-            file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames];
-            load(file2load,'saveStruct');
 
-            if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
-                eEvs = [saveStruct.ephysEvents];
-                paramMat = cell2mat(squeeze(struct2cell([eEvs.Params])));
-                paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(eEvs(1).Params));
-                paramMat = paramMat(paramMatInd,:);
-                paramUnitInd = strcmp(gO.ephysParamUnits(:,1),paramSel);
-                xTitle = [gO.ephysParamUnits{paramUnitInd,1},' ',gO.ephysParamUnits{paramUnitInd,2}];
-            elseif sum(ismember(fieldnames(saveStruct),'imagingEvents'))
-                iEvs = [saveStruct.imagingEvents];
-                paramMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
-                paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(iEvs(1).Params));
-                paramMat = paramMat(paramMatInd,:);
-                paramUnitInd = strcmp(gO.imagingParamUnits(:,1),paramSel);
-                xTitle = [gO.imagingParamUnits{paramUnitInd,1},' ',gO.imagingParamUnits{paramUnitInd,2}];
-            else
-                errordlg('Unexpected error!')
+            paramMat = [];
+            
+            for i = 1:length(fNames)
+                file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
+                load(file2load,'saveStruct');
+                
+                if ~isempty(eStart) && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                    eEvs = [saveStruct.ephysEvents];
+                    if ~isempty([eEvs.Params])
+                        tempParamMat = cell2mat(squeeze(struct2cell([eEvs.Params])));
+                        paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(eEvs(1).Params));
+                        tempParamMat = tempParamMat(paramMatInd,:);
+                        if ~isempty(paramMat) && length(tempParamMat) > size(paramMat,1)
+                            lenDiff = length(tempParamMat) - size(paramMat,1);
+                            paramMat(end:end+lenDiff,:) = nan;
+                        elseif ~isempty(paramMat) && length(tempParamMat) < size(paramMat,1)
+                            lenDiff = size(paramMat,1) - length(tempParamMat);
+                            tempParamMat(end:end+lenDiff) = nan;
+                        end
+                        paramMat = [paramMat, tempParamMat'];
+                        
+                        paramUnitInd = strcmp(gO.ephysParamUnits(:,1),paramSel);
+                        xTitle = [gO.ephysParamUnits{paramUnitInd,1},' ',gO.ephysParamUnits{paramUnitInd,2}];
+                    end
+                elseif ~isempty(iStart) && sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                    iEvs = [saveStruct.imagingEvents];
+                    if ~isempty([iEvs.Params])
+                        tempParamMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
+                        paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(iEvs(1).Params));
+                        tempParamMat = tempParamMat(paramMatInd,:);
+                        if length(tempParamMat) > size(paramMat,1)
+                            lenDiff = length(tempParamMat) - size(paramMat,1);
+                            paramMat(end:end+lenDiff,:) = nan;
+                        elseif length(tempParamMat) < size(paramMat,1)
+                            lenDiff = size(paramMat,1) - length(tempParamMat);
+                            tempParamMat(end:end+lenDiff) = nan;
+                        end
+                        paramMat = [paramMat, tempParamMat'];
+                        
+                        paramUnitInd = strcmp(gO.imagingParamUnits(:,1),paramSel);
+                        xTitle = [gO.imagingParamUnits{paramUnitInd,1},' ',gO.imagingParamUnits{paramUnitInd,2}];
+                    end
+                else
+                    errordlg('Unexpected error!')
+                end
             end
             
+            if isempty(paramMat)
+                return
+            end
+                        
             switch plotTypeSel
                 case 'Histogram with fitted distribution'
                     axes(gO.axStatTab)
-                    histfit(paramMat,[],'normal')
+                    histfit(tempParamMat,[],'normal')
                     title(gO.axStatTab,['Distribution from: ',paramSel])
                     xlabel(gO.axStatTab,xTitle)
+                    
+                case 'Boxplot'
+                    boxplot(paramMat,fNames)
+                    
             end
             
             
@@ -1780,13 +1859,15 @@ classdef DASevDB < handle
                 'Units','normalized',...
                 'Position',[0.01,0.8,0.3,0.19],...
                 'String','',...
-                'Callback',@ gO.statGraphDataListboxCB);
+                'Callback',@ gO.statGraphDataListboxCB,...
+                'Enable','off');
             getDBlist(gO,2)
             gO.statGraphTypePopMenu = uicontrol(gO.graphPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.4, 0.94, 0.4, 0.05],...
-                'String',{'---Select plot type---','Histogram with fitted distribution'});
+                'String',{'---Select plot type---','Histogram with fitted distribution','Boxplot'},...
+                'Callback',@ gO.statGraphTypePopMenuCB);
             gO.statGraphParamSelPopMenu = uicontrol(gO.graphPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
