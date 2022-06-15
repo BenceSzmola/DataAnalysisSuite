@@ -1377,17 +1377,15 @@ classdef DASevDB < handle
             DASloc = mfilename('fullpath');
 
             eParamList = [];
+            eSkip = false; % variable to signal when one of the selected group doesnt have the params
             iParamList = [];
+            iSkip = false;
             
             for i = 1:length(fNames)
                 file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
                 load(file2load,'saveStruct');
                 
-                if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
-                    if isempty(saveStruct(1).ephysEvents.Params)
-                        return
-                    end
-                    
+                if ~eSkip && sum(ismember(fieldnames(saveStruct),'ephysEvents')) && ~isempty(saveStruct(1).ephysEvents.Params)
                     if i == 1
                         eFns = fieldnames(saveStruct(1).ephysEvents.Params);
                         eParamList = [{'---Ephys parameters---'}; eFns];
@@ -1397,13 +1395,12 @@ classdef DASevDB < handle
                             eParamList = [{'---Ephys parameters---'}; eFns];
                         end
                     end
+                else
+                    eSkip = true;
+                    eParamList = [];
                 end
 
-                if sum(ismember(fieldnames(saveStruct),'imagingEvents'))
-                    if isempty(saveStruct(1).imagingEvents.Params)
-                        return
-                    end
-
+                if ~iSkip && sum(ismember(fieldnames(saveStruct),'imagingEvents')) && ~isempty(saveStruct(1).imagingEvents.Params)
                     if i == 1
                         iFns = fieldnames(saveStruct(1).imagingEvents.Params);
                         iParamList = [{'---Imaging parameters---'}; iFns];
@@ -1413,6 +1410,9 @@ classdef DASevDB < handle
                             iParamList = [{'---Imaging parameters---'}; iFns];
                         end
                     end
+                else
+                    iSkip = true;
+                    iParamList = [];
                 end
             end
             
@@ -1452,7 +1452,9 @@ classdef DASevDB < handle
                 if ~isempty(eStart) && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
                     eEvs = [saveStruct.ephysEvents];
                     if ~isempty([eEvs.Params])
-                        tempParamMat = cell2mat(squeeze(struct2cell([eEvs.Params])));
+                        paramsCell = squeeze(struct2cell([eEvs.Params]));
+                        paramsCell(cellfun('isempty', paramsCell)) = {nan};
+                        tempParamMat = cell2mat(paramsCell);
                         paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(eEvs(1).Params));
                         tempParamMat = tempParamMat(paramMatInd,:);
                         if ~isempty(paramMat) && length(tempParamMat) > size(paramMat,1)
@@ -1470,13 +1472,15 @@ classdef DASevDB < handle
                 elseif ~isempty(iStart) && sum(ismember(fieldnames(saveStruct),'imagingEvents'))
                     iEvs = [saveStruct.imagingEvents];
                     if ~isempty([iEvs.Params])
-                        tempParamMat = cell2mat(squeeze(struct2cell([iEvs.Params])));
+                        paramsCell = squeeze(struct2cell([iEvs.Params]));
+                        paramsCell(cellfun('isempty', paramsCell)) = {nan};
+                        tempParamMat = cell2mat(paramsCell);
                         paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(iEvs(1).Params));
                         tempParamMat = tempParamMat(paramMatInd,:);
-                        if length(tempParamMat) > size(paramMat,1)
+                        if ~isempty(paramMat) && length(tempParamMat) > size(paramMat,1)
                             lenDiff = length(tempParamMat) - size(paramMat,1);
                             paramMat(end:end+lenDiff,:) = nan;
-                        elseif length(tempParamMat) < size(paramMat,1)
+                        elseif ~isempty(paramMat) && length(tempParamMat) < size(paramMat,1)
                             lenDiff = size(paramMat,1) - length(tempParamMat);
                             tempParamMat(end:end+lenDiff) = nan;
                         end
@@ -1487,6 +1491,7 @@ classdef DASevDB < handle
                     end
                 else
                     errordlg('Unexpected error!')
+                    return
                 end
             end
             
@@ -1502,7 +1507,7 @@ classdef DASevDB < handle
                     xlabel(gO.axStatTab,xTitle)
                     
                 case 'Boxplot'
-                    boxplot(paramMat,fNames)
+                    boxplot(gO.axStatTab,paramMat,fNames,'LabelOrientation','inline')
                     
             end
             
