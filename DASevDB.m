@@ -1226,19 +1226,23 @@ classdef DASevDB < handle
                             paramsCell = squeeze(struct2cell([eEvs.Params]));
                             paramsCell(cellfun('isempty', paramsCell)) = {nan};
                             eEvsMat = cell2mat(paramsCell);
+                            nonZeroRows = any(eEvsMat,2);
+                            if any(nonZeroRows)
+                                iParamNames(~nonZeroRows) = [];
+                                eEvsMat(~nonZeroRows,:) = [];
+                                loaded4Stat(1) = 1;
 
-                            loaded4Stat(1) = 1;
+                                e_h = zeros(length(eParamNames),1);
+                                e_p = zeros(length(eParamNames),1);
+                                e_ci = cell(length(eParamNames),1);
+                                for i = 1:size(eEvsMat,1)
+                                    [e_h(i),e_p(i),ciNum] = ttest(eEvsMat(i,:),e_mu0(i),'Alpha',alpha);
+                                    e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                                end
 
-                            e_h = zeros(length(eParamNames),1);
-                            e_p = zeros(length(eParamNames),1);
-                            e_ci = cell(length(eParamNames),1);
-                            for i = 1:size(eEvsMat,1)
-                                [e_h(i),e_p(i),ciNum] = ttest(eEvsMat(i,:),e_mu0(i),'Alpha',alpha);
-                                e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                                e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
+                                e_p = mat2cell(e_p,ones(length(eParamNames),1));
                             end
-
-                            e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
-                            e_p = mat2cell(e_p,ones(length(eParamNames),1));
                         end
                     end
                     
@@ -1250,19 +1254,24 @@ classdef DASevDB < handle
                             paramsCell = squeeze(struct2cell([iEvs.Params]));
                             paramsCell(cellfun('isempty', paramsCell)) = {nan};
                             iEvsMat = cell2mat(paramsCell);
+                            
+                            nonZeroRows = any(iEvsMat,2);
+                            if any(nonZeroRows)
+                                iParamNames(~nonZeroRows) = [];
+                                iEvsMat(~nonZeroRows,:) = [];
+                                loaded4Stat(2) = 1;
 
-                            loaded4Stat(2) = 1;
+                                i_h = zeros(length(iParamNames),1);
+                                i_p = zeros(length(iParamNames),1);
+                                i_ci = cell(length(iParamNames),1);
+                                for i = 1:size(iEvsMat,1)
+                                    [i_h(i),i_p(i),ciNum] = ttest(iEvsMat(i,:),i_mu0(i),'Alpha',alpha);
+                                    i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                                end
 
-                            i_h = zeros(length(iParamNames),1);
-                            i_p = zeros(length(iParamNames),1);
-                            i_ci = cell(length(iParamNames),1);
-                            for i = 1:size(iEvsMat,1)
-                                [i_h(i),i_p(i),ciNum] = ttest(iEvsMat(i,:),i_mu0(i),'Alpha',alpha);
-                                i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
+                                i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
+                                i_p = mat2cell(i_p,ones(length(iParamNames),1));
                             end
-
-                            i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
-                            i_p = mat2cell(i_p,ones(length(iParamNames),1));
                         end
                     end
                     
@@ -1271,7 +1280,7 @@ classdef DASevDB < handle
                         gO.tTestEphysResultTable.ColumnName = {'Electrophysiology',...
                             'Null hypothesis rejected?','p-value','CI'};
                         gO.tTestEphysResultTable.ColumnFormat = {'char','logical','numeric','char'};
-                        temp = [fieldnames([eEvs(1).Params]),e_h,e_p,e_ci];
+                        temp = [eParamNames,e_h,e_p,e_ci];
                         gO.tTestEphysResultTable.Data = temp;
                         gO.tTestEphysResultTable.ColumnWidth = {100,150,100,150};
                     else
@@ -1281,7 +1290,7 @@ classdef DASevDB < handle
                         gO.tTestImagingResultTable.ColumnName = {'Imaging',...
                             'Null hypothesis rejected?','p-value','CI'};
                         gO.tTestImagingResultTable.ColumnFormat = {'char','logical','numeric','char'};
-                        temp = [fieldnames([iEvs(1).Params]),i_h,i_p,i_ci];
+                        temp = [iParamNames,i_h,i_p,i_ci];
                         gO.tTestImagingResultTable.Data = temp;
                         gO.tTestImagingResultTable.ColumnWidth = {100,150,100,150};
                     else
