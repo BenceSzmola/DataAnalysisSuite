@@ -708,6 +708,75 @@ classdef DASevDB < handle
             end
             
         end
+        
+        %%
+        function [noParams,paramNames,paramMat] = extractParamMat(gO,dTyp,onlyNonZero,saveStruct) % varargin should be the savestructs
+            noParams = false;
+            if iscell(saveStruct)
+                numSaveStructs = length(saveStruct);
+                paramMat = cell(numSaveStructs,1);
+            else
+                numSaveStructs = 1;
+                paramMat = [];
+            end
+            paramNames = [];
+                        
+            for i = 1:numSaveStructs
+                switch dTyp
+                    case 1
+                        if iscell(saveStruct)
+                            evs = [saveStruct{i}.ephysEvents];
+                        else
+                            evs = [saveStruct.ephysEvents];
+                        end
+                        
+                    case 2
+                        if iscell(saveStruct)
+                            evs = [saveStruct{i}.imagingEvents];
+                        else
+                            evs = [saveStruct.imagingEvents];
+                        end
+                        
+                end
+                
+                if ~isempty([evs.Params])
+                    paramsCell = squeeze(struct2cell([evs.Params]));
+                    paramsCell(cellfun('isempty', paramsCell)) = {nan};
+                    paramMat{i} = cell2mat(paramsCell);
+                                        
+                    if i == 1
+                        paramNames = fieldnames(evs(1).Params);
+                    else
+                        if ~isempty(setxor(paramNames, fieldnames(evs(1).Params)))
+                            [paramNames,ia,ib] = intersect(paramNames, fieldnames(evs(1).Params), 'stable');
+                            for j = 1:i-1                                
+                                paramMat{j} = paramMat{j}(ia,:);
+                            end
+                            paramMat{i} = paramMat{i}(ib,:);
+                        end
+                    end
+                    
+                    
+                    if onlyNonZero
+                        nonZeroRows = any(paramMat{i},2);
+                        if any(nonZeroRows)
+                            paramNames(~nonZeroRows) = [];
+                            paramMat{i}(~nonZeroRows,:) = [];
+                        else
+                            noParams = true;
+                            return
+                        end
+                    end
+                else
+                    noParams = true;
+                    return
+                end
+            end
+            
+            if numSaveStructs == 1
+                paramMat = paramMat{:};
+            end
+        end
     end
     
     %% Callback functions
@@ -1152,25 +1221,21 @@ classdef DASevDB < handle
                     statEntries = statEntries{1};
                     
                     if sum(ismember(fieldnames(statEntries),'ephysEvents'))
-                        eEvs = [statEntries.ephysEvents];
-                        if ~isempty([eEvs.Params])
-                            paramsCell = squeeze(struct2cell([eEvs.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            eAvg = mat2cell(mean(cell2mat(paramsCell),2,'omitnan'),ones(1,length(fieldnames(eEvs(1).Params))));
-                            eSd = mat2cell(std(cell2mat(paramsCell),[],2,'omitnan'),ones(1,length(fieldnames(eEvs(1).Params))));
-                            eMed = mat2cell(median(cell2mat(paramsCell),2,'omitnan'),ones(1,length(fieldnames(eEvs(1).Params))));
+                        [noParams,eParamNames,paramsMat] = extractParamMat(gO,1,false,statEntries);
+                        if ~noParams
+                            eAvg = mat2cell(mean(paramsMat,2,'omitnan'),ones(1,length(eParamNames)));
+                            eSd = mat2cell(std(paramsMat,[],2,'omitnan'),ones(1,length(eParamNames)));
+                            eMed = mat2cell(median(paramsMat,2,'omitnan'),ones(1,length(eParamNames)));
                             loaded4Stat(1) = 1;
                         end
                     end
                     
                     if sum(ismember(fieldnames(statEntries),'imagingEvents'))
-                        iEvs = [statEntries.imagingEvents];
-                        if ~isempty([iEvs.Params])
-                            paramsCell = squeeze(struct2cell([iEvs.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            iAvg = mat2cell(mean(cell2mat(paramsCell),2,'omitnan'),ones(1,length(fieldnames(iEvs(1).Params))));
-                            iSd = mat2cell(std(cell2mat(paramsCell),[],2,'omitnan'),ones(1,length(fieldnames(iEvs(1).Params))));
-                            iMed = mat2cell(median(cell2mat(paramsCell),2,'omitnan'),ones(1,length(fieldnames(iEvs(1).Params))));
+                        [noParams,iParamNames,paramsMat] = extractParamMat(gO,2,false,statEntries);
+                        if ~noParams
+                            iAvg = mat2cell(mean(paramsMat,2,'omitnan'),ones(1,length(iParamNames)));
+                            iSd = mat2cell(std(paramsMat,[],2,'omitnan'),ones(1,length(iParamNames)));
+                            iMed = mat2cell(median(paramsMat,2,'omitnan'),ones(1,length(iParamNames)));
                             loaded4Stat(2) = 1;
                         end
                     end
@@ -1178,28 +1243,28 @@ classdef DASevDB < handle
                     if sum(loaded4Stat) == 2
                         gO.basicStatParamTable1.ColumnName = {'Electrophysiology',...
                             'Mean','SD','Median'};
-                        temp = [fieldnames([eEvs(1).Params]),eAvg,eSd,eMed];
+                        temp = [eParamNames,eAvg,eSd,eMed];
                         gO.basicStatParamTable1.Data = temp;
                         gO.basicStatParamTable1.ColumnWidth = {100,100,100,100};
                         gO.basicStatParamTable1.Visible = 'on';
                         
                         gO.basicStatParamTable2.ColumnName = {'Imaging',...
                             'Mean','SD','Median'};
-                        temp = [fieldnames([iEvs(1).Params]),iAvg,iSd,iMed];
+                        temp = [iParamNames,iAvg,iSd,iMed];
                         gO.basicStatParamTable2.Data = temp;
                         gO.basicStatParamTable2.ColumnWidth = {100,100,100,100};
                         gO.basicStatParamTable2.Visible = 'on';
                     elseif loaded4Stat(1)
                         gO.basicStatParamTableBig.ColumnName = {'Electrophysiology',...
                             'Mean','SD','Median'};
-                        temp = [fieldnames([eEvs(1).Params]),eAvg,eSd,eMed];
+                        temp = [eParamNames,eAvg,eSd,eMed];
                         gO.basicStatParamTableBig.Data = temp;
                         gO.basicStatParamTableBig.ColumnWidth = {100,100,100,100};
                         gO.basicStatParamTableBig.Visible = 'on';
                     elseif loaded4Stat(2)
                         gO.basicStatParamTableBig.ColumnName = {'Imaging',...
                             'Mean','SD','Median'};
-                        temp = [fieldnames([iEvs(1).Params]),iAvg,iSd,iMed];
+                        temp = [iParamNames,iAvg,iSd,iMed];
                         gO.basicStatParamTableBig.Data = temp;
                         gO.basicStatParamTableBig.ColumnWidth = {100,100,100,100};
                         gO.basicStatParamTableBig.Visible = 'on';
@@ -1220,58 +1285,39 @@ classdef DASevDB < handle
                     
                     if sum(ismember(fieldnames(statEntries),'ephysEvents'))
                         e_mu0 = cell2mat(gO.tTestMu0EphysTable.Data(:,2));
-                        eEvs = [statEntries.ephysEvents];
-                        if ~isempty([eEvs.Params])
-                            eParamNames = fieldnames(eEvs(1).Params);
-                            paramsCell = squeeze(struct2cell([eEvs.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            eEvsMat = cell2mat(paramsCell);
-                            nonZeroRows = any(eEvsMat,2);
-                            if any(nonZeroRows)
-                                eParamNames(~nonZeroRows) = [];
-                                eEvsMat(~nonZeroRows,:) = [];
-                                loaded4Stat(1) = 1;
+                        [noParams,eParamNames,paramsMat] = extractParamMat(gO,1,true,statEntries);
+                        if ~noParams
+                            loaded4Stat(1) = 1;
 
-                                e_h = zeros(length(eParamNames),1);
-                                e_p = zeros(length(eParamNames),1);
-                                e_ci = cell(length(eParamNames),1);
-                                for i = 1:size(eEvsMat,1)
-                                    [e_h(i),e_p(i),ciNum] = ttest(eEvsMat(i,:),e_mu0(i),'Alpha',alpha);
-                                    e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
-                                end
-
-                                e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
-                                e_p = mat2cell(e_p,ones(length(eParamNames),1));
+                            e_h = zeros(length(eParamNames),1);
+                            e_p = zeros(length(eParamNames),1);
+                            e_ci = cell(length(eParamNames),1);
+                            for i = 1:size(paramsMat,1)
+                                [e_h(i),e_p(i),ciNum] = ttest(paramsMat(i,:),e_mu0(i),'Alpha',alpha);
+                                e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
                             end
+
+                            e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
+                            e_p = mat2cell(e_p,ones(length(eParamNames),1));
                         end
                     end
                     
                     if sum(ismember(fieldnames(statEntries),'imagingEvents'))
                         i_mu0 = cell2mat(gO.tTestMu0ImagingTable.Data(:,2));
-                        iEvs = [statEntries.imagingEvents];
-                        if ~isempty([iEvs.Params])
-                            iParamNames = fieldnames(iEvs(1).Params);
-                            paramsCell = squeeze(struct2cell([iEvs.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            iEvsMat = cell2mat(paramsCell);
+                        [noParams,iParamNames,paramsMat] = extractParamMat(gO,2,true,statEntries);
+                        if ~noParams
+                            loaded4Stat(2) = 1;
                             
-                            nonZeroRows = any(iEvsMat,2);
-                            if any(nonZeroRows)
-                                iParamNames(~nonZeroRows) = [];
-                                iEvsMat(~nonZeroRows,:) = [];
-                                loaded4Stat(2) = 1;
-
-                                i_h = zeros(length(iParamNames),1);
-                                i_p = zeros(length(iParamNames),1);
-                                i_ci = cell(length(iParamNames),1);
-                                for i = 1:size(iEvsMat,1)
-                                    [i_h(i),i_p(i),ciNum] = ttest(iEvsMat(i,:),i_mu0(i),'Alpha',alpha);
-                                    i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
-                                end
-
-                                i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
-                                i_p = mat2cell(i_p,ones(length(iParamNames),1));
+                            i_h = zeros(length(iParamNames),1);
+                            i_p = zeros(length(iParamNames),1);
+                            i_ci = cell(length(iParamNames),1);
+                            for i = 1:size(paramsMat,1)
+                                [i_h(i),i_p(i),ciNum] = ttest(paramsMat(i,:),i_mu0(i),'Alpha',alpha);
+                                i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
                             end
+
+                            i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
+                            i_p = mat2cell(i_p,ones(length(iParamNames),1));
                         end
                     end
                     
@@ -1306,84 +1352,38 @@ classdef DASevDB < handle
                     alpha = str2double(gO.tTestCritPEdit.String);
                     
                     if sum(ismember(fieldnames(statEntries{1}),'ephysEvents')) && sum(ismember(fieldnames(statEntries{2}),'ephysEvents'))
-                        eEvs1 = [statEntries{1}.ephysEvents];
-                        eEvs2 = [statEntries{2}.ephysEvents];
-                        
-                        if ~isempty([eEvs1.Params]) && ~isempty([eEvs2.Params])
-                            paramsCell = squeeze(struct2cell([eEvs1.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            eEvsMat1 = cell2mat(paramsCell);
-                            fns1 = fieldnames(eEvs1(1).Params);
+                        [noParams,eParamNames,paramsMat] = extractParamMat(gO,1,true,statEntries);
+                        if ~noParams
+                            loaded4Stat(1) = 1; 
 
-                            paramsCell = squeeze(struct2cell([eEvs2.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            eEvsMat2 = cell2mat(paramsCell);
-                            fns2 = fieldnames(eEvs2(1).Params);
-
-                            [~,ia,ib] = intersect(fns1,fns2);
-                            eParamNames = fns1(sort(ia));
-                            eEvsMat1 = eEvsMat1(sort(ia),:);
-                            eEvsMat2 = eEvsMat2(sort(ib),:);
-
-                            nonZeroRows = any(eEvsMat1,2) & any(eEvsMat2,2);
-                            if any(nonZeroRows)
-                                eParamNames(~nonZeroRows) = [];
-                                eEvsMat1(~nonZeroRows,:) = [];
-                                eEvsMat2(~nonZeroRows,:) = [];
-                                loaded4Stat(1) = 1;
-
-                                e_h = zeros(length(eParamNames),1);
-                                e_p = zeros(length(eParamNames),1);
-                                e_ci = cell(length(eParamNames),1);
-                                for i = 1:length(eParamNames)
-                                    [e_h(i),e_p(i),ciNum] = ttest2(eEvsMat1(i,:),eEvsMat2(i,:),'Alpha',alpha);
-                                    e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
-                                end
-
-                                e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
-                                e_p = mat2cell(e_p,ones(length(eParamNames),1));
+                            e_h = zeros(length(eParamNames),1);
+                            e_p = zeros(length(eParamNames),1);
+                            e_ci = cell(length(eParamNames),1);
+                            for i = 1:length(eParamNames)
+                                [e_h(i),e_p(i),ciNum] = ttest2(paramsMat{1}(i,:),paramsMat{2}(i,:),'Alpha',alpha);
+                                e_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
                             end
+
+                            e_h = mat2cell(logical(e_h),ones(length(eParamNames),1));
+                            e_p = mat2cell(e_p,ones(length(eParamNames),1));
                         end
                     end
                     
                     if sum(ismember(fieldnames(statEntries{1}),'imagingEvents')) && sum(ismember(fieldnames(statEntries{2}),'imagingEvents'))                        
-                        iEvs1 = [statEntries{1}.imagingEvents];
-                        iEvs2 = [statEntries{2}.imagingEvents];
-                        
-                        if ~isempty([iEvs1.Params]) && ~isempty([iEvs2.Params])
-                            paramsCell = squeeze(struct2cell([iEvs1.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            iEvsMat1 = cell2mat(paramsCell);
-                            fns1 = fieldnames(iEvs1(1).Params);
+                        [noParams,iParamNames,paramsMat] = extractParamMat(gO,2,true,statEntries);
+                        if ~noParams
+                            loaded4Stat(2) = 1;
 
-                            paramsCell = squeeze(struct2cell([iEvs2.Params]));
-                            paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                            iEvsMat2 = cell2mat(paramsCell);
-                            fns2 = fieldnames(iEvs2(1).Params);
-
-                            [~,ia,ib] = intersect(fns1,fns2);
-                            iParamNames = fns1(sort(ia));
-                            iEvsMat1 = iEvsMat1(sort(ia),:);
-                            iEvsMat2 = iEvsMat2(sort(ib),:);
-
-                            nonZeroRows = any(iEvsMat1,2) & any(iEvsMat2,2);
-                            if any(nonZeroRows)
-                                iParamNames(~nonZeroRows) = [];
-                                iEvsMat1(~nonZeroRows,:) = [];
-                                iEvsMat2(~nonZeroRows,:) = [];
-                                loaded4Stat(2) = 1;
-
-                                i_h = zeros(length(iParamNames),1);
-                                i_p = zeros(length(iParamNames),1);
-                                i_ci = cell(length(iParamNames),1);
-                                for i = 1:length(iParamNames)
-                                    [i_h(i),i_p(i),ciNum] = ttest2(iEvsMat1(i,:),iEvsMat2(i,:),'Alpha',alpha);
-                                    i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
-                                end
-
-                                i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
-                                i_p = mat2cell(i_p,ones(length(iParamNames),1));
+                            i_h = zeros(length(iParamNames),1);
+                            i_p = zeros(length(iParamNames),1);
+                            i_ci = cell(length(iParamNames),1);
+                            for i = 1:length(iParamNames)
+                                [i_h(i),i_p(i),ciNum] = ttest2(paramsMat{1}(i,:),paramsMat{2}(i,:),'Alpha',alpha);
+                                i_ci{i} = ['         [',num2str(ciNum(1)),' , ',num2str(ciNum(2)),']'];
                             end
+
+                            i_h = mat2cell(logical(i_h),ones(length(iParamNames),1));
+                            i_p = mat2cell(i_p,ones(length(iParamNames),1));
                         end
                     end
                     
@@ -1499,6 +1499,23 @@ classdef DASevDB < handle
             eStart = find(cellfun(@(x) strcmp('---Ephys parameters---',x), gO.statGraphParamSelPopMenu.String), 1);
             iStart = find(cellfun(@(x) strcmp('---Imaging parameters---',x), gO.statGraphParamSelPopMenu.String), 1);
             
+            if ~isempty(eStart) && ~isempty(iStart)
+                if gO.statGraphParamSelPopMenu.Value < iStart
+                    dTyp = 1;
+                elseif gO.statGraphParamSelPopMenu.Value > iStart
+                    dTyp = 2;
+                else
+                    return
+                end
+            elseif ~isempty(eStart) && isempty(iStart)
+                dTyp = 1;
+            elseif isempty(eStart) && ~isempty(iStart)
+                dTyp = 2;
+            else 
+                return
+            end
+            
+            
             fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
             DASloc = mfilename('fullpath');
 
@@ -1508,13 +1525,10 @@ classdef DASevDB < handle
                 file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
                 load(file2load,'saveStruct');
                 
-                if ~isempty(eStart) && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
-                    eEvs = [saveStruct.ephysEvents];
-                    if ~isempty([eEvs.Params])
-                        paramsCell = squeeze(struct2cell([eEvs.Params]));
-                        paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                        tempParamMat = cell2mat(paramsCell);
-                        paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(eEvs(1).Params));
+                if (dTyp == 1) && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
+                    [noParams,eParamNames,tempParamMat] = extractParamMat(gO,1,false,saveStruct);
+                    if ~noParams
+                        paramMatInd = cellfun(@(x) strcmp(paramSel,x), eParamNames);
                         tempParamMat = tempParamMat(paramMatInd,:);
                         if ~isempty(paramMat) && length(tempParamMat) > size(paramMat,1)
                             lenDiff = length(tempParamMat) - size(paramMat,1);
@@ -1528,13 +1542,11 @@ classdef DASevDB < handle
                         paramUnitInd = strcmp(gO.ephysParamUnits(:,1),paramSel);
                         xTitle = [gO.ephysParamUnits{paramUnitInd,1},' ',gO.ephysParamUnits{paramUnitInd,2}];
                     end
-                elseif ~isempty(iStart) && sum(ismember(fieldnames(saveStruct),'imagingEvents'))
-                    iEvs = [saveStruct.imagingEvents];
-                    if ~isempty([iEvs.Params])
-                        paramsCell = squeeze(struct2cell([iEvs.Params]));
-                        paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                        tempParamMat = cell2mat(paramsCell);
-                        paramMatInd = cellfun(@(x) strcmp(paramSel,x), fieldnames(iEvs(1).Params));
+                end
+                if (dTyp == 2) && sum(ismember(fieldnames(saveStruct),'imagingEvents'))
+                    [noParams,iParamNames,tempParamMat] = extractParamMat(gO,2,false,saveStruct);
+                    if ~noParams
+                        paramMatInd = cellfun(@(x) strcmp(paramSel,x), iParamNames);
                         tempParamMat = tempParamMat(paramMatInd,:);
                         if ~isempty(paramMat) && length(tempParamMat) > size(paramMat,1)
                             lenDiff = length(tempParamMat) - size(paramMat,1);
@@ -1548,9 +1560,6 @@ classdef DASevDB < handle
                         paramUnitInd = strcmp(gO.imagingParamUnits(:,1),paramSel);
                         xTitle = [gO.imagingParamUnits{paramUnitInd,1},' ',gO.imagingParamUnits{paramUnitInd,2}];
                     end
-                else
-                    errordlg('Unexpected error!')
-                    return
                 end
             end
             
@@ -1567,6 +1576,7 @@ classdef DASevDB < handle
                     
                 case 'Boxplot'
                     boxplot(gO.axStatTab,paramMat,fNames,'LabelOrientation','inline')
+                    ylabel(gO.axStatTab,xTitle)
                     
             end
             
