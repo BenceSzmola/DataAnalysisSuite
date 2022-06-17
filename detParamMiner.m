@@ -1,4 +1,4 @@
-function detParams = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData,tAxis)
+function [detParams,complexes] = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData,tAxis)
 
 numDets = length(dets);
 detInds = dets;
@@ -10,14 +10,15 @@ switch dTyp
             'Length',cell(numDets,1),'Frequency',cell(numDets,1),'NumCycles',cell(numDets,1),...
             'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'RiseTime2080',cell(numDets,1),...
             'DecayTime',cell(numDets,1),'DecayTime8020',cell(numDets,1),'DecayTau',cell(numDets,1),...
-            'FWHM',cell(numDets,1),'NumSimultEvents',0);
+            'FWHM',cell(numDets,1),'NumInComplex',cell(numDets,1),'NumSimultEvents',0);
     case 2
         detParams = struct('RawAmplitudePeakT',cell(numDets,1),'RawAmplitudeP2P',cell(numDets,1),'Length',cell(numDets,1),...
             'AUC',cell(numDets,1),'RiseTime',cell(numDets,1),'RiseTime2080',cell(numDets,1),...
             'DecayTime',cell(numDets,1),'DecayTime8020',cell(numDets,1),'DecayTau',cell(numDets,1),...
-            'FWHM',cell(numDets,1),'NumSimultEvents',0);
+            'FWHM',cell(numDets,1),'NumInComplex',cell(numDets,1),'NumSimultEvents',0);
 end
 
+complexes = {};
 
 for i = 1:numDets
     detParams(i).Length = (detBorders(i,2)-detBorders(i,1))/fs;
@@ -79,4 +80,25 @@ for i = 1:numDets
     lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last')));
     highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1))-1);
     detParams(i).FWHM = (highbord-lowbord)/fs;
+    
+    maxSepInComplex = 0.1;
+    maxSepInComplex = round(maxSepInComplex * fs);
+    if (i ~= numDets) && ~any(detParams(i).NumInComplex) && ((detBorders(i+1,1) - detBorders(i,2)) <= maxSepInComplex)
+        detParams(i).NumInComplex = 1;
+        detParams(i+1).NumInComplex = 2;
+        temp = [i, i+1];
+        
+        for j = i+2:numDets
+            if (detBorders(j,1) - detBorders(j-1,2)) <= maxSepInComplex
+                detParams(j).NumInComplex = j-i+1;
+                temp = [temp, j-i+1];
+            else
+                break
+            end
+        end
+        complexes = [complexes; temp];
+    elseif ~any(detParams(i).NumInComplex)
+        detParams(i).NumInComplex = nan;
+    end
+    
 end

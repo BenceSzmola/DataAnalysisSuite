@@ -159,7 +159,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         
     end
     
-    minSepar = round(0.03*fs);
+    minSepar = round(0.01*fs);
     for i = 1:size(rawData,1)
         if chan(i) == refch
             continue

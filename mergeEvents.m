@@ -2,6 +2,7 @@ function [mergedPeaks,mergedBorders] = mergeEvents(eventsPeak,detBorders,minSepa
 
 mergedBorders = detBorders;
 merged = false(1,size(detBorders,1));
+
 if size(detBorders,1) > 1
     for i = 1:(size(detBorders,1)-1)
         for j = i:(size(detBorders,1)-1)
