@@ -792,10 +792,8 @@ classdef DASevDB < handle
                     upDwn = 1;
                 case 'leftarrow'
                     upDwn = -1;
-                case 'uparrow'
-                    
-                case 'downarrow'
-                    
+                otherwise
+                    return
             end
             changeCurrEv(gO,upDwn)
         end

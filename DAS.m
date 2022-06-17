@@ -2673,7 +2673,7 @@ classdef DAS < handle
                             for i = 1:length(data_idx)
                                 newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
-                            txt4name = 'DFER';
+                            txt4name = sprintf('DFER (%s-%s-%s)',settingStr.decompType,settingStr.flagType,settingStr.bssType);
                         case {'wICA','classic ref subtract'}
                             if nargin == 1
                                 refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
