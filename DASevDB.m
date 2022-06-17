@@ -1115,8 +1115,10 @@ classdef DASevDB < handle
                     gO.tTestSetupPanel.Visible = 'off';
                     gO.tTestResultPanel.Visible = 'off';
                     
-                    gO.db4StatListBox.Max = 2;
+                    gO.db4StatListBox.Enable = 'off';
                     gO.db4StatListBox.Value = 1;
+                    gO.db4StatListBox.Max = 2;
+                    
                 case 'Basic statistical parameters'
                     gO.basicStatParamPanel.Visible = 'on';
                     gO.basicStatParamTable1.Visible = 'off';
@@ -1125,8 +1127,10 @@ classdef DASevDB < handle
                     gO.tTestSetupPanel.Visible = 'off';
                     gO.tTestResultPanel.Visible = 'off';
                     
-                    gO.db4StatListBox.Max = 1;
+                    gO.db4StatListBox.Enable = 'on';
                     gO.db4StatListBox.Value = 1;
+                    gO.db4StatListBox.Max = 1;
+                    
                 case {'One-sample t-Test','Two-sample t-Test'}
                     gO.tTestSetupPanel.Visible = 'on';
                     gO.tTestResultPanel.Visible = 'on';
@@ -1135,14 +1139,15 @@ classdef DASevDB < handle
                     gO.basicStatParamTable2.Visible = 'off';
                     gO.basicStatParamTableBig.Visible = 'off';
                     
+                    gO.db4StatListBox.Enable = 'on';
                     if strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'One-sample t-Test')
-                        gO.db4StatListBox.Max = 1;
                         gO.db4StatListBox.Value = 1;
+                        gO.db4StatListBox.Max = 1;
                         gO.tTestMu0EphysTable.Visible = 'on';
                         gO.tTestMu0ImagingTable.Visible = 'on';
                     elseif strcmp(gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value},'Two-sample t-Test')
-                        gO.db4StatListBox.Max = 2;
                         gO.db4StatListBox.Value = 1;
+                        gO.db4StatListBox.Max = 2;
                         gO.tTestMu0EphysTable.Visible = 'off';
                         gO.tTestMu0ImagingTable.Visible = 'off';
                     end
@@ -1187,6 +1192,12 @@ classdef DASevDB < handle
                         gO.tTestMu0ImagingTable.Enable = 'off';
                         gO.tTestMu0ImagingTable.Data = [];
                     end
+                    
+                case 'Two-sample t-Test'
+                    if length(gO.db4StatListBox.Value) > 2
+                        gO.db4StatListBox.Value = gO.db4StatListBox.Value(1:2);
+                    end
+                    
                 otherwise
                     return
             end
@@ -1482,7 +1493,7 @@ classdef DASevDB < handle
         end
         
         %%
-        function statGraphPlotButtonPress(gO,~,~)            
+        function statGraphPlotButtonPress(gO,~,~)
             if gO.statGraphParamSelPopMenu.Value == 0
                 return
             end
@@ -1843,7 +1854,8 @@ classdef DASevDB < handle
                 'Units','normalized',...
                 'Position',[0.01,0.75,0.3,0.19],...
                 'String','',...
-                'Callback',@ gO.db4StatListBoxCB);
+                'Callback',@ gO.db4StatListBoxCB,...
+                'Enable','off');
             getDBlist(gO,2)
             gO.statLaunchButton = uicontrol(gO.dataPanel,...
                 'Style','pushbutton',...

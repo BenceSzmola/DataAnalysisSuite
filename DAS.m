@@ -1054,15 +1054,19 @@ classdef DAS < handle
             
             if forSpectro
                 try
-                    w1 = guiobj.ephys_detectionsInfo(currDetRow).DetSettings.W1;
-                    w2 = guiobj.ephys_detectionsInfo(currDetRow).DetSettings.W2;
+                    w1 = guiobj.ephys_detectionsInfo.DetSettings.W1;
+                    w2 = guiobj.ephys_detectionsInfo.DetSettings.W2;
                 catch
                     w1 = 150;
                     w2 = 250;
                     warning('Cutoff frequencies set to default 150-250')
                 end
                 
-                spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
+                if guiobj.ephys_artSupp4Det == 0
+                    spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
+                else
+                    spectrogramMacher(guiobj.ephys_procced(chanInd,winInds),fs,w1,w2)
+                end
                 
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
