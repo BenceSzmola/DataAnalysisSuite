@@ -6,6 +6,7 @@ function varargout = artSuppMaster(varargin)
 %                                       the second way to call it
 % output = artSuppMaster(inputStruct)   this is the call which will then run the algorithms
 
+
 %% check which type of call was made
 if nargin == 3
     initStruct = artSuppMaster(1);
@@ -70,6 +71,7 @@ elseif (nargin == 1) && (isstruct(varargin{1}))
     doSpectroPlot = inputStruct.doSpectroPlot;
 end
 
+progBar = waitbar(0.1, 'Handling input...');
 %% handling the input data
 if isempty(data)
     rhdStruct = read_Intan_RHD2000_file_szb;
@@ -82,6 +84,7 @@ if size(data,1) > size(data,2)
     data = data';
 end
 
+waitbar(0.2, progBar, 'Preparing for cleaning...')
 %% extract sample and channel number
 numSamples = size(data,2);
 numChans = size(data,1);
@@ -100,6 +103,7 @@ elseif ~isempty(data_perio)
     data = data_perio;
 end
 
+waitbar(0.3, progBar, ['Decomposing signals using ',decompType,'...'])
 %% running the requested decomposition
 switch decompType
     case 'EEMD'
@@ -135,6 +139,7 @@ switch decompType
 end
 compCellClean = compCell;
 
+waitbar(0.5, progBar, ['Flagging suspicious segments using ',flagType,'...'])
 %% flag suspicious segments
 switch flagType
     case 'IEC'
@@ -189,6 +194,11 @@ switch flagType
         
 end
 
+if strcmp(bssType,'')
+    waitbar(0.7, progBar, 'Dealing with flagged indices...')
+else
+    waitbar(0.7, progBar, ['Dealing with flagged indices using ', bssType])
+end
 %% deal with flagged indices
 % either directly on the decomposition components or first use a BSS algorithm and then discard bad sources
 % for now dont allow autocorr flagging and BSS
@@ -324,6 +334,7 @@ switch bssType
         end
 end
 
+waitbar(0.9, progBar, 'Reconstructing cleaned signal...')
 %% time to reconstruct
 dataCleaned = zeros(size(data));
 switch decompType
@@ -352,6 +363,7 @@ switch decompType
         
 end
 
+waitbar(1, progBar, 'Preparing output and plots...')
 if fullThenSlide
     inputStructReRun = inputStruct;
     inputStructReRun.doPeriodFilt = false;
@@ -361,6 +373,9 @@ if fullThenSlide
     inputStructReRun.doRawPlot = false;
     inputStructReRun.doRawDogPlot = false;
     inputStructReRun.doSpectroPlot = false;
+    if ishandle(progBar)
+        close(progBar)
+    end
     dataCleaned = artSuppMaster(inputStructReRun);
 end
 
@@ -378,6 +393,11 @@ varargout{1} = dataCleaned;
 if nargout == 2
     varargout{2} = inputStruct;
 end
+
+if ishandle(progBar)
+    close(progBar)
+end
+
 % end of main function
 end
 
