@@ -264,6 +264,7 @@ classdef DAS < handle
         ephys_artSupp4Det = 0;
         ephys_artSuppedData4DetListInds
         ephys_detections                    % Location of detections on time axis
+        ephys_eventComplexes                % Event numbers for each detected complex (e.g. doublet, triplet,...)
         ephys_detBorders
         ephys_detectionsInfo
         ephys_detParams 
@@ -286,6 +287,7 @@ classdef DAS < handle
         imaging_artSupp4Det = 0;
         imaging_artSuppedData4DetListInds
         imaging_detections
+        imaging_eventComplexes
         imaging_detBorders
         imaging_detParams
         imaging_detectionsInfo
@@ -1065,7 +1067,7 @@ classdef DAS < handle
                 if guiobj.ephys_artSupp4Det == 0
                     spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
                 else
-                    spectrogramMacher(guiobj.ephys_procced(chanInd,winInds),fs,w1,w2)
+                    spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
                 end
                 
             elseif ~forSpectro
@@ -1658,6 +1660,15 @@ classdef DAS < handle
                     selInds = selList.Value;
                 end
                 close(fig)
+            end
+        end
+        
+        %%
+        function updateSpectroLabels(~,h,~)
+            sps = findobj(h,'Type','axes');
+            for i = 1:length(sps)
+                sps(i).YTickLabel = cellfun(@(x) num2str(x),mat2cell(2.^(sps(i).YTick'),...
+                    ones(1,length(sps(i).YTick))),'UniformOutput',false);
             end
         end
         
@@ -2446,12 +2457,22 @@ classdef DAS < handle
             if e.NewValue == guiobj.tabs.Children(2)...
                     & isempty(guiobj.ephys_data)
                 guiobj.tabs.SelectedTab = e.OldValue;
-                errordlg('No electrophysiology data loaded!')
+                erdlg = errordlg('No electrophysiology data loaded!');
+                pause(1)
+                if ishandle(erdlg)
+                    close(erdlg)
+                end
+                return
             end
             if e.NewValue == guiobj.tabs.Children(3)...
                     & isempty(guiobj.imaging_data)
                 guiobj.tabs.SelectedTab = e.OldValue;
-                errordlg('No imaging data loaded!')
+                erdlg = errordlg('No imaging data loaded!');
+                pause(1)
+                if ishandle(erdlg)
+                    close(erdlg)
+                end
+                return
             end
             
 %             if e.OldValue == guiobj.tabs.Children(1)
@@ -2501,7 +2522,7 @@ classdef DAS < handle
                 case 3
                     guiobj.ephysArtSuppPanel.Visible = 'on';
                     guiobj.ephysFiltSettingsPanel.Visible = 'off';
-                case 4
+                case {4,5}
                     guiobj.ephysArtSuppPanel.Visible = 'off';
                     guiobj.ephysFiltSettingsPanel.Visible = 'off';
             end
@@ -2700,6 +2721,29 @@ classdef DAS < handle
                     guiobj.ephysRunProcButton.BackgroundColor = 'g';
                     return
                     
+                case 'CWT spectrogram'
+                    for i = 1:length(data_idx)
+                        chan = i; % temporary solution
+                        figure('Name',sprintf('Channel #%d CWT Spectrogram',chan),...
+                        'WindowState','maximized',...
+                        'SizeChangedFcn',@ guiobj.updateSpectroLabels);
+                        drawnow
+                        [cfs,f] = cwt(data(chan,:),'amor',guiobj.ephys_fs,'FrequencyLimits',[1,1000]);
+                        imagesc(guiobj.ephys_taxis,log2(f),abs(cfs))
+                        axis tight
+                        ax = gca;
+                        ax.YDir = 'normal';
+                        ax.YTickLabel = num2str(2.^(ax.YTick'));
+                        title(sprintf('Ch#%d CWT',chan))
+                        xlabel('Time [s]')
+                        ylabel('Frequency [Hz]')
+                        c = colorbar;
+                        c.Label.String = 'CWT coeff. magnitude';
+                        clear cfs f ax
+                    end
+                    
+                    guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                    return
             end
             
             for i = 1:length(data_idx)
@@ -3086,9 +3130,9 @@ classdef DAS < handle
                     end
                                         
                     if ~refVal
-                        [dets,detBorders,detParams] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,0,[],showFigs);
+                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,0,[],showFigs);
                     elseif refVal
-                        [dets,detBorders,detParams] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
+                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
                     end
                     
                     detinfo.DetType = "CWT";
@@ -3164,9 +3208,9 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detParams] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,0,[],showFigs);
+                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,0,[],showFigs);
                     elseif refVal
-                        [dets,detBorders,detParams] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refch,refchData,showFigs);
+                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refch,refchData,showFigs);
                     end
                     
                     detinfo.DetType = "DoGInstPow";
@@ -3201,6 +3245,7 @@ classdef DAS < handle
             if ~sum(~cellfun('isempty',dets)) || detsOnlyInRef
                 
                 guiobj.ephys_detections = {};
+                guiobj.ephys_eventComplexes = {};
                 guiobj.ephys_detBorders = {};
                 guiobj.ephys_detParams = {};
                 guiobj.ephys_detectionsInfo = [];
@@ -3238,6 +3283,8 @@ classdef DAS < handle
             end
                         
             guiobj.ephys_detections = dets;
+            
+            guiobj.ephys_eventComplexes = evComplexes;
             
             guiobj.ephys_detBorders = detBorders;
             
@@ -3998,6 +4045,7 @@ classdef DAS < handle
                 ephysSaveData.Dets = guiobj.ephys_detections;
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
                 ephysSaveData.DetParams = guiobj.ephys_detParams;
+                ephysSaveData.EventComplexes = guiobj.ephys_eventComplexes;
                 
                 if ~isempty(guiobj.ephys_detectionsInfo)
                     ephysSaveInfo = guiobj.ephys_detectionsInfo;
@@ -4047,6 +4095,7 @@ classdef DAS < handle
                 imagingSaveData.Dets = guiobj.imaging_detections;
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders;
                 imagingSaveData.DetParams = guiobj.imaging_detParams;
+                imagingSaveData.EventComplexes = guiobj.imaging_eventComplexes;
                 
                 if ~isempty(guiobj.imaging_detectionsInfo)
                     imagingSaveInfo = guiobj.imaging_detectionsInfo;
@@ -4755,7 +4804,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.8, 0.15, 0.15],...
-                'String',{'--Choose processing type--','Filtering','Artifact Suppression','Compute FFT'},...
+                'String',{'--Choose processing type--','Filtering','Artifact Suppression','Compute FFT','CWT spectrogram'},...
                 'Callback',@(h,e) guiobj.ephysProcPopMenuSelected);
             
             % Create buttongroup to choose between processing raw or

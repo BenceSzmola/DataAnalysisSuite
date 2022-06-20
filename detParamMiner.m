@@ -1,4 +1,4 @@
-function [detParams,complexes] = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData,tAxis)
+function [detParams,evComplexes] = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData,tAxis)
 
 numDets = length(dets);
 detInds = dets;
@@ -18,7 +18,7 @@ switch dTyp
             'FWHM',cell(numDets,1),'NumInComplex',cell(numDets,1),'NumSimultEvents',0);
 end
 
-complexes = {};
+evComplexes = {};
 
 for i = 1:numDets
     detParams(i).Length = (detBorders(i,2)-detBorders(i,1))/fs;
@@ -91,12 +91,12 @@ for i = 1:numDets
         for j = i+2:numDets
             if (detBorders(j,1) - detBorders(j-1,2)) <= maxSepInComplex
                 detParams(j).NumInComplex = j-i+1;
-                temp = [temp, j-i+1];
+                temp = [temp, j];
             else
                 break
             end
         end
-        complexes = [complexes; temp];
+        evComplexes = [evComplexes; temp];
     elseif ~any(detParams(i).NumInComplex)
         detParams(i).NumInComplex = nan;
     end

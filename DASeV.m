@@ -146,6 +146,7 @@ classdef DASeV < handle
         ephysDetSettings
         ephysDetParams
         ephysDets
+        ephysEventComplexes
         ephysDetBorders
         ephysYlabel
         ephysDetInfo
@@ -162,6 +163,7 @@ classdef DASeV < handle
         imagingTaxis
         imagingYlabel
         imagingDets
+        imagingEventComplexes
         imagingDetBorders
         imagingDetInfo
         imagingDetParams
@@ -1424,6 +1426,7 @@ classdef DASeV < handle
                     gO.ephysTaxis = ephysSaveData.TAxis;
                     gO.ephysYlabel = ephysSaveData.YLabel;
                     gO.ephysDets = ephysSaveData.Dets;
+                    gO.ephysEventComplexes = ephysSaveData.EventComplexes;
                     if isempty(gO.ephysDets)
                         gO.parallelMode = 1;
                         parallelModeMenuSel(gO,0)
@@ -1484,6 +1487,7 @@ classdef DASeV < handle
                     gO.imagingTaxis = imagingSaveData.TAxis;
                     gO.imagingYlabel = imagingSaveData.YLabel;
                     gO.imagingDets = imagingSaveData.Dets;
+                    gO.imagingEventComplexes = imagingSaveData.EventComplexes;
                     if isempty(gO.imagingDets)
                         gO.parallelMode = 2;
                         parallelModeMenuSel(gO,0)

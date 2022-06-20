@@ -32,6 +32,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     
     eventsStartStop = cell(size(rawData,1),1);
     eventsPeak = cell(size(rawData,1),1);
+    peakValues = cell(size(rawData,1),1);
     vEvents = cell(size(rawData,1),1);
     
     for i = 1:size(rawData,1)
@@ -78,7 +79,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
                 aboveMinLen(j) = true;
             end
 
-            [~,maxIdx] = max(detData(i,eventsStartStop{i}(j,1):eventsStartStop{i}(j,2)));
+            [peakValues{i}(j),maxIdx] = max(detData(i,eventsStartStop{i}(j,1):eventsStartStop{i}(j,2)));
             eventsPeak{i}(j) = maxIdx + eventsStartStop{i}(j,1) - 1;
             
             if refVal~=0
@@ -143,6 +144,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         
         eventsStartStop{i} = eventsStartStop{i}(vEvents{i},:);
         eventsPeak{i} = eventsPeak{i}(vEvents{i});
+        peakValues{i} = peakValues{i}(vEvents{i});
     end
     
     if ~isempty(extThr)
@@ -165,7 +167,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
             continue
         end
         
-        [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},eventsStartStop{i},minSepar);
+        [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},peakValues{i},eventsStartStop{i},minSepar);
     end
     
     dets = eventsPeak;

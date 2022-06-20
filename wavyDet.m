@@ -1,4 +1,4 @@
-function [dets,detBorders,detParams] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refCh,refChData,showFigs)
+function [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refCh,refChData,showFigs)
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -24,6 +24,7 @@ else
 end
 
 detParams = cell(min(size(data)),1);
+evComplexes = cell(min(size(data)),1);
 
 dogged = DoG(data,fs,w1,w2);
 
@@ -94,7 +95,7 @@ for i = 1:min(size(data))
         continue
     end
     
-    detParams{i} = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
+    [detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
 
     %% Plotting
     if showFigs
