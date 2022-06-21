@@ -528,7 +528,11 @@ switch meth
             refchan = inputdlg('# of reference channel');
             refchan = str2double(refchan{:});
         end
-        ref = data(refchan,:);
+        if refchan == 0
+            ref = mean(data);
+        else
+            ref = data(refchan,:);
+        end
         % normalize then subtract (trial)
 %         refBL = ref + abs(min(ref));
 %         refNorm = refBL / abs(max(refBL));

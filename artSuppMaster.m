@@ -614,7 +614,8 @@ function plot2discardICfig(spH,dbH,inputMat,ICs,decompType,compNum,segNum,numSeg
         title(spH(2*j-1),sprintf('Ch #%d - %s comp. #%d, flagged segment #%d/%d',j,decompType,compNum,segNum,numSegs))
         if j <= numICs
             plot(spH(2*j),segtAxis,ICs(j,:))
-            title(spH(2*j),sprintf('Extracted IC #%d',j))
+            r = corrcoef(ICs(j,:),mean(inputMat));
+            title(spH(2*j),sprintf('Extracted IC #%d (corr to segment mean = %.2f)',j,r(2)))
         else
             spH(2*j).Visible = 'off';
             dbH(j).Visible = 'off';

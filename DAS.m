@@ -2658,10 +2658,14 @@ classdef DAS < handle
                             txt4name = ['DoG(',num2str(w1),'-',num2str(w2),')| '];
                             
                         case 'Periodic'
-                            fmax = str2double(guiobj.fmaxEdit.String);
-                            ffund = str2double(guiobj.ffundEdit.String);
-                            stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
-                            [procced,f_fund] = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                            if nargin == 1
+                                fmax = str2double(guiobj.fmaxEdit.String);
+                                ffund = str2double(guiobj.ffundEdit.String);
+                                stopbandwidth = str2double(guiobj.stopbandwidthEdit.String)/2;
+                                [procced,f_fund] = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                            else
+                                [procced,f_fund,fmax,stopbandwidth] = periodicNoise(data,guiobj.ephys_fs);
+                            end
                             if isempty(procced)
                                 guiobj.ephysRunProcButton.BackgroundColor = 'g';
                                 return
@@ -3006,11 +3010,6 @@ classdef DAS < handle
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
             refch = str2double(guiobj.ephysDetRefChanEdit.String);
-            if ~isempty(refch) && ~isnan(refch)
-                refchData = guiobj.ephys_data(refch,:);
-            else
-                refchData = [];
-            end
             
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
@@ -3051,6 +3050,32 @@ classdef DAS < handle
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return
+            end
+            
+            if ~isempty(refch) && ~isnan(refch) && (refch ~= 0)
+                switch dettype
+                    case 'CWT based'
+                        refVal = guiobj.ephysCwtDetRefValCheck.Value;
+                        
+                    case 'DoG+InstPow'
+                        refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                        
+                    otherwise
+                        refVal = 0;
+                        
+                end
+                if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
+                    if ~ismember(refch,chan)
+                        errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
+                        pause(1)
+                        if ishandle(errdlg)
+                            close(errdlg)
+                        end
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
+                end
             end
             
             % saving the artifact suppressed data as 
@@ -3096,6 +3121,42 @@ classdef DAS < handle
                 else
                     guiobj.ephys_artSuppedData4DetListInds = [];
                 end
+            end
+            
+            if ~isempty(refch) && ~isnan(refch)
+                switch dettype
+                    case 'CWT based'
+                        refVal = guiobj.ephysCwtDetRefValCheck.Value;
+                        
+                    case 'DoG+InstPow'
+                        refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                        
+                    otherwise
+                        refVal = 0;
+                        
+                end
+                if refch == 0 % for now code for average reference
+                    refchData = mean(data);
+                else
+                    if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
+                        if ~ismember(refch,chan)
+                            errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
+                            pause(1)
+                            if ishandle(errdlg)
+                                close(errdlg)
+                            end
+                            guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                            guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                            return
+                        else
+                            refchData = data(refch == chan,:);
+                        end
+                    else
+                        refchData = guiobj.ephys_data(refch,:);
+                    end
+                end
+            else
+                refchData = [];
             end
                         
             switch dettype
@@ -3251,6 +3312,7 @@ classdef DAS < handle
                 guiobj.ephys_detectionsInfo = [];
                 
                 errordlg('No events were found!')
+                eventDetPlotFcn(guiobj,1,0,1)
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return                
@@ -3470,6 +3532,7 @@ classdef DAS < handle
                 guiobj.imaging_detParams = {};
                 
                 warndlg('No detections!')
+                eventDetPlotFcn(guiobj,2,0,1)
                 guiobj.imagingDetStatusLabel.String = '--IDLE--';
                 guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
                 return

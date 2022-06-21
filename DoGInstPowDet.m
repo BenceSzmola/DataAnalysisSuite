@@ -38,7 +38,7 @@ detParams = cell(min(size(data)),1);
 evComplexes = cell(min(size(data)),1);
 
 if refVal == 1
-    refThr = mean(refInstPowd) + 3*std(refInstPowd);
+    refThr = median(refInstPowd) + 3*std(refInstPowd);
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
 else
     refDets = [];
@@ -48,6 +48,7 @@ else
 end
 
 quietThr = nan(size(data,1),1);
+% quietThr = zeros(size(data));
 quietSegs = cell(size(data,1),1);
 qSegsInds = cell(size(data,1),1);
 thr = nan(size(data,1),1);
@@ -62,13 +63,17 @@ for i = 1:size(data,1)
     % Determining background noise segments
     currInstPow = instPowd(i,:);
 
-    quietThr(i) = mean(currInstPow) + std(currInstPow);
+    quietThr(i) = median(currInstPow) + std(currInstPow);
     quietSegs{i} = currInstPow(currInstPow < quietThr(i));
     qSegsInds{i} = currInstPow;
-    qSegsInds{i}(currInstPow>=quietThr(i)) = nan;
+    qSegsInds{i}(currInstPow >= quietThr(i)) = nan;
+%     quietThr(i,:) = movmean(currInstPow, round(0.1*fs)) + movstd(currInstPow, round(0.1*fs));
+%     quietSegs{i} = currInstPow(currInstPow < quietThr(i,:));
+%     qSegsInds{i} = currInstPow;
+%     qSegsInds{i}(currInstPow >= quietThr(i,:)) = nan;
 
-    thr(i) = mean(quietSegs{i}) + sdmult*std(quietSegs{i});
-    extThr(i) = mean(quietSegs{i}) + std(quietSegs{i});
+    thr(i) = median(quietSegs{i}) + sdmult*std(quietSegs{i});
+    extThr(i) = median(quietSegs{i}) + std(quietSegs{i});
     
 end
 
@@ -124,13 +129,20 @@ for i = 1:min(size(data))
         detPlot(sp2,dets{i},[],taxis,'stars','r',[])
         plot(sp2,taxis,thr(i)*ones(1,length(taxis)),'-g')
         plot(sp2,taxis,quietThr(i)*ones(1,length(taxis)),'-k')
+%         plot(sp2,taxis,quietThr(i,:),'-k')
         plot(sp2,taxis,qSegsInds{i},'-m')
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
         ylabel(sp2,'Power [\muV^2]')
         title(sp2,['Instantaneous Power of channel #',num2str(chan(i))])
-        legend(sp2,{'Inst.Power','Detections','Detection threshold',...
-            'Threshold for quiet intervals','Quiet intervals'})
+        if ~isempty(dets{i})
+            legendNames = {'Inst.Power','Detections','Detection threshold',...
+            'Threshold for quiet intervals','Quiet intervals'};
+        else
+            legendNames = {'Inst.Power','Detection threshold',...
+            'Threshold for quiet intervals','Quiet intervals'};
+        end
+        legend(sp2,legendNames)
         
         xtraFig.Visible = 'on';
 

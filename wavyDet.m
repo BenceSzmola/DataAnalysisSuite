@@ -34,7 +34,7 @@ if refVal ~= 0
     refDogged = DoG(refChData,fs,w1,w2);
     [refCoeffs,~,~] = cwt(refChData,fs,'amor','FrequencyLimits',[w1 w2]);
     refInstE = trapz(abs(refCoeffs).^2);
-    refThr = mean(refInstE) + std(refInstE);
+    refThr = median(refInstE) + std(refInstE);
     
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstE,[],refThr,fs);
 else
@@ -77,18 +77,43 @@ for i = 1:size(data,1)
     currInstE  = trapz(abs(coeffs).^2);
     instE(i,:) = currInstE;
 %     thr = mean(instE) + sdmult*std(instE);
-    quietThr(i) = mean(currInstE) + std(currInstE);
+    quietThr(i) = median(currInstE) + std(currInstE);
     quietSegs{i} = currInstE(currInstE < quietThr(i));
     qSegsInds{i} = currInstE;
     qSegsInds{i}(currInstE>=quietThr(i)) = nan;
     
-    thr(i) = mean(quietSegs{i}) + sdmult*std(quietSegs{i});
-    extThr(i) = mean(quietSegs{i}) + std(quietSegs{i});
+    thr(i) = median(quietSegs{i}) + sdmult*std(quietSegs{i});
+    extThr(i) = median(quietSegs{i}) + std(quietSegs{i});
     
 end
     
 [dets,detBorders] = commDetAlg(taxis,chan,inds2use,data,instE,dogged,refCh,refDogged,refDets,fs,...
     thr,refVal,minLen,extThr);
+
+% % check whether there is any power at the detected locations in other frequency ranges
+% for i = 1:min(size(data))
+%     if chan(i) == refCh
+%         continue
+%     end
+%     
+%     [cfs,f] = cwt(data(i,:),fs,'amor','FrequencyLimits',[1 1000]);
+%     freqsOI = round(f,1) >= w1 & round(f,1) <= w2;
+%     cfs = abs(cfs(~freqsOI,:));
+%     
+%     currInstE  = trapz(cfs.^2);
+%     quietThr_otherFreq = median(currInstE) + std(currInstE);
+%     quietSegs_otherFreq = currInstE(currInstE < quietThr_otherFreq);
+%     
+%     thr_otherFreq = median(quietSegs_otherFreq) + sdmult*std(quietSegs_otherFreq);
+%     dets2del = false(size(dets{i}));
+%     for j = 1:length(dets{i})
+%         if any(currInstE(detBorders{i}(j,1):detBorders{i}(j,2)) > thr_otherFreq)
+%             dets2del(j) = true;
+%         end
+%     end
+%     dets{i}(dets2del) = [];
+%     detBorders{i}(dets2del,:) = [];
+% end
 
 for i = 1:min(size(data))
     if chan(i) == refCh
@@ -139,8 +164,14 @@ for i = 1:min(size(data))
         yline(sp2,thr(i),'Color','g');
         yline(sp2,quietThr(i),'Color','k');
         plot(sp2,taxis,qSegsInds{i},'-m')
-        legend(sp2,'Inst. Energy integral','Detections','Detection threshold',...
-            'Quiet threshold','Quiet segments')
+        if ~isempty(dets{i})
+            legendNames = {'Inst. Energy integral','Detections','Detection threshold',...
+                'Quiet threshold','Quiet segments'};
+        else
+            legendNames = {'Inst. Energy integral','Detection threshold',...
+                'Quiet threshold','Quiet segments'};
+        end
+        legend(sp2,legendNames)
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
         ylabel(sp2,'CWT coefficient magnitude')
