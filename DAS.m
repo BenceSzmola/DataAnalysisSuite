@@ -2674,20 +2674,21 @@ classdef DAS < handle
                             
                             if ~isnan(w1) && isnan(w2)
                                 ftype = 'high';
-                                fc = w1 / guiobj.ephys_fs;
+                                fc = w1;
                             elseif isnan(w1) && ~isnan(w2)
                                 ftype = 'low';
-                                fc = w2 / guiobj.ephys_fs;
+                                fc = w2;
                             elseif ~isnan(w1) && ~isnan(w2)
                                 ftype = 'bandpass';
-                                fc = [w1, w2] / guiobj.ephys_fs;
+                                fc = [w1, w2];
                                 fOrd = fOrd / 2;
                             elseif isnan(w1) && isnan(w2)
                                 errordlg('Butterworth needs at least a lower or an upper cutoff!')
                                 guiobj.ephysRunProcButton.BackgroundColor = 'g';
                                 return
-                            end 
+                            end
                             
+                            fc = fc / (guiobj.ephys_fs / 2);
                             [b,a] = butter(fOrd,fc,ftype);
                             procced = zeros(size(data));
                             for i = 1:size(data,1)
@@ -4325,18 +4326,25 @@ classdef DAS < handle
                         case 2
                             guiobj.keyboardPressDtyp = 1;
                     end
+                    
+                elseif strcmp(kD.Key,'delete')
+                    delCurrEventButtonCB(guiobj,guiobj.keyboardPressDtyp);
+                    
                 else
-
                     detChanUpDwn = [0,0];
                     switch kD.Key
                         case 'rightarrow'
                             detChanUpDwn = [0,1];
+                            
                         case 'leftarrow'
                             detChanUpDwn = [0,-1];
+                            
                         case 'uparrow'
                             detChanUpDwn = [1,0];
+                            
                         case 'downarrow'
                             detChanUpDwn = [-1,0];
+                            
                     end
 
                     eventDetAxesButtFcn(guiobj,guiobj.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))

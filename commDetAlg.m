@@ -7,6 +7,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         valTyp = 2; % 1=time match based; 2=correlation based
         corrThr = 0.5;
     end
+%     valTyp = 1;
 
     if nargin < 13
         extThr = [];
