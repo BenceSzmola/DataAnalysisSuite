@@ -99,6 +99,8 @@ classdef DAS < handle
         cutoffLabel
         w1Edit
         w2Edit
+        filtOrderLabel
+        filtOrderEdit
         fmaxLabel
         fmaxEdit
         ffundLabel
@@ -913,7 +915,7 @@ classdef DAS < handle
                             if guiobj.ephys_artSupp4Det == 0
                                 data = guiobj.ephys_data;
                             else
-                                data = guiobj.ephys_procced;
+                                data = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
                             end
                         case 2
                             data = guiobj.ephys_dogged;
@@ -935,7 +937,7 @@ classdef DAS < handle
                             if guiobj.imaging_artSupp4Det == 0
                                 data = guiobj.imaging_data;
                             else
-                                data = guiobj.imaging_procced;
+                                data = guiobj.imaging_procced(guiobj.imaging_artSuppedData4DetListInds,:);
                             end
                         case 2
                             data = guiobj.imaging_smoothed;     
@@ -2555,6 +2557,8 @@ classdef DAS < handle
                     guiobj.w1Edit.Visible = 'off';
                     guiobj.w2Edit.Visible = 'off';
                     guiobj.cutoffLabel.Visible = 'off';
+                    guiobj.filtOrderEdit.Visible = 'off';
+                    guiobj.filtOrderLabel.Visible = 'off';
                     guiobj.fmaxLabel.Visible = 'off';
                     guiobj.fmaxEdit.Visible = 'off';
                     guiobj.ffundEdit.Visible = 'off';
@@ -2562,26 +2566,44 @@ classdef DAS < handle
                     guiobj.stopbandwidthEdit.Visible = 'off';
                     guiobj.stopbandwidthLabel.Visible = 'off';
                 
-                case 2  % DoG
+                case 2 % Butterworth
                     guiobj.w1Edit.Visible = 'on';
                     guiobj.w2Edit.Visible = 'on';
                     guiobj.cutoffLabel.Visible = 'on';
+                    guiobj.filtOrderEdit.Visible = 'on';
+                    guiobj.filtOrderLabel.Visible = 'on';
                     guiobj.fmaxLabel.Visible = 'off';
                     guiobj.fmaxEdit.Visible = 'off';
                     guiobj.ffundEdit.Visible = 'off';
                     guiobj.ffundLabel.Visible = 'off';
                     guiobj.stopbandwidthEdit.Visible = 'off';
                     guiobj.stopbandwidthLabel.Visible = 'off';
-                case 3  % PeriodicNoise
+                    
+                case 3  % DoG
+                    guiobj.w1Edit.Visible = 'on';
+                    guiobj.w2Edit.Visible = 'on';
+                    guiobj.cutoffLabel.Visible = 'on';
+                    guiobj.filtOrderEdit.Visible = 'off';
+                    guiobj.filtOrderLabel.Visible = 'off';
+                    guiobj.fmaxLabel.Visible = 'off';
+                    guiobj.fmaxEdit.Visible = 'off';
+                    guiobj.ffundEdit.Visible = 'off';
+                    guiobj.ffundLabel.Visible = 'off';
+                    guiobj.stopbandwidthEdit.Visible = 'off';
+                    guiobj.stopbandwidthLabel.Visible = 'off';
+                case 4  % PeriodicNoise
                     guiobj.w1Edit.Visible = 'off';
                     guiobj.w2Edit.Visible = 'off';
                     guiobj.cutoffLabel.Visible = 'off';
+                    guiobj.filtOrderEdit.Visible = 'off';
+                    guiobj.filtOrderLabel.Visible = 'off';
                     guiobj.fmaxLabel.Visible = 'on';
                     guiobj.fmaxEdit.Visible = 'on';
                     guiobj.ffundEdit.Visible = 'on';
                     guiobj.ffundLabel.Visible = 'on';
                     guiobj.stopbandwidthEdit.Visible = 'on';
                     guiobj.stopbandwidthLabel.Visible = 'on';
+                    
             end
         end
         
@@ -2639,6 +2661,47 @@ classdef DAS < handle
                         filtype = guiobj.filterTypePopMenu.String{filtype};
                     end
                     switch filtype
+                        case 'Butterworth'
+                            w1 = str2double(guiobj.w1Edit.String);
+                            w2 = str2double(guiobj.w2Edit.String);
+                            fOrd = str2double(guiobj.filtOrderEdit.String);
+                            
+                            if isnan(fOrd)
+                                errordlg('Specify filter order!')
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end
+                            
+                            if ~isnan(w1) && isnan(w2)
+                                ftype = 'high';
+                                fc = w1 / guiobj.ephys_fs;
+                            elseif isnan(w1) && ~isnan(w2)
+                                ftype = 'low';
+                                fc = w2 / guiobj.ephys_fs;
+                            elseif ~isnan(w1) && ~isnan(w2)
+                                ftype = 'bandpass';
+                                fc = [w1, w2] / guiobj.ephys_fs;
+                                fOrd = fOrd / 2;
+                            elseif isnan(w1) && isnan(w2)
+                                errordlg('Butterworth needs at least a lower or an upper cutoff!')
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end 
+                            
+                            [b,a] = butter(fOrd,fc,ftype);
+                            procced = zeros(size(data));
+                            for i = 1:size(data,1)
+                                procced(i,:) = filtfilt(b,a,data(i,:));
+                            end
+                            
+                            procDetails = struct('Type','Filt-Butter','Settings',cell(1));
+                            procDetails.Settings = struct('W1',w1,'W2',w2,'Order',fOrd);
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                            end
+                            
+                            txt4name = ['Butter(',num2str(fOrd),'| ',num2str(w1),'-',num2str(w2),')| '];
+                            
                         case 'DoG'
                             w1 = str2double(guiobj.w1Edit.String);
                             w2 = str2double(guiobj.w2Edit.String);
@@ -4900,7 +4963,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
-                'String',{'--Select filter type--','DoG','Periodic'},...
+                'String',{'--Select filter type--','Butterworth','DoG','Periodic'},...
                 'Callback',@(h,e) guiobj.fiterTypePopMenuCallback);
             guiobj.cutoffLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
@@ -4922,6 +4985,18 @@ classdef DAS < handle
                 'Visible','off',...
                 'Tooltip','Upper cutoff frequency [Hz]',...
                 'String','250');
+            guiobj.filtOrderLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.3, 0.7, 0.5, 0.1],...
+                'String','Filter order',...
+                'Visible','off');
+            guiobj.filtOrderEdit = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.8, 0.7, 0.1, 0.1],...
+                'String','4',...
+                'Visible','off');
             guiobj.fmaxLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
