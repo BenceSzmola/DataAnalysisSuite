@@ -19,6 +19,7 @@ classdef DAS < handle
         ephysEventDetTabFiltCutoffMenu
         eventDetTabWinSizeMenu
         imagingEventDetTabDataTypeMenu
+        evDetTabYlimModeMenu
         showXtraDetFigsMenu
         showEventSpectroMenu
         
@@ -251,6 +252,7 @@ classdef DAS < handle
         showXtraDetFigs = 0;
         keyboardPressDtyp = 1;
         evDetTabSimultMode = 0;
+        evDetTabYlimMode = "global";
         simultFocusTyp = 1;                 % this stores from which datatype we are approaching
         mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
         doEphysDownSamp = 0;
@@ -990,7 +992,11 @@ classdef DAS < handle
                 [~,~,~,~,simDetBorders,~,~] = extractDetStructs(guiobj,simDtyp);
             end
             
-            axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
+%             if guiobj.evDetTabYlimMode == "global"
+%                 axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
+%             elseif guiobj.evDetTabYlimMode == "window"
+%                 axYMinMax = [];
+%             end
             
             switch dTyp
                 case 1
@@ -1093,7 +1099,12 @@ classdef DAS < handle
                 end
                 hold(ax,'off')
                 axis(ax,'tight')
-                ylim(ax,axYMinMax)
+                if guiobj.evDetTabYlimMode == "global"
+                    axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
+                    ylim(ax,axYMinMax)
+                elseif guiobj.evDetTabYlimMode == "window"
+                    ylim(ax,'auto')
+                end
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
                 if ~guiobj.evDetTabSimultMode
@@ -3832,6 +3843,20 @@ classdef DAS < handle
         end
         
         %%
+        function evDetTabYlimModeMenuCB(guiobj)
+            if guiobj.evDetTabYlimMode == "global"
+                guiobj.evDetTabYlimMode = "window";
+                guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: window';
+            elseif guiobj.evDetTabYlimMode == "window"
+                guiobj.evDetTabYlimMode = "global";
+                guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: global';
+            end
+            
+            eventDetAxesButtFcn(guiobj,1)
+            eventDetAxesButtFcn(guiobj,2)
+        end
+        
+        %%
         function mainFigOpenFcn(guiobj)
             % Check if logfile exists
             DASlocation = mfilename('fullpath');
@@ -4678,6 +4703,9 @@ classdef DAS < handle
             guiobj.imagingEventDetTabDataTypeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Imaging data type in EventDetTab',...
                 'MenuSelectedFcn', @(h,e) guiobj.changeEventDetTabDataType(2));
+            guiobj.evDetTabYlimModeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
+                'Text',sprintf('Event plotting Y limit, current mode: %s',guiobj.evDetTabYlimMode),...
+                'MenuSelectedFcn', @(h,e) guiobj.evDetTabYlimModeMenuCB);
             guiobj.showXtraDetFigsMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show extra detection figures',...
                 'Checked','off',...
