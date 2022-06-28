@@ -34,7 +34,8 @@ if refVal ~= 0
     refDogged = DoG(refChData,fs,w1,w2);
     [refCoeffs,~,~] = cwt(refChData,fs,'amor','FrequencyLimits',[w1 w2]);
     refInstE = trapz(abs(refCoeffs).^2);
-    refThr = median(refInstE) + std(refInstE);
+%     refThr = median(refInstE) + std(refInstE);
+    refThr = prctile(refInstE,80);
     
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstE,[],refThr,fs);
 else
@@ -77,7 +78,8 @@ for i = 1:size(data,1)
     currInstE  = trapz(abs(coeffs).^2);
     instE(i,:) = currInstE;
 %     thr = mean(instE) + sdmult*std(instE);
-    quietThr(i) = median(currInstE) + std(currInstE);
+%     quietThr(i) = median(currInstE) + std(currInstE);
+    quietThr(i) = prctile(currInstE,80);
     quietSegs{i} = currInstE(currInstE < quietThr(i));
     qSegsInds{i} = currInstE;
     qSegsInds{i}(currInstE>=quietThr(i)) = nan;
@@ -121,6 +123,31 @@ for i = 1:min(size(data))
     end
     
     [detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
+    evs2del = false(1,length(detParams{i}));
+    for j = 1:length(detParams{i})
+        if (detParams{i}(j).Frequency < w1) || (detParams{i}(j).Frequency > w2)
+            evs2del(j) = true;
+        end
+    end
+    detParams{i}(evs2del) = [];
+    dets{i}(evs2del) = [];
+    detBorders{i}(evs2del,:) = [];
+    for j = 1:length(evs2del)
+        if evs2del(j)
+            detInComplex = cellfun(@(x) ismember(j,x), evComplexes{i});
+            if ~any(detInComplex)
+                continue
+            end
+            complex2check = evComplexes{i}{detInComplex};
+            if (length(complex2check) == 2) || ((find(complex2check == j) ~= 1) && (find(complex2check == j) ~= length(complex2check)))
+                evComplexes{i}(detInComplex) = [];
+            else
+                complex2check(complex2check == j) = [];
+                evComplexes{i}{detInComplex} = complex2check;
+            end
+            
+        end
+    end
 
     %% Plotting
     if showFigs
