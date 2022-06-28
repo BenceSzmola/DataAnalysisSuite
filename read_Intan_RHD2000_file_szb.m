@@ -314,15 +314,51 @@ if (data_present)
 
     t_amplifier = zeros(1, num_amplifier_samples);
 
-    amplifier_data = zeros(num_amplifier_channels, num_amplifier_samples);
-    aux_input_data = zeros(num_aux_input_channels, num_aux_input_samples);
-    supply_voltage_data = zeros(num_supply_voltage_channels, num_supply_voltage_samples);
-    temp_sensor_data = zeros(num_temp_sensor_channels, num_supply_voltage_samples);
-    board_adc_data = zeros(num_board_adc_channels, num_board_adc_samples);
-    board_dig_in_data = zeros(num_board_dig_in_channels, num_board_dig_in_samples);
-    board_dig_in_raw = zeros(1, num_board_dig_in_samples);
-    board_dig_out_data = zeros(num_board_dig_out_channels, num_board_dig_out_samples);
-    board_dig_out_raw = zeros(1, num_board_dig_out_samples);
+    if (num_amplifier_channels > 0) && (num_amplifier_samples > 0)
+        amplifier_data = zeros(num_amplifier_channels, num_amplifier_samples);
+    else
+        amplifier_data = [];
+    end
+    if (num_aux_input_channels > 0) && (num_aux_input_samples > 0)
+        aux_input_data = zeros(num_aux_input_channels, num_aux_input_samples);
+    else
+        aux_input_data = [];
+    end
+    if (num_supply_voltage_channels > 0) && (num_supply_voltage_samples > 0)
+        supply_voltage_data = zeros(num_supply_voltage_channels, num_supply_voltage_samples);
+    else
+        supply_voltage_data = [];
+    end
+    if (num_temp_sensor_channels > 0) && (num_supply_voltage_samples > 0)
+        temp_sensor_data = zeros(num_temp_sensor_channels, num_supply_voltage_samples);
+    else
+        temp_sensor_data = [];
+    end
+    if (num_board_adc_channels > 0) && (num_board_adc_samples > 0)
+        board_adc_data = zeros(num_board_adc_channels, num_board_adc_samples);
+    else
+        board_adc_data = [];
+    end
+    if (num_board_dig_in_channels > 0) && (num_board_dig_in_samples > 0)
+        board_dig_in_data = zeros(num_board_dig_in_channels, num_board_dig_in_samples);
+    else
+        board_dig_in_data = [];
+    end
+    if (num_board_dig_in_samples > 0) 
+        board_dig_in_raw = zeros(1, num_board_dig_in_samples);
+    else
+        board_dig_in_raw = [];
+    end
+    if (num_board_dig_out_channels > 0) && (num_board_dig_out_samples > 0)
+        board_dig_out_data = zeros(num_board_dig_out_channels, num_board_dig_out_samples);
+    else
+        board_dig_out_data = [];
+    end
+    if (num_board_dig_out_samples > 0)
+        board_dig_out_raw = zeros(1, num_board_dig_out_samples);
+    else
+        board_dig_out_raw = [];
+    end
 
     % Read sampled data from file.
     fprintf(1, 'Reading data from file...\n');
