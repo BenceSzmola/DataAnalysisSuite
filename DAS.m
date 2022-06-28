@@ -252,7 +252,7 @@ classdef DAS < handle
         showXtraDetFigs = 0;
         keyboardPressDtyp = 1;
         evDetTabSimultMode = 0;
-        evDetTabYlimMode = "global";
+        evDetTabYlimMode = 'global';
         simultFocusTyp = 1;                 % this stores from which datatype we are approaching
         mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
         doEphysDownSamp = 0;
@@ -1099,10 +1099,10 @@ classdef DAS < handle
                 end
                 hold(ax,'off')
                 axis(ax,'tight')
-                if guiobj.evDetTabYlimMode == "global"
+                if strcmp(guiobj.evDetTabYlimMode, 'global')
                     axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
                     ylim(ax,axYMinMax)
-                elseif guiobj.evDetTabYlimMode == "window"
+                elseif strcmp(guiobj.evDetTabYlimMode, 'window')
                     ylim(ax,'auto')
                 end
                 xlabel(ax,guiobj.xtitle)
@@ -1399,6 +1399,8 @@ classdef DAS < handle
 
             dtyp = guiobj.datatyp;
             showXtraFigs = guiobj.showXtraDetFigs;
+            evDetYlimMode = guiobj.evDetTabYlimMode;
+            evDetYlimModeMenuText = guiobj.evDetTabYlimModeMenu.Text;
             doImportUpSamp = guiobj.importUpSamp;
             doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
             doImportEphysDownSamp = guiobj.doEphysDownSamp;
@@ -1416,6 +1418,8 @@ classdef DAS < handle
             
             guiobj.mainfig.Position = figLastPos;
             guiobj.mainfig.WindowState = figLastState;
+            guiobj.evDetTabYlimMode = evDetYlimMode;
+            guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
             guiobj.importUpSamp = doImportUpSamp;
             guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
             guiobj.doEphysDownSamp = doImportEphysDownSamp;
@@ -2789,7 +2793,10 @@ classdef DAS < handle
                     end
                     
                 case 'Compute FFT'
-                    freqspec(data,guiobj.ephys_fs,1,0,1000)
+                    for i = 1:length(data_idx)
+                        fftPlotTitle = sprintf('Ch #%d', newProcInfo(i).Channel);
+                        freqspec(data(i,:),guiobj.ephys_fs,1,0,1000,fftPlotTitle)
+                    end
                     
                     guiobj.ephysRunProcButton.BackgroundColor = 'g';
                     return
@@ -3844,11 +3851,11 @@ classdef DAS < handle
         
         %%
         function evDetTabYlimModeMenuCB(guiobj)
-            if guiobj.evDetTabYlimMode == "global"
-                guiobj.evDetTabYlimMode = "window";
+            if strcmp(guiobj.evDetTabYlimMode, 'global')
+                guiobj.evDetTabYlimMode = 'window';
                 guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: window';
-            elseif guiobj.evDetTabYlimMode == "window"
-                guiobj.evDetTabYlimMode = "global";
+            elseif strcmp(guiobj.evDetTabYlimMode, 'window')
+                guiobj.evDetTabYlimMode = 'global';
                 guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: global';
             end
             

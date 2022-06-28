@@ -26,8 +26,8 @@ end
 
 if nargin < 6
     titleXtra = '';
-else
-    titleXtra = [' - ',titleXtra];
+% else
+%     titleXtra = [' - ',titleXtra];
 end
 
 L = max(size(data));
@@ -49,13 +49,19 @@ for i = 1:numchan
     P1(2:end-1) = 2*P1(2:end-1);
 
     f = Fs*(0:floor(L/2))/L;
+    inds2use = (round(f) > fmin) & (round(f) < fmax);
+    f = f(inds2use);
+    P1 = P1(inds2use);
     if plots
         figure
-        plot(f,P1) 
-        title(['FFT spectrum channel #',num2str(i),titleXtra])
+        plot(f,P1)
+        if strcmp(titleXtra,'')
+            title(['FFT spectrum channel #',num2str(i),titleXtra])
+        else
+            title(['FFT spectrum - ',titleXtra])
+        end
         xlabel('f (Hz)')
         ylabel('|P1(f)|')
-        xlim([fmin fmax])
     end
     
     if nargout ~= 0
