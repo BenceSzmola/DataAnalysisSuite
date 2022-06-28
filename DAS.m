@@ -4148,6 +4148,8 @@ classdef DAS < handle
                 return
             end
             
+            wb = waitbar(0,'Saving detections...');
+            
             list = [];
             if ~isempty(guiobj.ephys_data)
                 list = [list,"Electrophysiology"];
@@ -4182,6 +4184,7 @@ classdef DAS < handle
             
             if ~isempty(find(list(detTypeToSave) == "Electrophysiology",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % ephys save
+                waitbar(0.33, wb, 'Saving ephys...')
                 
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
@@ -4232,6 +4235,8 @@ classdef DAS < handle
             if ~isempty(find(list(detTypeToSave) == "Imaging",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % imaging save
 
+                waitbar(0.66, wb, 'Saving imaging...')
+                
                 imagingSaveData.TAxis = guiobj.imaging_taxis;
                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
                 imagingSaveData.Fs = guiobj.imaging_fs;
@@ -4284,6 +4289,8 @@ classdef DAS < handle
                     return
                 end
                 
+                waitbar(0.88, wb, 'Saving simult...')
+                
                 simultSaveData = guiobj.simult_detections;
                 simultSaveInfo = guiobj.simult_detectionsInfo;
             else
@@ -4299,6 +4306,8 @@ classdef DAS < handle
                     return
                 end
                 if strcmp(saveRun,'Yes')
+                    waitbar(0.95, wb, 'Saving running...')
+                    
                     runData.taxis = guiobj.run_taxis;
                     runData.veloc = guiobj.run_veloc;
                     runData.absPos = guiobj.run_absPos;
@@ -4310,6 +4319,8 @@ classdef DAS < handle
             
             comments = inputdlg('Enter comment on detection:','Comments',...
                 [10,100]);
+            
+            waitbar(0.99, wb, 'Creating savefile...')
             
             if isempty(guiobj.rhdName)
                 fname = ['DASsave_',char(datetime('now','Format','yyMMdd_HHmmss'))];
