@@ -10,6 +10,7 @@ classdef DASevDB < handle
         
         ephysOptMenu
         ephysTypeChangeMenu
+        ephysShowEventSpectroMenu
         
         imagingOptMenu
         imagingTypeChangeMenu
@@ -375,7 +376,11 @@ classdef DASevDB < handle
         end
         
         %%
-        function ephysPlot(gO,ax)
+        function ephysPlot(gO,ax,forSpectro)
+            if nargin < 3
+                forSpectro = false;
+            end
+            
             type = gO.ephysTypeSelected;
             currEv = gO.ephysEvents(gO.currEvent);
             
@@ -388,6 +393,20 @@ classdef DASevDB < handle
                 row2show = gO.currParallelChan;
             else
                 row2show = 1;
+            end
+            
+            if forSpectro
+                try
+                    w1 = currEv.DetSettings.W1;
+                    w2 = currEv.DetSettings.W2;
+                catch
+                    w1 = 150;
+                    w2 = 250;
+                    warning('Cutoff set to default 150-250 Hz')
+                end
+                fs = round(1 / (currEv.Taxis(2) - currEv.Taxis(1)));
+                spectrogramMacher(currEv.DataWin.Raw(row2show,:),fs,w1,w2)
+                return
             end
             
             dataWin = [];
@@ -1624,6 +1643,9 @@ classdef DASevDB < handle
             gO.ephysTypeChangeMenu = uimenu(gO.ephysOptMenu,...
                 'Text','Change displayed ephys data',...
                 'MenuSelectedFcn',@ gO.ephysTypeMenuSel);
+            gO.ephysShowEventSpectroMenu = uimenu(gO.ephysOptMenu,...
+                'Text','Show event spectrogram',...
+                'MenuSelectedFcn',@(h,e) gO.ephysPlot([],true));
             
             gO.imagingOptMenu = uimenu(gO.mainFig,...
                 'Text','Imaging options');
