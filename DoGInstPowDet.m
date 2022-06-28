@@ -38,7 +38,7 @@ detParams = cell(min(size(data)),1);
 evComplexes = cell(min(size(data)),1);
 
 if refVal == 1
-    refThr = median(refInstPowd) + 3*std(refInstPowd);
+    refThr = median(refInstPowd) + std(refInstPowd);
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
 else
     refDets = [];

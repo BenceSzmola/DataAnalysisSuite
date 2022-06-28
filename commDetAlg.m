@@ -1,6 +1,8 @@
 function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,...
         refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
 
+% [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
+    
     if isempty(corrData) | isempty(refCorrData)
         valTyp = 1;
     else
@@ -100,9 +102,17 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
                 elseif valTyp == 2
                     refWin = refCorrData(winInds);
                     chanWin = corrData(i,winInds);
-
+                    
                     r = corrcoef(refWin,chanWin);
-                    condit = abs(r(2))<corrThr;
+                    condit = abs(r(2)) < corrThr;
+                    
+%                     testFig = figure;
+%                     subplot(211)
+%                     plot(taxis(winInds),chanWin)
+%                     subplot(212)
+%                     plot(taxis(winInds),refWin)
+%                     title(sprintf('corr between them=%.2f',r(2)))
+%                     waitfor(testFig)
                 end
                 
                 if condit && aboveMinLen(j)
@@ -121,8 +131,8 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     if (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
-        title = 'Review of discarded events';
-        answer = questdlg(quest,title);
+        questTitle = 'Review of discarded events';
+        answer = questdlg(quest,questTitle);
         if strcmp(answer,'Yes')
             if valTyp == 1
                 reviewData = detData;

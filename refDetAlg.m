@@ -5,15 +5,13 @@ refDetMarks = refDets;
 refDetIVs = refDets;
 
 % refThr = mean(refDetData) + 3*std(refDetData);
-refDets(refDetData>refThr) = 0;
+refDets(refDetData > refThr) = 0;
 
 % join close-by events together
 refdetsInds = find(refDets==0);
-for i = 1:length(refdetsInds)
-    if i ~= length(refdetsInds)
-        if (refdetsInds(i+1) - refdetsInds(i)) < 0.2*fs
-            refDets(refdetsInds(i):refdetsInds(i+1)) = 0;
-        end
+for i = 1:length(refdetsInds)-1
+    if (refdetsInds(i+1) - refdetsInds(i)) < round(0.05*fs)
+        refDets(refdetsInds(i):refdetsInds(i+1)) = 0;
     end
 end
 
@@ -30,7 +28,7 @@ end
 
 if ~isempty(abThr)
     steps = diff(abThr);
-    eventsS = [1,find(steps~=1)+1];
+    eventsS = [1, find(steps ~= 1) + 1];
     eventsE = [find(steps~=1), length(steps)];
     refDetMarks(abThr(eventsS)) = 0;
     refDetMarks(abThr(eventsE)) = 0;

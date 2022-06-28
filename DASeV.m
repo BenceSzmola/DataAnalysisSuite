@@ -1839,6 +1839,8 @@ classdef DASeV < handle
                                 val = gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum);
                                 gO.save2DbEphysCheckBox.Value = val;
                                 gO.save2DbEphysCheckBox.Enable = 'on';
+                                gO.save2DbEphysSelAllButton.Enable = 'on';
+                                gO.save2DbEphysClrSelButton.Enable = 'on';
                                 gO.save2DbButton.Enable = 'on';
                                 if gO.loaded(3)
                                     gO.save2DbRunningChechBox.Enable = 'on';
@@ -1859,6 +1861,8 @@ classdef DASeV < handle
                                 val = gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum);
                                 gO.save2DbImagingCheckBox.Value = val;
                                 gO.save2DbImagingCheckBox.Enable = 'on';
+                                gO.save2DbImagingClrSelButton.Enable = 'on';
+                                gO.save2DbImagingSelAllButton.Enable = 'on';
                                 gO.save2DbButton.Enable = 'on';
                                 if gO.loaded(3)
                                     gO.save2DbRunningChechBox.Enable = 'on';
@@ -2538,7 +2542,11 @@ classdef DASeV < handle
             end
             
             if ~isempty(newSaveStruct)
-                saveStruct = [saveStruct; newSaveStruct];
+                try
+                    saveStruct = [saveStruct; newSaveStruct];
+                catch
+                    saveStruct = [saveStruct, newSaveStruct'];
+                end
                 
                 try
                     save(saveFname,'saveStruct')
