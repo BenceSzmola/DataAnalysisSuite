@@ -3132,9 +3132,9 @@ classdef DAS < handle
                         guiobj.ephys_artSupp4Det = 0;
                     case 2 % periodic
                         guiobj.ephys_artSupp4Det = 1;
-                        callFromDetRun.procGrp = 'Filtering';
-                        callFromDetRun.filtype = 'Periodic';
-                        callFromDetRun.artSuppName = [];
+                        callFromDetRun.procGrp = 'Artifact Suppression';
+                        callFromDetRun.filtype = [];
+                        callFromDetRun.artSuppName = 'Periodic';
                         callFromDetRun.refChan = [];
                     case 3
                         guiobj.ephys_artSupp4Det = 1;
