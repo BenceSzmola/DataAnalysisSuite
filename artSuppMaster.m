@@ -301,13 +301,15 @@ switch bssType
                     switch flagType
                         case 'IEC'
                             temp = compCell{chan};
-                            temp(flaggedInds) = 0;
+%                             temp(flaggedInds) = 0;
+                            temp(flaggedInds) = temp(flaggedInds)*0.25;
                             compCellClean{chan} = temp;
                             
                         case 'autoCorr'
                             temp = compCell{chan};
                             for compNum = 1:size(temp,1)
-                                temp(compNum,flaggedInds{chan}(compNum,:)) = 0;
+%                                 temp(compNum,flaggedInds{chan}(compNum,:)) = 0;
+                                temp(compNum,flaggedInds{chan}(compNum,:)) = temp(compNum,flaggedInds{chan}(compNum,:))*0.25;
                             end
                             compCellClean{chan} = temp;
 
@@ -318,14 +320,16 @@ switch bssType
                         case 'IEC'
                             temp = compCell(chan,:);
                             for compNum = 1:length(temp)
-                                temp{compNum}(flaggedInds{compNum}) = 0;
+%                                 temp{compNum}(flaggedInds{compNum}) = 0;
+                                temp{compNum}(flaggedInds{compNum}) = temp{compNum}(flaggedInds{compNum})*0.25;
                             end
                             compCellClean(chan,:) = temp;
                             
                         case 'autoCorr'
                             temp = compCell(chan,:);
                             for compNum = 1:length(temp)
-                                temp{compNum}(flaggedInds{chan,compNum}) = 0;
+%                                 temp{compNum}(flaggedInds{chan,compNum}) = 0;
+                                temp{compNum}(flaggedInds{chan,compNum}) = temp{compNum}(flaggedInds{chan,compNum})*0.25;
                             end
                             compCellClean(chan,:) = temp;
                     end
@@ -415,7 +419,7 @@ function IEC = compWiseIEC(compCell,numComps,slideWinSize)
             else
                 win = i:(i + slideWinSize - 1);
             end
-            corrVals = corrcoef(currComps(:,win)');
+            corrVals = abs(corrcoef(currComps(:,win)'));
             corrVals = tril(corrVals,-1);
             corrVals(corrVals == 0) = [];
             IEC(compNum,win) = mean(corrVals);
@@ -447,7 +451,7 @@ function IEC = compWiseIEC_dwt(compCell,numComps,slideWinSize)
                 win = i:(i + slideWinSizeComp -1);
             end
             
-            corrVals = corrcoef(currComps(:,win)');
+            corrVals = abs(corrcoef(currComps(:,win)'));
             corrVals = tril(corrVals,-1);
             corrVals(corrVals == 0) = [];
             IEC{compNum}(win) = mean(corrVals);
@@ -507,8 +511,8 @@ end
 %%
 function [reconstr,skip] = doICAdiscard(inputMat,decompType,compNum,segNum,numSegs,segtAxis,fig,spH,dbH)
 % computing ICA and then asking the user to choose which ICs they want to discard
-    assignin('base','ICAinputMat',inputMat)
-    assignin('base','segTaxis',segtAxis)
+%     assignin('base','ICAinputMat',inputMat)
+%     assignin('base','segTaxis',segtAxis)
     [ICs,A,~] = fastica(inputMat);
     if isempty(ICs)
         reconstr = [];
@@ -516,18 +520,29 @@ function [reconstr,skip] = doICAdiscard(inputMat,decompType,compNum,segNum,numSe
         return
     end
     
-    % calling the function which fills in the plots into the discarding figure
-    plot2discardICfig(spH,dbH,inputMat,ICs,decompType,compNum,segNum,numSegs,segtAxis)
-    % reveal the discarding figure
-    fig.Visible = 'on';
-    % halt execution until the user is interacting with the figure, they can resume from the figure
-    uiwait
-    % extract the selections from the figure, then reset the figure's values
-    ICs2discard = fig.UserData.ICs2discard;
-    fig.UserData.ICs2discard = false(size(inputMat,1));
-    % check whether the user selected the option to skip current component
-    skip = fig.UserData.skip;
-    fig.UserData.skip = false;
+%     % calling the function which fills in the plots into the discarding figure
+%     plot2discardICfig(spH,dbH,inputMat,ICs,decompType,compNum,segNum,numSegs,segtAxis)
+%     % reveal the discarding figure
+%     fig.Visible = 'on';
+%     % halt execution until the user is interacting with the figure, they can resume from the figure
+%     uiwait
+%     % extract the selections from the figure, then reset the figure's values
+%     ICs2discard = fig.UserData.ICs2discard;
+%     fig.UserData.ICs2discard = false(size(inputMat,1));
+%     % check whether the user selected the option to skip current component
+%     skip = fig.UserData.skip;
+%     fig.UserData.skip = false;
+    
+    skip = [];
+    ICs2discard = false(size(inputMat, 1), 1);
+    for j = 1:size(inputMat,1)
+        if j <= size(ICs,1)
+            r = abs(corrcoef(ICs(j,:),mean(inputMat)));
+            if r(2) > 0.5
+                ICs2discard(j) = true;
+            end
+        end
+    end
     
     % discard selected ICs, then reconstruct using mixing matrix
     ICs(ICs2discard,:) = 0;
@@ -614,7 +629,7 @@ function plot2discardICfig(spH,dbH,inputMat,ICs,decompType,compNum,segNum,numSeg
         title(spH(2*j-1),sprintf('Ch #%d - %s comp. #%d, flagged segment #%d/%d',j,decompType,compNum,segNum,numSegs))
         if j <= numICs
             plot(spH(2*j),segtAxis,ICs(j,:))
-            r = corrcoef(ICs(j,:),mean(inputMat));
+            r = abs(corrcoef(ICs(j,:),mean(inputMat)));
             title(spH(2*j),sprintf('Extracted IC #%d (corr to segment mean = %.2f)',j,r(2)))
         else
             spH(2*j).Visible = 'off';
