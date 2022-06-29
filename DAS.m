@@ -4342,6 +4342,12 @@ classdef DAS < handle
                 'simultSaveData','simultSaveInfo',...
                 'runData')
             cd(oldpath)
+            
+            waitbar(1, wb, 'Saving successful!')
+            pause(1)
+            if ishandle(wb)
+                close(wb)
+            end
         end
         
         %%
