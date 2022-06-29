@@ -3350,7 +3350,7 @@ classdef DAS < handle
                         
                 end
                 if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
-                    if ~ismember(refch,chan)
+                    if ~ismember(refch, chan)
                         errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
                         pause(1)
                         if ishandle(errdlg)
