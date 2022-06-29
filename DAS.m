@@ -1858,7 +1858,11 @@ classdef DAS < handle
         
         %%
         function updateSpectroLabels(~,h,~)
-            sps = findobj(h,'Type','axes');
+            if ~strcmp(h.Type, 'axes')
+                sps = findobj(h,'Type','axes');
+            else
+                sps = h;
+            end
             for i = 1:length(sps)
                 sps(i).YTickLabel = cellfun(@(x) num2str(x),mat2cell(2.^(sps(i).YTick'),...
                     ones(1,length(sps(i).YTick))),'UniformOutput',false);
@@ -2975,8 +2979,25 @@ classdef DAS < handle
                         chan = newProcInfo(i).Channel;
                         
                         freqLim = [str2double(guiobj.ephysSpectroFreqLimit1Edit.String), str2double(guiobj.ephysSpectroFreqLimit2Edit.String)];
-                        cwt(data(i,:),'amor',guiobj.ephys_fs,'FrequencyLimits',freqLim);
-                        title(sprintf('Ch #%d - CWT spectrogram',chan))
+                        cwtFig = figure('Name',sprintf('Channel #%d CWT Spectrogram', chan),...
+                            'NumberTitle', 'off',...
+                            'WindowState', 'maximized',...
+                            'SizeChangedFcn', @ guiobj.updateSpectroLabels);
+                        zoomObj = zoom(cwtFig);
+                        zoomObj.ActionPostCallback = @ guiobj.updateSpectroLabels;
+                        drawnow
+                        [cfs,f] = cwt(data(i,:), 'amor', guiobj.ephys_fs, 'FrequencyLimits', freqLim);
+                        imagesc(guiobj.ephys_taxis,log2(f),abs(cfs))
+                        axis tight
+                        ax = gca;
+                        ax.YDir = 'normal';
+                        ax.YTickLabel = num2str(2.^(ax.YTick'));
+                        title(sprintf('Ch#%d CWT',chan))
+                        xlabel('Time [s]')
+                        ylabel('Frequency [Hz]')
+                        c = colorbar;
+                        c.Label.String = 'CWT coeff. magnitude';
+                        clear cfs f ax
                     end
                     
                     guiobj.ephysRunProcButton.BackgroundColor = 'g';
