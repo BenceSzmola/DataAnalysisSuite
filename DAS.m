@@ -137,6 +137,8 @@ classdef DAS < handle
         imagingRunProcButton
         
         %% Members of eventDetTab
+        selIntervalsCheckBox
+        
         ephysDetPopMenu
         ephysDetChSelListBox
         ephysDetUseProcDataCheckBox
@@ -1607,6 +1609,173 @@ classdef DAS < handle
                         inds2use = [inds2use, segmentsBorders(1):segmentsBorders(2) ];
                     end
                 end
+            end
+        end
+        
+        %%
+        function inds2use = discardIntervals4Dets(guiobj,dTyp,data,chans)
+            inds2use = [];
+            
+            quest = 'Which method do you want to use to discard intervals?';
+            questTitle = 'Interval selection method';
+            btn1 = 'Timestamp entry';
+            btn2 = 'Graphical';
+            btn3 = 'Cancel';
+            defbtn = btn1;
+            selMethod = questdlg(quest,questTitle,btn1,btn2,btn3,defbtn);
+            
+            switch dTyp
+                case 1
+                    len = length(guiobj.ephys_data);
+                    tAxis = guiobj.ephys_taxis;
+
+                case 2
+                    len = length(guiobj.imaging_data);
+                    tAxis = guiobj.imaging_taxis;
+
+            end
+            
+            switch selMethod
+                case 'Cancel'
+                    return
+                    
+                case 'Timestamp entry'
+                    badIntervalsT = intervalInput(guiobj,dTyp);
+                    
+                    inds2use = 1:len;
+                    for i = 1:size(badIntervalsT, 1)
+                        [~, intervalStart] = min(abs(badIntervalsT(i,1) - tAxis));
+                        [~, intervalEnd] = min(abs(badIntervalsT(i,2) - tAxis));
+                        inds2use(intervalStart:intervalEnd) = nan;
+                    end
+                    inds2use(isnan(inds2use)) = [];
+                    
+                case 'Graphical'
+                    indSelFig = figure('NumberTitle','off',...
+                        'Name','Selection of intervals to discard',...
+                        'WindowState','maximized',...
+                        'WindowStyle','modal',...
+                        'Visible','off');
+                    if size(data,1) > 10
+                        [ch2use, tf] = listdlg('ListString',num2str(chans),...
+                            'PromptString','Too many channels to display, select which you want to use!');
+                        if ~tf
+                            return
+                        end
+                    else
+                        ch2use = 1:length(chans);
+                    end
+                        
+                    for i = 1:length(ch2use)
+                        subplot(length(ch2use),1,i,'Parent',indSelFig)
+                        plot(tAxis,data(i,:))
+                    end
+                    sgtitle('Select intervals by clicking in one of the plots! Finish with Return key!')
+                    
+                    inpGud = false;
+                    while ~inpGud
+                        figure(indSelFig)
+                        [selPoints, ~] = ginput;
+                        selPoints(selPoints <= tAxis(1)) = tAxis(1);
+                        selPoints(selPoints > tAxis(end)) = tAxis(end);
+
+                        if mod(length(selPoints), 2) == 0
+                            inpGud = true;
+                        else
+                            eD = errordlg('Repeat selection and give pairs of indexes (start of segment, end of segment)!');
+                            pause(1)
+                            if ishandle(eD)
+                                close(eD)
+                            end
+                        end
+                    end
+                    
+                    if (length(selPoints) / 2) == 1
+                        msgTxt = '%d interval selected!';
+                    elseif (length(selPoints) / 2) == 0
+                        msgTxt = 'No intervals selected!';
+                    else
+                        msgTxt = '%d intervals selected!';
+                    end
+                    mb = msgbox(sprintf(msgTxt, length(selPoints) / 2));
+                    pause(1)
+                    if ishandle(mb)
+                        close(mb)
+                    end
+                    if ishandle(indSelFig)
+                        close(indSelFig)
+                    end
+                    
+                    inds2use = 1:len;
+                    for i = 1:2:length(selPoints)
+                        [~, intervalStart] = min(abs(selPoints(i) - tAxis));
+                        [~, intervalEnd] = min(abs(selPoints(i+1) - tAxis));
+                        inds2use(intervalStart:intervalEnd) = nan;
+                    end
+                    inds2use(isnan(inds2use)) = [];
+                    
+            end
+        end
+   
+        %%
+        function intervals = intervalInput(guiobj,dTyp)
+            inputIntervalsFig = figure('NumberTitle','off',...
+                'Name','Interval input',...
+                'CloseRequestFcn',@(h,e) saveIntervals);
+
+            colNames = {'Start','End'};
+            intervalTable = uitable(inputIntervalsFig,...
+                'Units','normalized',...
+                'Position',[0.01, 0.1, 0.9, 0.8],...
+                'ColumnName',colNames,...
+                'ColumnEditable',true,...
+                'Data',[0, 0],...
+                'CellEditCallback',@ inputControll);
+
+            uicontrol(inputIntervalsFig,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.1, 0.05],...
+                'String','Add range',...
+                'Callback',@(h,e) addRow);
+
+            uiwait(inputIntervalsFig)
+
+            function inputControll(~,event)
+                switch dTyp
+                    case 1
+                        len = length(guiobj.ephys_data);
+                        
+                    case 2
+                        len = length(guiobj.imaging_data);
+                        
+                end
+                
+                ind1 = event.Indices(1);
+                ind2 = event.Indices(2);
+                if event.NewData > len
+                    intervalTable.Data(ind1,ind2) = len;
+                elseif event.NewData < 1
+                    intervalTable.Data(ind1,ind2) = 1;
+                end
+            end
+
+            function addRow
+                intervalTable.Data = [intervalTable.Data; [0, 0]];
+            end
+
+            function saveIntervals
+                if (size(intervalTable.Data, 1) == 1) & (intervalTable.Data(1,:) == [0, 0]) 
+                    intervals = [];
+                elseif ~isempty(find(intervalTable.Data(:,1) >= intervalTable.Data(:,2), 1))
+                    errordlg('Start shouldnt be higher then end of interval!')
+                    return
+                else
+                    intervals = intervalTable.Data;
+                    intervals = intervals(any(intervals, 2), :);
+                end
+
+                delete(inputIntervalsFig)
             end
         end
         
@@ -3083,16 +3252,29 @@ classdef DAS < handle
                 return
             end
                         
+            % check whether user requested interval selection
+            if guiobj.selIntervalsCheckBox.Value
+                inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan);
+                if isempty(inds2use_interval)
+                    warndlg('The whole recording was discarded!')
+                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    return
+                end
+            else
+                inds2use_interval = 'all';
+            end
+            
             % check whether running data based detection was requested
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
-                inds2use = convertRunInds4Dets(guiobj,1);
+                inds2use_run = convertRunInds4Dets(guiobj,1);
                 
-                if isempty(inds2use)
+                if isempty(inds2use_run)
                     warndlg('No sections satisfied the running specifications!')
                     guiobj.ephysDetStatusLabel.String = '--IDLE--';
                     guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                     return
-                elseif (length(inds2use) / fs) < (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
+                elseif (length(inds2use_run) / fs) < (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
                     errordlg('The section falling in the specified speed range is too short!')
                     guiobj.ephysDetStatusLabel.String = '--IDLE--';
                     guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -3104,8 +3286,27 @@ classdef DAS < handle
                 detinfo.DetSettings.MinTimeInRange = str2double(guiobj.minTimeInSpeedRangeEdit.String);
                 
             else
+                inds2use_run = 'all';
+            end
+            
+            % merging the inds2use
+            if strcmp(inds2use_interval, 'all') && strcmp(inds2use_run, 'all')
                 inds2use = 'all';
-            end            
+            elseif xor(strcmp(inds2use_interval, 'all'), strcmp(inds2use_run, 'all'))
+                if strcmp(inds2use_interval, 'all')
+                    inds2use = inds2use_run;
+                else
+                    inds2use = inds2use_interval;
+                end
+            else
+                inds2use = intersect(inds2use_run, inds2use_interval);
+            end
+            if isempty(inds2use)
+                warndlg('No intervals remain for detection!')
+                guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                return
+            end
             
             % Handling no input case when artsupp is enabled
             if (ismember(guiobj.ephysDetArtSuppPopMenu.Value, [4,5])) && (isempty(refch)||isnan(refch))
@@ -5261,6 +5462,12 @@ classdef DAS < handle
             
             %% Elements of event detection tab %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+            guiobj.selIntervalsCheckBox = uicontrol(guiobj.eventDetTab,...
+                'Style','checkbox',...
+                'Units','normalized',...
+                'Position',[0.375, 0.96, 0.1, 0.03],...
+                'String','Select interval');
+            
             guiobj.ephysDetPopMenu = uicontrol(guiobj.eventDetTab,...
                 'Style','popupmenu',...
                 'Units','normalized',...
