@@ -3424,7 +3424,7 @@ classdef DAS < handle
                     refchData = mean(data);
                 else
                     if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
-                        if ~ismember(refch,chan)
+                        if ~ismember(refch, chan)
                             errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
                             pause(1)
                             if ishandle(errdlg)
@@ -3439,6 +3439,11 @@ classdef DAS < handle
                     else
                         refchData = guiobj.ephys_data(refch,:);
                     end
+                end
+                
+                if ismember(refch, chan)
+                    data(refch,:) = [];
+                    chan(chan == refch) = [];
                 end
             else
                 refchData = [];
