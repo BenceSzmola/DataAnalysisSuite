@@ -34,6 +34,11 @@ if refVal ~= 0
     refDogged = DoG(refChData,fs,w1,w2);
     [refCoeffs,~,~] = cwt(refChData,fs,'amor','FrequencyLimits',[w1 w2]);
     refInstE = trapz(abs(refCoeffs).^2);
+    if ~(ischar(inds2use) && strcmp(inds2use,'all'))
+        if ~isempty(inds2use)
+                refInstE = refInstE(inds2use);
+        end
+    end
 %     refThr = median(refInstE) + std(refInstE);
     refThr = prctile(refInstE,80);
     
@@ -77,12 +82,20 @@ for i = 1:size(data,1)
     % Instantaneous energy integral approach
     currInstE  = trapz(abs(coeffs).^2);
     instE(i,:) = currInstE;
+    % check whether only a subset of the indices should be used
+    if ~(ischar(inds2use) && strcmp(inds2use,'all'))
+        if ~isempty(inds2use)
+                currInstE = currInstE(inds2use);
+        else
+            continue
+        end
+    end
 %     thr = mean(instE) + sdmult*std(instE);
 %     quietThr(i) = median(currInstE) + std(currInstE);
     quietThr(i) = prctile(currInstE,80);
     quietSegs{i} = currInstE(currInstE < quietThr(i));
-    qSegsInds{i} = currInstE;
-    qSegsInds{i}(currInstE>=quietThr(i)) = nan;
+    qSegsInds{i} = instE(i,:);
+    qSegsInds{i}(instE(i,:) >= quietThr(i)) = nan;
     
     thr(i) = median(quietSegs{i}) + sdmult*std(quietSegs{i});
     extThr(i) = median(quietSegs{i}) + std(quietSegs{i});

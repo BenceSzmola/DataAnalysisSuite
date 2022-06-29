@@ -62,7 +62,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
             end
         end
         steps = diff(aboveThr);
-        steps = [0,steps];
+        steps = [0, steps];
         events = find(steps ~= 1);
 
         eventsStartStop{i} = nan(length(events),2);

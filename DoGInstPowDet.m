@@ -38,6 +38,11 @@ detParams = cell(min(size(data)),1);
 evComplexes = cell(min(size(data)),1);
 
 if refVal == 1
+    if ~(ischar(inds2use) && strcmp(inds2use,'all'))
+        if ~isempty(inds2use)
+                refInstPowd = refInstPowd(inds2use);
+        end
+    end
     refThr = median(refInstPowd) + std(refInstPowd);
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
 else
@@ -62,11 +67,18 @@ for i = 1:size(data,1)
     
     % Determining background noise segments
     currInstPow = instPowd(i,:);
-
+    if ~(ischar(inds2use) && strcmp(inds2use,'all'))
+        if ~isempty(inds2use)
+                currInstPow = currInstPow(inds2use);
+        else
+            continue
+        end
+    end
+    
     quietThr(i) = median(currInstPow) + std(currInstPow);
     quietSegs{i} = currInstPow(currInstPow < quietThr(i));
-    qSegsInds{i} = currInstPow;
-    qSegsInds{i}(currInstPow >= quietThr(i)) = nan;
+    qSegsInds{i} = instPowd(i,:);
+    qSegsInds{i}(instPowd(i,:) >= quietThr(i)) = nan;
 %     quietThr(i,:) = movmean(currInstPow, round(0.1*fs)) + movstd(currInstPow, round(0.1*fs));
 %     quietSegs{i} = currInstPow(currInstPow < quietThr(i,:));
 %     qSegsInds{i} = currInstPow;
