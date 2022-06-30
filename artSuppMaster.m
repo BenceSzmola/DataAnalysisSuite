@@ -17,9 +17,12 @@ if nargin == 3
     inputStruct = artSuppMaster_inputGUI(initStruct);
     if ~isempty(inputStruct)
         output = artSuppMaster(inputStruct);
-        algSettings = rmfield(inputStruct,{'data','tAxis','fs','data_perio','doRawPlot','doRawDogPlot','doSpectroPlot'});
+        algSettings = rmfield(inputStruct, {'data','tAxis','fs','data_perio','doRawPlot','doRawDogPlot','doSpectroPlot'});
         if inputStruct.useFullLength
-            algSettings = rmfield(algSettings,{'slideWinSize'});
+            algSettings = rmfield(algSettings, {'slideWinSize'});
+        end
+        if ~inputStruct.autoICdiscard
+            algSettings = rmfield(algSettings, {'ICdiscardCorrThr'});
         end
         varargout = {output, algSettings};
     else
@@ -43,6 +46,8 @@ elseif (nargin == 1) && ~isstruct(varargin{1})
     output.iecThr = 0.8;
     output.autoCorrThr = 0.99;
     output.autoCorrLagNum = 10;
+    output.autoICdiscard = true;
+    output.ICdiscardCorrThr = 0.5;
     output.doRawPlot = false;
     output.doRawDogPlot = false;
     output.doSpectroPlot = false;
@@ -66,6 +71,8 @@ elseif (nargin == 1) && (isstruct(varargin{1}))
     iecThr = inputStruct.iecThr;
     autoCorrThr = inputStruct.autoCorrThr;
     autoCorrLagNum = inputStruct.autoCorrLagNum;
+    autoICdiscard = inputStruct.autoICdiscard;
+    ICdiscardCorrThr = inputStruct.ICdiscardCorrThr;
     doRawPlot = inputStruct.doRawPlot;
     doRawDogPlot = inputStruct.doRawDogPlot;
     doSpectroPlot = inputStruct.doSpectroPlot;
@@ -236,7 +243,8 @@ switch bssType
                             reconstr = doCCAdiscard(currCompSegs,autoCorrThr,autoCorrLagNum);
                         elseif strcmp(bssType,'ICA')
                             segtAxis = tAxis(segInds);
-                            [reconstr,skip] = doICAdiscard(currCompSegs,decompType,compNum,segNum,size(segments,1),segtAxis,fig,spH,dbH);
+                            [reconstr,skip] = doICAdiscard(currCompSegs,decompType,compNum,segNum,...
+                                size(segments,1),segtAxis,fig,spH,dbH,autoICdiscard,ICdiscardCorrThr);
                             if skip
                                 break
                             end
@@ -273,7 +281,8 @@ switch bssType
                             reconstr = doCCAdiscard(currCompSegs,autoCorrThr,autoCorrLagNum);
                         elseif strcmp(bssType,'ICA')
                             segtAxis = tAxis(segInds);
-                            [reconstr,skip] = doICAdiscard(currCompSegs,decompType,compNum,segNum,size(segments,1),segtAxis,fig,spH,dbH);
+                            [reconstr,skip] = doICAdiscard(currCompSegs,decompType,compNum,segNum,...
+                                size(segments,1),segtAxis,fig,spH,dbH,autoICdiscard,ICdiscardCorrThr);
                             if skip
                                 break
                             end
@@ -509,7 +518,7 @@ function reconstr = doCCAdiscard(inputMat,discardThr,lagNum)
 end
 
 %%
-function [reconstr,skip] = doICAdiscard(inputMat,decompType,compNum,segNum,numSegs,segtAxis,fig,spH,dbH)
+function [reconstr,skip] = doICAdiscard(inputMat,decompType,compNum,segNum,numSegs,segtAxis,fig,spH,dbH,auto,discardThr)
 % computing ICA and then asking the user to choose which ICs they want to discard
 %     assignin('base','ICAinputMat',inputMat)
 %     assignin('base','segTaxis',segtAxis)
@@ -520,26 +529,28 @@ function [reconstr,skip] = doICAdiscard(inputMat,decompType,compNum,segNum,numSe
         return
     end
     
-%     % calling the function which fills in the plots into the discarding figure
-%     plot2discardICfig(spH,dbH,inputMat,ICs,decompType,compNum,segNum,numSegs,segtAxis)
-%     % reveal the discarding figure
-%     fig.Visible = 'on';
-%     % halt execution until the user is interacting with the figure, they can resume from the figure
-%     uiwait
-%     % extract the selections from the figure, then reset the figure's values
-%     ICs2discard = fig.UserData.ICs2discard;
-%     fig.UserData.ICs2discard = false(size(inputMat,1));
-%     % check whether the user selected the option to skip current component
-%     skip = fig.UserData.skip;
-%     fig.UserData.skip = false;
-    
-    skip = [];
-    ICs2discard = false(size(inputMat, 1), 1);
-    for j = 1:size(inputMat,1)
-        if j <= size(ICs,1)
-            r = abs(corrcoef(ICs(j,:),mean(inputMat)));
-            if r(2) > 0.5
-                ICs2discard(j) = true;
+    if ~auto
+        % calling the function which fills in the plots into the discarding figure
+        plot2discardICfig(spH,dbH,inputMat,ICs,decompType,compNum,segNum,numSegs,segtAxis)
+        % reveal the discarding figure
+        fig.Visible = 'on';
+        % halt execution until the user is interacting with the figure, they can resume from the figure
+        uiwait
+        % extract the selections from the figure, then reset the figure's values
+        ICs2discard = fig.UserData.ICs2discard;
+        fig.UserData.ICs2discard = false(size(inputMat,1));
+        % check whether the user selected the option to skip current component
+        skip = fig.UserData.skip;
+        fig.UserData.skip = false;
+    else
+        skip = [];
+        ICs2discard = false(size(inputMat, 1), 1);
+        for j = 1:size(inputMat,1)
+            if j <= size(ICs,1)
+                r = abs(corrcoef(ICs(j,:),mean(inputMat)));
+                if r(2) > discardThr
+                    ICs2discard(j) = true;
+                end
             end
         end
     end
@@ -836,27 +847,49 @@ function inputStruct = artSuppMaster_inputGUI(inputStruct)
         'Style','popupmenu',...
         'Units','normalized',...
         'Position',[0.01, 0.35, 0.7, 0.05],...
-        'String',{'--Select BSS method--','None','CCA','ICA'});
+        'String',{'--Select BSS method--','None','CCA','ICA'},...
+        'Callback', @ bssPopMenuCB);
+    autoICdiscardUIC = uicontrol(inputFig,...
+        'Style', 'checkbox',...
+        'Units', 'normalized',...
+        'Position', [0.01, 0.25, 0.3, 0.05],...
+        'String', 'Automate IC discarding',...
+        'Enable', 'off',...
+        'Tag', 'ICdiscard');
+    uicontrol(inputFig,...
+        'Style', 'text',...
+        'Units', 'normalized',...
+        'Position', [0.5, 0.25, 0.3, 0.05],...
+        'String', 'Threshold',...
+        'Enable', 'off',...
+        'Tag', 'ICdiscard');
+    ICdiscardCorrThrUICedit = uicontrol(inputFig,...
+        'Style', 'edit',...
+        'Units', 'normalized',...
+        'Position', [0.81, 0.25, 0.18, 0.05],...
+        'String', '0.5',...
+        'Enable', 'off',...
+        'Tag', 'ICdiscard');
     doRawPlotUIC = uicontrol(inputFig,...
         'Style','checkbox',...
         'Units','normalized',...
-        'Position',[0.01, 0.25, 0.3, 0.05],...
+        'Position',[0.01, 0.1, 0.3, 0.05],...
         'String','Display raw plots');
     doRawDogPlotUIC = uicontrol(inputFig,...
         'Style','checkbox',...
         'Units','normalized',...
-        'Position',[0.33, 0.25, 0.3, 0.05],...
+        'Position',[0.33, 0.1, 0.3, 0.05],...
         'String','Display raw&DoG plots');
     doSpectroPlotUIC = uicontrol(inputFig,...
         'Style','checkbox',...
         'Units','normalized',...
-        'Position',[0.66, 0.25, 0.3, 0.05],...
+        'Position',[0.66, 0.1, 0.3, 0.05],...
         'String','Display spectrograms');
     
     uicontrol(inputFig,...
         'Style','pushbutton',...
         'Units','normalized',...
-        'Position',[0.3, 0.1, 0.2, 0.05],...
+        'Position',[0.3, 0.01, 0.2, 0.05],...
         'String','Run',...
         'Callback','uiresume');
     uiwait
@@ -882,6 +915,8 @@ function inputStruct = artSuppMaster_inputGUI(inputStruct)
     inputStruct.iecThr = str2double(iecThrUICedit.String);
     inputStruct.autoCorrThr = str2double(autoCorrThrUICedit.String);
     inputStruct.autoCorrLagNum = str2double(autoCorrLagNumUICedit.String);
+    inputStruct.autoICdiscard = logical(autoICdiscardUIC.Value);
+    inputStruct.ICdiscardCorrThr = str2double(ICdiscardCorrThrUICedit.String);
     inputStruct.doRawPlot = logical(doRawPlotUIC.Value);
     inputStruct.doRawDogPlot = logical(doRawDogPlotUIC.Value);
     inputStruct.doSpectroPlot = logical(doSpectroPlotUIC.Value);
@@ -908,6 +943,18 @@ function inputStruct = artSuppMaster_inputGUI(inputStruct)
                     fullThenSlideUIC.Enable = 'on';
                     slideWinSizeUICedit.Enable = 'on';
                 end                
+        end
+    end
+
+    function bssPopMenuCB(~,~)
+        obj = findobj(inputFig, 'Tag', 'ICdiscard');
+        switch bssTypeUIC.String{bssTypeUIC.Value}
+            case 'ICA'
+                set(obj, 'Enable', 'on')
+                
+            otherwise
+                set(obj, 'Enable', 'off')
+                
         end
     end
 end
