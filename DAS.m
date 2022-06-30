@@ -81,6 +81,8 @@ classdef DAS < handle
         %% Members of ephysProcTab
         ephysProcListBox
         ephysProcListBox2
+        ephysProcListBox2ContMenu
+        ephysProcListBox2ContMenuDel
         
         axesEphysProc1
         axesEphysProc2
@@ -119,6 +121,8 @@ classdef DAS < handle
         %% Members of imagingProcTab
         imagingProcListBox
         imagingProcListBox2
+        imagingProcListBox2ContMenu
+        imagingProcListBox2ContMenuDel
         
         axesImagingProc1
         axesImagingProc2
@@ -4866,6 +4870,62 @@ classdef DAS < handle
         end
         
         %%
+        function delProcData(guiobj,dTyp)
+            switch dTyp
+                case 1
+                    procData = guiobj.ephys_procced;
+                    procInfo = guiobj.ephys_proccedInfo;
+                    procNames = guiobj.ephys_procdatanames;
+                    selInds = guiobj.ephysProcListBox2.Value;
+                    if any(ismember(selInds, guiobj.ephys_artSuppedData4DetListInds))
+                        eD = errordlg('Some of the selected indices are used for the currently stored detection, can''t delete!');
+                        pause(1)
+                        if ishandle(eD)
+                            close(eD)
+                        end
+                        return
+                    end
+                    guiobj.ephysProcListBox2.Value = 1;
+                    guiobj.ephysProcListBox2.String(selInds) = [];
+                    
+                case 2
+                    procData = guiobj.imaging_procced;
+                    procInfo = guiobj.imaging_proccedInfo;
+                    procNames = guiobj.imaging_procDatanames;  
+                    selInds = guiobj.imagingProcListBox2.Value;
+                    if any(ismember(selInds, guiobj.imaging_artSuppedData4DetListInds))
+                        eD = errordlg('Some of the selected indices are used for the currently stored detection, can''t delete!');
+                        pause(1)
+                        if ishandle(eD)
+                            close(eD)
+                        end
+                        return
+                    end
+                    guiobj.imagingProcListBox2.Value = 1;
+                    guiobj.imagingProcListBox2.String(selInds) = [];
+                    
+            end
+            
+            procData(selInds,:) = [];
+            procInfo(selInds) = [];
+            procNames(selInds) = [];
+            
+            switch dTyp
+                case 1
+                    guiobj.ephys_procced = procData;
+                    guiobj.ephys_proccedInfo = procInfo;
+                    guiobj.ephys_procdatanames = procNames;
+                    
+                case 2
+                    guiobj.imaging_procced = procData;
+                    guiobj.imaging_proccedInfo = procInfo;
+                    guiobj.imaging_procDatanames = procNames;
+                    
+            end
+            
+        end
+        
+        %%
         function testcallback(varargin)
             display(varargin)
 %             assignin('base','testinput',varargin)
@@ -5188,6 +5248,7 @@ classdef DAS < handle
                 'Tooltip','List of raw electrophysiology data');
             
             % Create ephysProcListBox2 for processed curves
+            guiobj.ephysProcListBox2ContMenu = uicontextmenu(guiobj.mainfig);
             guiobj.ephysProcListBox2 = uicontrol(guiobj.ephysProcTab,...
                 'Style','listbox',...
                 'Units','normalized',...
@@ -5195,7 +5256,10 @@ classdef DAS < handle
                 'Min',1,...
                 'Max',10,...
                 'Callback',@(h,e) guiobj.ephysProcListBox2ValueChanged,...
-                'Tooltip','List of processed electrophysiology data');
+                'Tooltip','List of processed electrophysiology data',...
+                'UIContextMenu', guiobj.ephysProcListBox2ContMenu);
+            guiobj.ephysProcListBox2ContMenuDel = uimenu(guiobj.ephysProcListBox2ContMenu,'Text','Delete selected',...
+                'Callback',@(h,e) guiobj.delProcData(1));
             
             % Create ephysProcPopMenu
             guiobj.ephysProcPopMenu = uicontrol(guiobj.ephysProcTab,...
