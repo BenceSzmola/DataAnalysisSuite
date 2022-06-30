@@ -1661,25 +1661,35 @@ classdef DAS < handle
                         'WindowStyle','modal',...
                         'Visible','off');
                     if size(data,1) > 10
-                        [ch2use, tf] = listdlg('ListString',num2str(chans),...
-                            'PromptString','Too many channels to display, select which you want to use!');
-                        if ~tf
-                            return
+                        goodSel = false;
+                        while ~goodSel
+                            [ch2use, tf] = listdlg('ListString', num2str(chans'),...
+                                'PromptString', 'Too many channels to display, select at most 10!',...
+                                'ListSize', [300, 300]);
+                            if ~tf
+                                return
+                            elseif length(ch2use) <= 10
+                                goodSel = true;
+                            end
                         end
                     else
                         ch2use = 1:length(chans);
                     end
                         
                     for i = 1:length(ch2use)
-                        subplot(length(ch2use),1,i,'Parent',indSelFig)
-                        plot(tAxis,data(i,:))
+                        sp = subplot(length(ch2use), 1, i, 'Parent', indSelFig);
+                        plot(sp, tAxis, data(i,:))
                     end
-                    sgtitle('Select intervals by clicking in one of the plots! Finish with Return key!')
+                    sgtitle(indSelFig, 'Select intervals by clicking in one of the plots! Finish with Return key!')
                     
                     inpGud = false;
                     while ~inpGud
                         figure(indSelFig)
-                        [selPoints, ~] = ginput;
+                        try
+                            [selPoints, ~] = ginput;
+                        catch
+                            selPoints = [];
+                        end
                         selPoints(selPoints <= tAxis(1)) = tAxis(1);
                         selPoints(selPoints > tAxis(end)) = tAxis(end);
 
@@ -4885,7 +4895,15 @@ classdef DAS < handle
                         end
                         return
                     end
-                    guiobj.ephysProcListBox2.Value = 1;
+                    if length(selInds) == length(procInfo)
+                        guiobj.ephysProcListBox2.Value = [];
+                        cla(guiobj.axesEphysProc2)
+                        guiobj.axesEphysProc2.Title = [];
+                        guiobj.axesEphysProc2.XLabel = [];
+                        guiobj.axesEphysProc2.YLabel = [];
+                    else
+                        guiobj.ephysProcListBox2.Value = 1;
+                    end
                     guiobj.ephysProcListBox2.String(selInds) = [];
                     
                 case 2
@@ -4901,7 +4919,15 @@ classdef DAS < handle
                         end
                         return
                     end
-                    guiobj.imagingProcListBox2.Value = 1;
+                    if length(selInds) == length(procInfo)
+                        guiobj.imagingProcListBox2.Value = [];
+                        cla(guiobj.axesImagingProc2)
+                        guiobj.axesImagingProc2.Title = [];
+                        guiobj.axesImagingProc2.XLabel = [];
+                        guiobj.axesImagingProc2.YLabel = [];
+                    else
+                        guiobj.imagingProcListBox2.Value = 1;
+                    end
                     guiobj.imagingProcListBox2.String(selInds) = [];
                     
             end
@@ -4915,11 +4941,13 @@ classdef DAS < handle
                     guiobj.ephys_procced = procData;
                     guiobj.ephys_proccedInfo = procInfo;
                     guiobj.ephys_procdatanames = procNames;
+                    ephysProcListBox2ValueChanged(guiobj)
                     
                 case 2
                     guiobj.imaging_procced = procData;
                     guiobj.imaging_proccedInfo = procInfo;
                     guiobj.imaging_procDatanames = procNames;
+                    imagingProcListBox2ValueChanged(guiobj)
                     
             end
             
