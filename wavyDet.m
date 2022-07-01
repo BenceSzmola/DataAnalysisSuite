@@ -39,8 +39,8 @@ if refVal ~= 0
                 refInstE = refInstE(inds2use);
         end
     end
-%     refThr = median(refInstE) + std(refInstE);
-    refThr = prctile(refInstE,80);
+    refThr = median(refInstE) + std(refInstE);
+%     refThr = prctile(refInstE,80);
     
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstE,[],refThr,fs);
 else
@@ -58,7 +58,7 @@ thr = nan(size(data,1),1);
 extThr = nan(size(data,1),1);
 
 for i = 1:size(data,1)
-    if chan(i) == refCh
+    if any(chan(i) == refCh)
         continue
     end
     
@@ -91,8 +91,8 @@ for i = 1:size(data,1)
         end
     end
 %     thr = mean(instE) + sdmult*std(instE);
-%     quietThr(i) = median(currInstE) + std(currInstE);
-    quietThr(i) = prctile(currInstE,80);
+    quietThr(i) = median(currInstE) + std(currInstE);
+%     quietThr(i) = prctile(currInstE,80);
     quietSegs{i} = currInstE(currInstE < quietThr(i));
     qSegsInds{i} = instE(i,:);
     qSegsInds{i}(instE(i,:) >= quietThr(i)) = nan;
@@ -131,14 +131,14 @@ end
 % end
 
 for i = 1:min(size(data))
-    if chan(i) == refCh
+    if any(chan(i) == refCh)
         continue
     end
     
     [detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
     evs2del = false(1,length(detParams{i}));
     for j = 1:length(detParams{i})
-        if (detParams{i}(j).Frequency < w1) || (detParams{i}(j).Frequency > w2)
+        if (detParams{i}(j).Frequency < (w1 * 0.85)) || (detParams{i}(j).Frequency > (w2 * 1.15))
             evs2del(j) = true;
         end
     end
@@ -222,8 +222,8 @@ for i = 1:min(size(data))
     end
 end
 
-if ~isempty(find(chan==refCh, 1))
+if any(ismember(chan, refCh))
     % egyelore refDets-t nem alakitottam at, ezert itt convertalom
     refDets = find(~isnan(refDetMarks));
-    dets{chan==refCh} = refDets;
+    dets{ismember(chan, refCh)} = refDets;
 end

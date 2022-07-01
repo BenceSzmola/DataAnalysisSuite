@@ -7,6 +7,7 @@ classdef DASeV < handle
         optMenu
         plotFullMenu
         parallelModeMenu
+        eventYlimModeMenu
         
         ephysOptMenu
         ephysTypMenu
@@ -128,6 +129,7 @@ classdef DASeV < handle
         simultFocusTyp = 1;
         parallelMode = 0;
         keyboardPressDtyp = 1;
+        eventYlimMode = 'global';
         save2DbEphysSelection = cell(1,1);
         save2DbEphysParallelRoiSelection = false(1,1);
         save2DbImagingSelection = cell(1,1);
@@ -718,19 +720,39 @@ classdef DASeV < handle
                         if gO.highPassRawEphys == 1
                             temp = filtfilt(b,a,gO.ephysData(chanNum,:));
                             data = temp(winIdx);
-                            axLims = [min(temp), max(temp)];
+%                             axLims = [min(temp), max(temp)];
+                            if strcmp(gO.eventYlimMode, 'global')
+                                axLims = [min(temp), max(temp)];
+                            elseif strcmp(gO.eventYlimMode, 'window')
+                                axLims = [min(data), max(data)];
+                            end
                         elseif gO.highPassRawEphys == 0
                             data = gO.ephysData(chanNum,winIdx);
-                            axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+%                             axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+                            if strcmp(gO.eventYlimMode, 'global')
+                                axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+                            elseif strcmp(gO.eventYlimMode, 'window')
+                                axLims = [min(gO.ephysData(chanNum,winIdx)), max(gO.ephysData(chanNum,winIdx))];
+                            end
                         end
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(2)
                         data = gO.ephysDoGGed(chanNum,winIdx);
-                        axLims = [min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
+%                         axLims = [min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
+                        if strcmp(gO.eventYlimMode, 'global')
+                            axLims = [min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
+                        elseif strcmp(gO.eventYlimMode, 'window')
+                            axLims = [min(gO.ephysDoGGed(chanNum,winIdx)), max(gO.ephysDoGGed(chanNum,winIdx))];
+                        end
                         yLabels = string(gO.ephysYlabel);
                     elseif gO.ephysTypSelected(3)
                         data = gO.ephysInstPow(chanNum,winIdx);
-                        axLims = [min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+%                         axLims = [min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+                        if strcmp(gO.eventYlimMode, 'global')
+                            axLims = [min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+                        elseif strcmp(gO.eventYlimMode, 'window')
+                            axLims = [min(gO.ephysInstPow(chanNum,winIdx)), max(gO.ephysInstPow(chanNum,winIdx))];
+                        end
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]']);
@@ -740,22 +762,42 @@ classdef DASeV < handle
                         if gO.highPassRawEphys == 1
                             tempfull = filtfilt(b,a,gO.ephysData(chanNum,:));
                             temp = tempfull(winIdx);
-                            axLims = [axLims; min(tempfull), max(tempfull)];
+%                             axLims = [axLims; min(tempfull), max(tempfull)];
+                            if strcmp(gO.eventYlimMode, 'global')
+                                axLims = [axLims; min(tempfull), max(tempfull)];
+                            elseif strcmp(gO.eventYlimMode, 'window')
+                                axLims = [axLims; min(temp), max(temp)];
+                            end
                         elseif gO.highPassRawEphys == 0
                             temp = gO.ephysData(chanNum,winIdx);
-                            axLims = [axLims; min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+%                             axLims = [axLims; min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+                            if strcmp(gO.eventYlimMode, 'global')
+                                axLims = [axLims; min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+                            elseif strcmp(gO.eventYlimMode, 'window')
+                                axLims = [axLims; min(gO.ephysData(chanNum,winIdx)), max(gO.ephysData(chanNum,winIdx))];
+                            end
                         end
                         data = [data; temp];
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(2)
                         data = [data; gO.ephysDoGGed(chanNum,winIdx)];
-                        axLims = [axLims; min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
+%                         axLims = [axLims; min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
+                        if strcmp(gO.eventYlimMode, 'global')
+                            axLims = [axLims; min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:))];
+                        elseif strcmp(gO.eventYlimMode, 'window')
+                            axLims = [axLims; min(gO.ephysDoGGed(chanNum,winIdx)), max(gO.ephysDoGGed(chanNum,winIdx))];
+                        end
                         yLabels = [string(yLabels); string(gO.ephysYlabel)];
                     end
                     if gO.ephysTypSelected(3)
                         data = [data; gO.ephysInstPow(chanNum,winIdx)];
-                        axLims = [axLims; min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+%                         axLims = [axLims; min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+                        if strcmp(gO.eventYlimMode, 'global')
+                            axLims = [axLims; min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+                        elseif strcmp(gO.eventYlimMode, 'window')
+                            axLims = [axLims; min(gO.ephysInstPow(chanNum,winIdx)), max(gO.ephysInstPow(chanNum,winIdx))];
+                        end
                         temp = find(gO.ephysYlabel=='[');
                         yLabels = [string(yLabels); string(['Power ',gO.ephysYlabel(temp:end-1),...
                                 '^2]'])];
@@ -767,14 +809,28 @@ classdef DASeV < handle
                         axLims = [min(tempfull), max(tempfull)];
                     elseif gO.highPassRawEphys == 0
                         temp = gO.ephysData(chanNum,winIdx);
-                        axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+%                         axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+                        if strcmp(gO.eventYlimMode, 'global')
+                            axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
+                        elseif strcmp(gO.eventYlimMode, 'window')
+                            axLims = [min(gO.ephysData(chanNum,winIdx)), max(gO.ephysData(chanNum,winIdx))];
+                        end
                     end
                     data = [temp;...
                         gO.ephysDoGGed(chanNum,winIdx);...
                         gO.ephysInstPow(chanNum,winIdx)];
-                    axLims = [axLims;...
-                        min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:));
-                        min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+%                     axLims = [axLims;...
+%                         min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:));
+%                         min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+                    if strcmp(gO.eventYlimMode, 'global')
+                        axLims = [axLims;...
+                            min(gO.ephysDoGGed(chanNum,:)), max(gO.ephysDoGGed(chanNum,:));
+                            min(gO.ephysInstPow(chanNum,:)), max(gO.ephysInstPow(chanNum,:))];
+                    elseif strcmp(gO.eventYlimMode, 'window')
+                        axLims = [axLims;...
+                            min(gO.ephysDoGGed(chanNum,winIdx)), max(gO.ephysDoGGed(chanNum,winIdx));
+                            min(gO.ephysInstPow(chanNum,winIdx)), max(gO.ephysInstPow(chanNum,winIdx))];
+                    end
                     temp = find(gO.ephysYlabel=='[');
                     yLabels = [string(gO.ephysYlabel); string(gO.ephysYlabel);...
                         string(['Power ',gO.ephysYlabel(temp:end-1),...
@@ -1320,6 +1376,19 @@ classdef DASeV < handle
                 gO.ephysDetDwnButt.Enable = 'on';
                 gO.imagingDetUpButt.Enable = 'off';
                 gO.imagingDetDwnButt.Enable = 'off';
+            end
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function eventYlimModeMenuCB(gO)
+            if strcmp(gO.eventYlimMode, 'global')
+                gO.eventYlimMode = 'window';
+                gO.eventYlimModeMenu.Text = 'Event plotting Y limit, current mode: window';
+            elseif strcmp(gO.eventYlimMode, 'window')
+                gO.eventYlimMode = 'global';
+                gO.eventYlimModeMenu.Text = 'Event plotting Y limit, current mode: global';
             end
             
             smartplot(gO)
@@ -2587,6 +2656,9 @@ classdef DASeV < handle
                 'Text','Parallel mode --OFF--',...
                 'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1),...
                 'ForegroundColor','r');
+            gO.eventYlimModeMenu = uimenu(gO.optMenu,...
+                'Text', sprintf('Event plotting Y limit, current mode: %s',gO.eventYlimMode),...
+                'MenuSelectedFcn', @(h,e) gO.eventYlimModeMenuCB);
             
             gO.ephysOptMenu = uimenu(gO.mainFig,...
                 'Text','Electrophysiology options');

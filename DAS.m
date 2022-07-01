@@ -2784,16 +2784,12 @@ classdef DAS < handle
             
             artSuppPanelObjs = findobj(guiobj.ephysArtSuppPanel, '-regexp', 'Tag', 'ephysArtSupp');
             set(artSuppPanelObjs, 'Visible', 'off')
-            switch selIdx
-                case 2 % wICA
+            switch selIdx                    
+                case 2  % ref subtract
                     objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_refCh');
                     set(objs, 'Visible', 'on')
                     
-                case 3  % ref subtract
-                    objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_refCh');
-                    set(objs, 'Visible', 'on')
-                    
-                case 5 % periodic                   
+                case 4 % periodic                   
                     objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_periodic');
                     set(objs, 'Visible', 'on')
                     
@@ -2914,6 +2910,10 @@ classdef DAS < handle
                             
                             txt4name = ['DoG(',num2str(w1),'-',num2str(w2),')| '];
                             
+                        otherwise
+                            guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                            return
+                            
                     end
                     
                     
@@ -2936,11 +2936,34 @@ classdef DAS < handle
                                 newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
                             txt4name = sprintf('DFER (%s-%s-%s)',settingStr.decompType,settingStr.flagType,settingStr.bssType);
-                        case {'wICA','classic ref subtract'}
+                        case 'classic ref subtract'
                             if nargin == 1
-                                refChan = str2double(guiobj.ephysArtSuppRefChanEdit.String);
+                                refchInp = guiobj.ephysArtSuppRefChanEdit.String;
+                                hyphPos = find(refchInp == '-');
+                                if length(hyphPos) > 1
+                                    eD = errordlg('Only use 1 interval, or input channels sepearated by comma!');
+                                    pause(1)
+                                    if ishandle(eD)
+                                        close(eD)
+                                    end
+                                    return
+                                elseif isempty(hyphPos)
+                                    refChan = str2num(refchInp);
+                                else
+                                    firstPart = refchInp(1:hyphPos-1);
+                                    secondPart = refchInp(hyphPos+1:end);
+                                    refChan = str2num(firstPart):str2num(secondPart);
+                                end
                             end
-                            procced = ArtSupp(data,guiobj.ephys_fs,artSuppName,refChan);
+                            
+                            refChan = ismember([newProcInfo.Channel], refChan);
+                            
+                            if length(find(refChan)) == 1
+                                procced = data - data(refChan,:);
+                            else
+                                procced = data - mean(data(refChan,:));
+                            end
+                            
                             if isempty(procced)
                                 guiobj.ephysRunProcButton.BackgroundColor = 'g';
                                 return
@@ -2950,11 +2973,8 @@ classdef DAS < handle
                             for i = 1:length(data_idx)
                                 newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
-                            if strcmp('wICA',artSuppName)
-                                txt4name = 'wICA';
-                            else
-                                txt4name = 'refSubstr';
-                            end
+                            
+                            txt4name = 'refSubstr';
                             
                         case 'Periodic'
                             if nargin == 1
@@ -2976,6 +2996,10 @@ classdef DAS < handle
                                 newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
                             end
                             txt4name = sprintf('Periodic @%.2f',f_fund);
+                            
+                        otherwise
+                            guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                            return
                             
                     end
                     
@@ -3016,6 +3040,11 @@ classdef DAS < handle
                     
                     guiobj.ephysRunProcButton.BackgroundColor = 'g';
                     return
+                    
+                otherwise
+                    guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                    return
+                    
             end
             
             for i = 1:length(data_idx)
@@ -3276,7 +3305,23 @@ classdef DAS < handle
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
-            refch = str2double(guiobj.ephysDetRefChanEdit.String);
+%             refch = str2double(guiobj.ephysDetRefChanEdit.String);
+            refchInp = guiobj.ephysDetRefChanEdit.String;
+            hyphPos = find(refchInp == '-');
+            if length(hyphPos) > 1
+                eD = errordlg('Only use 1 interval, or input channels sepearated by comma!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                return
+            elseif isempty(hyphPos)
+                refch = str2num(refchInp);
+            else
+                firstPart = refchInp(1:hyphPos-1);
+                secondPart = refchInp(hyphPos+1:end);
+                refch = str2num(firstPart):str2num(secondPart);
+            end
             
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
@@ -3344,14 +3389,14 @@ classdef DAS < handle
             end
             
             % Handling no input case when artsupp is enabled
-            if (ismember(guiobj.ephysDetArtSuppPopMenu.Value, [4,5])) && (isempty(refch)||isnan(refch))
+            if (ismember(guiobj.ephysDetArtSuppPopMenu.Value, 4)) && (isempty(refch) || any(isnan(refch)))
                 errordlg('Specifiy reference channel to use this type of artifact suppression!')
                 guiobj.ephysDetStatusLabel.String = '--IDLE--';
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return
             end
             
-            if ~isempty(refch) && ~isnan(refch) && (refch ~= 0)
+            if ~isempty(refch) && ~any(isnan(refch)) && any(refch ~= 0)
                 switch dettype
                     case 'CWT based'
                         refVal = guiobj.ephysCwtDetRefValCheck.Value;
@@ -3364,7 +3409,7 @@ classdef DAS < handle
                         
                 end
                 if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
-                    if ~ismember(refch, chan)
+                    if any(~ismember(refch, chan))
                         errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
                         pause(1)
                         if ishandle(errdlg)
@@ -3396,13 +3441,7 @@ classdef DAS < handle
                         callFromDetRun.filtype = [];
                         callFromDetRun.artSuppName = 'DFER';
                         callFromDetRun.refChan = [];
-                    case 4 % wICA
-                        guiobj.ephys_artSupp4Det = 1;
-                        callFromDetRun.procGrp = 'Artifact Suppression';
-                        callFromDetRun.filtype = [];
-                        callFromDetRun.artSuppName = 'wICA';
-                        callFromDetRun.refChan = refch;
-                    case 5 % ref chan subtract
+                    case 4 % ref chan subtract
                         guiobj.ephys_artSupp4Det = 1;
                         callFromDetRun.procGrp = 'Artifact Suppression';
                         callFromDetRun.filtype = [];
@@ -3422,7 +3461,7 @@ classdef DAS < handle
                 end
             end
             
-            if ~isempty(refch) && ~isnan(refch)
+            if ~isempty(refch) && ~any(isnan(refch))
                 switch dettype
                     case 'CWT based'
                         refVal = guiobj.ephysCwtDetRefValCheck.Value;
@@ -3438,7 +3477,7 @@ classdef DAS < handle
                     refchData = mean(data);
                 else
                     if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
-                        if ~ismember(refch, chan)
+                        if any(~ismember(refch, chan))
                             errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
                             pause(1)
                             if ishandle(errdlg)
@@ -3447,17 +3486,19 @@ classdef DAS < handle
                             guiobj.ephysDetStatusLabel.String = '--IDLE--';
                             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                             return
-                        else
+                        elseif length(refch) == 1
                             refchData = data(refch == chan,:);
+                        else
+                            refchData = mean(data(ismember(chan, refch),:));
                         end
                     else
                         refchData = guiobj.ephys_data(refch,:);
                     end
                 end
                 
-                if ismember(refch, chan)
+                if any(ismember(refch, chan))
                     data(refch,:) = [];
-                    chan(chan == refch) = [];
+                    chan(ismember(chan, refch)) = [];
                 end
             else
                 refchData = [];
@@ -3480,14 +3521,14 @@ classdef DAS < handle
                         return
                     end
                                                             
-                    if refVal && (isempty(refch)||isnan(refch))
+                    if refVal && (isempty(refch) || any(isnan(refch)))
                         errordlg('No reference channel specified!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                         return
                     end
                     
-                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value~=1)) && ((length(chan)==1) && (chan == refch))
+                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1)) && ((length(chan) == 1) && (chan == refch))
                         errordlg('Requested channel and the reference channel are the same!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -3506,7 +3547,8 @@ classdef DAS < handle
                     detinfo.DetSettings.MinLen = minLen*1000;
                     detinfo.DetSettings.SdMult = sdmult;
                     detinfo.DetSettings.RefVal = refVal;
-                    detinfo.DetSettings.RefCh = refch;
+%                     detinfo.DetSettings.RefCh = refch;
+                    detinfo.DetSettings.RefCh = regexprep(refchInp, ' +', '');
                     
                 case 'Adaptive threshold'
                     step = eval(guiobj.ephysAdaptDetStepEdit.String)/1000;
@@ -3558,14 +3600,14 @@ classdef DAS < handle
                         return
                     end
                     
-                    if refVal && (isempty(refch)||isnan(refch))
+                    if refVal && (isempty(refch) || any(isnan(refch)))
                         errordlg('No reference channel specified!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                         return
                     end
                     
-                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value~=1)) && ((length(chan)==1) && (chan == refch))
+                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1)) && ((length(chan) == 1) && (chan == refch))
                         errordlg('Requested channel and the reference channel are the same!')
                         guiobj.ephysDetStatusLabel.String = '--IDLE--';
                         guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
@@ -3584,7 +3626,8 @@ classdef DAS < handle
                     detinfo.DetSettings.MinLen = minLen*1000;
                     detinfo.DetSettings.SdMult = sdmult;
                     detinfo.DetSettings.RefVal = refVal;
-                    detinfo.DetSettings.RefCh = refch;
+%                     detinfo.DetSettings.RefCh = refch;
+                    detinfo.DetSettings.RefCh = regexprep(refchInp, ' +', '');
             end
             
             % eliminate channels from detection cell with no dets
@@ -3599,9 +3642,9 @@ classdef DAS < handle
             
             % check whether the only detections are in the reference
             % channel
-            if (refVal ~= 0) && (~isempty(find(chan==refch,1)))
+            if (refVal ~= 0) && (any(ismember(chan, refch)))
                 temp = dets;
-                temp(chan==refch) = [];
+                temp(ismember(chan, refch)) = [];
                 detsOnlyInRef = ~sum(~cellfun('isempty',temp));
             else
                 detsOnlyInRef = false;
@@ -5378,7 +5421,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
-                'String',{'--Select artifact suppression!--','wICA','classic ref subtract','DFER','Periodic'},...
+                'String',{'--Select artifact suppression!--','classic ref subtract','DFER','Periodic'},...
                 'Callback',@(h,e) guiobj.ephysArtSuppTypePopMenuCB);
             guiobj.ephysArtSuppRefChanLabel = uicontrol(guiobj.ephysArtSuppPanel,...
                 'Style','text',...
@@ -5621,7 +5664,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.255, 0.96, 0.1, 0.03],...
-                'String',{'--Select artifact suppression method!--','Periodic','DFER','wICA','RefSubtract'});
+                'String',{'--Select artifact suppression method!--','Periodic','DFER','RefSubtract'});
             
             guiobj.ephysCwtDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...

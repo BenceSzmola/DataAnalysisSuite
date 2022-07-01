@@ -61,7 +61,7 @@ extThr = nan(size(data,1),1);
 
 for i = 1:size(data,1)
     
-    if chan(i) == refCh
+    if any(chan(i) == refCh)
         continue
     end
     
@@ -94,7 +94,7 @@ end
 
 for i = 1:min(size(data))
     
-    if chan(i) == refCh
+    if any(chan(i) == refCh)
         continue
     end
     
@@ -161,8 +161,8 @@ for i = 1:min(size(data))
     end
 end
 
-if ~isempty(find(chan==refCh, 1))
+if any(ismember(chan, refCh))
     % egyelore refDets-t nem alakitottam at, ezert itt convertalom
     refDets = find(~isnan(refDetMarks));
-    dets{chan==refCh} = refDets;
+    dets{ismember(chan, refCh)} = refDets;
 end

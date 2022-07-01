@@ -103,9 +103,15 @@ if ~f_fund_given
             end
         end
         if isempty(find(~lowPeaks, 1))
-            close(wb1)
-            warndlg(['The algorithm did not find any periodic noise! You can set the',...
-                ' fundamental frequency manually if you want the filter to run anyway.'])
+            wD = warndlg(['The algorithm did not find any periodic noise! You can set the',...
+                ' fundamental frequency manually if you want the filter to run anyway.']);
+            pause(1)
+            if ishandle(progRepFig)
+                close(progRepFig)
+            end
+            if ishandle(wD)
+                close(wD)
+            end
             data_filt = [];
             return
         end

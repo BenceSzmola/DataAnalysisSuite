@@ -39,7 +39,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     vEvents = cell(size(rawData,1),1);
     
     for i = 1:size(rawData,1)
-        if chan(i) == refch
+        if any(chan(i) == refch)
             continue
         end
         
@@ -149,7 +149,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     end
     
     for i = 1:size(rawData,1)
-        if chan(i) == refch
+        if any(chan(i) == refch)
             continue
         end
         
@@ -161,7 +161,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     if ~isempty(extThr)
         
         for i = 1:size(rawData,1)
-            if chan(i) == refch
+            if any(chan(i) == refch)
                 continue
             end
             
@@ -174,7 +174,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     
     minSepar = round(0.01*fs);
     for i = 1:size(rawData,1)
-        if chan(i) == refch
+        if any(chan(i) == refch)
             continue
         end
         
@@ -182,8 +182,8 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     end
     
     dets = eventsPeak;
-    if ~isempty(find(chan==refch,1))
-        dets{chan==refch} = [];
+    if any(ismember(chan, refch))
+        dets{ismember(chan, refch)} = [];
     end
     detBorders = eventsStartStop;   
 
