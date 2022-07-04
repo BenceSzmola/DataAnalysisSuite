@@ -1495,7 +1495,11 @@ classdef DASeV < handle
                     gO.ephysTaxis = ephysSaveData.TAxis;
                     gO.ephysYlabel = ephysSaveData.YLabel;
                     gO.ephysDets = ephysSaveData.Dets;
-                    gO.ephysEventComplexes = ephysSaveData.EventComplexes;
+                    if isfield(ephysSaveData, 'EventComplexes')
+                        gO.ephysEventComplexes = ephysSaveData.EventComplexes;
+                    else
+                        gO.ephysEventComplexes = {};
+                    end
                     if isempty(gO.ephysDets)
                         gO.parallelMode = 1;
                         parallelModeMenuSel(gO,0)
@@ -1556,7 +1560,11 @@ classdef DASeV < handle
                     gO.imagingTaxis = imagingSaveData.TAxis;
                     gO.imagingYlabel = imagingSaveData.YLabel;
                     gO.imagingDets = imagingSaveData.Dets;
-                    gO.imagingEventComplexes = imagingSaveData.EventComplexes;
+                    if isfield(imagingSaveData, 'EventComplexes')
+                        gO.imagingEventComplexes = imagingSaveData.EventComplexes;
+                    else
+                        gO.imagingEventComplexes = {};
+                    end
                     if isempty(gO.imagingDets)
                         gO.parallelMode = 2;
                         parallelModeMenuSel(gO,0)

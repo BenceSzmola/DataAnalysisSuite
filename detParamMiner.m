@@ -79,7 +79,11 @@ for i = 1:numDets
     disconts = find(steps~=1);
     lowbord = aboveHM(disconts(find((disconts)<aboveHMtInd,1,'last')));
     highbord = aboveHM(disconts(find(disconts>aboveHMtInd,1))-1);
-    detParams(i).FWHM = (highbord-lowbord)/fs;
+    if ~isempty(highbord) && ~isempty(lowbord)
+        detParams(i).FWHM = (highbord-lowbord)/fs;
+    else
+        detParams(i).FWHM = nan;
+    end
     
     maxSepInComplex = 0.1;
     maxSepInComplex = round(maxSepInComplex * fs);
