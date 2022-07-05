@@ -1,4 +1,6 @@
-function DAS2Excel(DBname,eParams,iParams)
+function DAS2Excel(mode,DBname,eParams,iParams)
+
+% mode: 1 == for DASsave files; 2 == for DASeventDB files
 
 if isempty(eParams) && isempty(iParams)
     errordlg('No parameters to make excel out of!')
@@ -36,7 +38,11 @@ eSheets.Item(numSheets).Name = 'info';
 eSheetInfo = eSheets.get('Item','info');
 eSheetInfo.Activate;
 range = get(eSheetInfo,'Range','A1');
-range.Value = 'Name of database entry';
+if mode == 1
+    range.Value = 'Name of source directory';
+elseif mode == 2
+    range.Value = 'Name of database entry';
+end
 range.EntireColumn.AutoFit;
 range = get(eSheetInfo,'Range','B1');
 range.Value = DBname;
