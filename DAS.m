@@ -279,7 +279,7 @@ classdef DAS < handle
         ephys_artSupp4Det = 0;
         ephys_artSuppedData4DetListInds
         ephys_detections                    % Location of detections on time axis
-        ephys_eventComplexes                % Event numbers for each detected complex (e.g. doublet, triplet,...)
+        ephys_eventComplexes = {};          % Event numbers for each detected complex (e.g. doublet, triplet,...)
         ephys_detBorders
         ephys_detectionsInfo
         ephys_detParams 
@@ -302,7 +302,7 @@ classdef DAS < handle
         imaging_artSupp4Det = 0;
         imaging_artSuppedData4DetListInds
         imaging_detections
-        imaging_eventComplexes
+        imaging_eventComplexes = {};
         imaging_detBorders
         imaging_detParams
         imaging_detectionsInfo
@@ -3803,6 +3803,7 @@ classdef DAS < handle
             dets = cell(min(size(data)),1);
             detBorders = cell(min(size(data)),1);
             detParams = cell(min(size(data)),1);
+            evComplexes = cell(min(size(data)),1);
             switch dettype
                 case 'Mean+SD'
                     sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
@@ -3839,7 +3840,7 @@ classdef DAS < handle
                         [],0,[],[],fs,thr,0,minLen,extThr);
                     
                     for i = 1:size(data,1)
-                        detParams{i} = detParamMiner(2,dets{i},detBorders{i},fs,...
+                        [detParams{i}, evComplexes{i}] = detParamMiner(2,dets{i},detBorders{i},fs,...
                             data(i,:),detData(i,:),[],guiobj.imaging_taxis);
                         
                     end
@@ -3921,6 +3922,8 @@ classdef DAS < handle
             guiobj.imaging_detBorders = detBorders;
 
             guiobj.imaging_detParams = detParams;
+            
+            guiobj.imaging_eventComplexes = evComplexes;
 
             guiobj.evDetTabSimultMode = 0;
             
