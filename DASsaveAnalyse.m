@@ -1,4 +1,8 @@
-function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames)
+function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,makeExcel)
+
+if nargin < 3
+    makeExcel = false;
+end
 
 if (nargin == 0) || (isempty(path) || isempty(saveFnames))
     btn1 = 'Directory';
@@ -98,4 +102,13 @@ if any(hasImaging)
     imagingStats = cell2struct(tempImagingCell', [imagingStatsFields; imagingParamNames], 1);
 else
     imagingStats = [];
+end
+
+if makeExcel
+    cutInd = find(path=='\');
+    DAS2Excel(1,path(cutInd(end-1)+1:end-1),ephysStats,imagingStats)
+end
+
+if nargout == 0
+    clear ephysStats imagingStats
 end
