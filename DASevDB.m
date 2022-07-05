@@ -1107,6 +1107,11 @@ classdef DASevDB < handle
             if ~isempty(gO.ephysEvents)
                 eEvs = [gO.ephysEvents];
                 eParams = [eEvs.Params];
+                
+                chans = [eEvs.ChanNum];
+                for i = 1:length(eParams)
+                    eParams(i).Channel = chans(i);
+                end
             else
                 eParams = [];
             end
@@ -1114,6 +1119,11 @@ classdef DASevDB < handle
             if ~isempty(gO.imagingEvents)
                 iEvs = [gO.imagingEvents];
                 iParams = [iEvs.Params];
+                
+                rois = [iEvs.ROINum];
+                for i = 1:length(iParams)
+                    iParams(i).ROI = rois(i);
+                end
             else
                 iParams = [];
             end
