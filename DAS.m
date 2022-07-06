@@ -3334,7 +3334,11 @@ classdef DAS < handle
                         
             % check whether user requested interval selection
             if guiobj.selIntervalsCheckBox.Value
-                inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan);
+                if ~any(ismember(refch, chan))
+                    inds2use_interval = discardIntervals4Dets(guiobj,1,[guiobj.ephys_data(refch,:); data],[refch, chan]);
+                else
+                    inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan);
+                end
                 if isempty(inds2use_interval)
                     warndlg('The whole recording was discarded!')
                     guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -3473,10 +3477,9 @@ classdef DAS < handle
                         refVal = 0;
                         
                 end
-                if refch == 0 % for now code for average reference
-                    refchData = mean(data);
-                else
-                    if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
+                
+                if refVal ~= 0
+                    if guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1)
                         if any(~ismember(refch, chan))
                             errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
                             pause(1)
@@ -3485,25 +3488,38 @@ classdef DAS < handle
                             end
                             guiobj.ephysDetStatusLabel.String = '--IDLE--';
                             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                            return
-                        elseif length(refch) == 1
+                            return                            
+                        end
+                    end
+                                        
+                    if refch == 0
+                        refchData = mean(data);
+                    elseif length(refch) == 1
+                        if all(ismember(refch, chan))
                             refchData = data(refch == chan,:);
                         else
-                            refchData = mean(data(ismember(chan, refch),:));
+                            refchData = guiobj.ephys_data(refch,:);
                         end
                     else
-                        refchData = guiobj.ephys_data(refch,:);
+                        if all(ismember(refch, chan))
+                            refchData = mean(data(ismember(chan, refch),:));
+                        else
+                            refchData = mean(guiobj.ephys_data(refch,:));
+                        end
                     end
+                    
+                    if any(ismember(refch, chan))
+                        data(ismember(chan, refch),:) = [];
+                        chan(ismember(chan, refch)) = [];
+                    end
+                else
+                    refchData = [];
                 end
-                
-                if any(ismember(refch, chan))
-                    data(refch,:) = [];
-                    chan(ismember(chan, refch)) = [];
-                end
+                            
             else
                 refchData = [];
             end
-                        
+            
             switch dettype
                 case 'CWT based'
                     minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String)/1000;

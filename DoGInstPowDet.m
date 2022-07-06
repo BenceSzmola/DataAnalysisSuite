@@ -40,10 +40,10 @@ evComplexes = cell(min(size(data)),1);
 if refVal == 1
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
-                refInstPowd = refInstPowd(inds2use);
+                refInstPowdCut = refInstPowd(inds2use);
         end
     end
-    refThr = median(refInstPowd) + std(refInstPowd);
+    refThr = median(refInstPowdCut) + std(refInstPowdCut);
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
 else
     refDets = [];

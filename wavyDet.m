@@ -36,10 +36,10 @@ if refVal ~= 0
     refInstE = trapz(abs(refCoeffs).^2);
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
-                refInstE = refInstE(inds2use);
+                refInstEcut = refInstE(inds2use);
         end
     end
-    refThr = median(refInstE) + std(refInstE);
+    refThr = median(refInstEcut) + std(refInstEcut);
 %     refThr = prctile(refInstE,80);
     
     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstE,[],refThr,fs);
