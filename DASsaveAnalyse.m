@@ -81,7 +81,7 @@ for i = 1:numSaves
         numParams = length(imagingParamNames);
         paramsCell = squeeze(struct2cell([imagingSaveData.DetParams{1}]));
         paramsCell(cellfun('isempty', paramsCell)) = {nan};
-        tempImagingCell(i,3:(3 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+        tempImagingCell(i,4:(4 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
         
     end
     
