@@ -3364,7 +3364,6 @@ classdef DAS < handle
                     inputData = [guiobj.ephys_data(refch,:); data];
                     inputChans = [refch, chan];
                 else
-                    inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan);
                     inputData = data;
                     inputChans = chan;
                 end
