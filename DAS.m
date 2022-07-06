@@ -270,6 +270,7 @@ classdef DAS < handle
         
         rhdName
         ephys_data                          % Currently imported electrophysiology data
+        ephys_downSampd = false;
         ephys_dogged
         ephys_instPowed
         % For storing processed electrophysiology data
@@ -297,6 +298,7 @@ classdef DAS < handle
         ephys_presets
         
         imaging_data                        % Currently imported imaging data
+        imaging_upSampd = false;
         imaging_smoothed
         imaging_procced
         imaging_proccedInfo = struct('ROI',{},'ProcDetails',{});
@@ -1500,10 +1502,12 @@ classdef DAS < handle
                     ogFs = guiobj.ephys_fs;
                     ogTaxis = guiobj.ephys_taxis;
                     ogData = guiobj.ephys_data;
+                    
                 case 2
                     ogFs = guiobj.imaging_fs;
                     ogTaxis = guiobj.imaging_taxis;
                     ogData = guiobj.imaging_data;
+                    
             end
             
             upsampMult = ceil(targetFs/ogFs);
@@ -1515,10 +1519,19 @@ classdef DAS < handle
             ogData = temp;
             clear temp
 
-            guiobj.imaging_data = ogData;
-            guiobj.imaging_fs = ogFs*upsampMult;
+            switch dTyp
+                case 1
+                    
+                    
+                case 2
+                    guiobj.imaging_data = ogData;
+                    guiobj.imaging_fs = ogFs*upsampMult;
 
-            guiobj.imaging_taxis = interpTaxis;
+                    guiobj.imaging_taxis = interpTaxis;
+                    
+                    guiobj.imaging_upSampd = true;
+                    
+            end
         end
         
         %%
@@ -1546,6 +1559,8 @@ classdef DAS < handle
             guiobj.ephys_data = downSamp_data;
             guiobj.ephys_fs = newFs;
             guiobj.ephys_taxis = newTaxis;
+            
+            guiobj.ephys_downSampd = true;
         end
         
         %%
@@ -1909,6 +1924,8 @@ classdef DAS < handle
                 end
             end
             
+            guiobj.ephys_downSampd = false;
+            
             [filename,path] = uigetfile('*.rhd');
             if filename == 0
                 figure(guiobj.mainfig)
@@ -2024,6 +2041,13 @@ classdef DAS < handle
                     ie = ie+1;
                 end
                 datanames{i} = get(wsgors(i),'name');
+            end
+            
+            if dtyp(1)
+                guiobj.ephys_downSampd = false;
+            end
+            if dtyp(2)
+                guiobj.imaging_upSampd = false;
             end
             
             if (guiobj.datatyp(1) & ~guiobj.datatyp(2)) & isempty(find(dtyp==1,1))
@@ -3696,6 +3720,8 @@ classdef DAS < handle
             end
             detinfo.DetChannel = chan;
             
+            detinfo.DownSamp = guiobj.ephys_downSampd;
+            
             % check whether the only detections are in the reference
             % channel
             if (refVal ~= 0) && (any(ismember(chan, refch)))
@@ -3932,6 +3958,8 @@ classdef DAS < handle
                 roi(emptyCells) = [];
             end
             detinfo.DetROI = roi;
+            
+            detinfo.UpSamp = guiobj.imaging_upSampd;
             
             if ~sum(~cellfun('isempty',dets))
                 guiobj.imaging_detections = {};
