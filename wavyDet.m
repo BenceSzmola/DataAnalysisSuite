@@ -1,4 +1,7 @@
-function [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refCh,refChData,showFigs)
+function [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refVal,refCh,refChData,showFigs)
+
+% [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refVal,refCh,refChData,showFigs)
+
 %% Parameters
 % srate = 20000;
 if nargin ~= 0
@@ -17,11 +20,11 @@ if nargin ~= 0
 end
 
 % Checking whether refchan validation is requested 
-if isempty(refChData)
-    refVal = 0;
-else
-    refVal = 1;
-end
+% if isempty(refChData)
+%     refVal = 0;
+% else
+%     refVal = 1;
+% end
 
 detParams = cell(min(size(data)),1);
 evComplexes = cell(min(size(data)),1);

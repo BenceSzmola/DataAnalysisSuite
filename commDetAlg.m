@@ -2,14 +2,8 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
 
 % [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
-    
-    if isempty(corrData) | isempty(refCorrData)
-        valTyp = 1;
-    else
-        valTyp = 2; % 1=time match based; 2=correlation based
-        corrThr = 0.5;
-    end
-%     valTyp = 1;
+
+    corrThr = 0.5;
 
     if nargin < 13
         extThr = [];
@@ -96,10 +90,10 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
                     winInds = eventsPeak{i}(j)-halfWinSize:eventsPeak{i}(j)+halfWinSize;
                 end
 
-                if valTyp == 1
+                if refVal == 1
                     refWin = refDets(winInds);
                     condit = isempty(find(refWin==0,1));
-                elseif valTyp == 2
+                elseif refVal == 2
                     refWin = refCorrData(winInds);
                     chanWin = corrData(i,winInds);
                     
@@ -134,9 +128,9 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         questTitle = 'Review of discarded events';
         answer = questdlg(quest,questTitle);
         if strcmp(answer,'Yes')
-            if valTyp == 1
+            if refVal == 1
                 reviewData = detData;
-            elseif valTyp == 2
+            elseif refVal == 2
                 reviewData = corrData;
             end
             events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);

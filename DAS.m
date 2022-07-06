@@ -158,7 +158,7 @@ classdef DAS < handle
         ephysCwtDetCutoffLabel
         ephysCwtDetW1Edit
         ephysCwtDetW2Edit
-        ephysCwtDetRefValCheck
+        ephysCwtDetRefValPopMenu
         ephysCwtDetPresetPopMenu
         ephysCwtDetPresetSaveButt
         ephysCwtDetPresetDelButt
@@ -181,7 +181,7 @@ classdef DAS < handle
         ephysDoGInstPowDetSdMultEdit
         ephysDoGInstPowDetMinLenLabel
         ephysDoGInstPowDetMinLenEdit
-        ephysDogInstPowDetRefValChBox
+        ephysDogInstPowDetRefValPopMenu
         ephysDoGInstPowDetPresetPopMenu
         ephysDoGInstPowDetPresetSaveButt
         ephysDoGInstPowDetPresetDelButt
@@ -278,6 +278,7 @@ classdef DAS < handle
         ephys_proccedInfo = struct('Channel',{},'ProcDetails',{});
         ephys_artSupp4Det = 0;
         ephys_artSuppedData4DetListInds
+        ephys_prevIntervalSel = [];
         ephys_detections                    % Location of detections on time axis
         ephys_eventComplexes = {};          % Event numbers for each detected complex (e.g. doublet, triplet,...)
         ephys_detBorders
@@ -1679,6 +1680,7 @@ classdef DAS < handle
                     for i = 1:length(ch2use)
                         sp = subplot(length(ch2use), 1, i, 'Parent', indSelFig);
                         plot(sp, tAxis, data(i,:))
+                        title(['Ch #',num2str(chans(i))])
                     end
                     sgtitle(indSelFig, 'Select intervals by clicking in one of the plots! Finish with Return key!')
                     
@@ -3335,10 +3337,48 @@ classdef DAS < handle
             % check whether user requested interval selection
             if guiobj.selIntervalsCheckBox.Value
                 if ~any(ismember(refch, chan))
-                    inds2use_interval = discardIntervals4Dets(guiobj,1,[guiobj.ephys_data(refch,:); data],[refch, chan]);
+                    inputData = [guiobj.ephys_data(refch,:); data];
+                    inputChans = [refch, chan];
                 else
                     inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan);
+                    inputData = data;
+                    inputChans = chan;
                 end
+                
+                selNewIntervals = true;
+                if ~isempty(guiobj.ephys_prevIntervalSel)
+                    prevIntervals = guiobj.ephys_prevIntervalSel;
+                    prevSelFig = figure('Name', 'Previous interval selection',...
+                        'NumberTitle', 'off');
+                    dataAvg = mean(guiobj.ephys_data);
+                    plot(guiobj.ephys_taxis, dataAvg)
+                    hold on
+                    title('Average of loaded data, red regions are discarded')
+                    redParts = dataAvg;
+                    redParts(prevIntervals) = nan;
+                    plot(guiobj.ephys_taxis, redParts, 'r')
+                    hold off
+                    
+                    usePrevSel = questdlg('Use previous selection?');
+                    if ishandle(prevSelFig)
+                        close(prevSelFig)
+                    end
+                    switch usePrevSel
+                        case 'Yes'
+                            inds2use_interval = prevIntervals;
+                            selNewIntervals = false;
+                            
+                        case ''
+                            return
+                            
+                    end
+                end
+                
+                if selNewIntervals
+                    inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans);
+                    guiobj.ephys_prevIntervalSel = inds2use_interval;
+                end
+                
                 if isempty(inds2use_interval)
                     warndlg('The whole recording was discarded!')
                     guiobj.ephysDetStatusLabel.String = '--IDLE--';
@@ -3403,10 +3443,10 @@ classdef DAS < handle
             if ~isempty(refch) && ~any(isnan(refch)) && any(refch ~= 0)
                 switch dettype
                     case 'CWT based'
-                        refVal = guiobj.ephysCwtDetRefValCheck.Value;
+                        refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
                         
                     case 'DoG+InstPow'
-                        refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                        refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value - 1;
                         
                     otherwise
                         refVal = 0;
@@ -3468,10 +3508,10 @@ classdef DAS < handle
             if ~isempty(refch) && ~any(isnan(refch))
                 switch dettype
                     case 'CWT based'
-                        refVal = guiobj.ephysCwtDetRefValCheck.Value;
+                        refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
                         
                     case 'DoG+InstPow'
-                        refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                        refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value - 1;
                         
                     otherwise
                         refVal = 0;
@@ -3526,7 +3566,7 @@ classdef DAS < handle
                     sdmult = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                     w1 = str2double(guiobj.ephysCwtDetW1Edit.String);
                     w2 = str2double(guiobj.ephysCwtDetW2Edit.String);
-                    refVal = guiobj.ephysCwtDetRefValCheck.Value;
+                    refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
                     
                     % Handling no input cases
                     if (isempty(minLen)||isnan(minLen)) || (isempty(sdmult)||isnan(sdmult))...
@@ -3552,9 +3592,9 @@ classdef DAS < handle
                     end
                                         
                     if ~refVal
-                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,0,[],showFigs);
+                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,0,0,[],showFigs);
                     elseif refVal
-                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refch,refchData,showFigs);
+                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refVal,refch,refchData,showFigs);
                     end
                     
                     detinfo.DetType = "CWT";
@@ -3605,7 +3645,7 @@ classdef DAS < handle
                     w2 = str2double(guiobj.ephysDoGInstPowDetW2Edit.String);
                     sdmult = str2double(guiobj.ephysDoGInstPowDetSdMultEdit.String);
                     minLen = str2double(guiobj.ephysDoGInstPowDetMinLenEdit.String)/1000;
-                    refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                    refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value - 1;
                     
                     % Handling no input cases
                     if (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))...
@@ -3633,7 +3673,7 @@ classdef DAS < handle
                     if ~refVal
                         [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,0,[],showFigs);
                     elseif refVal
-                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refch,refchData,showFigs);
+                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refVal,refch,refchData,showFigs);
                     end
                     
                     detinfo.DetType = "DoGInstPow";
@@ -4188,7 +4228,7 @@ classdef DAS < handle
                     guiobj.ephysDoGInstPowDetW2Edit.String = temp.w2;
                     guiobj.ephysDoGInstPowDetSdMultEdit.String = temp.sdmult;
                     guiobj.ephysDoGInstPowDetMinLenEdit.String = temp.minLen;
-                    guiobj.ephysDogInstPowDetRefValChBox.Value = temp.refVal;
+                    guiobj.ephysDogInstPowDetRefValPopMenu.Value = temp.refVal;
                     clear temp
                 catch
                     disp('Last state of DoG+InstPow detection settings could not be loaded! They will be saved when you close the GUI.')
@@ -4200,7 +4240,7 @@ classdef DAS < handle
                     guiobj.ephysCwtDetSdMultEdit.String = temp.sdmult;
                     guiobj.ephysCwtDetW1Edit.String = temp.w1;
                     guiobj.ephysCwtDetW2Edit.String = temp.w2;
-                    guiobj.ephysCwtDetRefValCheck.Value = temp.refVal;
+                    guiobj.ephysCwtDetRefValPopMenu.Value = temp.refVal;
                     clear temp
                 catch
                     disp('Last state of CWT based detection settings could not be loaded! They will be saved when you close the GUI.')
@@ -4265,7 +4305,7 @@ classdef DAS < handle
             temp.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
             temp.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
             temp.minLen = guiobj.ephysDoGInstPowDetMinLenEdit.String;
-            temp.refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+            temp.refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value;
             
             DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow = temp;
             clear temp
@@ -4274,7 +4314,7 @@ classdef DAS < handle
             temp.sdmult = guiobj.ephysCwtDetSdMultEdit.String;
             temp.w1 = guiobj.ephysCwtDetW1Edit.String;
             temp.w2 = guiobj.ephysCwtDetW2Edit.String;
-            temp.refVal = guiobj.ephysCwtDetRefValCheck.Value;
+            temp.refVal = guiobj.ephysCwtDetRefValPopMenu.Value;
             
             DAS_LOG.lastState.eventDetTab.ephys.CWT = temp;
             clear temp
@@ -4332,7 +4372,7 @@ classdef DAS < handle
                             new.w2 = guiobj.ephysCwtDetW2Edit.String;
                             new.sdmult = guiobj.ephysCwtDetSdMultEdit.String;
                             new.minLen = guiobj.ephysCwtDetMinlenEdit.String;
-                            new.refVal = guiobj.ephysCwtDetRefValCheck.Value;
+                            new.refVal = guiobj.ephysCwtDetRefValPopMenu.Value;
                             
                             if isempty(guiobj.ephys_presets) || ~isfield(guiobj.ephys_presets.evDetTab,'Cwt')
                                 guiobj.ephys_presets.evDetTab.Cwt = [];
@@ -4355,7 +4395,7 @@ classdef DAS < handle
                             new.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
                             new.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
                             new.minLen = guiobj.ephysDoGInstPowDetMinLenEdit.String;
-                            new.refVal = guiobj.ephysDogInstPowDetRefValChBox.Value;
+                            new.refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value;
                             
                             if isempty(guiobj.ephys_presets) || ~isfield(guiobj.ephys_presets.evDetTab,'DoGInstPow')
                                 guiobj.ephys_presets.evDetTab.DoGInstPow = [];
@@ -4423,7 +4463,7 @@ classdef DAS < handle
                             guiobj.ephysCwtDetW2Edit.String = temp.w2;
                             guiobj.ephysCwtDetSdMultEdit.String = temp.sdmult;
                             guiobj.ephysCwtDetMinlenEdit.String = temp.minLen;
-                            guiobj.ephysCwtDetRefValCheck.Value = temp.refVal;
+                            guiobj.ephysCwtDetRefValPopMenu.Value = temp.refVal;
                         case 2 % adaptive thresh
                             
                         case 3 % DoGInstpow
@@ -4436,7 +4476,7 @@ classdef DAS < handle
                             guiobj.ephysDoGInstPowDetW2Edit.String = temp.w2;
                             guiobj.ephysDoGInstPowDetSdMultEdit.String = temp.sdmult;
                             guiobj.ephysDoGInstPowDetMinLenEdit.String = temp.minLen;
-                            guiobj.ephysDogInstPowDetRefValChBox.Value = temp.refVal;
+                            guiobj.ephysDogInstPowDetRefValPopMenu.Value = temp.refVal;
                     end
                 case 2 % imaging
                     
@@ -5723,11 +5763,12 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.55, 0.55, 0.1, 0.1],...
                 'String','10');
-            guiobj.ephysCwtDetRefValCheck = uicontrol(guiobj.ephysCwtDetPanel,...
-                'Style','checkbox',...
+            guiobj.ephysCwtDetRefValPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
+                'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.4, 0.5, 0.1],...
-                'String','RefChan validate');
+                'String',{'No refchan validation', 'Time match based refchan validation',...
+                'Correlation based refchan validation'});
             guiobj.ephysCwtDetPresetPopMenu = uicontrol(guiobj.ephysCwtDetPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
@@ -5828,11 +5869,12 @@ classdef DAS < handle
                 'Style','edit',...
                 'Units','normalized',...
                 'Position',[0.55, 0.55, 0.1, 0.1]);
-            guiobj.ephysDogInstPowDetRefValChBox = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
-                'Style','checkbox',...
+            guiobj.ephysDogInstPowDetRefValPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
+                'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.4, 0.4, 0.1],...
-                'String','RefChan validate');
+                'String',{'No refchan validation', 'Time match based refchan validation',...
+                'Correlation based refchan validation'});
             guiobj.ephysDoGInstPowDetPresetPopMenu = uicontrol(guiobj.ephysDoGInstPowDetPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...

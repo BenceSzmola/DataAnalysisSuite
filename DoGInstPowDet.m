@@ -1,15 +1,17 @@
-function [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,taxis,chan,fs,w1,w2,sdmult,minLen,refCh,refChData,showFigs)
+function [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,taxis,chan,fs,w1,w2,sdmult,minLen,refVal,refCh,refChData,showFigs)
+
+% [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,taxis,chan,fs,w1,w2,sdmult,minLen,refVal,refCh,refChData,showFigs)
 
 if size(data,1) > size(data,2)
     data = data';
 end
 
 % Checking whether refchan validation is requested 
-if isempty(refChData)
-    refVal = 0;
-else
-    refVal = 1;
-end
+% if isempty(refChData)
+%     refVal = 0;
+% else
+%     refVal = 1;
+% end
 
 fs = round(fs,4);
 w1 = round(w1,4);
