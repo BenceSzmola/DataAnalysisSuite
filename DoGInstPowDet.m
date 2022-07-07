@@ -30,6 +30,7 @@ end
 instPowd = instPow(data,fs,w1,w2);
 if refVal == 1
     refInstPowd = instPow(refChData,fs,w1,w2);
+    refInstPowdCut = refInstPowd;
 else
     refInstPowd = [];
 end

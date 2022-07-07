@@ -37,6 +37,7 @@ if refVal ~= 0
     refDogged = DoG(refChData,fs,w1,w2);
     [refCoeffs,~,~] = cwt(refChData,fs,'amor','FrequencyLimits',[w1 w2]);
     refInstE = trapz(abs(refCoeffs).^2);
+    refInstEcut = refInstE;
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
                 refInstEcut = refInstE(inds2use);
