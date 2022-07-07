@@ -14,6 +14,10 @@ classdef DAS < handle
         showSimultMarkersMenu
         runPosModeMenu
         
+        procTabOptionsMenu
+        ephysLinkProcListBoxesMenu
+        imagingLinkProcListBoxesMenu
+        
         EvDetTabOptionsMenu
         ephysEventDetTabDataTypeMenu
         ephysEventDetTabFiltCutoffMenu
@@ -2770,12 +2774,43 @@ classdef DAS < handle
         end
         
         %%
+        function linkProcListBoxesMenuCB(~,h)
+            if strcmp(h.Checked, 'off')
+                h.Checked = 'on';
+            elseif strcmp(h.Checked, 'on')
+                h.Checked = 'off';
+            else
+                return
+            end
+        end
+        
+        %%
         function ephysProcListBoxValueChanged(guiobj)
             idx = guiobj.ephysProcListBox.Value;
             if isempty(idx)
                 return
             end
+            
             ephysplot(guiobj,guiobj.axesEphysProc1,idx)
+            
+            if strcmp(guiobj.ephysLinkProcListBoxesMenu.Checked, 'on') && ~isempty(guiobj.ephys_procced)
+                otherIdx = [];
+                for i = 1:length(idx)
+                    currInd = guiobj.ephysProcListBox2.Value;
+                    chans = [guiobj.ephys_proccedInfo.Channel];
+                    currChan = chans(currInd);
+                    possInds = find(chans == idx(i));
+                    if currChan > idx(i)
+                        otherIdx = [otherIdx, max(possInds(possInds < min(currInd)))];
+                    elseif currChan < idx(i)
+                        otherIdx = [otherIdx, min(possInds(possInds > max(currInd)))];
+                    else
+                        otherIdx = [otherIdx, currInd(ismember(currInd, idx(i)))];
+                    end
+                end
+                guiobj.ephysProcListBox2.Value = otherIdx;
+                ephysplot(guiobj, guiobj.axesEphysProc2, otherIdx)
+            end
         end
         
         %%
@@ -2785,6 +2820,12 @@ classdef DAS < handle
                 return
             end
             ephysplot(guiobj,guiobj.axesEphysProc2,idx)
+            
+            if strcmp(guiobj.ephysLinkProcListBoxesMenu.Checked, 'on')
+                otherIdx = [guiobj.ephys_proccedInfo(idx).Channel];
+                guiobj.ephysProcListBox.Value = otherIdx;
+                ephysplot(guiobj, guiobj.axesEphysProc1, otherIdx)
+            end
         end
                 
         %%
@@ -3115,6 +3156,25 @@ classdef DAS < handle
                return
             end
             imagingplot(guiobj,guiobj.axesImagingProc1,idx)
+            
+            if strcmp(guiobj.imagingLinkProcListBoxesMenu.Checked, 'on') && ~isempty(guiobj.imaging_procced)
+                otherIdx = [];
+                for i = 1:length(idx)
+                    currInd = guiobj.imagingProcListBox2.Value;
+                    chans = [guiobj.imaging_proccedInfo.ROI];
+                    currChan = chans(currInd);
+                    possInds = find(chans == idx(i));
+                    if currChan > idx(i)
+                        otherIdx = [otherIdx, max(possInds(possInds < min(currInd)))];
+                    elseif currChan < idx(i)
+                        otherIdx = [otherIdx, min(possInds(possInds > max(currInd)))];
+                    else
+                        otherIdx = [otherIdx, currInd(ismember(currInd, idx(i)))];
+                    end
+                end
+                guiobj.imagingProcListBox2.Value = otherIdx;
+                imagingplot(guiobj, guiobj.axesImagingProc2, otherIdx)
+            end
         end
         
         %%
@@ -3123,7 +3183,13 @@ classdef DAS < handle
             if idx == 0 | isnan(idx) | isempty(idx)
                return
             end
-            imagingplot(guiobj,guiobj.axesImagingProc2,idx) 
+            imagingplot(guiobj,guiobj.axesImagingProc2,idx)
+            
+            if strcmp(guiobj.imagingLinkProcListBoxesMenu.Checked, 'on')
+                otherIdx = [guiobj.imaging_proccedInfo(idx).ROI];
+                guiobj.imagingProcListBox.Value = otherIdx;
+                imagingplot(guiobj, guiobj.axesImagingProc1, otherIdx)
+            end
         end
         
         %%
@@ -5151,6 +5217,19 @@ classdef DAS < handle
             guiobj.runPosModeMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'MenuSelectedFcn',@(h,e) guiobj.runPosModeMenuSelected,...
                 'Text','Switch position axes mode (absolute/relative)');
+            
+            % proc tabs options
+            guiobj.procTabOptionsMenu = uimenu(guiobj.mainfig,...
+                'Text', 'Processing tab options');
+            guiobj.ephysLinkProcListBoxesMenu = uimenu(guiobj.procTabOptionsMenu,...
+                'Text', 'Link ephys processing tab listboxes',...
+                'Checked', 'off',...
+                'MenuSelectedFcn', @(h,e) guiobj.linkProcListBoxesMenuCB(h));
+            guiobj.imagingLinkProcListBoxesMenu = uimenu(guiobj.procTabOptionsMenu,...
+                'Text', 'Link imaging processing tab listboxes',...
+                'Checked', 'off',...
+                'MenuSelectedFcn', @(h,e) guiobj.linkProcListBoxesMenuCB(h));
+            
             
             guiobj.procDataMenu = uimenu(guiobj.mainfig,...
                 'Text','Processed data options');
