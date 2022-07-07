@@ -8,6 +8,7 @@ classdef DASeV < handle
         plotFullMenu
         parallelModeMenu
         eventYlimModeMenu
+        winLenMenu
         
         ephysOptMenu
         ephysTypMenu
@@ -142,6 +143,7 @@ classdef DASeV < handle
         highPassRawEphys = 0;
         ephysRefCh = 0;
         ephysTypSelected = [1,0,0]; % raw-dog-instpow
+        ephysWinLen = 0.25;
         ephysData
         ephysDoGGed
         ephysInstPow
@@ -161,6 +163,7 @@ classdef DASeV < handle
         
         %% imaging
         imagingTypSelected = [1,0];         % Raw-Gauss
+        imagingWinLen = 0.25;
         imagingData
         imagingSmoothed
         imagingFs
@@ -582,7 +585,7 @@ classdef DASeV < handle
 
                     tDetInds = gO.ephysTaxis(detIdx);
 
-                    win = 0.25;
+                    win = gO.ephysWinLen;
                     win = round(win*gO.ephysFs,4);
                     if gO.simultMode
                         simTDetInd = simTaxis(simDetIdx);
@@ -896,7 +899,7 @@ classdef DASeV < handle
 
                     tDetInds = gO.imagingTaxis(detIdx);
 
-                    win = 0.25;
+                    win = gO.imagingWinLen;
                     win = round(win*gO.imagingFs,0);
                     if gO.simultMode
                         simTDetInd = simTaxis(simDetIdx);
@@ -1300,6 +1303,28 @@ classdef DASeV < handle
             
             gO.runDataTypSelected(:) = 0;
             gO.runDataTypSelected(idx) = 1;
+            
+            smartplot(gO)
+        end
+        
+        %%
+        function changeWinSize(gO,~,~)
+            prompt = {'Ephys | Window size around event [ms]', 'Imaging | Window size around event [ms]'};
+            title = 'Window size around detected event';
+            dims = [1,15];
+            definput = {num2str(gO.ephysWinLen*2000), num2str(gO.imagingWinLen*2000)};
+            
+            answer = inputdlg(prompt,title,dims,definput);
+            if isempty(answer)
+                return
+            end
+            
+            if gO.loaded(1)
+                gO.ephysWinLen = str2double(answer{1})/2000;
+            end
+            if gO.loaded(2)
+                gO.imagingWinLen = str2double(answer{2})/2000;
+            end
             
             smartplot(gO)
         end
@@ -2686,6 +2711,9 @@ classdef DASeV < handle
                 'Text','Parallel mode --OFF--',...
                 'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1),...
                 'ForegroundColor','r');
+            gO.winLenMenu = uimenu(gO.optMenu,...
+                'Text', 'Change window length',...
+                'MenuSelectedFcn', @ gO.changeWinSize);
             gO.eventYlimModeMenu = uimenu(gO.optMenu,...
                 'Text', sprintf('Event plotting Y limit, current mode: %s',gO.eventYlimMode),...
                 'MenuSelectedFcn', @(h,e) gO.eventYlimModeMenuCB);
