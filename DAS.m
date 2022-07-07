@@ -2805,7 +2805,7 @@ classdef DAS < handle
                     elseif currChan < idx(i)
                         otherIdx = [otherIdx, min(possInds(possInds > max(currInd)))];
                     else
-                        otherIdx = [otherIdx, currInd(ismember(currInd, idx(i)))];
+                        otherIdx = [otherIdx, currInd(ismember(currChan, idx(i)))];
                     end
                 end
                 guiobj.ephysProcListBox2.Value = otherIdx;
@@ -3169,7 +3169,7 @@ classdef DAS < handle
                     elseif currChan < idx(i)
                         otherIdx = [otherIdx, min(possInds(possInds > max(currInd)))];
                     else
-                        otherIdx = [otherIdx, currInd(ismember(currInd, idx(i)))];
+                        otherIdx = [otherIdx, currInd(ismember(currChan, idx(i)))];
                     end
                 end
                 guiobj.imagingProcListBox2.Value = otherIdx;
