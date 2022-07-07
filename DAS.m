@@ -4514,8 +4514,12 @@ classdef DAS < handle
         function saveDets(guiobj)
             if (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))...
                     && (isempty(guiobj.imaging_detections) || ~sum(~cellfun('isempty',guiobj.imaging_detections)))
-                errordlg('There are no detections for either datatype!')
-                return
+                choice = questdlg('Both datatypes have empty detections, save anyway?');
+                switch choice
+                    case {'No', ''}
+                        return
+                        
+                end
             end
             
             wb = waitbar(0,'Saving detections...');

@@ -58,11 +58,13 @@ for i = 1:numSaves
         
         tempEphysCell{i,7} = numEvComplex(bestChInd) / tLen;
         
-        ephysParamNames = fieldnames(ephysSaveData.DetParams{bestChInd});
-        numParams = length(ephysParamNames);
-        paramsCell = squeeze(struct2cell([ephysSaveData.DetParams{bestChInd}]));
-        paramsCell(cellfun('isempty', paramsCell)) = {nan};
-        tempEphysCell(i,8:(8 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+        if ~isempty(ephysSaveData.DetParams)
+            ephysParamNames = fieldnames(ephysSaveData.DetParams{bestChInd});
+            numParams = length(ephysParamNames);
+            paramsCell = squeeze(struct2cell([ephysSaveData.DetParams{bestChInd}]));
+            paramsCell(cellfun('isempty', paramsCell)) = {nan};
+            tempEphysCell(i,8:(8 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+        end
         
     end
     
@@ -77,11 +79,13 @@ for i = 1:numSaves
         numEvComplex = cellfun(@ length, imagingSaveData.EventComplexes);
         tempImagingCell{i,3} = sum(numEvComplex);
         
-        imagingParamNames = fieldnames(imagingSaveData.DetParams{1});
-        numParams = length(imagingParamNames);
-        paramsCell = squeeze(struct2cell([imagingSaveData.DetParams{1}]));
-        paramsCell(cellfun('isempty', paramsCell)) = {nan};
-        tempImagingCell(i,4:(4 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+        if ~isempty(imagingSaveData.DetParams)
+            imagingParamNames = fieldnames(imagingSaveData.DetParams{1});
+            numParams = length(imagingParamNames);
+            paramsCell = squeeze(struct2cell([imagingSaveData.DetParams{1}]));
+            paramsCell(cellfun('isempty', paramsCell)) = {nan};
+            tempImagingCell(i,4:(4 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+        end
         
     end
     

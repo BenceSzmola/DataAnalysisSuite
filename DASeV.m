@@ -1518,7 +1518,7 @@ classdef DASeV < handle
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
-                        if gO.ephysDetInfo(1).DetSettings.RefCh ~= 0
+                        if ~isempty(gO.ephysDetInfo.DetSettings) && (gO.ephysDetInfo(1).DetSettings.RefCh ~= 0)
                             gO.ephysRefCh = gO.ephysDetInfo(1).DetSettings.RefCh;
                         end
                     end
@@ -1607,6 +1607,18 @@ classdef DASeV < handle
                     gO.loaded(2) = 1;
                     
                 end
+            end
+            
+            if isempty(gO.ephysDets) && isempty(gO.imagingDets)
+                wD = warndlg('No detections, loading aborted!');
+                pause(1)
+                if ishandle(wD)
+                    close(wD)
+                end
+                if ishandle(wb1)
+                    close(wb1)
+                end
+                return
             end
             
             gO.loaded(3) = 0;
