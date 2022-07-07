@@ -3,6 +3,7 @@ function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,makeExcel)
 if nargin < 3
     makeExcel = false;
 end
+checkRHD = false;
 
 if (nargin == 0) || (isempty(path) || isempty(saveFnames))
     btn1 = 'Directory';
@@ -16,15 +17,34 @@ if (nargin == 0) || (isempty(path) || isempty(saveFnames))
             saveFnames = dir([path,'DASsave*.mat']);
             saveFnames = {saveFnames.name};
             
+            choice = questdlg('Check for RHD files to include measurements with 0 detections?');
+            switch choice
+                case 'Yes'
+                    checkRHD = true;
+                    rhdFnames = dir([path,'*.rhd']);
+                    rhdFnames = {rhdFnames.name};
+                    
+                case 'No'
+                    checkRHD = false;
+                    
+                otherwise
+                        return
+                        
+            end
+            
         case btn2
             [saveFnames, path] = uigetfile('DASsave*.mat', 'MultiSelect', 'on');
-            
+                        
         case {btn3, ''}
             return
             
     end
 end
-numSaves = length(saveFnames);
+if checkRHD
+    numSaves = length(rhdFnames);
+else
+    numSaves = length(saveFnames);
+end
 hasEphys = false(numSaves, 1);
 hasImaging = false(numSaves, 1);
 
@@ -38,13 +58,36 @@ imagingParamNames = {};
 tempImagingCell = cell(numSaves, 1);
 
 for i = 1:numSaves
-    load([path,saveFnames{i}], 'ephysSaveData', 'imagingSaveData', 'simultSaveData')
-    
+    if checkRHD
+        match = find(cellfun(@(x) strcmp(rhdFnames{i}(1:end-4), x(9:end-4)), saveFnames));
+        if length(match) > 1
+            errordlg('Match longer than 1')
+            return
+        elseif isempty(match)
+            ephysSaveData.Dets = {};
+            ephysSaveData.TAxis = 0;
+            ephysSaveData.EventComplexes = {};
+            ephysSaveData.DetParams = {};
+            
+            imagingSaveData = [];
+            simultSaveData = [];
+        else
+            load([path,saveFnames{match}], 'ephysSaveData', 'imagingSaveData', 'simultSaveData')
+        end
+        
+    else
+        load([path,saveFnames{i}], 'ephysSaveData', 'imagingSaveData', 'simultSaveData')
+    end
+        
     if ~isempty(ephysSaveData)
         hasEphys(i) = true;
         tLen = ephysSaveData.TAxis(end) - ephysSaveData.TAxis(1);
         
-        tempEphysCell{i,1} = saveFnames{i};
+        if checkRHD
+            tempEphysCell{i,1} = rhdFnames{i};
+        else
+            tempEphysCell{i,1} = saveFnames{i};
+        end
         
         numDets = cellfun(@ length, ephysSaveData.Dets);
         tempEphysCell{i,2} = sum(numDets);
