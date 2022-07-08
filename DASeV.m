@@ -76,11 +76,13 @@ classdef DASeV < handle
         save2DbEphys_wPar_RoiSelect     % select which ROIs to use in parallel Saving
         save2DbEphysClrSelButton
         save2DbEphysSelAllButton
+        save2DbEphysSelAllCurrChButton
         save2DbImagingCheckBox
         save2DbImaging_wPar_CheckBox    % save with parallel ephys
         save2DbImaging_wPar_ChanSelect  % select which channels to use in parallel saving
         save2DbImagingClrSelButton
         save2DbImagingSelAllButton
+        save2DbImagingSelAllCurrRoiButton
         save2DbSimultCheckBox
         save2DbSimultClrSelButton
         save2DbSimultSelAllButton
@@ -2235,15 +2237,16 @@ classdef DASeV < handle
             switch checkboxID
                 case 1
                     val = gO.save2DbEphysCheckBox.Value;
-                        temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
-                        temp = temp(gO.ephysCurrDetRow);
-                        gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum) = val;
-                        assignin('base','eEvSel',gO.save2DbEphysSelection)
+                    temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
+                    temp = temp(gO.ephysCurrDetRow);
+                    gO.save2DbEphysSelection{temp}(gO.ephysCurrDetNum) = val;
+                    
                 case 2
                     val = gO.save2DbImagingCheckBox.Value;
-                        temp = find(~cellfun('isempty',gO.save2DbImagingSelection));
-                        temp = temp(gO.imagingCurrDetRow);
-                        gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum) = val;
+                    temp = find(~cellfun('isempty',gO.save2DbImagingSelection));
+                    temp = temp(gO.imagingCurrDetRow);
+                    gO.save2DbImagingSelection{temp}(gO.imagingCurrDetNum) = val;
+                    
                 case 3
                     val = gO.save2DbSimultCheckBox.Value;
                     
@@ -2262,6 +2265,7 @@ classdef DASeV < handle
                                         
                 case 4
                     return
+                    
             end
         end
         
@@ -2328,6 +2332,7 @@ classdef DASeV < handle
                     else
                         selections = [0,0,0,0];
                     end
+                    
                 case 'selAll'
                     if dTyp ~= 4
                         for i = 1:length(selections)
@@ -2347,6 +2352,21 @@ classdef DASeV < handle
                             selections = [selections; temp];
                         end
                     end
+                    
+                case {'selAllChan', 'selAllROI'}
+                    if dTyp ~= 4
+                        temp = find(~cellfun('isempty',selections));
+                        switch dTyp
+                            case 1
+                                temp = temp(gO.ephysCurrDetRow);
+                                
+                            case 2
+                                temp = temp(gO.imagingCurrDetRow);
+                                
+                        end
+                        selections{temp}(:) = true;
+                    end
+                    
             end
             
             switch dTyp
@@ -2968,6 +2988,12 @@ classdef DASeV < handle
                 'Position',[0.33, 0.78, 0.3, 0.1],...
                 'String','Select all events',...
                 'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAll'));
+            gO.save2DbEphysSelAllCurrChButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.66, 0.78, 0.3, 0.1],...
+                'String','Select all events on channel',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAllChan'));
             gO.save2DbImagingCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
@@ -2997,6 +3023,12 @@ classdef DASeV < handle
                 'Position',[0.33, 0.54, 0.3, 0.1],...
                 'String','Select all events',...
                 'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAll'));
+            gO.save2DbImagingSelAllCurrRoiButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.66, 0.54, 0.3, 0.1],...
+                'String','Select all events on ROI',...
+                'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAllROI'));
             gO.save2DbSimultCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
