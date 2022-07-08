@@ -403,6 +403,8 @@ classdef DAS < handle
                 firstplot = false;
             end
             
+            rawProc2Plot = [false, false];
+            
             switch guiobj.tabs.SelectedTab.Title
                 case 'Main tab'
                     % Separating incoming indices into raw/processed
@@ -411,11 +413,13 @@ classdef DAS < handle
                     procInds = procInds - size(guiobj.ephys_data,1);
                     
                     if ~isempty(rawInds)
+                        rawProc2Plot(1) = true;
                         plot(ax,guiobj.ephys_taxis,guiobj.ephys_data(rawInds,:))
                         hold(ax,'on')
                         dataname = guiobj.ephys_datanames(rawInds);
                     end
                     if ~isempty(procInds)
+                        rawProc2Plot(2) = true;
                         plot(ax,guiobj.ephys_taxis,guiobj.ephys_procced(procInds,:))
                         hold(ax,'on')
                         dataname = guiobj.ephysProcListBox2.String{procInds};
@@ -427,10 +431,14 @@ classdef DAS < handle
                     end
                 case 'Electrophysiology data processing'
                     if ax == guiobj.axesEphysProc1
+                        rawProc2Plot(1) = true;
+                        rawInds = index;
                         plot(ax,guiobj.ephys_taxis,...
                             guiobj.ephys_data(index,:))
                         dataname = guiobj.ephys_datanames(index);
                     elseif ax == guiobj.axesEphysProc2
+                        rawProc2Plot(2) = true;
+                        procInds = index;
                         plot(ax,guiobj.ephys_taxis,...
                             guiobj.ephys_procced(index,:))
                         dataname = guiobj.ephys_procdatanames(index);
@@ -444,8 +452,20 @@ classdef DAS < handle
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
             elseif length(index) > 1
-                multitle = sprintf(' #%d',sort(index));
-                title(ax,['Channels:',multitle])
+                switch sum(rawProc2Plot)
+                    case 1
+                        if rawProc2Plot(1)
+                            axTitle = ['Raw Channels: ', sprintf(' #%d', sort(rawInds))];
+                        elseif rawProc2Plot(2)
+                            axTitle = ['Proc Channels: ', sprintf(' #%d', [guiobj.ephys_proccedInfo(sort(procInds)).Channel])];
+                        end
+                        
+                    case 2
+                        axTitle = ['Raw Channels: ', sprintf(' #%d', sort(rawInds)),...
+                            ' | Proc Channels: ', sprintf(' #%d', [guiobj.ephys_proccedInfo(sort(procInds)).Channel])];
+                    
+                end
+                title(ax,axTitle)
             end
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.ephys_ylabel)
@@ -470,6 +490,8 @@ classdef DAS < handle
                 firstplot = false;
             end
             
+            rawProc2Plot = [false, false];
+            
             switch guiobj.tabs.SelectedTab.Title
                 case 'Main tab'
                     % Separating incoming indices into raw/processed
@@ -478,11 +500,13 @@ classdef DAS < handle
                     procInds = procInds - size(guiobj.imaging_data,1);
                                         
                     if ~isempty(rawInds)
+                        rawProc2Plot(1) = true;
                         plot(ax,guiobj.imaging_taxis,guiobj.imaging_data(rawInds,:))
                         hold(ax,'on')
                         dataname = guiobj.imaging_datanames(rawInds);
                     end
                     if ~isempty(procInds)
+                        rawProc2Plot(2) = true;
                         plot(ax,guiobj.imaging_taxis,guiobj.imaging_procced(procInds,:))
                         hold(ax,'on')
                         dataname = guiobj.imagingProcListBox2.String{procInds};
@@ -491,10 +515,14 @@ classdef DAS < handle
 
                 case 'Imaging data processing'
                     if ax == guiobj.axesImagingProc1
+                        rawProc2Plot(1) = true;
+                        rawInds = index;
                         plot(ax,guiobj.imaging_taxis,...
                             guiobj.imaging_data(index,:))
                         dataname = guiobj.imaging_datanames(index);
                     elseif ax == guiobj.axesImagingProc2
+                        rawProc2Plot(2) = true;
+                        procInds = index;
                         plot(ax,guiobj.imaging_taxis,...
                             guiobj.imaging_procced(index,:))
                         dataname = guiobj.imaging_procDatanames(index);
@@ -508,8 +536,20 @@ classdef DAS < handle
             if length(index) == 1
                 title(ax,dataname,'Interpreter','none')
             elseif length(index) > 1
-                multitle = sprintf(' #%d',sort(index));
-                title(ax,['ROIs:',multitle])
+                switch sum(rawProc2Plot)
+                    case 1
+                        if rawProc2Plot(1)
+                            axTitle = ['Raw ROIs: ', sprintf(' #%d', sort(rawInds))];
+                        elseif rawProc2Plot(2)
+                            axTitle = ['Proc ROIs: ', sprintf(' #%d', [guiobj.imaging_proccedInfo(sort(procInds)).ROI])];
+                        end
+                        
+                    case 2
+                        axTitle = ['Raw ROIs: ', sprintf(' #%d', sort(rawInds)),...
+                            ' | Proc ROIs: ', sprintf(' #%d', [guiobj.imaging_proccedInfo(sort(procInds)).ROI])];
+                    
+                end
+                title(ax,axTitle)
             end
             xlabel(ax,guiobj.xtitle)
             ylabel(ax,guiobj.imaging_ylabel);
