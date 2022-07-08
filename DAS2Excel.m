@@ -1,4 +1,4 @@
-function DAS2Excel(mode,DBname,eParams,iParams)
+function DAS2Excel(forInfoTab,eParams,iParams)
 
 % mode: 1 == for DASsave files; 2 == for DASeventDB files
 
@@ -37,15 +37,10 @@ eSheets.Item(numSheets).Name = 'info';
 
 eSheetInfo = eSheets.get('Item','info');
 eSheetInfo.Activate;
-range = get(eSheetInfo,'Range','A1');
-if mode == 1
-    range.Value = 'Name of source directory';
-elseif mode == 2
-    range.Value = 'Name of database entry';
-end
-range.EntireColumn.AutoFit;
-range = get(eSheetInfo,'Range','B1');
-range.Value = DBname;
+cellsRange1 = get(eSheetInfo,'Cells',1,1);
+cellsRange2 = get(eSheetInfo,'Cells',size(forInfoTab, 1),size(forInfoTab, 2));
+range = get(eSheetInfo,'Range',cellsRange1,cellsRange2);
+range.Value = forInfoTab;
 range.EntireColumn.AutoFit;
 
 if ~isempty(eParams)

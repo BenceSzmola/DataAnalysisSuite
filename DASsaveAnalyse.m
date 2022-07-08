@@ -1,9 +1,10 @@
-function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,makeExcel)
+function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,bestChMode,makeExcel)
 
-if nargin < 3
+if nargin < 4
     makeExcel = false;
 end
 checkRHD = false;
+bestChModeNames = {'Most events', 'Highest average amplitude', 'Most event complexes', 'Manual selection'};
 
 if (nargin == 0) || (isempty(path) || isempty(saveFnames))
     btn1 = 'Directory';
@@ -48,7 +49,7 @@ end
 hasEphys = false(numSaves, 1);
 hasImaging = false(numSaves, 1);
 
-ephysStatsFields = {'Filename'; 'NumAllEvents'; 'NumBestChEvents'; 'BestChEventFrequency'; 'NumEventComplexes';...
+ephysStatsFields = {'Filename'; 'NumAllEvents'; 'BestChannel'; 'NumBestChEvents'; 'BestChEventFrequency'; 'NumEventComplexes';...
     'NumBestChEventComplexes'; 'BestChEventComplexFrequency'};
 ephysParamNames = {};
 tempEphysCell = cell(numSaves, 1);
@@ -69,19 +70,23 @@ for i = 1:numSaves
             ephysSaveData.EventComplexes = {};
             ephysSaveData.DetParams = {};
             
+            ephysSaveInfo.DetChannel = [];
+            
             imagingSaveData = [];
             simultSaveData = [];
         else
-            load([path,saveFnames{match}], 'ephysSaveData', 'imagingSaveData', 'simultSaveData')
+            load([path,saveFnames{match}], 'ephysSaveData', 'ephysSaveInfo', 'imagingSaveData', 'simultSaveData')
         end
         
     else
-        load([path,saveFnames{i}], 'ephysSaveData', 'imagingSaveData', 'simultSaveData')
+        load([path,saveFnames{i}], 'ephysSaveData', 'ephysSaveInfo', 'imagingSaveData', 'simultSaveData')
     end
-        
+            
     if ~isempty(ephysSaveData)
         hasEphys(i) = true;
         tLen = ephysSaveData.TAxis(end) - ephysSaveData.TAxis(1);
+        numDets = cellfun(@ length, ephysSaveData.Dets);
+        numEvComplex = cellfun(@ length, ephysSaveData.EventComplexes);
         
         if checkRHD
             tempEphysCell{i,1} = rhdFnames{i};
@@ -89,24 +94,42 @@ for i = 1:numSaves
             tempEphysCell{i,1} = saveFnames{i};
         end
         
-        numDets = cellfun(@ length, ephysSaveData.Dets);
         tempEphysCell{i,2} = sum(numDets);
-        [tempEphysCell{i,3}, bestChInd] = max(numDets);
+        switch bestChMode(1)
+            case 1 % channel with most events
+                [~, bestChInd] = max(numDets);
+                
+            case 2 % channel with highest average event amplitude
+                avgParams = zeros(length(ephysSaveData.DetParams), 1);
+                for j = 1:length(ephysSaveData.DetParams)
+                    avgParams(j) = mean([ephysSaveData.DetParams{j}.RawAmplitudeP2P]);
+                end
+                [~, bestChInd] = max(avgParams);
+                
+            case 3 % channel with most event complexes
+                [~, bestChInd] = max(numEvComplex);
+                
+            case 4 % channel manually selected
+                bestChInd = find(ephysSaveInfo.DetChannel == bestChMode(2));
+                
+        end
+        tempEphysCell{i,3} = ephysSaveInfo.DetChannel(bestChInd);
+        
+        tempEphysCell{i,4} = numDets(bestChInd);
 
-        tempEphysCell{i,4} = numDets(bestChInd) / tLen;
+        tempEphysCell{i,5} = numDets(bestChInd) / tLen;
         
-        numEvComplex = cellfun(@ length, ephysSaveData.EventComplexes);
-        tempEphysCell{i,5} = sum(numEvComplex);
-        tempEphysCell{i,6} = numEvComplex(bestChInd);
+        tempEphysCell{i,6} = sum(numEvComplex);
+        tempEphysCell{i,7} = numEvComplex(bestChInd);
         
-        tempEphysCell{i,7} = numEvComplex(bestChInd) / tLen;
+        tempEphysCell{i,8} = numEvComplex(bestChInd) / tLen;
         
         if ~isempty(ephysSaveData.DetParams)
             ephysParamNames = fieldnames(ephysSaveData.DetParams{bestChInd});
             numParams = length(ephysParamNames);
             paramsCell = squeeze(struct2cell([ephysSaveData.DetParams{bestChInd}]));
             paramsCell(cellfun('isempty', paramsCell)) = {nan};
-            tempEphysCell(i,8:(8 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+            tempEphysCell(i,9:(9 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
         end
         
     end
@@ -153,7 +176,12 @@ end
 
 if makeExcel
     cutInd = find(path=='\');
-    DAS2Excel(1,path(cutInd(end-1)+1:end-1),ephysStats,imagingStats)
+    
+    forInfoTab = cell(3,2);
+    forInfoTab(1,:) = {'Directory name', path(cutInd(end-1)+1:end-1)};
+    forInfoTab(2,:) = {'Best channel selection mode', bestChModeNames{bestChMode(1)}};
+    
+    DAS2Excel(forInfoTab,ephysStats,imagingStats)
 end
 
 if nargout == 0
