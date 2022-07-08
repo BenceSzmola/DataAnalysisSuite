@@ -88,6 +88,7 @@ classdef DASeV < handle
         save2DbSimultSelAllButton
         save2DbRunningChechBox
         save2DbButton
+        save2ExcelButton
         
         plotPanel
         fixWinSwitch
@@ -2384,7 +2385,7 @@ classdef DASeV < handle
         end
         
         %%
-        function save2DbButtonPress(gO,~,~)
+        function save2DbButtonPress(gO,save2Excel)
             
             selected = [(~isempty(find(vertcat(gO.save2DbEphysSelection{:}),1))&&~gO.simultMode),...
                 (~isempty(find(vertcat(gO.save2DbImagingSelection{:}),1))&&~gO.simultMode),...
@@ -2408,7 +2409,13 @@ classdef DASeV < handle
                 return
             end
             
-            newSaveStruct = [];
+            if save2Excel
+                eParams = [];
+                iParams = [];
+            else
+                newSaveStruct = [];
+            end
+            
             if selected(1)
                 for i = 1:length(gO.save2DbEphysSelection)
                     if isempty(find(gO.save2DbEphysSelection{i},1))
@@ -2419,62 +2426,68 @@ classdef DASeV < handle
                         if ~gO.save2DbEphysSelection{i}(j)
                             continue
                         end
+                        
+                        if save2Excel
+                            temp = gO.ephysDetParams{i}(j);
+                            temp.Channel = gO.ephysDetInfo.DetChannel(i);
+                            eParams = [eParams; temp];
+                        else
+                            [win,relBorders] = windowMacher(gO,1,i,j,0.25);
 
-                        [win,relBorders] = windowMacher(gO,1,i,j,0.25);
-                        
-                        tempStruct.source = string(gO.path2loadedSave);
-                        tempStruct.simult = 0;
-                        tempStruct.parallel = 0;
-                        
-                        e_iAdj = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(i));
-                        
-                        tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
-                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(e_iAdj,win);
-                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(e_iAdj,win);
-                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(e_iAdj,win);
-                        tempStruct.ephysEvents.DetBorders = relBorders;
-                        tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
-                        tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                        tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(i);
-                        tempStruct.ephysEvents.DetNum = j;
-                        
-                        if gO.save2DbEphys_wPar_CheckBox.Value
-                            tempStruct.parallel = 2;
-                            
-                            refWin = gO.ephysTaxis(win);
-                            [~,startInd] = min(abs(gO.imagingTaxis - refWin(1)));
-                            [~,stopInd] = min(abs(gO.imagingTaxis - refWin(end)));
-                            parWin = startInd:stopInd;
-                            rois2save = gO.save2DbEphysParallelRoiSelection;
-                            
-                            tempStruct.imagingEvents.Taxis = gO.imagingTaxis(parWin);
-                            tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(rois2save,parWin);
-                            tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(rois2save,parWin);
-                            tempStruct.imagingEvents.DetBorders = [];
-                            tempStruct.imagingEvents.Params = [];
-                            tempStruct.imagingEvents.DetSettings = [];
-                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(rois2save);
-                            tempStruct.imagingEvents.DetNum = [];
-                        end
-                        
-                        if gO.save2DbRunningChechBox.Value
-                            refWin = gO.ephysTaxis(win);
-                            runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
-                            
-                            if ~isempty(runWin)
-                                tempStruct.runData.Taxis = gO.runTaxis(runWin);
-                                tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                                tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
-                                tempStruct.runData.Lap = gO.runLap(runWin);
-                                tempStruct.runData.Licks = gO.runLicks(runWin);
-                                tempStruct.runData.ActState = gO.runActState(runWin);
-                            else
-                                tempStruct.runData = [];
+                            tempStruct.source = string(gO.path2loadedSave);
+                            tempStruct.simult = 0;
+                            tempStruct.parallel = 0;
+
+                            e_iAdj = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(i));
+
+                            tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
+                            tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(e_iAdj,win);
+                            tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(e_iAdj,win);
+                            tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(e_iAdj,win);
+                            tempStruct.ephysEvents.DetBorders = relBorders;
+                            tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
+                            tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
+                            tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(i);
+                            tempStruct.ephysEvents.DetNum = j;
+
+                            if gO.save2DbEphys_wPar_CheckBox.Value
+                                tempStruct.parallel = 2;
+
+                                refWin = gO.ephysTaxis(win);
+                                [~,startInd] = min(abs(gO.imagingTaxis - refWin(1)));
+                                [~,stopInd] = min(abs(gO.imagingTaxis - refWin(end)));
+                                parWin = startInd:stopInd;
+                                rois2save = gO.save2DbEphysParallelRoiSelection;
+
+                                tempStruct.imagingEvents.Taxis = gO.imagingTaxis(parWin);
+                                tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(rois2save,parWin);
+                                tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(rois2save,parWin);
+                                tempStruct.imagingEvents.DetBorders = [];
+                                tempStruct.imagingEvents.Params = [];
+                                tempStruct.imagingEvents.DetSettings = [];
+                                tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(rois2save);
+                                tempStruct.imagingEvents.DetNum = [];
                             end
+
+                            if gO.save2DbRunningChechBox.Value
+                                refWin = gO.ephysTaxis(win);
+                                runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+
+                                if ~isempty(runWin)
+                                    tempStruct.runData.Taxis = gO.runTaxis(runWin);
+                                    tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                    tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                    tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
+                                    tempStruct.runData.Lap = gO.runLap(runWin);
+                                    tempStruct.runData.Licks = gO.runLicks(runWin);
+                                    tempStruct.runData.ActState = gO.runActState(runWin);
+                                else
+                                    tempStruct.runData = [];
+                                end
+                            end
+
+                            newSaveStruct = [newSaveStruct; tempStruct];
                         end
-                        
-                        newSaveStruct = [newSaveStruct; tempStruct];
                     end
                     
                 end
@@ -2493,60 +2506,66 @@ classdef DASeV < handle
                             continue
                         end
                         
-                        [win,relBorders] = windowMacher(gO,2,i,j,0.25);
-                        
-                        tempStruct.source = string(gO.path2loadedSave);
-                        tempStruct.simult = 0;
-                        tempStruct.parallel = 0;
-                        
-                        i_iAdj = find(gO.imagingDetInfo.AllROI == gO.imagingDetInfo.DetROI(i));
-                        
-                        tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
-                        tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i_iAdj,win);
-                        tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i_iAdj,win);
-                        tempStruct.imagingEvents.DetBorders = relBorders;
-                        tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
-                        tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
-                        tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i);
-                        tempStruct.imagingEvents.DetNum = j;
-                        
-                        if gO.save2DbImaging_wPar_CheckBox.Value
-                            tempStruct.parallel = 1;
-                            
-                            refWin = gO.imagingTaxis(win);
-                            [~,startInd] = min(abs(gO.ephysTaxis - refWin(1)));
-                            [~,stopInd] = min(abs(gO.ephysTaxis - refWin(end)));
-                            parWin = startInd:stopInd;
-                            chans2save = gO.save2DbImagingParallelChanSelection;
-                            
-                            tempStruct.ephysEvents.Taxis = gO.ephysTaxis(parWin);
-                            tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(chans2save,parWin);
-                            tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(chans2save,parWin);
-                            tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(chans2save,parWin);
-                            tempStruct.ephysEvents.DetBorders = [];
-                            tempStruct.ephysEvents.Params = [];
-                            tempStruct.ephysEvents.DetSettings = [];
-                            tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.AllChannel(chans2save);
-                            tempStruct.ephysEvents.DetNum = [];
-                        end
-                        
-                        if gO.save2DbRunningChechBox.Value
-                            refWin = gO.imagingTaxis(win);
-                            runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
-                            if ~isempty(runWin)
-                                tempStruct.runData.Taxis = gO.runTaxis(runWin);
-                                tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                                tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
-                                tempStruct.runData.Lap = gO.runLap(runWin);
-                                tempStruct.runData.Licks = gO.runLicks(runWin);
-                                tempStruct.runData.ActState = gO.runActState(runWin);
-                            else
-                                tempStruct.runData = [];
+                        if save2Excel
+                            temp = gO.imagingDetParams{i}(j);
+                            temp.ROI = gO.imagingDetInfo.DetROI(i);
+                            iParams = [iParams; temp];
+                        else
+                            [win,relBorders] = windowMacher(gO,2,i,j,0.25);
+
+                            tempStruct.source = string(gO.path2loadedSave);
+                            tempStruct.simult = 0;
+                            tempStruct.parallel = 0;
+
+                            i_iAdj = find(gO.imagingDetInfo.AllROI == gO.imagingDetInfo.DetROI(i));
+
+                            tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
+                            tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i_iAdj,win);
+                            tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i_iAdj,win);
+                            tempStruct.imagingEvents.DetBorders = relBorders;
+                            tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
+                            tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
+                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i);
+                            tempStruct.imagingEvents.DetNum = j;
+
+                            if gO.save2DbImaging_wPar_CheckBox.Value
+                                tempStruct.parallel = 1;
+
+                                refWin = gO.imagingTaxis(win);
+                                [~,startInd] = min(abs(gO.ephysTaxis - refWin(1)));
+                                [~,stopInd] = min(abs(gO.ephysTaxis - refWin(end)));
+                                parWin = startInd:stopInd;
+                                chans2save = gO.save2DbImagingParallelChanSelection;
+
+                                tempStruct.ephysEvents.Taxis = gO.ephysTaxis(parWin);
+                                tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(chans2save,parWin);
+                                tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(chans2save,parWin);
+                                tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(chans2save,parWin);
+                                tempStruct.ephysEvents.DetBorders = [];
+                                tempStruct.ephysEvents.Params = [];
+                                tempStruct.ephysEvents.DetSettings = [];
+                                tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.AllChannel(chans2save);
+                                tempStruct.ephysEvents.DetNum = [];
                             end
+
+                            if gO.save2DbRunningChechBox.Value
+                                refWin = gO.imagingTaxis(win);
+                                runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                                if ~isempty(runWin)
+                                    tempStruct.runData.Taxis = gO.runTaxis(runWin);
+                                    tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                    tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                    tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
+                                    tempStruct.runData.Lap = gO.runLap(runWin);
+                                    tempStruct.runData.Licks = gO.runLicks(runWin);
+                                    tempStruct.runData.ActState = gO.runActState(runWin);
+                                else
+                                    tempStruct.runData = [];
+                                end
+                            end
+
+                            newSaveStruct = [newSaveStruct; tempStruct];
                         end
-                        
-                        newSaveStruct = [newSaveStruct; tempStruct];
                     end
                 end
 %             
@@ -2560,147 +2579,164 @@ classdef DASeV < handle
                     i_iAdj = find(gO.imagingDetInfo.DetROI == gO.imagingDetInfo.AllROI(currRow(3)));
                     [imagingWin,imagingRelBorders] = windowMacher(gO,2,i_iAdj,currRow(4),0.25);
                     
-                    eTaxis = gO.ephysTaxis;
-                    iTaxis = gO.imagingTaxis;
-                    
-                    if eTaxis(ephysWin(1)) > iTaxis(imagingWin(1))
-                        ephysWin = find(eTaxis > iTaxis(imagingWin(1)), 1):ephysWin(end);
-                    elseif eTaxis(ephysWin(1)) < iTaxis(imagingWin(1))
-                        imagingWin = find(iTaxis > eTaxis(ephysWin(1)), 1):imagingWin(end);
+                    if save2Excel
+                        temp = gO.ephysDetParams{e_iAdj}(currRow(2));
+                        temp.Channel = gO.ephysDetInfo.AllChannel(currRow(1));
+                        eParams = [eParams; temp];
+                        
+                        temp = gO.imagingDetParams{i_iAdj}(currRow(4));
+                        temp.ROI = gO.imagingDetInfo.AllROI(currRow(3));
+                        iParams = [iParams; temp];
+                    else
+                        eTaxis = gO.ephysTaxis;
+                        iTaxis = gO.imagingTaxis;
+
+                        if eTaxis(ephysWin(1)) > iTaxis(imagingWin(1))
+                            ephysWin = find(eTaxis > iTaxis(imagingWin(1)), 1):ephysWin(end);
+                        elseif eTaxis(ephysWin(1)) < iTaxis(imagingWin(1))
+                            imagingWin = find(iTaxis > eTaxis(ephysWin(1)), 1):imagingWin(end);
+                        end
+
+                        if eTaxis(ephysWin(end)) < iTaxis(imagingWin(end))
+                            ephysWin = ephysWin(1):find(eTaxis > iTaxis(imagingWin(end)), 1);
+                        elseif eTaxis(ephysWin(end)) > iTaxis(imagingWin(end))
+                            ephysWin = imagingWin(1):find(iTaxis > eTaxis(ephysWin(end)), 1);
+                        end
+
+                        tempStruct.source = string(gO.path2loadedSave);
+                        tempStruct.simult = 1;
+                        tempStruct.parallel = 0;
+
+                        tempStruct.ephysEvents.Taxis = gO.ephysTaxis(ephysWin);
+                        tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
+                        tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
+                        tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
+                        tempStruct.ephysEvents.DetBorders = ephysRelBorders;
+                        tempStruct.ephysEvents.Params = gO.ephysDetParams{e_iAdj}(currRow(2));
+                        tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
+                        tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(e_iAdj);
+                        tempStruct.ephysEvents.DetNum = currRow(2);
+
+                        tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
+                        tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
+                        tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
+                        tempStruct.imagingEvents.DetBorders = imagingRelBorders;
+                        tempStruct.imagingEvents.Params = gO.imagingDetParams{i_iAdj}(currRow(4));
+                        tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
+                        tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i_iAdj);
+                        tempStruct.imagingEvents.DetNum = currRow(4);
+
+                        if gO.save2DbRunningChechBox.Value
+                            refWin = gO.ephysTaxis(ephysWin);
+                            runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                            if ~isempty(runWin)
+                                tempStruct.runData.Taxis = gO.runTaxis(runWin);
+                                tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
+                                tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
+                                tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
+                                tempStruct.runData.Lap = gO.runLap(runWin);
+                                tempStruct.runData.Licks = gO.runLicks(runWin);
+                                tempStruct.runData.ActState = gO.runActState(runWin);
+                            else
+                                tempStruct.runData = [];
+                            end
+                        end
+
+                        newSaveStruct = [newSaveStruct; tempStruct];
                     end
-                    
-                    if eTaxis(ephysWin(end)) < iTaxis(imagingWin(end))
-                        ephysWin = ephysWin(1):find(eTaxis > iTaxis(imagingWin(end)), 1);
-                    elseif eTaxis(ephysWin(end)) > iTaxis(imagingWin(end))
-                        ephysWin = imagingWin(1):find(iTaxis > eTaxis(ephysWin(end)), 1);
+                end
+            end
+            
+            if save2Excel
+                forInfoTab = cell(1,2);
+                forInfoTab(1,:) = {'DASsave filename', gO.path2loadedSave};
+
+                DAS2Excel(forInfoTab,eParams,iParams)
+            else
+                if isempty(newSaveStruct)
+                    errordlg('No events selected!')
+                    return
+                end
+
+                DASloc = mfilename('fullpath');
+                if ~exist([DASloc(1:end-5),'DASeventDBdir\'],'dir')
+                    mkdir([DASloc(1:end-5),'DASeventDBdir\'])
+                end
+                dbFiles = dir([DASloc(1:end-5),'DASeventDBdir\','DASeventDB*.mat']);
+
+                dbFiles = {dbFiles.name};
+                dbFiles = ['Start a new database entry', dbFiles];
+
+                [ind,tf] = listdlg('ListString',dbFiles,...
+                    'PromptString','Select DB to save in','SelectionMode','single',...
+                    'ListSize',[230,300]);
+                if ~tf
+                    return
+                end
+
+                if ind == 1
+                    dbName = inputdlg('Input name of new database entry!',...
+                        'New DB entry',[1,35]);
+                    if isempty(dbName)
+                        return
+                    else
+                        saveFname = [DASloc(1:end-5),'DASeventDBdir\','DASeventDB_',dbName{:},'.mat'];
+                        saveStruct = [];
                     end
-                    
-                    tempStruct.source = string(gO.path2loadedSave);
-                    tempStruct.simult = 1;
-                    tempStruct.parallel = 0;
-                                        
-                    tempStruct.ephysEvents.Taxis = gO.ephysTaxis(ephysWin);
-                    tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
-                    tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
-                    tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
-                    tempStruct.ephysEvents.DetBorders = ephysRelBorders;
-                    tempStruct.ephysEvents.Params = gO.ephysDetParams{e_iAdj}(currRow(2));
-                    tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                    tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(e_iAdj);
-                    tempStruct.ephysEvents.DetNum = currRow(2);
-                    
-                    tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
-                    tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
-                    tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
-                    tempStruct.imagingEvents.DetBorders = imagingRelBorders;
-                    tempStruct.imagingEvents.Params = gO.imagingDetParams{i_iAdj}(currRow(4));
-                    tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
-                    tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i_iAdj);
-                    tempStruct.imagingEvents.DetNum = currRow(4);
-                    
-                    if gO.save2DbRunningChechBox.Value
-                        refWin = gO.ephysTaxis(ephysWin);
-                        runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
-                        if ~isempty(runWin)
-                            tempStruct.runData.Taxis = gO.runTaxis(runWin);
-                            tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                            tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                            tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
-                            tempStruct.runData.Lap = gO.runLap(runWin);
-                            tempStruct.runData.Licks = gO.runLicks(runWin);
-                            tempStruct.runData.ActState = gO.runActState(runWin);
-                        else
-                            tempStruct.runData = [];
+                else
+                    dbName = dbFiles{ind}(12:end-4);
+                    saveFname = [DASloc(1:end-5),'DASeventDBdir\',dbFiles{ind}];
+                    load(saveFname,'saveStruct')
+
+                    % Checking whether the user chose a fitting db entry
+                    if saveStruct(1).simult
+                        if ~selected(3)
+                            errordlg(['The entry you chose contains simult events!',...
+                                ' Choose another, or create a new one!'])
+                            return
+                        end
+                    elseif ~saveStruct(1).simult
+                        if selected(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
+                            errordlg(['The entry you chose contains only ',...
+                                'imaging events! Choose another, ',...
+                                'or create a new one!'])
+                            return
+                        end
+                        if selected(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))
+                            errordlg(['The entry you chose contains only ',...
+                                'electrophysiological events! Choose another, or create a new one!'])
+                            return
                         end
                     end
-                    
-                    newSaveStruct = [newSaveStruct; tempStruct];
+
+                    % control parallel saving
+                    if saveStruct(1).parallel ~= 0
+                        if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox.Value) ||...
+                                ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox.Value)
+                            errordlg(['The entry you chose contains different type of parallel events',...
+                                ' Choose another, or create a new one!'])
+                            return
+                        end
+                    end
                 end
-            end
-            
-            if isempty(newSaveStruct)
-                errordlg('No events selected!')
-                return
-            end
-            
-            DASloc = mfilename('fullpath');
-            if ~exist([DASloc(1:end-5),'DASeventDBdir\'],'dir')
-                mkdir([DASloc(1:end-5),'DASeventDBdir\'])
-            end
-            dbFiles = dir([DASloc(1:end-5),'DASeventDBdir\','DASeventDB*.mat']);
-            
-            dbFiles = {dbFiles.name};
-            dbFiles = ['Start a new database entry', dbFiles];
-            
-            [ind,tf] = listdlg('ListString',dbFiles,...
-                'PromptString','Select DB to save in','SelectionMode','single',...
-                'ListSize',[230,300]);
-            if ~tf
-                return
-            end
-            
-            if ind == 1
-                dbName = inputdlg('Input name of new database entry!',...
-                    'New DB entry',[1,35]);
-                if isempty(dbName)
-                    return
+
+                if ~isempty(newSaveStruct)
+                    try
+                        saveStruct = [saveStruct; newSaveStruct];
+                    catch
+                        saveStruct = [saveStruct, newSaveStruct'];
+                    end
+
+                    try
+                        save(saveFname,'saveStruct')
+                    catch
+                        errordlg(['Error while saving! Probably caused by missing folder.'...
+                            'Make sure DASeventDBdir folder is in the same location as DASeV.m file!'])
+                        return
+                    end
                 else
-                    saveFname = [DASloc(1:end-5),'DASeventDBdir\','DASeventDB_',dbName{:},'.mat'];
-                    saveStruct = [];
+                    errordlg('No selected events!')
                 end
-            else
-                dbName = dbFiles{ind}(12:end-4);
-                saveFname = [DASloc(1:end-5),'DASeventDBdir\',dbFiles{ind}];
-                load(saveFname,'saveStruct')
-                
-                % Checking whether the user chose a fitting db entry
-                if saveStruct(1).simult
-                    if ~selected(3)
-                        errordlg(['The entry you chose contains simult events!',...
-                            ' Choose another, or create a new one!'])
-                        return
-                    end
-                elseif ~saveStruct(1).simult
-                    if selected(1) && isempty(find(ismember(fieldnames(saveStruct),'ephysEvents'),1))
-                        errordlg(['The entry you chose contains only ',...
-                            'imaging events! Choose another, ',...
-                            'or create a new one!'])
-                        return
-                    end
-                    if selected(2) && isempty(find(ismember(fieldnames(saveStruct),'imagingEvents'),1))
-                        errordlg(['The entry you chose contains only ',...
-                            'electrophysiological events! Choose another, or create a new one!'])
-                        return
-                    end
-                end
-                
-                % control parallel saving
-                if saveStruct(1).parallel ~= 0
-                    if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox.Value) ||...
-                            ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox.Value)
-                        errordlg(['The entry you chose contains different type of parallel events',...
-                            ' Choose another, or create a new one!'])
-                        return
-                    end
-                end
-            end
-            
-            if ~isempty(newSaveStruct)
-                try
-                    saveStruct = [saveStruct; newSaveStruct];
-                catch
-                    saveStruct = [saveStruct, newSaveStruct'];
-                end
-                
-                try
-                    save(saveFname,'saveStruct')
-                catch
-                    errordlg(['Error while saving! Probably caused by missing folder.'...
-                        'Make sure DASeventDBdir folder is in the same location as DASeV.m file!'])
-                    return
-                end
-            else
-                errordlg('No selected events!')
             end
             
         end
@@ -3056,9 +3092,15 @@ classdef DASeV < handle
             gO.save2DbButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.5, 0.01, 0.49, 0.2],...
+                'Position',[0.55, 0.01, 0.44, 0.15],...
                 'String','Save current selection to DB',...
-                'Callback',@ gO.save2DbButtonPress);
+                'Callback',@(h,e) gO.save2DbButtonPress(false));
+            gO.save2ExcelButton = uicontrol(gO.save2DbPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.44, 0.15],...
+                'String','Save current selection to Excel',...
+                'Callback',@(h,e) gO.save2DbButtonPress(true));
             
             gO.plotPanel = uipanel(gO.viewerTab,...
                 'Position',[0.3, 0, 0.7, 1],...
