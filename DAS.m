@@ -285,6 +285,7 @@ classdef DAS < handle
         ephys_artSuppedData4DetListInds
         ephys_prevIntervalSel = [];
         ephys_detections                    % Location of detections on time axis
+        ephys_globalDets
         ephys_eventComplexes = {};          % Event numbers for each detected complex (e.g. doublet, triplet,...)
         ephys_detBorders
         ephys_detectionsInfo
@@ -309,6 +310,7 @@ classdef DAS < handle
         imaging_artSupp4Det = 0;
         imaging_artSuppedData4DetListInds
         imaging_detections
+        imaging_globalDets
         imaging_eventComplexes = {};
         imaging_detBorders
         imaging_detParams
@@ -1160,12 +1162,35 @@ classdef DAS < handle
                 end
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
+                
+                switch dTyp
+                    case 1
+                        if ~isempty(guiobj.ephys_globalDets)
+                            globEvNum = find(guiobj.ephys_globalDets(:,guiobj.eventDet1CurrChan) == detNum);
+                        else
+                            globEvNum = [];
+                        end
+                        
+                    case 2
+                        if ~isempty(guiobj.imaging_globalDets)
+                            globEvNum = find(guiobj.imaging_globalDets(:,guiobj.eventDet2CurrRoi) == detNum);
+                        else
+                            globEvNum = [];
+                        end
+                        
+                end
+                if ~isempty(globEvNum)
+                    globEvTxt = [' (Global event #',num2str(globEvNum),')'];
+                else
+                    globEvTxt = '';
+                end
+                
                 if ~guiobj.evDetTabSimultMode
                     title(ax,[plotTitle,num2str(chanName),'      Detection #',num2str(detNum),...
-                        '/',num2str(numDets)])
+                        '/',num2str(numDets), globEvTxt])
                 else
                     title(ax,[plotTitle,num2str(chanName),'      Simultan Detection #',num2str(simultDetNum),...
-                        '/',num2str(numDets),' (nonSimult #',num2str(detNum),')'])
+                        '/',num2str(numDets),' (nonSimult #',num2str(detNum),')', globEvTxt])
                 end
             end
             
@@ -3840,6 +3865,7 @@ classdef DAS < handle
             if ~sum(~cellfun('isempty',dets)) || detsOnlyInRef
                 
                 guiobj.ephys_detections = {};
+                guiobj.ephys_globalDets = [];
                 guiobj.ephys_eventComplexes = {};
                 guiobj.ephys_detBorders = {};
                 guiobj.ephys_detParams = {};
@@ -3855,6 +3881,9 @@ classdef DAS < handle
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return                
             end
+            
+            % find global events
+            guiobj.ephys_globalDets = extractGlobalEvents(dets,round(0.05*fs));
             
             % recompute the ephys data types
             if (exist('w1','var') == 1) && (exist('w2','var') == 1)
@@ -4068,6 +4097,7 @@ classdef DAS < handle
             
             if ~sum(~cellfun('isempty',dets))
                 guiobj.imaging_detections = {};
+                guiobj.imaging_globalDets = [];
                 guiobj.imaging_detectionsInfo = [];
                 guiobj.imaging_detBorders = {};
                 guiobj.imaging_detParams = {};
@@ -4078,6 +4108,9 @@ classdef DAS < handle
                 guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
                 return
             end
+            
+            % find global events
+            guiobj.imaging_globalDets = extractGlobalEvents(dets,round(0.05*fs));
             
             % recompute the ephys data types
             if (exist('winLen','var') == 1)

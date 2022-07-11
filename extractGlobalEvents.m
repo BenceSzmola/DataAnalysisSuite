@@ -33,4 +33,3 @@ end
 globalEvents = globalEvents(any(globalEvents, 2),:);
 
 end
-
