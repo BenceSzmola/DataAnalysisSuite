@@ -9,6 +9,10 @@ if size(detBorders,1) > 1
             if ((detBorders(j+1,1) - detBorders(j,2)) < minSepar) && ((peakValues(j+1)/peakValues(j) < 0.8) || (peakValues(j+1)/peakValues(j) > (1/0.8)))
                 mergedBorders(i,2) = detBorders(j+1,2);
                 merged(j+1) = true;
+                
+                if peakValues(j+1) > peakValues(j)
+                    eventsPeak(j) = eventsPeak(j+1);
+                end
             else
                 break
             end
