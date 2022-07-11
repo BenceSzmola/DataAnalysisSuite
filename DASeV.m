@@ -155,6 +155,7 @@ classdef DASeV < handle
         ephysDetSettings
         ephysDetParams
         ephysDets
+        ephysGlobalDets
         ephysEventComplexes
         ephysDetBorders
         ephysYlabel
@@ -173,6 +174,7 @@ classdef DASeV < handle
         imagingTaxis
         imagingYlabel
         imagingDets
+        imagingGlobalDets
         imagingEventComplexes
         imagingDetBorders
         imagingDetInfo
@@ -650,13 +652,24 @@ classdef DASeV < handle
                                 '      Detection #',...
                                 num2str(detNum),'/',num2str(numDetsOg)];
                         else
+                            if ~isempty(gO.ephysGlobalDets)
+                                globEvNum = find(gO.ephysGlobalDets(:,gO.ephysCurrDetRow) == detNum);
+                            else
+                                globEvNum = [];
+                            end
+                            if ~isempty(globEvNum)
+                                globEvTxt = [' (Global event #',num2str(globEvNum),')'];
+                            else
+                                globEvTxt = '';
+                            end
+                            
                             if ~gO.simultMode
                                 axTitle = ['Channel #',num2str(chanOgNum),'      Detection #',...
-                                    num2str(detNum),'/',num2str(numDetsOg)];
+                                    num2str(detNum),'/',num2str(numDetsOg), globEvTxt];
                             else
                                 axTitle = ['Channel #',num2str(chanOgNum),'      Simult Detection #',...
                                     num2str(gO.simultEphysCurrDetNum),'/',num2str(numDetsOg),...
-                                    ' (nonSimult #',num2str(detNum),')'];
+                                    ' (nonSimult #',num2str(detNum),')', globEvTxt];
                             end
                         end
 
@@ -955,13 +968,24 @@ classdef DASeV < handle
                         chanNum = gO.imagingFixWinDetRow;
                         axTitle = ['ROI #',num2str(chanOgNum)];
                     elseif gO.fixWin == 0
+                        if ~isempty(gO.imagingGlobalDets)
+                            globEvNum = find(gO.imagingGlobalDets(:,gO.imagingCurrDetRow) == detNum);
+                        else
+                            globEvNum = [];
+                        end
+                        if ~isempty(globEvNum)
+                            globEvTxt = [' (Global event #',num2str(globEvNum),')'];
+                        else
+                            globEvTxt = '';
+                        end
+                        
                         if ~gO.simultMode
                             axTitle = ['ROI #',num2str(chanOgNum),'      Detection #',...
-                                num2str(detNum),'/',num2str(numDetsOg)];
+                                num2str(detNum),'/',num2str(numDetsOg), globEvTxt];
                         else
                             axTitle = ['ROI #',num2str(chanOgNum),'      Simult Detection #',...
                                 num2str(gO.simultImagingCurrDetNum),'/',num2str(numDetsOg),...
-                                ' (nonSimult #',num2str(detNum),')'];
+                                ' (nonSimult #',num2str(detNum),')', globEvTxt];
                         end
                     end
 
@@ -1525,6 +1549,9 @@ classdef DASeV < handle
                     gO.ephysTaxis = ephysSaveData.TAxis;
                     gO.ephysYlabel = ephysSaveData.YLabel;
                     gO.ephysDets = ephysSaveData.Dets;
+                    if isfield(ephysSaveData, 'GlobalDets')
+                        gO.ephysGlobalDets = ephysSaveData.GlobalDets;
+                    end
                     if isfield(ephysSaveData, 'EventComplexes')
                         gO.ephysEventComplexes = ephysSaveData.EventComplexes;
                     else
@@ -1590,6 +1617,9 @@ classdef DASeV < handle
                     gO.imagingTaxis = imagingSaveData.TAxis;
                     gO.imagingYlabel = imagingSaveData.YLabel;
                     gO.imagingDets = imagingSaveData.Dets;
+                    if isfield(imagingSaveData, 'GlobalDets')
+                        gO.imagingGlobalDets = imagingSaveData.GlobalDets;
+                    end
                     if isfield(imagingSaveData, 'EventComplexes')
                         gO.imagingEventComplexes = imagingSaveData.EventComplexes;
                     else

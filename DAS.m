@@ -4703,6 +4703,7 @@ classdef DAS < handle
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
                 ephysSaveData.Dets = guiobj.ephys_detections;
+                ephysSaveData.GlobalDets = guiobj.ephys_globalDets;
                 ephysSaveData.DetBorders = guiobj.ephys_detBorders;
                 ephysSaveData.DetParams = guiobj.ephys_detParams;
                 ephysSaveData.EventComplexes = guiobj.ephys_eventComplexes;
@@ -4755,6 +4756,7 @@ classdef DAS < handle
                 imagingSaveData.Fs = guiobj.imaging_fs;
                 imagingSaveData.RawData = guiobj.imaging_data;
                 imagingSaveData.Dets = guiobj.imaging_detections;
+                imagingSaveData.GlobalDets = guiobj.imaging_globalDets;
                 imagingSaveData.DetBorders = guiobj.imaging_detBorders;
                 imagingSaveData.DetParams = guiobj.imaging_detParams;
                 imagingSaveData.EventComplexes = guiobj.imaging_eventComplexes;
