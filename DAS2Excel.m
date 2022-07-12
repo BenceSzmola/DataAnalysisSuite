@@ -38,7 +38,11 @@ eSheets.Item(numSheets).Name = 'info';
 eSheetInfo = eSheets.get('Item','info');
 eSheetInfo.Activate;
 cellsRange1 = get(eSheetInfo,'Cells',1,1);
-cellsRange2 = get(eSheetInfo,'Cells',size(forInfoTab, 1),size(forInfoTab, 2));
+if any(size(forInfoTab))
+    cellsRange2 = get(eSheetInfo,'Cells',size(forInfoTab, 1),size(forInfoTab, 2));
+else
+    cellsRange2 = get(eSheetInfo,'Cells',1,1);
+end
 range = get(eSheetInfo,'Range',cellsRange1,cellsRange2);
 range.Value = forInfoTab;
 range.EntireColumn.AutoFit;
