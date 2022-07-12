@@ -4991,6 +4991,7 @@ classdef DAS < handle
                             
                             if delFullChan
                                 guiobj.ephys_detections(currChan) = [];
+                                guiobj.ephys_globalDets(:,currChan) = [];
                                 guiobj.ephys_detParams(currChan) = [];
                                 guiobj.ephys_detBorders(currChan) = [];
                                 guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
@@ -5009,6 +5010,20 @@ classdef DAS < handle
                                 end
                             else
                                 guiobj.ephys_detections{currChan}(detNum) = [];
+                                inGlobDets = guiobj.ephys_globalDets(:,currChan) == detNum;
+                                if any(inGlobDets)
+                                    globDetNum = find(inGlobDets);
+                                    if length(globDetNum) > 1
+                                        errordlg('There is a problem with the global events array!')
+                                        return
+                                    end
+                                    
+                                    if isempty(find(~isnan(guiobj.ephys_globalDets(globDetNum,:)), 1))
+                                        guiobj.ephys_globalDets(globDetNum,:) = [];
+                                    else
+                                        guiobj.ephys_globalDets(globDetNum,currChan) = nan;
+                                    end
+                                end
                                 guiobj.ephys_detParams{currChan}(detNum) = [];
                                 guiobj.ephys_detBorders{currChan}(detNum,:) = [];
 
@@ -5026,6 +5041,7 @@ classdef DAS < handle
                                     end
 
                                     guiobj.ephys_detections(currChan) = [];
+                                    guiobj.ephys_globalDets(:,currChan) = [];
                                     guiobj.ephys_detParams(currChan) = [];
                                     guiobj.ephys_detBorders(currChan) = [];
                                     guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
@@ -5051,6 +5067,7 @@ classdef DAS < handle
                             
                             if delFullChan
                                 guiobj.imaging_detections(currChan) = [];
+                                guiobj.imaging_globalDets(:,currChan) = [];
                                 guiobj.imaging_detParams(currChan) = [];
                                 guiobj.imaging_detBorders(currChan) = [];
                                 guiobj.imaging_detectionsInfo.DetROI(currChan) = [];
@@ -5069,6 +5086,20 @@ classdef DAS < handle
                                 end
                             else
                                 guiobj.imaging_detections{currChan}(detNum) = [];
+                                inGlobDets = guiobj.imaging_globalDets(:,currChan) == detNum;
+                                if any(inGlobDets)
+                                    globDetNum = find(inGlobDets);
+                                    if length(globDetNum) > 1
+                                        errordlg('There is a problem with the global events array!')
+                                        return
+                                    end
+                                    
+                                    if isempty(find(~isnan(guiobj.imaging_globalDets(globDetNum,:)), 1))
+                                        guiobj.imaging_globalDets(globDetNum,:) = [];
+                                    else
+                                        guiobj.imaging_globalDets(globDetNum,currChan) = nan;
+                                    end
+                                end
                                 guiobj.imaging_detParams{currChan}(detNum) = [];
                                 guiobj.imaging_detBorders{currChan}(detNum,:) = [];
 
@@ -5082,6 +5113,7 @@ classdef DAS < handle
                                     end
 
                                     guiobj.imaging_detections(currChan) = [];
+                                    guiobj.imaging_globalDets(:,currChan) = [];
                                     guiobj.imaging_detParams(currChan) = [];
                                     guiobj.imaging_detBorders(currChan) = [];
                                     guiobj.imaging_detectionsInfo.DetROI(currChan) = [];
