@@ -20,7 +20,7 @@ minLen = round(minLen,4);
 
 % Computing DoG
 dogged = DoG(data,fs,w1,w2);
-if refVal == 1
+if refVal
     refDogged = DoG(refChData,fs,w1,w2);
 else
     refDogged = [];
@@ -28,7 +28,7 @@ end
 
 % Instant Power
 instPowd = instPow(data,fs,w1,w2);
-if refVal == 1
+if refVal
     refInstPowd = instPow(refChData,fs,w1,w2);
     refInstPowdCut = refInstPowd;
 else
@@ -40,7 +40,7 @@ end
 detParams = cell(min(size(data)),1);
 evComplexes = cell(min(size(data)),1);
 
-if refVal == 1
+if refVal
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
                 refInstPowdCut = refInstPowd(inds2use);
