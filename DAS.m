@@ -1763,8 +1763,8 @@ classdef DAS < handle
                         
                     for i = 1:length(ch2use)
                         sp = subplot(length(ch2use), 1, i, 'Parent', indSelFig);
-                        plot(sp, tAxis, data(i,:))
-                        title(['Ch #',num2str(chans(i))])
+                        plot(sp, tAxis, data(ch2use(i),:))
+                        title(sp, ['Ch #',num2str(chans(ch2use(i)))])
                     end
                     sgtitle(indSelFig, 'Select intervals by clicking in one of the plots! Finish with Return key!')
                     
