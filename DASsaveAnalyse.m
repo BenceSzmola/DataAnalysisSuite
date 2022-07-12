@@ -49,12 +49,12 @@ end
 hasEphys = false(numSaves, 1);
 hasImaging = false(numSaves, 1);
 
-ephysStatsFields = {'Filename'; 'NumAllEvents'; 'BestChannel'; 'NumBestChEvents'; 'BestChEventFrequency'; 'NumEventComplexes';...
-    'NumBestChEventComplexes'; 'BestChEventComplexFrequency'};
+ephysStatsFields = {'Filename'; 'NumAllEvents'; 'NumGlobalEvents'; 'BestChannel'; 'NumBestChEvents';...
+    'BestChEventFrequency'; 'NumEventComplexes'; 'NumBestChEventComplexes'; 'BestChEventComplexFrequency'};
 ephysParamNames = {};
 tempEphysCell = cell(numSaves, 1);
 
-imagingStatsFields = {'Filename'; 'NumAllEvents'; 'NumEventComplexes'};
+imagingStatsFields = {'Filename'; 'NumAllEvents'; 'NumGlobalEvents'; 'NumEventComplexes'};
 imagingParamNames = {};
 tempImagingCell = cell(numSaves, 1);
 
@@ -95,6 +95,13 @@ for i = 1:numSaves
         end
         
         tempEphysCell{i,2} = sum(numDets);
+        
+        if isfield(ephysSaveData, 'GlobalDets')
+            tempEphysCell{i,3} = size(ephysSaveData.GlobalDets, 1);
+        else
+            tempEphysCell{i,3} = [];
+        end
+        
         switch bestChMode(1)
             case 1 % channel with most events
                 [~, bestChInd] = max(numDets);
@@ -113,23 +120,23 @@ for i = 1:numSaves
                 bestChInd = find(ephysSaveInfo.DetChannel == bestChMode(2));
                 
         end
-        tempEphysCell{i,3} = ephysSaveInfo.DetChannel(bestChInd);
+        tempEphysCell{i,4} = ephysSaveInfo.DetChannel(bestChInd);
         
-        tempEphysCell{i,4} = numDets(bestChInd);
+        tempEphysCell{i,5} = numDets(bestChInd);
 
-        tempEphysCell{i,5} = numDets(bestChInd) / tLen;
+        tempEphysCell{i,6} = numDets(bestChInd) / tLen;
         
-        tempEphysCell{i,6} = sum(numEvComplex);
-        tempEphysCell{i,7} = numEvComplex(bestChInd);
+        tempEphysCell{i,7} = sum(numEvComplex);
+        tempEphysCell{i,8} = numEvComplex(bestChInd);
         
-        tempEphysCell{i,8} = numEvComplex(bestChInd) / tLen;
+        tempEphysCell{i,9} = numEvComplex(bestChInd) / tLen;
         
         if ~isempty(ephysSaveData.DetParams)
             ephysParamNames = fieldnames(ephysSaveData.DetParams{bestChInd});
             numParams = length(ephysParamNames);
             paramsCell = squeeze(struct2cell([ephysSaveData.DetParams{bestChInd}]));
             paramsCell(cellfun('isempty', paramsCell)) = {nan};
-            tempEphysCell(i,9:(9 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+            tempEphysCell(i,10:(10 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
         end
         
     end
@@ -142,15 +149,21 @@ for i = 1:numSaves
         numDets = cellfun(@ length, imagingSaveData.Dets);
         tempImagingCell{i,2} = sum(numDets);
         
+        if isfield(imagingSaveData, 'GlobalDets')
+            tempImagingCell{i,3} = size(imagingSaveData.GlobalDets, 1);
+        else
+            tempImagingCell{i,3} = [];
+        end
+        
         numEvComplex = cellfun(@ length, imagingSaveData.EventComplexes);
-        tempImagingCell{i,3} = sum(numEvComplex);
+        tempImagingCell{i,4} = sum(numEvComplex);
         
         if ~isempty(imagingSaveData.DetParams)
             imagingParamNames = fieldnames(imagingSaveData.DetParams{1});
             numParams = length(imagingParamNames);
             paramsCell = squeeze(struct2cell([imagingSaveData.DetParams{1}]));
             paramsCell(cellfun('isempty', paramsCell)) = {nan};
-            tempImagingCell(i,4:(4 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+            tempImagingCell(i,5:(5 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
         end
         
     end
