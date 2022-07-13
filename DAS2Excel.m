@@ -111,3 +111,5 @@ Close(eWorkbook)
 
 Quit(exc)
 delete(exc)
+
+operationDoneMsg('Excel saved!')
