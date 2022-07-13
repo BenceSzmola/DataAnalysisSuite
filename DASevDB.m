@@ -1131,7 +1131,13 @@ classdef DASevDB < handle
             forInfoTab = cell(1,2);
             forInfoTab(1,:) = {'DB group name', gO.loadedEntryFname};
             
-            DAS2Excel(forInfoTab,eParams,iParams,[gO.loadedEntryFname,'_summary'])
+            extInName = strfind(gO.loadedEntryFname, '.mat');
+            if ~isempty(extInName)
+                name4excel = gO.loadedEntryFname(1:extInName-1);
+            else
+                name4excel = gO.loadedEntryFname;
+            end
+            DAS2Excel(forInfoTab,eParams,iParams,[name4excel,'_summary'])
         end
         
         %%

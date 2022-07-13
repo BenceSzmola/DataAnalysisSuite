@@ -2681,7 +2681,13 @@ classdef DASeV < handle
                 forInfoTab = cell(1,2);
                 forInfoTab(1,:) = {'DASsave filename', gO.path2loadedSave};
 
-                DAS2Excel(forInfoTab,eParams,iParams,[gO.path2loadedSave,'_summary'])
+                extInName = strfind(gO.path2loadedSave, '.mat');
+                if ~isempty(extInName)
+                    name4excel = gO.path2loadedSave(1:extInName-1);
+                else
+                    name4excel = gO.path2loadedSave;
+                end
+                DAS2Excel(forInfoTab,eParams,iParams,[name4excel,'_summary'])
             else
                 if isempty(newSaveStruct)
                     errordlg('No events selected!')
