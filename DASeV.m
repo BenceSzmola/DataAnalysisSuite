@@ -1573,8 +1573,8 @@ classdef DASeV < handle
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
-                        if ~isempty(gO.ephysDetInfo.DetSettings) && (gO.ephysDetInfo(1).DetSettings.RefCh ~= 0)
-                            gO.ephysRefCh = gO.ephysDetInfo(1).DetSettings.RefCh;
+                        if ~isempty(gO.ephysDetInfo.DetSettings)
+                            gO.ephysRefCh = numSelCharConverter(gO.ephysDetInfo(1).DetSettings.RefCh);
                         end
                     end
 

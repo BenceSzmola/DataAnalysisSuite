@@ -3071,21 +3071,7 @@ classdef DAS < handle
                         case 'classic ref subtract'
                             if nargin == 1
                                 refchInp = guiobj.ephysArtSuppRefChanEdit.String;
-                                hyphPos = find(refchInp == '-');
-                                if length(hyphPos) > 1
-                                    eD = errordlg('Only use 1 interval, or input channels sepearated by comma!');
-                                    pause(1)
-                                    if ishandle(eD)
-                                        close(eD)
-                                    end
-                                    return
-                                elseif isempty(hyphPos)
-                                    refChan = str2num(refchInp);
-                                else
-                                    firstPart = refchInp(1:hyphPos-1);
-                                    secondPart = refchInp(hyphPos+1:end);
-                                    refChan = str2num(firstPart):str2num(secondPart);
-                                end
+                                refChan = numSelCharConverter(refchInp);
                             end
                             
                             refChan = ismember([newProcInfo.Channel], refChan);
@@ -3474,23 +3460,8 @@ classdef DAS < handle
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
-%             refch = str2double(guiobj.ephysDetRefChanEdit.String);
             refchInp = guiobj.ephysDetRefChanEdit.String;
-            hyphPos = find(refchInp == '-');
-            if length(hyphPos) > 1
-                eD = errordlg('Only use 1 interval, or input channels sepearated by comma!');
-                pause(1)
-                if ishandle(eD)
-                    close(eD)
-                end
-                return
-            elseif isempty(hyphPos)
-                refch = str2num(refchInp);
-            else
-                firstPart = refchInp(1:hyphPos-1);
-                secondPart = refchInp(hyphPos+1:end);
-                refch = str2num(firstPart):str2num(secondPart);
-            end
+            refch = numSelCharConverter(refchInp);
             
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
