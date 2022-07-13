@@ -13,7 +13,7 @@ if (nargin >= 3) && runOnSaves
         load([path,saveFnames{saveNum}], 'ephysSaveData', 'imagingSaveData')
 
         if ~isempty(ephysSaveData)
-            if ~isempty(ephysSaveData.Dets) && ~isfield(ephysSaveData, 'GlobalDets')
+            if ~isempty(ephysSaveData.Dets)
                 globalEvents = extraction(ephysSaveData.Dets, round(0.05*ephysSaveData.Fs));
                 ephysSaveData.GlobalDets = globalEvents;
                 save([path,saveFnames{saveNum}], '-append', 'ephysSaveData')
@@ -21,7 +21,7 @@ if (nargin >= 3) && runOnSaves
         end
         
         if ~isempty(imagingSaveData)
-            if ~isempty(imagingSaveData.Dets) && ~isfield(imagingSaveData, 'GlobalDets')
+            if ~isempty(imagingSaveData.Dets)
                 globalEvents = extraction(imagingSaveData.Dets, round(0.05*imagingSaveData.Fs));
                 imagingSaveData.GlobalDets = globalEvents;
                 save([path,saveFnames{saveNum}], '-append', 'imagingSaveData')
