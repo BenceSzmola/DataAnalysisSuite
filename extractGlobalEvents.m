@@ -39,18 +39,22 @@ end
 
         % check which detection indexes are within tolerance to one another
         [c, ~, ic] = uniquetol(vertcat(dets{:}), tol, 'DataScale', 1);
-        % tag the indices which only occur once (we are interested in events that appear on at least 2 channels)
-        icUniq = unique(ic);
-        tooUniq = false(length(icUniq), 1);
-        for i = 1:length(icUniq)
-            if length(find(ic == icUniq(i))) < 2
-                tooUniq(i) = true;
-            end
-        end
-
+        
         % group the indices according to channels
         numDets = cellfun(@length, dets);
         icByChan = mat2cell(ic, numDets);
+        
+        % tag the indices which only occur once (occuring more than once on one channel doesnt count,
+        %                             we are interested in events that appear on at least 2 channels)
+        icUniq = unique(ic);
+        tooUniq = false(length(icUniq), 1);
+        for i = 1:length(icUniq)
+            temp = cellfun(@(x) x == icUniq(i), icByChan, 'UniformOutput', false);
+            temp = cellfun(@(x) length(find(x)), temp);
+            if length(find(temp)) < 2
+                tooUniq(i) = true;
+            end
+        end
 
         % create the output matrix (rows are the global events, columns represent the channels, values show which
         % detection on the given channel)
