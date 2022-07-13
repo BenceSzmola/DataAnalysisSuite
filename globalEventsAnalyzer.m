@@ -44,6 +44,9 @@ for i = 1:numSaves
         
         tAxis = ephysSaveData.TAxis;
         
+        if ~isfield(ephysSaveData, 'GlobalDets')
+            continue
+        end
         globDets = ephysSaveData.GlobalDets;
         tempCell = cell(size(globDets, 1), 1);
         for gEv = 1:size(globDets, 1)
@@ -71,17 +74,9 @@ for i = 1:numSaves
                 rawAmps = rawAmps / max(rawAmps);
                 tempCell{gEv,4} = num2str(rawAmps);
                 
-                if gEv == 6
-                    num2str(rawAmps)
-                end
-                
                 bpAmps = [params.BpAmplitudeP2P];
                 bpAmps = bpAmps / max(bpAmps);
                 tempCell{gEv,5} = num2str(bpAmps);
-                
-                if gEv == 6
-                    num2str(bpAmps)
-                end
                 
                 ephysParamNames = fieldnames(params);
                 numParams = length(ephysParamNames);
@@ -104,6 +99,9 @@ for i = 1:numSaves
         
         tAxis = imagingSaveData.TAxis;
         
+        if ~isfield(imagingSaveData, 'GlobalDets')
+            continue
+        end
         globDets = imagingSaveData.GlobalDets;
         tempCell = cell(size(globDets, 1), 1);
         for gEv = 1:size(globDets, 1)
@@ -168,5 +166,5 @@ cutInd = find(path=='\');
 forInfoTab = cell(3,2);
 forInfoTab(1,:) = {'Directory name', path(cutInd(end-1)+1:end-1)};
 
-DAS2Excel(forInfoTab,ephysStats,imagingStats)
+DAS2Excel(forInfoTab,ephysStats,imagingStats,[path(cutInd(end-1)+1:end-1),'_globEvAnalysis'])
 end

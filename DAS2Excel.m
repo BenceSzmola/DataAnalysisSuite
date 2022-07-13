@@ -1,4 +1,4 @@
-function DAS2Excel(forInfoTab,eParams,iParams)
+function DAS2Excel(forInfoTab,eParams,iParams,defFname)
 
 % mode: 1 == for DASsave files; 2 == for DASeventDB files
 
@@ -7,7 +7,10 @@ if isempty(eParams) && isempty(iParams)
     return
 end
 
-[saveFn,saveP] = uiputfile('*.xlsx');
+if nargin < 4
+    defFname = '';
+end
+[saveFn,saveP] = uiputfile('*.xlsx','Choose location and filename!',defFname);
 if saveFn == 0
     return    
 end
