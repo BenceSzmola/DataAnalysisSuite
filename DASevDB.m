@@ -1131,7 +1131,7 @@ classdef DASevDB < handle
             forInfoTab = cell(1,2);
             forInfoTab(1,:) = {'DB group name', gO.loadedEntryFname};
             
-            DAS2Excel(forInfoTab,eParams,iParams)
+            DAS2Excel(forInfoTab,eParams,iParams,[gO.loadedEntryFname,'_summary'])
         end
         
         %%

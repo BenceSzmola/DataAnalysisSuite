@@ -194,7 +194,7 @@ if makeExcel
     forInfoTab(1,:) = {'Directory name', path(cutInd(end-1)+1:end-1)};
     forInfoTab(2,:) = {'Best channel selection mode', bestChModeNames{bestChMode(1)}};
     
-    DAS2Excel(forInfoTab,ephysStats,imagingStats)
+    DAS2Excel(forInfoTab,ephysStats,imagingStats,[path(cutInd(end-1)+1:end-1),'_summary'])
 end
 
 if nargout == 0
