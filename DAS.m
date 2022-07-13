@@ -3145,6 +3145,18 @@ classdef DAS < handle
                     return
                     
                 case 'CWT spectrogram'
+                    doDiscard = questdlg('Do you want to discard some intervals?');
+                    switch doDiscard
+                        case 'Yes'
+                            inds2use = discardIntervals4Dets(guiobj,1,data,[newProcInfo.Channel]);
+                            
+                        case 'No'
+                            inds2use = 1:size(data,2);
+                            
+                        otherwise
+                            return
+                            
+                    end
                     for i = 1:length(data_idx)
                         chan = newProcInfo(i).Channel;
                         
@@ -3156,8 +3168,8 @@ classdef DAS < handle
                         zoomObj = zoom(cwtFig);
                         zoomObj.ActionPostCallback = @ guiobj.updateSpectroLabels;
                         drawnow
-                        [cfs,f] = cwt(data(i,:), 'amor', guiobj.ephys_fs, 'FrequencyLimits', freqLim);
-                        imagesc(guiobj.ephys_taxis,log2(f),abs(cfs))
+                        [cfs,f] = cwt(data(i,inds2use), 'amor', guiobj.ephys_fs, 'FrequencyLimits', freqLim);
+                        imagesc(guiobj.ephys_taxis(inds2use),log2(f),abs(cfs))
                         axis tight
                         ax = gca;
                         ax.YDir = 'normal';
