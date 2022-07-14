@@ -177,12 +177,12 @@ tempEphysCell(~hasEphys,:) = [];
 tempImagingCell(~hasImaging,:) = [];
 
 if any(hasEphys)
-    ephysStats = cell2struct(tempEphysCell', [ephysStatsFields; ephysParamNames], 1);
+    ephysStats = [{tempEphysCell}, {[ephysStatsFields; ephysParamNames]}];
 else
     ephysStats = [];
 end
 if any(hasImaging)
-    imagingStats = cell2struct(tempImagingCell', [imagingStatsFields; imagingParamNames], 1);
+    imagingStats = [{tempImagingCell}, {[imagingStatsFields; imagingParamNames]}];
 else
     imagingStats = [];
 end
