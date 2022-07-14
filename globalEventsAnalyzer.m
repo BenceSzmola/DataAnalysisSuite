@@ -49,21 +49,20 @@ for i = 1:numSaves
     load([path,saveFnames{i}], 'ephysSaveData', 'ephysSaveInfo', 'imagingSaveData', 'simultSaveData')
     
     if ~isempty(ephysSaveData)
-        if isempty(ephysSaveData.GlobalDets)
+        if ~isfield(ephysSaveData, 'GlobalDets') || isempty(ephysSaveData.GlobalDets)
             continue
         end
         
         tAxis = ephysSaveData.TAxis;
         
-        if ~isfield(ephysSaveData, 'GlobalDets')
-            continue
-        end
         globDets = ephysSaveData.GlobalDets;
+        
         tempCell1 = cell(size(globDets, 1), 1);
         tempCell2 = cell(size(globDets, 1), 1);
         tempCell3 = cell(size(globDets, 1), 1);
         tempCell4 = cell(size(globDets, 1), 1);
         tempCell5 = cell(size(globDets, 1), 1);
+        
         for gEv = 1:size(globDets, 1)
             tempCell1{gEv,1} = saveFnames{i};
             
@@ -112,20 +111,19 @@ for i = 1:numSaves
     end
     
     if ~isempty(imagingSaveData)
-        if isempty(imagingSaveData.GlobalDets)
+        if ~isfield(imagingSaveData, 'GlobalDets') || isempty(imagingSaveData.GlobalDets)
             continue
         end
         
         tAxis = imagingSaveData.TAxis;
         
-        if ~isfield(imagingSaveData, 'GlobalDets')
-            continue
-        end
         globDets = imagingSaveData.GlobalDets;
+        
         tempCell1 = cell(size(globDets, 1), 1);
         tempCell2 = cell(size(globDets, 1), 1);
         tempCell3 = cell(size(globDets, 1), 1);
         tempCell4 = cell(size(globDets, 1), 1);
+        
         for gEv = 1:size(globDets, 1)
             tempCell1{gEv,1} = saveFnames{i};
             
