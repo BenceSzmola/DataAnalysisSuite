@@ -54,15 +54,16 @@ if ~isempty(eParams)
     eSheetEphys = eSheets.get('Item','ephysEvents');
     eSheetEphys.Activate;
     
-    eParamNames = fieldnames(eParams);
-    eParamsCell = squeeze(struct2cell(eParams));
+    if isstruct(eParams)
+        eParamNames = fieldnames(eParams)';
+        eParamsCell = squeeze(struct2cell(eParams))';
+    else
+        eParamsCell = eParams{1};
+        eParamNames = eParams{2}';
+    end
     
     numVars = length(eParamNames);
-    numEvs = length(eParams);
-    
-    eParamNames = eParamNames';
-    
-    eParamsCell = eParamsCell';
+    numEvs = size(eParamsCell, 1);
     
     cellsRange1 = get(eSheetEphys,'Cells',1,1);
     cellsRange2 = get(eSheetEphys,'Cells',1,numVars);
@@ -80,16 +81,16 @@ if ~isempty(iParams)
     eSheetImaging = eSheets.get('Item','imagingEvents');
     eSheetImaging.Activate;
     
-    iParamNames = fieldnames(iParams);
-    iParamsCell = squeeze(struct2cell(iParams));
-        
+    if isstruct(iParams)
+        iParamNames = fieldnames(iParams)';
+        iParamsCell = squeeze(struct2cell(iParams))';
+    else
+        iParamsCell = iParams{1};
+        iParamNames = iParams{2}';
+    end
     numVars = length(iParamNames);
-    numEvs = length(iParams);
-    
-    iParamNames = iParamNames';
-    
-    iParamsCell = iParamsCell';
-    
+    numEvs = size(iParamsCell, 1);
+        
     cellsRange1 = get(eSheetImaging,'Cells',1,1);
     cellsRange2 = get(eSheetImaging,'Cells',1,numVars);
     range = get(eSheetImaging,'Range',cellsRange1,cellsRange2);
