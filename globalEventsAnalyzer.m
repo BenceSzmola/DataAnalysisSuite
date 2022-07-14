@@ -26,7 +26,7 @@ end
 numSaves = length(saveFnames);
 
 ephysStatsFields1 = {'Filename'; 'OnChannels'};
-ephysStatsFields2 = {'PeakTimeDiffs'}; 
+ephysStatsFields2 = {'PeakTimeDiffs [ms]'}; 
 ephysStatsFields3 = {'RawAmplitudeRatios'};
 ephysStatsFields4 = {'BandpassAmplitudeRatios'};
 ephysParamNames = {};
@@ -37,7 +37,7 @@ tempEphysCell4 = cell(0, 1);
 tempEphysCell5 = cell(0, 1);
 
 imagingStatsFields1 = {'Filename'; 'OnROIs'};
-imagingStatsFields2 = {'PeakTimeDiffs'};
+imagingStatsFields2 = {'PeakTimeDiffs [ms]'};
 imagingStatsFields3 = {'RawAmplitudeRatios'};
 imagingParamNames = {};
 tempImagingCell1 = cell(0, 1);

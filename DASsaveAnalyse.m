@@ -66,6 +66,7 @@ for i = 1:numSaves
             return
         elseif isempty(match)
             ephysSaveData.Dets = {};
+            ephysSaveData.GlobalDets = [];
             ephysSaveData.TAxis = 0;
             ephysSaveData.EventComplexes = {};
             ephysSaveData.DetParams = {};
