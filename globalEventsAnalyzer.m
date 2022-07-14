@@ -25,14 +25,25 @@ if (nargin == 0) || (isempty(path) || isempty(saveFnames))
 end
 numSaves = length(saveFnames);
 
-ephysStatsFields = {'Filename'; 'OnChannels'; 'PeakTimeDiffs'; 'RawAmplitudeRatios';...
-    'BandpassAmplitudeRatios'};
+ephysStatsFields1 = {'Filename'; 'OnChannels'};
+ephysStatsFields2 = {'PeakTimeDiffs'}; 
+ephysStatsFields3 = {'RawAmplitudeRatios'};
+ephysStatsFields4 = {'BandpassAmplitudeRatios'};
 ephysParamNames = {};
-tempEphysCell = cell(0, 1);
+tempEphysCell1 = cell(0, 1);
+tempEphysCell2 = cell(0, 1);
+tempEphysCell3 = cell(0, 1);
+tempEphysCell4 = cell(0, 1);
+tempEphysCell5 = cell(0, 1);
 
-imagingStatsFields = {'Filename'; 'OnROIs'; 'PeakTimeDiffs'; 'RawAmplitudeRatios'};
+imagingStatsFields1 = {'Filename'; 'OnROIs'};
+imagingStatsFields2 = {'PeakTimeDiffs'};
+imagingStatsFields3 = {'RawAmplitudeRatios'};
 imagingParamNames = {};
-tempImagingCell = cell(0, 1);
+tempImagingCell1 = cell(0, 1);
+tempImagingCell2 = cell(0, 1);
+tempImagingCell3 = cell(0, 1);
+tempImagingCell4 = cell(0, 1);
 
 for i = 1:numSaves
     load([path,saveFnames{i}], 'ephysSaveData', 'ephysSaveInfo', 'imagingSaveData', 'simultSaveData')
@@ -48,12 +59,16 @@ for i = 1:numSaves
             continue
         end
         globDets = ephysSaveData.GlobalDets;
-        tempCell = cell(size(globDets, 1), 1);
+        tempCell1 = cell(size(globDets, 1), 1);
+        tempCell2 = cell(size(globDets, 1), 1);
+        tempCell3 = cell(size(globDets, 1), 1);
+        tempCell4 = cell(size(globDets, 1), 1);
+        tempCell5 = cell(size(globDets, 1), 1);
         for gEv = 1:size(globDets, 1)
-            tempCell{gEv,1} = saveFnames{i};
+            tempCell1{gEv,1} = saveFnames{i};
             
             notNanCols = find(~isnan(globDets(gEv,:)));
-            tempCell{gEv,2} = num2str(ephysSaveInfo.DetChannel(notNanCols));
+            tempCell1{gEv,2} = num2str(ephysSaveInfo.DetChannel(notNanCols));
             
             tStamps = zeros(length(notNanCols), 1);
             for col = 1:length(notNanCols)
@@ -67,28 +82,32 @@ for i = 1:numSaves
             tStamps = tAxis(tStamps);
             tStamps = tStamps - max(tStamps);
             tStamps = tStamps * 1000;
-            tempCell{gEv,3} = num2str(tStamps);
+            tempCell2(gEv,1:length(tStamps)) = num2cell(tStamps);
             
             if ~isempty(ephysSaveData.DetParams)
                 rawAmps = [params.RawAmplitudeP2P];
                 rawAmps = rawAmps / max(rawAmps);
-                tempCell{gEv,4} = num2str(rawAmps);
+                tempCell3(gEv,1:length(rawAmps)) = num2cell(rawAmps);
                 
                 bpAmps = [params.BpAmplitudeP2P];
                 bpAmps = bpAmps / max(bpAmps);
-                tempCell{gEv,5} = num2str(bpAmps);
+                tempCell4(gEv,1:length(bpAmps)) = num2cell(bpAmps);
                 
                 ephysParamNames = fieldnames(params);
                 numParams = length(ephysParamNames);
                 paramsCell = squeeze(struct2cell(params));
                 paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                tempCell(gEv,6:(6 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+                tempCell5(gEv,1:numParams) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
                 
                 clear params
             end
             
         end
-        tempEphysCell = [tempEphysCell; tempCell];
+        tempEphysCell1(end + 1:end + size(tempCell1, 1), 1:size(tempCell1, 2)) = tempCell1;
+        tempEphysCell2(end + 1:end + size(tempCell2, 1), 1:size(tempCell2, 2)) = tempCell2;
+        tempEphysCell3(end + 1:end + size(tempCell3, 1), 1:size(tempCell3, 2)) = tempCell3;
+        tempEphysCell4(end + 1:end + size(tempCell4, 1), 1:size(tempCell4, 2)) = tempCell4;
+        tempEphysCell5(end + 1:end + size(tempCell5, 1), 1:size(tempCell5, 2)) = tempCell5;
         
     end
     
@@ -103,12 +122,15 @@ for i = 1:numSaves
             continue
         end
         globDets = imagingSaveData.GlobalDets;
-        tempCell = cell(size(globDets, 1), 1);
+        tempCell1 = cell(size(globDets, 1), 1);
+        tempCell2 = cell(size(globDets, 1), 1);
+        tempCell3 = cell(size(globDets, 1), 1);
+        tempCell4 = cell(size(globDets, 1), 1);
         for gEv = 1:size(globDets, 1)
-            tempCell{gEv,1} = saveFnames{i};
+            tempCell1{gEv,1} = saveFnames{i};
             
             notNanCols = find(~isnan(globDets(gEv,:)));
-            tempCell{gEv,2} = num2str(imagingSaveInfo.DetROI(notNanCols));
+            tempCell1{gEv,2} = num2str(imagingSaveInfo.DetROI(notNanCols));
             
             tStamps = zeros(length(notNanCols), 1);
             for col = 1:length(notNanCols)
@@ -122,25 +144,27 @@ for i = 1:numSaves
             tStamps = tAxis(tStamps);
             tStamps = tStamps - max(tStamps);
             tStamps = tStamps * 1000;
-            tempCell{gEv,3} = num2str(tStamps);
+            tempCell2(gEv,1:length(tStamps)) = num2cell(tStamps);
             
             if ~isempty(imagingSaveData.DetParams)
                 rawAmps = [params.RawAmplitudeP2P];
                 rawAmps = rawAmps / max(rawAmps);
-                tempCell{gEv,4} = num2str(rawAmps);
+                tempCell3(gEv,1:length(rawAmps)) = num2cell(rawAmps);
             
                 imagingParamNames = fieldnames(params);
                 numParams = length(imagingParamNames);
                 paramsCell = squeeze(struct2cell(params));
                 paramsCell(cellfun('isempty', paramsCell)) = {nan};
-                tempCell(gEv,5:(5 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
+                tempCell4(gEv,1:numParams) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
                 
                 clear params
             end
             
         end
-        
-        tempImagingCell = [tempImagingCell; tempCell];
+        tempImagingCell1(end + 1:end + size(tempCell1, 1),1:size(tempCell1, 2)) = tempCell1;
+        tempImagingCell2(end + 1:end + size(tempCell2, 1),1:size(tempCell2, 2)) = tempCell2;
+        tempImagingCell3(end + 1:end + size(tempCell3, 1),1:size(tempCell3, 2)) = tempCell3;
+        tempImagingCell4(end + 1:end + size(tempCell4, 1),1:size(tempCell4, 2)) = tempCell4;
         
     end
     
@@ -148,15 +172,25 @@ for i = 1:numSaves
         
     end
 end
+tempEphysCell = [tempEphysCell1, tempEphysCell2, tempEphysCell3, tempEphysCell4, tempEphysCell5];
+ephysStatsFields2 = [ephysStatsFields2; repmat({''}, size(tempEphysCell2, 2) - 1, 1)];
+ephysStatsFields3 = [ephysStatsFields3; repmat({''}, size(tempEphysCell3, 2) - 1, 1)];
+ephysStatsFields4 = [ephysStatsFields4; repmat({''}, size(tempEphysCell4, 2) - 1, 1)];
+ephysStatsFields = [ephysStatsFields1; ephysStatsFields2; ephysStatsFields3; ephysStatsFields4];
+
+tempImagingCell = [tempImagingCell1, tempImagingCell2, tempImagingCell3, tempImagingCell4];
+imagingStatsFields2 = [imagingStatsFields2; repmat({''}, size(tempImagingCell2, 2) - 1, 1)];
+imagingStatsFields3 = [imagingStatsFields3; repmat({''}, size(tempImagingCell3, 2) - 1, 1)];
+imagingStatsFields = [imagingStatsFields1; imagingStatsFields2; imagingStatsFields3];
 
 if ~isempty(tempEphysCell)
-    ephysStats = cell2struct(tempEphysCell', [ephysStatsFields; ephysParamNames], 1);
+    ephysStats = [{tempEphysCell}, {[ephysStatsFields; ephysParamNames]}];
 else
     ephysStats = [];
 end
 
 if ~isempty(tempImagingCell)
-    imagingStats = cell2struct(tempImagingCell', [imagingStatsFields; imagingParamNames], 1);
+    imagingStats = [{tempImagingCell}, {[imagingStatsFields; imagingParamNames]}];
 else
     imagingStats = [];
 end
