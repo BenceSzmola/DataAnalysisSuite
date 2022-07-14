@@ -1702,7 +1702,11 @@ classdef DAS < handle
         end
         
         %%
-        function inds2use = discardIntervals4Dets(guiobj,dTyp,data,chans)
+        function inds2use = discardIntervals4Dets(guiobj,dTyp,data,chans,refchans)
+            if (nargin < 5) || any(isnan(refchans))
+                refchans = [];
+            end
+            
             inds2use = [];
             
             quest = 'Which method do you want to use to discard intervals?';
@@ -1745,10 +1749,17 @@ classdef DAS < handle
                         'WindowState','maximized',...
                         'WindowStyle','modal',...
                         'Visible','off');
+                    if ~isempty(refchans)
+                        temp = ismember(chans, refchans);
+                        list4dlg = mat2cell([num2str(chans(temp)'), repmat(' (ref)', length(find(temp)), 1)], ones(length(find(temp)), 1));
+                        list4dlg = [list4dlg; mat2cell(num2str(chans(~temp)'), ones(length(find(~temp)), 1))];
+                    else
+                        list4dlg = mat2cell(num2str(chans'), ones(length(chans), 1));
+                    end
                     if size(data,1) > 10
                         goodSel = false;
                         while ~goodSel
-                            [ch2use, tf] = listdlg('ListString', num2str(chans'),...
+                            [ch2use, tf] = listdlg('ListString', list4dlg,...
                                 'PromptString', 'Too many channels to display, select at most 10!',...
                                 'ListSize', [300, 300]);
                             if ~tf
@@ -1764,7 +1775,7 @@ classdef DAS < handle
                     for i = 1:length(ch2use)
                         sp = subplot(length(ch2use), 1, i, 'Parent', indSelFig);
                         plot(sp, tAxis, data(ch2use(i),:))
-                        title(sp, ['Ch #',num2str(chans(ch2use(i)))])
+                        title(sp, ['Ch #',list4dlg{ch2use(i)}])
                     end
                     sgtitle(indSelFig, 'Select intervals by clicking in one of the plots! Finish with Return key!')
                     
@@ -3512,7 +3523,7 @@ classdef DAS < handle
                 end
                 
                 if selNewIntervals
-                    inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans);
+                    inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
                     guiobj.ephys_prevIntervalSel = inds2use_interval;
                 end
                 
