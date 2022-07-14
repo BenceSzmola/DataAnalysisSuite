@@ -3165,8 +3165,9 @@ classdef DAS < handle
                         zoomObj = zoom(cwtFig);
                         zoomObj.ActionPostCallback = @ guiobj.updateSpectroLabels;
                         drawnow
-                        [cfs,f] = cwt(data(i,inds2use), 'amor', guiobj.ephys_fs, 'FrequencyLimits', freqLim);
-                        imagesc(guiobj.ephys_taxis(inds2use),log2(f),abs(cfs))
+                        [cfs,f] = cwt(data(i,:), 'amor', guiobj.ephys_fs, 'FrequencyLimits', freqLim);
+                        cfs(:,setxor(1:size(data, 2), inds2use)) = nan;
+                        imagesc(guiobj.ephys_taxis,log2(f),abs(cfs))
                         axis tight
                         ax = gca;
                         ax.YDir = 'normal';
