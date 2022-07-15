@@ -1752,8 +1752,9 @@ classdef DAS < handle
                         'Visible','off');
                     if ~isempty(refchans)
                         temp = ismember(chans, refchans);
-                        list4dlg = mat2cell([num2str(chans(temp)'), repmat(' (ref)', length(find(temp)), 1)], ones(length(find(temp)), 1));
-                        list4dlg = [list4dlg; mat2cell(num2str(chans(~temp)'), ones(length(find(~temp)), 1))];
+                        list4dlg = cell(length(chans), 1);
+                        list4dlg(temp) = mat2cell([num2str(chans(temp)'), repmat(' (ref)', length(find(temp)), 1)], ones(length(find(temp)), 1));
+                        list4dlg(~temp) = mat2cell(num2str(chans(~temp)'), ones(length(find(~temp)), 1));
                     else
                         list4dlg = mat2cell(num2str(chans'), ones(length(chans), 1));
                     end
