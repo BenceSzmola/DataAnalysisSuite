@@ -41,6 +41,18 @@ classdef DASeV < handle
         fileListContMenu
         fileListContMenuUpdate
         
+        DASsaveAnalyserCheckRHDCheckBox
+        DASsaveAnalyserBestChSelModePopMenu
+        DASsaveAnalyserBestChInputEdit
+        DASsaveAnalyserButton
+        
+        saveFileAnalysisSourceButtonGroup
+        saveFileAnalysisSourceDirRadioButton
+        saveFileAnalysisSourceFileRadioButton
+        
+        globalEventAnalyserButton
+        
+        
         fileInfoPanel
         fnameLabel
         fnameTxt
@@ -1290,6 +1302,85 @@ classdef DASeV < handle
     
     %% Callback functions
     methods (Access = private)
+        
+        %%
+        function DASsaveAnalyserBestChSelModePopMenuCB(gO,~,~)
+            if strcmp(gO.DASsaveAnalyserBestChSelModePopMenu.String{gO.DASsaveAnalyserBestChSelModePopMenu.Value}, 'Manual selection')
+                gO.DASsaveAnalyserBestChInputEdit.Enable = 'on';
+            else
+                gO.DASsaveAnalyserBestChInputEdit.Enable = 'off';
+            end
+        end
+        
+        %%
+        function saveFileAnalysisSourceCB(gO,~,ev)
+            switch ev.NewValue.String
+                case 'Select files'
+                    gO.fileList.Max = 2;
+                    gO.DASsaveAnalyserCheckRHDCheckBox.Value = 0;
+                    gO.DASsaveAnalyserCheckRHDCheckBox.Enable = 'off';
+                    
+                case 'Whole directory'
+                    gO.fileList.Max = 1;
+                    gO.fileList.Value = gO.fileList.Value(1);
+                    gO.DASsaveAnalyserCheckRHDCheckBox.Enable = 'on';
+                    
+            end
+        end
+        
+        %%
+        function DASsaveAnalyserCheckRHDCheckBoxCB(gO,h,~)
+            if h.Value && strcmp(gO.saveFileAnalysisSourceButtonGroup.SelectedObject.String, 'Select files')
+                h.Value = 0;
+            end
+        end
+        
+        %%
+        function DASsaveAnalyserButtonCB(gO,~,~)
+            if gO.DASsaveAnalyserBestChSelModePopMenu.Value == 1
+                return
+            end
+            path = [gO.selDir,'\'];
+            switch gO.saveFileAnalysisSourceButtonGroup.SelectedObject.String
+                case 'Whole directory'
+                    saveFnames = gO.fileList.String;
+                    
+                case 'Select files'
+                    saveFnames = gO.fileList.String(gO.fileList.Value);
+                    
+            end
+            checkRHD = logical(gO.DASsaveAnalyserCheckRHDCheckBox.Value);
+            bestChMode = gO.DASsaveAnalyserBestChSelModePopMenu.String{gO.DASsaveAnalyserBestChSelModePopMenu.Value};
+            if strcmp(gO.DASsaveAnalyserBestChSelModePopMenu.String{gO.DASsaveAnalyserBestChSelModePopMenu.Value}, 'Manual selection')
+                bestChInd = str2double(gO.DASsaveAnalyserBestChInputEdit.String);
+                if isempty(bestChInd) ||isnan(bestChInd)
+                    eD = errordlg('Invalid channel input!');
+                    pause(1)
+                    if ishandle(eD)
+                        close(eD)
+                    end
+                    return
+                end
+            else
+                bestChInd = [];
+            end
+            makeExcel = true;
+            DASsaveAnalyse(path,saveFnames,checkRHD,bestChMode,bestChInd,makeExcel)
+        end
+        
+        %%
+        function globalEventAnalyserButtonCB(gO,~,~)
+            path = [gO.selDir,'\'];
+            switch gO.saveFileAnalysisSourceButtonGroup.SelectedObject.String
+                case 'Whole directory'
+                    saveFnames = gO.fileList.String;
+                    
+                case 'Select files'
+                    saveFnames = gO.fileList.String(gO.fileList.Value);
+                    
+            end
+            globalEventsAnalyzer(path,saveFnames)
+        end
         
         %%
         function ephysTypMenuSel(gO,~,~)
@@ -2883,6 +2974,53 @@ classdef DASeV < handle
                 'Callback',@ gO.loadSaveButtPress);%,...
                 %'BackgroundColor',[62,105,225]/255,...
                 %'ForegroundColor',[1,1,1]);
+                
+            gO.DASsaveAnalyserCheckRHDCheckBox = uicontrol(gO.loadTab,...
+                'Style', 'checkbox',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0.4, 0.1, 0.05],...
+                'String', 'Scan RHD files',...
+                'Callback', @ gO.DASsaveAnalyserCheckRHDCheckBoxCB);
+            gO.DASsaveAnalyserBestChSelModePopMenu = uicontrol(gO.loadTab,...
+                'Style', 'popupmenu',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0.35, 0.08, 0.05],...
+                'String', {'--Best channel selection mode--', 'Most events', 'Highest average amplitude', 'Most event complexes', 'Manual selection'},...
+                'Callback', @ gO.DASsaveAnalyserBestChSelModePopMenuCB);
+            gO.DASsaveAnalyserBestChInputEdit = uicontrol(gO.loadTab,...
+                'Style', 'edit',...
+                'Units', 'normalized',...
+                'Position', [0.095, 0.375, 0.015, 0.025],...
+                'Enable', 'off');
+            gO.DASsaveAnalyserButton = uicontrol(gO.loadTab,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0.3, 0.1, 0.05],...
+                'String', 'Launch save file analysis',...
+                'Callback', @ gO.DASsaveAnalyserButtonCB);
+            
+            gO.saveFileAnalysisSourceButtonGroup = uibuttongroup(gO.loadTab,...
+                'Position', [0.01, 0.2, 0.1, 0.1],...
+                'Title', 'Choose source',...
+                'SelectionChangedFcn', @ gO.saveFileAnalysisSourceCB);
+            gO.saveFileAnalysisSourceDirRadioButton = uicontrol(gO.saveFileAnalysisSourceButtonGroup,...
+                'Style', 'radiobutton',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0.55, 0.98, 0.45],...
+                'String', 'Whole directory');
+            gO.saveFileAnalysisSourceFileRadioButton = uicontrol(gO.saveFileAnalysisSourceButtonGroup,...
+                'Style', 'radiobutton',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0, 0.98, 0.45],...
+                'String', 'Select files');
+            
+            gO.globalEventAnalyserButton = uicontrol(gO.loadTab,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0.15, 0.1, 0.05],...
+                'String', 'Launch global event analysis',...
+                'Callback', @ gO.globalEventAnalyserButtonCB);
+            
             
             gO.fileListContMenu = uicontextmenu(gO.mainFig);
             gO.selDir = cd;
@@ -2894,6 +3032,7 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.12,0.1,0.3,0.9],...
                 'String',initFileList,...
+                'Max', 1,...
                 'Callback',@ gO.fileListSel,...
                 'UIContextMenu',gO.fileListContMenu);%,...
                 %'BackgroundColor',[62,105,225]/255,...

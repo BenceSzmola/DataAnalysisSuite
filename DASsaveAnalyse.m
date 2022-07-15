@@ -1,10 +1,5 @@
-function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,bestChMode,makeExcel)
+function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,checkRHD,bestChMode,bestChInd,makeExcel)
 
-if nargin < 4
-    makeExcel = false;
-end
-checkRHD = false;
-bestChModeNames = {'Most events', 'Highest average amplitude', 'Most event complexes', 'Manual selection'};
 
 if (nargin == 0) || (isempty(path) || isempty(saveFnames))
     btn1 = 'Directory';
@@ -22,8 +17,6 @@ if (nargin == 0) || (isempty(path) || isempty(saveFnames))
             switch choice
                 case 'Yes'
                     checkRHD = true;
-                    rhdFnames = dir([path,'*.rhd']);
-                    rhdFnames = {rhdFnames.name};
                     
                 case 'No'
                     checkRHD = false;
@@ -41,11 +34,15 @@ if (nargin == 0) || (isempty(path) || isempty(saveFnames))
             
     end
 end
+
 if checkRHD
+    rhdFnames = dir([path,'*.rhd']);
+    rhdFnames = {rhdFnames.name};
     numSaves = length(rhdFnames);
 else
     numSaves = length(saveFnames);
 end
+
 hasEphys = false(numSaves, 1);
 hasImaging = false(numSaves, 1);
 
@@ -103,22 +100,22 @@ for i = 1:numSaves
             tempEphysCell{i,3} = [];
         end
         
-        switch bestChMode(1)
-            case 1 % channel with most events
+        switch bestChMode
+            case {1, 'Most events'} % channel with most events
                 [~, bestChInd] = max(numDets);
                 
-            case 2 % channel with highest average event amplitude
+            case {2, 'Highest average amplitude'} % channel with highest average event amplitude
                 avgParams = zeros(length(ephysSaveData.DetParams), 1);
                 for j = 1:length(ephysSaveData.DetParams)
                     avgParams(j) = mean([ephysSaveData.DetParams{j}.RawAmplitudeP2P]);
                 end
                 [~, bestChInd] = max(avgParams);
                 
-            case 3 % channel with most event complexes
+            case {3, 'Most event complexes'} % channel with most event complexes
                 [~, bestChInd] = max(numEvComplex);
                 
-            case 4 % channel manually selected
-                bestChInd = find(ephysSaveInfo.DetChannel == bestChMode(2));
+            case {4, 'Manual selection'} % channel manually selected
+                
                 
         end
         tempEphysCell{i,4} = ephysSaveInfo.DetChannel(bestChInd);
@@ -193,7 +190,7 @@ if makeExcel
     
     forInfoTab = cell(3,2);
     forInfoTab(1,:) = {'Directory name', path(cutInd(end-1)+1:end-1)};
-    forInfoTab(2,:) = {'Best channel selection mode', bestChModeNames{bestChMode(1)}};
+    forInfoTab(2,:) = {'Best channel selection mode', bestChMode};
     
     DAS2Excel(forInfoTab,ephysStats,imagingStats,[path(cutInd(end-1)+1:end-1),'_summary'])
 end
