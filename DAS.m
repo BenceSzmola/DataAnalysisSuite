@@ -119,7 +119,8 @@ classdef DAS < handle
         ephysSpectroFreqLimitLabel
         ephysSpectroFreqLimit1Edit
         ephysSpectroFreqLimit2Edit
-                
+        
+        ephysSelNewIntervalsButton
         ephysRunProcButton
         
         %% Members of imagingProcTab
@@ -1891,6 +1892,37 @@ classdef DAS < handle
         end
         
         %%
+        function selNewIntervals = useNewOrOldIntervals(guiobj)
+            selNewIntervals = true;
+            if ~isempty(guiobj.ephys_prevIntervalSel)
+                prevIntervals = guiobj.ephys_prevIntervalSel;
+                prevSelFig = figure('Name', 'Previous interval selection',...
+                    'NumberTitle', 'off');
+                dataAvg = mean(guiobj.ephys_data);
+                plot(guiobj.ephys_taxis, dataAvg)
+                hold on
+                title('Average of loaded data, red regions are discarded')
+                redParts = dataAvg;
+                redParts(prevIntervals) = nan;
+                plot(guiobj.ephys_taxis, redParts, 'r')
+                hold off
+
+                usePrevSel = questdlg('Use previous selection?');
+                if ishandle(prevSelFig)
+                    close(prevSelFig)
+                end
+                switch usePrevSel
+                    case 'Yes'
+                        selNewIntervals = false;
+
+                    case ''
+                        return
+
+                end
+            end            
+        end
+        
+        %%
         function selInds = makeProcDataSelFig(guiobj,dTyp,selMode)
             if nargin < 3
                 selMode = true;
@@ -2940,6 +2972,26 @@ classdef DAS < handle
         end
         
         %%
+        function ephysSelNewIntervalsButtonCB(guiobj)
+            switch guiobj.ephysProcSrcButtGroup.SelectedObject.String
+                case 'Raw data'
+                    data_idx = guiobj.ephysProcListBox.Value;
+                    data = guiobj.ephys_data(data_idx,:);
+                    
+                    chans = data_idx;
+                case 'Processed data'
+                    data_idx = guiobj.ephysProcListBox2.Value;
+                    data = guiobj.ephys_procced(data_idx,:);
+                    
+                    oldProcInfo = guiobj.ephys_proccedInfo;
+                    chans = [oldProcInfo(data_idx).Channel];
+            end
+            
+            inds2use = discardIntervals4Dets(guiobj,1,data,chans);
+            guiobj.ephys_prevIntervalSel = inds2use;
+        end
+        
+        %%
         function ephysRunProc(guiobj,callFromDetRun)
             guiobj.ephysRunProcButton.BackgroundColor = 'r';
             
@@ -3145,7 +3197,13 @@ classdef DAS < handle
                     doDiscard = questdlg('Do you want to discard some intervals?');
                     switch doDiscard
                         case 'Yes'
-                            inds2use = discardIntervals4Dets(guiobj,1,data,[newProcInfo.Channel]);
+                            selNewIntervals = useNewOrOldIntervals(guiobj);
+                            if selNewIntervals
+                                inds2use = discardIntervals4Dets(guiobj,1,data,[newProcInfo.Channel]);
+                                guiobj.ephys_prevIntervalSel = inds2use;
+                            else
+                                inds2use = guiobj.ephys_prevIntervalSel;
+                            end
                             
                         case 'No'
                             inds2use = 1:size(data,2);
@@ -3494,38 +3552,13 @@ classdef DAS < handle
                     inputChans = chan;
                 end
                 
-                selNewIntervals = true;
-                if ~isempty(guiobj.ephys_prevIntervalSel)
-                    prevIntervals = guiobj.ephys_prevIntervalSel;
-                    prevSelFig = figure('Name', 'Previous interval selection',...
-                        'NumberTitle', 'off');
-                    dataAvg = mean(guiobj.ephys_data);
-                    plot(guiobj.ephys_taxis, dataAvg)
-                    hold on
-                    title('Average of loaded data, red regions are discarded')
-                    redParts = dataAvg;
-                    redParts(prevIntervals) = nan;
-                    plot(guiobj.ephys_taxis, redParts, 'r')
-                    hold off
-                    
-                    usePrevSel = questdlg('Use previous selection?');
-                    if ishandle(prevSelFig)
-                        close(prevSelFig)
-                    end
-                    switch usePrevSel
-                        case 'Yes'
-                            inds2use_interval = prevIntervals;
-                            selNewIntervals = false;
-                            
-                        case ''
-                            return
-                            
-                    end
-                end
+                selNewIntervals = useNewOrOldIntervals(guiobj);
                 
                 if selNewIntervals
                     inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
                     guiobj.ephys_prevIntervalSel = inds2use_interval;
+                else
+                    inds2use_interval = guiobj.ephys_prevIntervalSel;
                 end
                 
                 if isempty(inds2use_interval)
@@ -5786,6 +5819,13 @@ classdef DAS < handle
                 'Visible','on',...
                 'BackgroundColor','g',...
                 'Callback', @(h,e) guiobj.ephysRunProc);
+            
+            guiobj.ephysSelNewIntervalsButton = uicontrol(guiobj.ephysProcTab,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.1, 0.47, 0.05, 0.05],...
+                'String', 'Select interval',...
+                'Callback', @(h,e) guiobj.ephysSelNewIntervalsButtonCB);
             
             % Create axes
             guiobj.axesEphysProc1 = axes(guiobj.ephysProcTab,...
