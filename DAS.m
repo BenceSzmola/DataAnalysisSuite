@@ -3854,7 +3854,7 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,0,[],showFigs);
+                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,0,0,[],showFigs);
                     elseif refVal
                         [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refVal,refch,refchData,showFigs);
                     end
