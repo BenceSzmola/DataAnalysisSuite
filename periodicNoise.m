@@ -309,7 +309,7 @@ if strcmp(plotfft,'Yes')
         plot(faxis_cl(ch,:), psd_cl(ch,:))
         title(sprintf('Ch #%d - FFT after',chans(ch)))
         
-        linkaxes(findobj(gcf, 'Type', 'axes'), 'x')
+        linkaxes(findobj(gcf, 'Type', 'axes'), 'xy')
     end
 end
 
