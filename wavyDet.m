@@ -72,7 +72,9 @@ for i = 1:size(data,1)
     %% CWT
     mb = msgbox('Computing wavelet transform...');
 
-    [coeffs,~,~] = cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]);
+    [coeffs,~,coi] = cwt(data(i,:),fs,'amor','FrequencyLimits',[w1 w2]);
+    edgeEffIntervalBegin = 1:find(round(coi, 1) < w1, 1, 'first');
+    edgeEffIntervalEnd = find(round(coi, 1) < w2, 1, 'last'):size(data, 2);
     coeffs = abs(coeffs);
 
     %% Z-score
@@ -89,10 +91,17 @@ for i = 1:size(data,1)
     % check whether only a subset of the indices should be used
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
-                currInstE = currInstE(inds2use);
+            inds2use(ismember(inds2use, edgeEffIntervalBegin)) = [];
+            inds2use(ismember(inds2use, edgeEffIntervalEnd)) = [];
+            currInstE = currInstE(inds2use);
         else
             continue
         end
+    else
+        inds2use = 1:size(data, 1);
+        inds2use(ismember(inds2use, edgeEffIntervalBegin)) = [];
+        inds2use(ismember(inds2use, edgeEffIntervalEnd)) = [];
+        currInstE = currInstE(inds2use);
     end
 %     thr = mean(instE) + sdmult*std(instE);
     quietThr(i) = median(currInstE) + std(currInstE);
@@ -140,31 +149,31 @@ for i = 1:min(size(data))
     end
     
     [detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
-    evs2del = false(1,length(detParams{i}));
-    for j = 1:length(detParams{i})
-        if (detParams{i}(j).Frequency < (w1 * 0.85)) || (detParams{i}(j).Frequency > (w2 * 1.15))
-            evs2del(j) = true;
-        end
-    end
-    detParams{i}(evs2del) = [];
-    dets{i}(evs2del) = [];
-    detBorders{i}(evs2del,:) = [];
-    for j = 1:length(evs2del)
-        if evs2del(j)
-            detInComplex = cellfun(@(x) ismember(j,x), evComplexes{i});
-            if ~any(detInComplex)
-                continue
-            end
-            complex2check = evComplexes{i}{detInComplex};
-            if (length(complex2check) == 2) || ((find(complex2check == j) ~= 1) && (find(complex2check == j) ~= length(complex2check)))
-                evComplexes{i}(detInComplex) = [];
-            else
-                complex2check(complex2check == j) = [];
-                evComplexes{i}{detInComplex} = complex2check;
-            end
-            
-        end
-    end
+%     evs2del = false(1,length(detParams{i}));
+%     for j = 1:length(detParams{i})
+%         if (detParams{i}(j).Frequency < (w1 * 0.85)) || (detParams{i}(j).Frequency > (w2 * 1.15))
+%             evs2del(j) = true;
+%         end
+%     end
+%     detParams{i}(evs2del) = [];
+%     dets{i}(evs2del) = [];
+%     detBorders{i}(evs2del,:) = [];
+%     for j = 1:length(evs2del)
+%         if evs2del(j)
+%             detInComplex = cellfun(@(x) ismember(j,x), evComplexes{i});
+%             if ~any(detInComplex)
+%                 continue
+%             end
+%             complex2check = evComplexes{i}{detInComplex};
+%             if (length(complex2check) == 2) || ((find(complex2check == j) ~= 1) && (find(complex2check == j) ~= length(complex2check)))
+%                 evComplexes{i}(detInComplex) = [];
+%             else
+%                 complex2check(complex2check == j) = [];
+%                 evComplexes{i}{detInComplex} = complex2check;
+%             end
+%             
+%         end
+%     end
 
     %% Plotting
     if showFigs
