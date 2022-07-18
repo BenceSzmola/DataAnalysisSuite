@@ -1,4 +1,4 @@
-function [data_filt,f_fund,fmax,stopbandwidth] = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
+function [data_filt,f_fund,fmax,stopbandwidth] = periodicNoise(data,chans,fs,fmax,f_fund,stopbandwidth)
 
 % Detect and filter out periodic Noise (fundamental and harmonics)
 % data_filt = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
@@ -13,10 +13,10 @@ if nargin == 0
         'Upper frequency limit for filtering (if left empty the algorithm will run until fs/2) [Hz]:',...
         'Fundamental frequency of the periodic noise (if not given, the algorithm will find it) [Hz]:',...
         'Stopband width [Hz]:'};
-    title = 'Parameter input for periodic noise filter';
+    questTitle = 'Parameter input for periodic noise filter';
     definput = {'20000','1000','','5'};
     opts.Interpreter = 'tex';
-    parameters = inputdlg(prompt,title,1,definput,opts);
+    parameters = inputdlg(prompt,questTitle,1,definput,opts);
     if isempty(parameters)
         return
     end
@@ -26,14 +26,14 @@ if nargin == 0
     stopbandwidth = str2double(parameters{4})/2;
 end
 
-if nargin == 2 % e.g. being called from DAS
+if nargin == 3 % e.g. being called from DAS
     prompt = {'Upper frequency limit for filtering (if left empty the algorithm will run until fs/2) [Hz]:',...
         'Fundamental frequency of the periodic noise (if not given, the algorithm will find it) [Hz]:',...
         'Stopband width [Hz]:'};
-    title = 'Parameter input for periodic noise filter';
+    questTitle = 'Parameter input for periodic noise filter';
     definput = {'1000','','5'};
     opts.Interpreter = 'tex';
-    parameters = inputdlg(prompt,title,1,definput,opts);
+    parameters = inputdlg(prompt,questTitle,1,definput,opts);
     if isempty(parameters)
         return
     end
@@ -54,7 +54,7 @@ if size(data,1) > size(data,2)
     data = data';
 end
 
-if nargin > 0 && nargin < 2
+if nargin > 0 && nargin < 3
     errordlg('Pls specifiy the sampling frequency!')
 end
 
@@ -64,7 +64,7 @@ else
     f_fund_given = true;
 end
 
-if (nargin > 0 && nargin < 5)
+if (nargin > 0 && nargin < 6)
     stopbandwidth = 5/2;
 end
 
@@ -297,8 +297,20 @@ end
 
 plotfft = questdlg('Plot before&after FFTs?','FFT plots');
 if strcmp(plotfft,'Yes')
-    [faxis,psd] = freqspec(data,fs,1,0,fmax,'before');
-    [faxis_cl,psd_cl] = freqspec(data_filt,fs,1,0,fmax,'after');
+    [faxis,psd] = freqspec(data,fs,0,0,fmax);
+    [faxis_cl,psd_cl] = freqspec(data_filt,fs,0,0,fmax);
+    for ch = 1:size(data, 1)
+        figure('NumberTitle', 'off', 'Name', ['FFT before & after - Ch #',num2str(chans(ch))]);
+        subplot(211)
+        plot(faxis(ch,:), psd(ch,:))
+        title(sprintf('Ch #%d - FFT before',chans(ch)))
+        
+        subplot(212)
+        plot(faxis_cl(ch,:), psd_cl(ch,:))
+        title(sprintf('Ch #%d - FFT after',chans(ch)))
+        
+        linkaxes(findobj(gcf, 'Type', 'axes'), 'x')
+    end
 end
 
 % assignin('base','faxis',faxis)

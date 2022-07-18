@@ -3163,9 +3163,9 @@ classdef DAS < handle
                                 fmax = str2double(guiobj.ephysPeriodicFmaxEdit.String);
                                 ffund = str2double(guiobj.ephysPeriodicFfundEdit.String);
                                 stopbandwidth = str2double(guiobj.ephysPeriodicStopbandWidthEdit.String)/2;
-                                [procced,f_fund] = periodicNoise(data,guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                                [procced,f_fund] = periodicNoise(data,[newProcInfo.Channel],guiobj.ephys_fs,fmax,ffund,stopbandwidth);
                             else
-                                [procced,f_fund,fmax,stopbandwidth] = periodicNoise(data,guiobj.ephys_fs);
+                                [procced,f_fund,fmax,stopbandwidth] = periodicNoise(data,[newProcInfo.Channel],guiobj.ephys_fs);
                             end
                             if isempty(procced)
                                 guiobj.ephysRunProcButton.BackgroundColor = 'g';
