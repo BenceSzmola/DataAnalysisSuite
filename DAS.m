@@ -2900,6 +2900,8 @@ classdef DAS < handle
                 return
             end
             
+            guiobj.ephysProcSrcButtGroup.SelectedObject = guiobj.ephysProcRawRadioButt;
+            
             ephysplot(guiobj,guiobj.axesEphysProc1,idx)
             
             if strcmp(guiobj.ephysLinkProcListBoxesMenu.Checked, 'on') && ~isempty(guiobj.ephys_procced)
@@ -2928,6 +2930,9 @@ classdef DAS < handle
             if isempty(idx)
                 return
             end
+            
+            guiobj.ephysProcSrcButtGroup.SelectedObject = guiobj.ephysProcProcdRadioButt;
+            
             ephysplot(guiobj,guiobj.axesEphysProc2,idx)
             
             if strcmp(guiobj.ephysLinkProcListBoxesMenu.Checked, 'on')
@@ -3289,6 +3294,9 @@ classdef DAS < handle
             if idx == 0 | isnan(idx) | isempty(idx)
                return
             end
+            
+            guiobj.imagingProcSrcButtGroup.SelectedObject = guiobj.imagingProcRawRadioButt;
+            
             imagingplot(guiobj,guiobj.axesImagingProc1,idx)
             
             if strcmp(guiobj.imagingLinkProcListBoxesMenu.Checked, 'on') && ~isempty(guiobj.imaging_procced)
@@ -3317,6 +3325,9 @@ classdef DAS < handle
             if idx == 0 | isnan(idx) | isempty(idx)
                return
             end
+            
+            guiobj.imagingProcSrcButtGroup.SelectedObject = guiobj.imagingProcProcdRadioButt;
+            
             imagingplot(guiobj,guiobj.axesImagingProc2,idx)
             
             if strcmp(guiobj.imagingLinkProcListBoxesMenu.Checked, 'on')
