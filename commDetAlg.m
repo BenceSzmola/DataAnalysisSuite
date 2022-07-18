@@ -128,11 +128,8 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         questTitle = 'Review of discarded events';
         answer = questdlg(quest,questTitle);
         if strcmp(answer,'Yes')
-            if refVal == 1
-                reviewData = detData;
-            elseif refVal == 2
-                reviewData = corrData;
-            end
+            reviewData = corrData;
+            
             events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
             for i = 1:length(events2Restore)
                 for j = 1:length(events2Restore{i})
