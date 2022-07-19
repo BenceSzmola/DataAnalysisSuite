@@ -98,7 +98,7 @@ for i = 1:size(data,1)
             continue
         end
     else
-        inds2use = 1:size(data, 1);
+        inds2use = 1:size(data, 2);
         inds2use(ismember(inds2use, edgeEffIntervalBegin)) = [];
         inds2use(ismember(inds2use, edgeEffIntervalEnd)) = [];
         currInstE = currInstE(inds2use);
@@ -109,7 +109,6 @@ for i = 1:size(data,1)
     quietSegs{i} = currInstE(currInstE < quietThr(i));
     qSegsInds{i} = instE(i,:);
     qSegsInds{i}(instE(i,:) >= quietThr(i)) = nan;
-    
     thr(i) = median(quietSegs{i}) + sdmult*std(quietSegs{i});
     extThr(i) = median(quietSegs{i}) + std(quietSegs{i});
     
