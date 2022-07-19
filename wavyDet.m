@@ -180,21 +180,29 @@ for i = 1:min(size(data))
         xtraFig = figure('Name',['Chan#',num2str(chan(i))],'Visible','off');
 
         if refVal ~= 0
-            sp1 = subplot(311);
-            sp2 = subplot(312);
-            sp3 = subplot(313);
-            linkaxes([sp1,sp2,sp3],'x')
+            sp1 = subplot(411);
+            sp2 = subplot(412);
+            sp3 = subplot(413);
+            sp4 = subplot(414);
+            linkaxes([sp1,sp2,sp3,sp4],'x')
             
-            plot(sp3,taxis,belowRefThr)
-            hold(sp3,'on')
-            plot(sp3,taxis,aboveRefThr,'-r')
-            yline(sp3,refThr,'Color','g','LineWidth',1);
+            plot(sp3,taxis,refDogged)
             hold(sp3,'off')
 
             xlabel(sp3,'Time [s]')
-            ylabel(sp3,'CWT coefficient magnitude')
-            title(sp3,'Instant energy of reference channel')
-            legend(sp3,{'Inst.E.','Above threshold'})
+            ylabel(sp3,'Voltage [\muV]')
+            title(sp3,'DoG of reference channel')
+            
+            plot(sp4,taxis,belowRefThr)
+            hold(sp4,'on')
+            plot(sp4,taxis,aboveRefThr,'-r')
+            yline(sp4,refThr,'Color','g','LineWidth',1);
+            hold(sp4,'off')
+
+            xlabel(sp4,'Time [s]')
+            ylabel(sp4,'CWT coefficient magnitude')
+            title(sp4,'Instant energy of reference channel')
+            legend(sp4,{'Inst.E.','Above threshold'})
         else
             sp1 = subplot(211);
             sp2 = subplot(212);
