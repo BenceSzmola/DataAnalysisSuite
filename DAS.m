@@ -3037,6 +3037,11 @@ classdef DAS < handle
                     clear temp
             end
             
+            if isempty(data)
+                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                return
+            end
+            
             datanames = guiobj.ephys_datanames;
             procDatanames = guiobj.ephys_procdatanames;
             
@@ -4714,12 +4719,18 @@ classdef DAS < handle
                 list = [list,"Simultaneous"];
             end
             if isempty(list)
+                if ishandle(wb)
+                    close(wb)
+                end
                 return
             end
             [detTypeToSave,tf] = listdlg('PromptString','Which detection (or dataset if there are no detections) do you want to save?',...
                 'Name','Saving detections',...
                 'ListString',list,'ListSize',[250, 100]);
             if ~tf
+                if ishandle(wb)
+                    close(wb)
+                end
                 return
             end
             
@@ -4731,6 +4742,9 @@ classdef DAS < handle
             if strcmp(answer,'All')
                 saveAllChans = 1;
             elseif isempty(answer) || strcmp(answer,'Cancel')
+                if ishandle(wb)
+                    close(wb)
+                end
                 return
             end
                 
@@ -4841,6 +4855,9 @@ classdef DAS < handle
                                 
                 if isempty(guiobj.simult_detections)
                     errordlg('No simultan detections!')
+                    if ishandle(wb)
+                        close(wb)
+                    end
                     return
                 end
                 
@@ -4858,6 +4875,9 @@ classdef DAS < handle
                 saveRun = questdlg('Do you want to save running data?',...
                     'Save running data');
                 if ~tf
+                    if ishandle(wb)
+                        close(wb)
+                    end
                     return
                 end
                 if strcmp(saveRun,'Yes')
@@ -4885,6 +4905,9 @@ classdef DAS < handle
             
             [fname,path] = uiputfile('*.mat','Save DAS detections',fname);
             if fname==0
+                if ishandle(wb)
+                    close(wb)
+                end
                 return
             elseif ~contains(fname,'DASsave')
                 fname = ['DASsave_',fname];
@@ -5028,7 +5051,7 @@ classdef DAS < handle
                     end
                     answer = questdlg(quest,'Detection deletion confirmation','Yes',butt2,'Cancel','Yes');
                     switch answer
-                        case 'Delete every detection on channel/ROI'
+                        case butt2
                             delFullChan = true;
                         case {'','Cancel'}
                             return
