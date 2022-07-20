@@ -114,6 +114,7 @@ classdef DAS < handle
         ephysPeriodicFfundEdit
         ephysPeriodicStopbandWidthLabel
         ephysPeriodicStopbandWidthEdit
+        ephysPeriodicPlotFFTCheckBox
         
         ephysSpectroPanel
         ephysSpectroFreqLimitLabel
@@ -3173,7 +3174,8 @@ classdef DAS < handle
                                 fmax = str2double(guiobj.ephysPeriodicFmaxEdit.String);
                                 ffund = str2double(guiobj.ephysPeriodicFfundEdit.String);
                                 stopbandwidth = str2double(guiobj.ephysPeriodicStopbandWidthEdit.String)/2;
-                                [procced,f_fund] = periodicNoise(data,[newProcInfo.Channel],guiobj.ephys_fs,fmax,ffund,stopbandwidth);
+                                plotfft = logical(guiobj.ephysPeriodicPlotFFTCheckBox.Value);
+                                [procced,f_fund] = periodicNoise(data,[newProcInfo.Channel],guiobj.ephys_fs,fmax,ffund,stopbandwidth,plotfft);
                             else
                                 [procced,f_fund,fmax,stopbandwidth] = periodicNoise(data,[newProcInfo.Channel],guiobj.ephys_fs);
                             end
@@ -5830,6 +5832,13 @@ classdef DAS < handle
                 'Visible','off',...
                 'String','5',...
                 'Tag','ephysArtSupp_periodic');
+            guiobj.ephysPeriodicPlotFFTCheckBox = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style', 'checkbox',...
+                'Units', 'normalized',...
+                'Position', [0.3, 0.55, 0.5, 0.1],...
+                'Visible', 'off',...
+                'String', 'Plot before&after FFT',...
+                'Tag', 'ephysArtSupp_periodic');
             
             % spectrogram panel
             guiobj.ephysSpectroPanel = uipanel(guiobj.ephysProcTab,...

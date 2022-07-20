@@ -1,4 +1,4 @@
-function [data_filt,f_fund,fmax,stopbandwidth] = periodicNoise(data,chans,fs,fmax,f_fund,stopbandwidth)
+function [data_filt,f_fund,fmax,stopbandwidth] = periodicNoise(data,chans,fs,fmax,f_fund,stopbandwidth,plotfft)
 
 % Detect and filter out periodic Noise (fundamental and harmonics)
 % data_filt = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
@@ -268,7 +268,10 @@ if ~f_fund_given
     progBarText.String = ['Done with all channels!'];
     feedbackText_old = feedbackText.String;
     feedbackText.String = [strcat("Overall fund freq = ",num2str(f_fund)," Hz"); feedbackText_old]; drawnow
-%     delete(progRepFig)
+    pause(1)
+    if ishandle(progRepFig)
+        close(progRepFig)
+    end
 end
     
 % fmax is the frequency up to which the algorithm will run
@@ -294,9 +297,11 @@ for i = 1:min(size(data))
     end
     close(wb2)
 end
-
-plotfft = questdlg('Plot before&after FFTs?','FFT plots');
-if strcmp(plotfft,'Yes')
+if (nargin < 7) || isempty(plotfft) || isnan(plotfft)
+    plotfft = questdlg('Plot before&after FFTs?','FFT plots');
+    plotfft = strcmp(plotfft,'Yes');
+end
+if plotfft
     [faxis,psd] = freqspec(data,fs,0,0,fmax);
     [faxis_cl,psd_cl] = freqspec(data_filt,fs,0,0,fmax);
     for ch = 1:size(data, 1)
