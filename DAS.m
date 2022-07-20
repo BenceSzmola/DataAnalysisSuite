@@ -1487,6 +1487,8 @@ classdef DAS < handle
             doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
             figLastPos = guiobj.mainfig.Position;
             figLastState = guiobj.mainfig.WindowState;
+            evDetTabEphysDTyp = guiobj.eventDet1DataType;
+            evDetTabImagingDTyp = guiobj.eventDet2DataType;
             
             close(guiobj.mainfig)
             delete(guiobj)
@@ -1504,6 +1506,8 @@ classdef DAS < handle
             guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
             guiobj.doEphysDownSamp = doImportEphysDownSamp;
             guiobj.doEphysDownSamp_targetFs = doImportEphysDownSamp_targetFs;
+            guiobj.eventDet1DataType = evDetTabEphysDTyp;
+            guiobj.eventDet2DataType = evDetTabImagingDTyp;
             
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
