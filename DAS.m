@@ -1235,20 +1235,18 @@ classdef DAS < handle
                     [numDets,numChans] = extractDetStructs(guiobj,dTyp);
                 end
 
-                if chanUpDwn ~= 0
-                    currDet = 1;
-                end
-                
                 switch chanUpDwn
                     case 0
 
                     case 1
                         if currChan < numChans
                             currChan = currChan + 1;
+                            currDet = 1;
                         end
                     case -1
                         if currChan > 1
                             currChan = currChan - 1;
+                            currDet = 1;
                         end
                 end
 
