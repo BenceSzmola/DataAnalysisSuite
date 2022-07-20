@@ -5080,6 +5080,13 @@ classdef DAS < handle
                                 % check whether there are any detections on
                                 % any channel
                                 if ~sum(~cellfun('isempty',guiobj.ephys_detections))
+                                    guiobj.ephys_detections = {};
+                                    guiobj.ephys_globalDets = [];
+                                    guiobj.ephys_eventComplexes = {};
+                                    guiobj.ephys_detBorders = {};
+                                    guiobj.ephys_detParams = {};
+                                    guiobj.ephys_detectionsInfo = [];
+                                    
                                     eventDetPlotFcn(guiobj,1,0,1)
                                     return
                                 end
@@ -5117,6 +5124,13 @@ classdef DAS < handle
                                     % check whether there are any detections on
                                     % any channel
                                     if ~sum(~cellfun('isempty',guiobj.ephys_detections))
+                                        guiobj.ephys_detections = {};
+                                        guiobj.ephys_globalDets = [];
+                                        guiobj.ephys_eventComplexes = {};
+                                        guiobj.ephys_detBorders = {};
+                                        guiobj.ephys_detParams = {};
+                                        guiobj.ephys_detectionsInfo = [];
+                                        
                                         eventDetPlotFcn(guiobj,1,0,1)
                                         return
                                     end
@@ -5156,6 +5170,12 @@ classdef DAS < handle
                                 % check whether there are any detections on
                                 % any channel
                                 if ~sum(~cellfun('isempty',guiobj.imaging_detections))
+                                    guiobj.imaging_detections = {};
+                                    guiobj.imaging_globalDets = [];
+                                    guiobj.imaging_detectionsInfo = [];
+                                    guiobj.imaging_detBorders = {};
+                                    guiobj.imaging_detParams = {};
+                                    
                                     eventDetPlotFcn(guiobj,2,0,1)
                                     return
                                 end
@@ -5189,6 +5209,12 @@ classdef DAS < handle
                                     % check whether there are any detections on
                                     % any channel
                                     if ~sum(~cellfun('isempty',guiobj.imaging_detections))
+                                        guiobj.imaging_detections = {};
+                                        guiobj.imaging_globalDets = [];
+                                        guiobj.imaging_detectionsInfo = [];
+                                        guiobj.imaging_detBorders = {};
+                                        guiobj.imaging_detParams = {};
+                                        
                                         eventDetPlotFcn(guiobj,2,0,1)
                                         return
                                     end
