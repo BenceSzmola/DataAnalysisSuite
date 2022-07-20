@@ -55,7 +55,7 @@ for i = 1:numSaves
         
         tAxis = ephysSaveData.TAxis;
         
-        globDets = ephysSaveData.GlobalDets;
+        globDets = ephysSaveData.GlobalDets(any(ephysSaveData.GlobalDets, 2),:);
         
         tempCell1 = cell(size(globDets, 1), 1);
         tempCell2 = cell(size(globDets, 1), 1);
@@ -64,9 +64,13 @@ for i = 1:numSaves
         tempCell5 = cell(size(globDets, 1), 1);
         
         for gEv = 1:size(globDets, 1)
+            notNanCols = find(~isnan(globDets(gEv,:)));
+            if isempty(notNanCols)
+                continue
+            end
+            
             tempCell1{gEv,1} = saveFnames{i};
             
-            notNanCols = find(~isnan(globDets(gEv,:)));
             tempCell1{gEv,2} = num2str(ephysSaveInfo.DetChannel(notNanCols));
             
             tStamps = zeros(length(notNanCols), 1);
@@ -117,7 +121,7 @@ for i = 1:numSaves
         
         tAxis = imagingSaveData.TAxis;
         
-        globDets = imagingSaveData.GlobalDets;
+        globDets = imagingSaveData.GlobalDets(any(imagingSaveData.GlobalDets, 2),:);
         
         tempCell1 = cell(size(globDets, 1), 1);
         tempCell2 = cell(size(globDets, 1), 1);
@@ -125,9 +129,12 @@ for i = 1:numSaves
         tempCell4 = cell(size(globDets, 1), 1);
         
         for gEv = 1:size(globDets, 1)
+            notNanCols = find(~isnan(globDets(gEv,:)));
+            if isempty(notNanCols)
+                continue
+            end
             tempCell1{gEv,1} = saveFnames{i};
             
-            notNanCols = find(~isnan(globDets(gEv,:)));
             tempCell1{gEv,2} = num2str(imagingSaveInfo.DetROI(notNanCols));
             
             tStamps = zeros(length(notNanCols), 1);
