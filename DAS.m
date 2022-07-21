@@ -5101,15 +5101,19 @@ classdef DAS < handle
                                 guiobj.ephys_detections{currChan}(detNum) = [];
                                 
                                 guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) == detNum,currChan) = nan;
-                                guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) > detNum,:) = ...
-                                    guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) > detNum,:) - 1;
+                                guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) > detNum,currChan) = ...
+                                    guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) > detNum,currChan) - 1;
                                 
                                 currComplexes = guiobj.ephys_eventComplexes{currChan};
                                 for i = 1:length(currComplexes)
                                     currComplexes{i}(currComplexes{i} == detNum) = [];
+                                    if length(currComplexes{i}) == 1
+                                        currComplexes{i} = [];
+                                        continue
+                                    end
                                     currComplexes{i}(currComplexes{i} > detNum) = currComplexes{i}(currComplexes{i} > detNum) - 1;
                                 end
-                                currComplexes{currChan}(cellfun('isempty', currComplexes{currChan})) = [];
+                                currComplexes(cellfun('isempty', currComplexes)) = [];
                                 guiobj.ephys_eventComplexes{currChan} = currComplexes;
                                 
                                 guiobj.ephys_detParams{currChan}(detNum) = [];
@@ -5137,6 +5141,7 @@ classdef DAS < handle
 
                                     guiobj.ephys_detections(currChan) = [];
                                     guiobj.ephys_globalDets(:,currChan) = [];
+                                    guiobj.ephys_eventComplexes(currChan) = [];
                                     guiobj.ephys_detParams(currChan) = [];
                                     guiobj.ephys_detBorders(currChan) = [];
                                     guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
@@ -5154,7 +5159,7 @@ classdef DAS < handle
                             end
                             
                             % controll globaldets container
-                            guiobj.ephys_globalDets(~any(guiobj.ephys_globalDets, 2),:) = [];
+                            guiobj.ephys_globalDets(sum(~isnan(guiobj.ephys_globalDets), 2) < 2,:) = [];
                             
                             guiobj.eventDet1CurrChan = currChan;
                             guiobj.eventDet1CurrDet = currDet;
@@ -5193,15 +5198,19 @@ classdef DAS < handle
                                 guiobj.imaging_detections{currChan}(detNum) = [];
                                 
                                 guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) == detNum,currChan) = nan;
-                                guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) > detNum,:) = ...
-                                    guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) > detNum,:) - 1;
+                                guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) > detNum,currChan) = ...
+                                    guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) > detNum,currChan) - 1;
                                 
                                 currComplexes = guiobj.imaging_eventComplexes{currChan};
                                 for i = 1:length(currComplexes)
                                     currComplexes{i}(currComplexes{i} == detNum) = [];
+                                    if length(currComplexes{i}) == 1
+                                        currComplexes{i} = [];
+                                        continue
+                                    end
                                     currComplexes{i}(currComplexes{i} > detNum) = currComplexes{i}(currComplexes{i} > detNum) - 1;
                                 end
-                                currComplexes{currChan}(cellfun('isempty', currComplexes{currChan})) = [];
+                                currComplexes(cellfun('isempty', currComplexes)) = [];
                                 guiobj.imaging_eventComplexes{currChan} = currComplexes;
                                 
                                 guiobj.imaging_detParams{currChan}(detNum) = [];
@@ -5224,6 +5233,7 @@ classdef DAS < handle
 
                                     guiobj.imaging_detections(currChan) = [];
                                     guiobj.imaging_globalDets(:,currChan) = [];
+                                    guiobj.imaging_eventComplexes(currChan) = [];
                                     guiobj.imaging_detParams(currChan) = [];
                                     guiobj.imaging_detBorders(currChan) = [];
                                     guiobj.imaging_detectionsInfo.DetROI(currChan) = [];
@@ -5241,7 +5251,7 @@ classdef DAS < handle
                             end
                             
                             % controll globaldets container
-                            guiobj.imaging_globalDets(~any(guiobj.imaging_globalDets, 2),:) = [];
+                            guiobj.imaging_globalDets(sum(~isnan(guiobj.imaging_globalDets), 2) < 2,:) = [];
                             
                             guiobj.eventDet2CurrRoi = currChan;
                             guiobj.eventDet2CurrDet = currDet;
