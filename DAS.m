@@ -5181,6 +5181,7 @@ classdef DAS < handle
                                 if ~sum(~cellfun('isempty',guiobj.imaging_detections))
                                     guiobj.imaging_detections = {};
                                     guiobj.imaging_globalDets = [];
+                                    guiobj.imaging_eventComplexes = {};
                                     guiobj.imaging_detectionsInfo = [];
                                     guiobj.imaging_detBorders = {};
                                     guiobj.imaging_detParams = {};
@@ -5223,6 +5224,7 @@ classdef DAS < handle
                                     if ~sum(~cellfun('isempty',guiobj.imaging_detections))
                                         guiobj.imaging_detections = {};
                                         guiobj.imaging_globalDets = [];
+                                        guiobj.imaging_eventComplexes = {};
                                         guiobj.imaging_detectionsInfo = [];
                                         guiobj.imaging_detBorders = {};
                                         guiobj.imaging_detParams = {};
