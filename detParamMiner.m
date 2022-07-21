@@ -18,8 +18,6 @@ switch dTyp
             'FWHM',cell(numDets,1),'NumInComplex',cell(numDets,1),'NumSimultEvents',0);
 end
 
-evComplexes = {};
-
 for i = 1:numDets
     detParams(i).Length = (detBorders(i,2)-detBorders(i,1))/fs;
     detParams(i).RawAmplitudeP2P = max(rawData(detBorders(i,1):detBorders(i,2)))...
@@ -85,24 +83,8 @@ for i = 1:numDets
         detParams(i).FWHM = nan;
     end
     
-    maxSepInComplex = 0.1;
-    maxSepInComplex = round(maxSepInComplex * fs);
-    if (i ~= numDets) && ~any(detParams(i).NumInComplex) && ((detBorders(i+1,1) - detBorders(i,2)) <= maxSepInComplex)
-        detParams(i).NumInComplex = 1;
-        detParams(i+1).NumInComplex = 2;
-        temp = [i, i+1];
-        
-        for j = i+2:numDets
-            if (detBorders(j,1) - detBorders(j-1,2)) <= maxSepInComplex
-                detParams(j).NumInComplex = j-i+1;
-                temp = [temp, j];
-            else
-                break
-            end
-        end
-        evComplexes = [evComplexes; temp];
-    elseif ~any(detParams(i).NumInComplex)
-        detParams(i).NumInComplex = nan;
-    end
-    
 end
+
+maxSepInComplex = 0.1;
+maxSepInComplex = round(maxSepInComplex * fs);
+[evComplexes, detParams] = extractEvComplexes(detParams,detBorders,maxSepInComplex);
