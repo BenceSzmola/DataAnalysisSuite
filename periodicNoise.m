@@ -136,12 +136,31 @@ if ~f_fund_given
 %             putative_f_fund(j)
             ratios = putative_f_fund/putative_f_fund(j);
             goodRatios = length(find(abs(round(ratios)-ratios) < 0.01));
-            if goodRatios > howManyCanItDivide
-                f_fund(i) = putative_f_fund(j);
-                howManyCanItDivide = goodRatios;
-            elseif goodRatios == howManyCanItDivide
-                if f_fund(i) < putative_f_fund(j)
+            
+            if (putative_f_fund(j) / 2) > 50
+                half_ratios = putative_f_fund/(putative_f_fund(j)/2);
+                half_goodRatios = length(find(abs(round(half_ratios)-half_ratios) < 0.01));
+            else
+                half_goodRatios = 0;
+            end
+            
+            if (goodRatios > howManyCanItDivide) || (half_goodRatios > howManyCanItDivide)
+                if half_goodRatios < goodRatios
                     f_fund(i) = putative_f_fund(j);
+                    howManyCanItDivide = goodRatios;
+                else
+                    f_fund(i) = putative_f_fund(j) / 2;
+                    howManyCanItDivide = half_goodRatios;
+                end
+            elseif (goodRatios == howManyCanItDivide) || (half_goodRatios == howManyCanItDivide)
+                if half_goodRatios < goodRatios
+                    if f_fund(i) < putative_f_fund(j)
+                        f_fund(i) = putative_f_fund(j);
+                    end
+                else
+                    if f_fund(i) < (putative_f_fund(j) / 2)
+                        f_fund(i) = putative_f_fund(j) / 2;
+                    end
                 end
             end
         end
