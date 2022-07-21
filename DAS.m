@@ -5104,20 +5104,28 @@ classdef DAS < handle
                                 guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) > detNum,currChan) = ...
                                     guiobj.ephys_globalDets(guiobj.ephys_globalDets(:,currChan) > detNum,currChan) - 1;
                                 
-                                currComplexes = guiobj.ephys_eventComplexes{currChan};
-                                for i = 1:length(currComplexes)
-                                    currComplexes{i}(currComplexes{i} == detNum) = [];
-                                    if length(currComplexes{i}) == 1
-                                        currComplexes{i} = [];
-                                        continue
-                                    end
-                                    currComplexes{i}(currComplexes{i} > detNum) = currComplexes{i}(currComplexes{i} > detNum) - 1;
-                                end
-                                currComplexes(cellfun('isempty', currComplexes)) = [];
-                                guiobj.ephys_eventComplexes{currChan} = currComplexes;
+%                                 currComplexes = guiobj.ephys_eventComplexes{currChan};
+%                                 for i = 1:length(currComplexes)
+%                                     currComplexes{i}(currComplexes{i} == detNum) = [];
+%                                     if length(currComplexes{i}) == 1
+%                                         currComplexes{i} = [];
+%                                         continue
+%                                     end
+%                                     currComplexes{i}(currComplexes{i} > detNum) = currComplexes{i}(currComplexes{i} > detNum) - 1;
+%                                 end
+%                                 currComplexes(cellfun('isempty', currComplexes)) = [];
+%                                 guiobj.ephys_eventComplexes{currChan} = currComplexes;
                                 
                                 guiobj.ephys_detParams{currChan}(detNum) = [];
                                 guiobj.ephys_detBorders{currChan}(detNum,:) = [];
+                                
+                                maxSepInComplex = 0.1;
+                                maxSepInComplex = round(maxSepInComplex * guiobj.ephys_fs);
+                                [evCompls, detParams] = extractEvComplexes(guiobj.ephys_detParams{currChan},...
+                                    guiobj.ephys_detBorders{currChan}, maxSepInComplex);
+                                guiobj.ephys_eventComplexes{currChan} = evCompls;
+                                guiobj.ephys_detParams{currChan} = detParams;
+                                clear evCompls detParams
 
                                 % if after deleting no detections are left on the given
                                 % channel, delete that channel from the detection
@@ -5202,20 +5210,28 @@ classdef DAS < handle
                                 guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) > detNum,currChan) = ...
                                     guiobj.imaging_globalDets(guiobj.imaging_globalDets(:,currChan) > detNum,currChan) - 1;
                                 
-                                currComplexes = guiobj.imaging_eventComplexes{currChan};
-                                for i = 1:length(currComplexes)
-                                    currComplexes{i}(currComplexes{i} == detNum) = [];
-                                    if length(currComplexes{i}) == 1
-                                        currComplexes{i} = [];
-                                        continue
-                                    end
-                                    currComplexes{i}(currComplexes{i} > detNum) = currComplexes{i}(currComplexes{i} > detNum) - 1;
-                                end
-                                currComplexes(cellfun('isempty', currComplexes)) = [];
-                                guiobj.imaging_eventComplexes{currChan} = currComplexes;
+%                                 currComplexes = guiobj.imaging_eventComplexes{currChan};
+%                                 for i = 1:length(currComplexes)
+%                                     currComplexes{i}(currComplexes{i} == detNum) = [];
+%                                     if length(currComplexes{i}) == 1
+%                                         currComplexes{i} = [];
+%                                         continue
+%                                     end
+%                                     currComplexes{i}(currComplexes{i} > detNum) = currComplexes{i}(currComplexes{i} > detNum) - 1;
+%                                 end
+%                                 currComplexes(cellfun('isempty', currComplexes)) = [];
+%                                 guiobj.imaging_eventComplexes{currChan} = currComplexes;
                                 
                                 guiobj.imaging_detParams{currChan}(detNum) = [];
                                 guiobj.imaging_detBorders{currChan}(detNum,:) = [];
+                                
+                                maxSepInComplex = 0.1;
+                                maxSepInComplex = round(maxSepInComplex * guiobj.imaging_fs);
+                                [evCompls, detParams] = extractEvComplexes(guiobj.imaging_detParams{currChan},...
+                                    guiobj.imaging_detBorders{currChan}, maxSepInComplex);
+                                guiobj.imaging_eventComplexes{currChan} = evCompls;
+                                guiobj.imaging_detParams{currChan} = detParams;
+                                clear evCompls detParams
 
                                 detsLeft = length(guiobj.imaging_detections{currChan});
                                 if detsLeft == 0
