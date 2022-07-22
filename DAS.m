@@ -259,12 +259,13 @@ classdef DAS < handle
     
     %% Initializing data stored in GUI
     properties (Access = private)
-        autoPilot = false;
-        autoPilot_idx
-        autoPilot_path
-        autoPilot_fnames
-        autoPilot_selChans
-        autoPilot_refChans
+        roboDet = false;
+        roboDet_idx
+        roboDet_path
+        roboDet_fnames
+        roboDet_detSavePath
+        roboDet_selChans
+        roboDet_refChans
         
         timedim = 1;                        % Determines whether the guiobj uses seconds or milliseconds
         datatyp = [0, 0, 0];                % datatypes currently handled (ephys,imaging,running)
@@ -1482,24 +1483,39 @@ classdef DAS < handle
         %%
         function guiobj = resetGuiData(guiobj,rhdORgor)
 
-            autoPilot_prev = guiobj.autoPilot;
-            autoPilot_fnames_prev = guiobj.autoPilot_fnames;
-            autoPilot_idx_prev = guiobj.autoPilot_idx;
-            autoPilot_path_prev = guiobj.autoPilot_path;
-            autoPilot_selChans_prev = guiobj.autoPilot_selChans;
-            autoPilot_refChans_prev = guiobj.autoPilot_refChans;
+            roboDet_prev = guiobj.roboDet;
+            roboDet_fnames_prev = guiobj.roboDet_fnames;
+            roboDet_idx_prev = guiobj.roboDet_idx;
+            roboDet_path_prev = guiobj.roboDet_path;
+            roboDet_detSavePath_prev = guiobj.roboDet_detSavePath;
+            roboDet_selChans_prev = guiobj.roboDet_selChans;
+            roboDet_refChans_prev = guiobj.roboDet_refChans;
+            
             dtyp = guiobj.datatyp;
+            
             showXtraFigs = guiobj.showXtraDetFigs;
+            
             evDetYlimMode = guiobj.evDetTabYlimMode;
             evDetYlimModeMenuText = guiobj.evDetTabYlimModeMenu.Text;
+            
             doImportUpSamp = guiobj.importUpSamp;
             doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
             doImportEphysDownSamp = guiobj.doEphysDownSamp;
             doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
+            
             figLastPos = guiobj.mainfig.Position;
             figLastState = guiobj.mainfig.WindowState;
+            
             evDetTabEphysDTyp = guiobj.eventDet1DataType;
             evDetTabImagingDTyp = guiobj.eventDet2DataType;
+            
+            ephysProcSel = guiobj.ephysProcPopMenu.Value;
+            ephysArtSuppSel = guiobj.ephysArtSuppTypePopMenu.Value;
+            imagingProcSel = guiobj.imagingProcPopMenu.Value;
+            imagingFiltSel = guiobj.imagingFilterTypePopMenu.Value;
+            
+            ephysDetSel = guiobj.ephysDetPopMenu.Value;
+            imagingDetSel = guiobj.imagingDetPopMenu.Value;
             
             close(guiobj.mainfig)
             delete(guiobj)
@@ -1511,20 +1527,41 @@ classdef DAS < handle
             
             guiobj.mainfig.Position = figLastPos;
             guiobj.mainfig.WindowState = figLastState;
-            guiobj.autoPilot = autoPilot_prev;
-            guiobj.autoPilot_fnames = autoPilot_fnames_prev;
-            guiobj.autoPilot_idx = autoPilot_idx_prev;
-            guiobj.autoPilot_path = autoPilot_path_prev;
-            guiobj.autoPilot_selChans = autoPilot_selChans_prev;
-            guiobj.autoPilot_refChans = autoPilot_refChans_prev;
+            
+            guiobj.roboDet = roboDet_prev;
+            guiobj.roboDet_fnames = roboDet_fnames_prev;
+            guiobj.roboDet_idx = roboDet_idx_prev;
+            guiobj.roboDet_path = roboDet_path_prev;
+            guiobj.roboDet_detSavePath = roboDet_detSavePath_prev;
+            guiobj.roboDet_selChans = roboDet_selChans_prev;
+            guiobj.roboDet_refChans = roboDet_refChans_prev;
+            
             guiobj.evDetTabYlimMode = evDetYlimMode;
             guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
+            
             guiobj.importUpSamp = doImportUpSamp;
             guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
             guiobj.doEphysDownSamp = doImportEphysDownSamp;
             guiobj.doEphysDownSamp_targetFs = doImportEphysDownSamp_targetFs;
+            
             guiobj.eventDet1DataType = evDetTabEphysDTyp;
             guiobj.eventDet2DataType = evDetTabImagingDTyp;
+            
+            guiobj.ephysProcPopMenu.Value = ephysProcSel;
+            ephysProcPopMenuSelected(guiobj)
+            guiobj.ephysArtSuppTypePopMenu.Value = ephysArtSuppSel;
+            ephysArtSuppTypePopMenuCB(guiobj)
+            
+            guiobj.imagingProcPopMenu.Value = imagingProcSel;
+            imagingProcPopMenuSelected(guiobj)
+            guiobj.imagingFilterTypePopMenu.Value = imagingFiltSel;
+            imagingFilterTypePopMenuSelected(guiobj)
+            
+            guiobj.ephysDetPopMenu.Value = ephysDetSel;
+            ephysDetPopMenuSelected(guiobj)
+            
+            guiobj.imagingDetPopMenu.Value = imagingDetSel;
+            imagingDetPopMenuSelected(guiobj)
             
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
@@ -1555,7 +1592,7 @@ classdef DAS < handle
             if toRun(3)
                 runCheckBoxValueChanged(guiobj)
             end
-            if ~guiobj.autoPilot
+            if ~guiobj.roboDet
                 if toRun(4)
                     ImportRHDButtonPushed(guiobj)
                 end
@@ -1746,7 +1783,7 @@ classdef DAS < handle
 %             defbtn = btn1;
 %             selMethod = questdlg(quest,questTitle,btn1,btn2,btn3,defbtn);
             
-            if guiobj.autoPilot
+            if guiobj.roboDet
                 selMethod = 3;
             else
                 selList = {'Timestamp entry', 'Graphical', 'Automatic'};
@@ -1869,16 +1906,19 @@ classdef DAS < handle
                     
                 case 3
                     if isempty(refchans)
-                        eD = errordlg('Automatic discard requires reference channels!');
-                        pause(1)
-                        if ishandle(eD)
-                            close(eD)
+                        selList = num2str(chans');
+                        [refchrows, tf] = listdlg('ListString', selList,...
+                            'Name', 'Refchan selection',...
+                            'PromptString', 'Which is(are) the refchan(s)?');
+                        if ~tf
+                            return
                         end
+                    else
+                        refchrows = ismember(chans, refchans);
                     end
                     
                     inds2use = 1:len;
-                    refchrows = ismember(chans, refchans);
-                    critData = mean(instPow(data(refchrows,:),fs,150,250));
+                    critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
                     critThr = median(critData) + std(critData);
                     inds2use(critData > critThr) = [];
                     
@@ -2070,8 +2110,29 @@ classdef DAS < handle
         
         %%
         function autoRun(guiobj)      
-            display('Starting autoRun')
-            guiobj.autoPilot = true;
+            answer = questdlg('Have you set the detection settings?');
+            switch answer
+                case {'No', 'Cancel', ''}
+                    wD = warndlg('Please set the detection settings, then launch roboDet again!');
+                    pause(1)
+                    if ishandle(wD)
+                        close(wD)
+                    end
+                    return
+                    
+                case 'Yes'
+                    if (guiobj.ephysDetPopMenu.Value == 1) && (guiobj.imagingDetPopMenu.Value == 1)
+                        eD = errordlg('You haven''t selected detection settings! Please do and then launch roboDet!');
+                        pause(1)
+                        if ishandle(eD)
+                            close(eD)
+                        end
+                        return
+                    end
+                    
+            end
+            
+            guiobj.roboDet = true;
             guiobj = resetGuiData(guiobj,1);
             
             btn1 = 'Directory';
@@ -2093,27 +2154,38 @@ classdef DAS < handle
 
             end
             
-            guiobj.autoPilot_path = path;
-            guiobj.autoPilot_fnames = saveFnames;
+            guiobj.roboDet_path = path;
+            guiobj.roboDet_fnames = saveFnames;
+            answer = questdlg('Put DASsave files in same directory?');
+            switch answer
+                case {'Cancel', ''}
+                    guiobj.roboDet = false;
+                    return
+                    
+                case 'Yes'
+                    guiobj.roboDet_detSavePath = path;
+                    
+                case 'No'
+                    guiobj.roboDet_detSavePath = uigetdir(cd, 'Select directory for DASsave files!');
+                    guiobj.roboDet_detSavePath = [guiobj.roboDet_detSavePath,'\'];
+                    
+            end
             
             % channel selection (for now hardcoded for testing)
             selChans = 1:5;
-            guiobj.autoPilot_selChans = selChans;
+            guiobj.roboDet_selChans = selChans;
             refChans = 5;
-            guiobj.autoPilot_refChans = refChans;
+            guiobj.roboDet_refChans = refChans;
             
             for i = 1:length(saveFnames)
-                i
-                guiobj.autoPilot_idx = i;
-                fprintf(1,'Autopilot index = %d - starting\n',guiobj.autoPilot_idx)
+                guiobj.roboDet_idx = i;
+                fprintf(1,'Autopilot running - file #%d - starting\n',guiobj.roboDet_idx)
                 
                 % import data
                 ImportRHDButtonPushed(guiobj)
                 
                 % run periodic filter, or other preproc
                 guiobj.ephysProcListBox.Value = selChans;
-                guiobj.ephysProcPopMenu.Value = 3;
-                guiobj.ephysArtSuppTypePopMenu.Value = 4;
                 ephysRunProc(guiobj)
                 guiobj.ephys_artSupp4Det = 1;
                 guiobj.ephys_artSuppedData4DetListInds = selChans;
@@ -2122,20 +2194,32 @@ classdef DAS < handle
                 guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_procced,selChans,refChans);
                 
                 % run detection
-                guiobj.ephysDetPopMenu.Value = 2;
-                guiobj.selIntervalsCheckBox.Value = 1;
-                guiobj.ephysDetUseProcDataCheckBox.Value = 1;
-                ephysDetRun(guiobj)
+                doDet = true;
+                initSdLvl = str2double(guiobj.ephysCwtDetSdMultEdit.String);
+                currSdLvl = initSdLvl;
+                while doDet
+                    guiobj.ephysCwtDetSdMultEdit.String = num2str(currSdLvl);
+                    ephysDetRun(guiobj)
+                    if isempty(guiobj.ephys_detections) && (currSdLvl > 4)
+                        fprintf(1,'Autopilot running - file #%d - No events found, lowering SD level...\n',guiobj.roboDet_idx)
+                        currSdLvl = currSdLvl - 1;
+                    else
+                        doDet = false;
+                    end
+                end
+                guiobj.ephysCwtDetSdMultEdit.String = num2str(initSdLvl);
                 
                 % save detections
                 saveDets(guiobj)
                 
                 % reset
                 guiobj = resetGuiData(guiobj,1);
-                fprintf(1,'Autopilot index = %d - after rhd butt call\n',guiobj.autoPilot_idx)
+                fprintf(1,'Autopilot running - file #%d - Done\n',guiobj.roboDet_idx)
             end
             
-            guiobj.autoPilot = false;
+            operationDoneMsg('RoboDet is done!', 'RoboDet complete')
+            
+            guiobj.roboDet = false;
         end
         
     end
@@ -2164,9 +2248,9 @@ classdef DAS < handle
             
             guiobj.ephys_downSampd = false;
             
-            if guiobj.autoPilot
-                path = guiobj.autoPilot_path;
-                filename = guiobj.autoPilot_fnames{guiobj.autoPilot_idx};
+            if guiobj.roboDet
+                path = guiobj.roboDet_path;
+                filename = guiobj.roboDet_fnames{guiobj.roboDet_idx};
             else
                 [filename,path] = uigetfile('*.rhd');
             end
@@ -2934,58 +3018,35 @@ classdef DAS < handle
         
         %%    
         function tabSelected(guiobj,~,e)
-            if e.NewValue == guiobj.tabs.Children(2)...
-                    & isempty(guiobj.ephys_data)
-                guiobj.tabs.SelectedTab = e.OldValue;
-                erdlg = errordlg('No electrophysiology data loaded!');
-                pause(1)
-                if ishandle(erdlg)
-                    close(erdlg)
-                end
-                return
+            switch e.NewValue
+                case guiobj.tabs.Children(2)
+                    guiobj.ephysProcListBox.String = guiobj.ephys_datanames;
+                    if guiobj.ephys_select...
+                            <= size(guiobj.ephys_data,1)
+                        guiobj.ephysProcListBox.Value = guiobj.ephys_select;
+                    else
+                        guiobj.ephys_select = 1;
+                        guiobj.ephysProcListBox.Value = 1;
+                    end
+
+                case guiobj.tabs.Children(3)
+                    guiobj.imagingProcListBox.String = guiobj.imaging_datanames;
+                    if guiobj.imaging_select...
+                            <= size(guiobj.imaging_data,1)
+                        guiobj.imagingProcListBox.Value = guiobj.imaging_select;
+                    else
+                        guiobj.imaging_select = 1;
+                        guiobj.imagingProcListBox.Value = 1;
+                    end
+
+                case guiobj.tabs.Children(4)
+                    if ~isempty(guiobj.ephys_data)
+                        temp = 1:size(guiobj.ephys_data,1);
+                        temp = {num2str(temp')};
+                        guiobj.ephysDetChSelListBox.String = temp;
+                    end
             end
-            if e.NewValue == guiobj.tabs.Children(3)...
-                    & isempty(guiobj.imaging_data)
-                guiobj.tabs.SelectedTab = e.OldValue;
-                erdlg = errordlg('No imaging data loaded!');
-                pause(1)
-                if ishandle(erdlg)
-                    close(erdlg)
-                end
-                return
-            end
-            
-%             if e.OldValue == guiobj.tabs.Children(1)
-                switch e.NewValue
-                    case guiobj.tabs.Children(2)
-                        guiobj.ephysProcListBox.String = guiobj.ephys_datanames;
-                        if guiobj.ephys_select...
-                                <= size(guiobj.ephys_data,1)
-                            guiobj.ephysProcListBox.Value = guiobj.ephys_select;
-                        else
-                            guiobj.ephys_select = 1;
-                            guiobj.ephysProcListBox.Value = 1;
-                        end
-                        
-                    case guiobj.tabs.Children(3)
-                        guiobj.imagingProcListBox.String = guiobj.imaging_datanames;
-                        if guiobj.imaging_select...
-                                <= size(guiobj.imaging_data,1)
-                            guiobj.imagingProcListBox.Value = guiobj.imaging_select;
-                        else
-                            guiobj.imaging_select = 1;
-                            guiobj.imagingProcListBox.Value = 1;
-                        end
-                        
-                    case guiobj.tabs.Children(4)
-                        if ~isempty(guiobj.ephys_data)
-                            temp = 1:size(guiobj.ephys_data,1);
-                            temp = {num2str(temp')};
-                            guiobj.ephysDetChSelListBox.String = temp;
-                        end
-                end
-                smartplot(guiobj)
-%             end
+            smartplot(guiobj)
         end
         
         %%
@@ -3659,8 +3720,8 @@ classdef DAS < handle
                 end
                 data = guiobj.ephys_data(chan,:);
             else
-                if guiobj.autoPilot
-                    selInds = guiobj.autoPilot_selChans;
+                if guiobj.roboDet
+                    selInds = guiobj.roboDet_selChans;
                 else
                     selInds = makeProcDataSelFig(guiobj,1);
                 end
@@ -3696,7 +3757,7 @@ classdef DAS < handle
                         
             % check whether user requested interval selection
             if guiobj.selIntervalsCheckBox.Value
-                if guiobj.autoPilot
+                if guiobj.roboDet
                     inds2use_interval = guiobj.ephys_prevIntervalSel;
                 else
                     if ~any(ismember(refch, chan))
@@ -3931,10 +3992,10 @@ classdef DAS < handle
                                         
                     if ~refVal
                         [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,...
-                            sdmult,w1,w2,0,0,[],showFigs,guiobj.autoPilot);
+                            sdmult,w1,w2,0,0,[],showFigs,guiobj.roboDet);
                     elseif refVal
                         [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,...
-                            sdmult,w1,w2,refVal,refch,refchData,showFigs,guiobj.autoPilot);
+                            sdmult,w1,w2,refVal,refch,refchData,showFigs,guiobj.roboDet);
                     end
                     
                     detinfo.DetType = "CWT";
@@ -4012,10 +4073,10 @@ classdef DAS < handle
                     
                     if ~refVal
                         [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,...
-                            w1,w2,sdmult,minLen,0,0,[],showFigs,guiobj.autoPilot);
+                            w1,w2,sdmult,minLen,0,0,[],showFigs,guiobj.roboDet);
                     elseif refVal
                         [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,...
-                            w1,w2,sdmult,minLen,refVal,refch,refchData,showFigs,guiobj.autoPilot);
+                            w1,w2,sdmult,minLen,refVal,refch,refchData,showFigs,guiobj.roboDet);
                     end
                     
                     detinfo.DetType = "DoGInstPow";
@@ -4569,11 +4630,40 @@ classdef DAS < handle
             % If it does, load it, if it doesnt create it
             if fID >= 3
                 try
-                    load([DASlocation,'DAS_LOG.mat'])
+                    load([DASlocation,'DAS_LOG.mat'], 'DAS_LOG')
                     disp('Log file found and loaded.')
                 catch
                     disp('Log file could not be loaded! A new one will be generated when you close the GUI.')
                     return
+                end
+                
+                try
+                    temp = DAS_LOG.lastState.ephysProcTab.Periodic;
+                    guiobj.ephysPeriodicFfundEdit.String = temp.ffund;
+                    guiobj.ephysPeriodicFmaxEdit.String = temp.fmax;
+                    guiobj.ephysPeriodicPlotFFTCheckBox.Value = temp.plotfft;
+                    guiobj.ephysPeriodicStopbandWidthEdit.String = temp.stopbandwidth;
+                    clear temp
+                catch
+                    disp('Last state of Periodic filter settings could not be loaded! They will be saved when you close the GUI.')
+                end
+                
+                try
+                    temp = DAS_LOG.lastState.imagingProcTab.Filt;
+                    guiobj.imagingFiltWinSizeEdit.String = temp.winSize;
+                    clear temp
+                catch
+                    disp('Last state of imaging filter settings could not be loaded! They will be saved when you close the GUI.')
+                end
+                
+                try
+                    temp = DAS_LOG.lastState.eventDetTab.general;
+                    guiobj.selIntervalsCheckBox.Value = temp.selInterVals;
+                    guiobj.ephysDetUseProcDataCheckBox.Value = temp.ephysDetUseProcData;
+                    guiobj.imagingDetUseProcDataCheckBox.Value = temp.imagingDetUseProcData;
+                    clear temp
+                catch
+                    disp('Last state of general event detection tab settings could not be loaded! They will be saved when you close the GUI.')
                 end
                 
                 try
@@ -4655,6 +4745,30 @@ classdef DAS < handle
         
         %%
         function mainFigCloseFcn(guiobj)
+            %% Periodic filt stuff
+            temp.ffund = guiobj.ephysPeriodicFfundEdit.String;
+            temp.fmax = guiobj.ephysPeriodicFmaxEdit.String;
+            temp.plotfft = guiobj.ephysPeriodicPlotFFTCheckBox.Value;
+            temp.stopbandwidth = guiobj.ephysPeriodicStopbandWidthEdit.String;
+            
+            DAS_LOG.lastState.ephysProcTab.Periodic = temp;
+            clear temp
+            
+            %% Imaging filt stuff
+            temp.winSize = guiobj.imagingFiltWinSizeEdit.String;
+            
+            DAS_LOG.lastState.imagingProcTab.Filt = temp;
+            clear temp
+            
+            %% General det stuff
+            temp.selInterVals = guiobj.selIntervalsCheckBox.Value;
+            temp.ephysDetUseProcData = guiobj.ephysDetUseProcDataCheckBox.Value;
+            temp.imagingDetUseProcData = guiobj.imagingDetUseProcDataCheckBox.Value;
+            
+            DAS_LOG.lastState.eventDetTab.general = temp;
+            clear temp
+            
+            %% DoGInstPow det stuff
             temp.w1 = guiobj.ephysDoGInstPowDetW1Edit.String;
             temp.w2 = guiobj.ephysDoGInstPowDetW2Edit.String;
             temp.sdmult = guiobj.ephysDoGInstPowDetSdMultEdit.String;
@@ -4664,6 +4778,7 @@ classdef DAS < handle
             DAS_LOG.lastState.eventDetTab.ephys.DoGInstPow = temp;
             clear temp
             
+            %% CWT det stuff
             temp.minlen = guiobj.ephysCwtDetMinlenEdit.String;
             temp.sdmult = guiobj.ephysCwtDetSdMultEdit.String;
             temp.w1 = guiobj.ephysCwtDetW1Edit.String;
@@ -4673,10 +4788,13 @@ classdef DAS < handle
             DAS_LOG.lastState.eventDetTab.ephys.CWT = temp;
             clear temp
                         
+            %% refchan
             DAS_LOG.lastState.eventDetTab.ephys.refChan = guiobj.ephysDetRefChanEdit.String;
             
+            %% ephys presets
             DAS_LOG.presets.ephys = guiobj.ephys_presets;
             
+            %% Imaging mean sd det stuff
             temp.sdMult = guiobj.imagingMeanSdDetSdmultEdit.String;
             temp.winSize = guiobj.imagingMeanSdDetWinSizeEdit.String;
             temp.slideAvgCheck = guiobj.imagingMeanSdDetSlideAvgCheck.Value;
@@ -4684,6 +4802,7 @@ classdef DAS < handle
             DAS_LOG.lastState.eventDetTab.imaging.MeanSd = temp;
             clear temp
             
+            %% Imaging mlspike det stuff
             temp.dFF = guiobj.imagingMlSpDetDFFSpikeEdit.String;
             temp.sigma = guiobj.imagingMlSpDetSigmaEdit.String;
             temp.tau = guiobj.imagingMlSpDetTauEdit.String;
@@ -4691,6 +4810,7 @@ classdef DAS < handle
             DAS_LOG.lastState.eventDetTab.imaging.MLspike = temp;
             clear temp
             
+            %% Saving logfile
             DASlocation = mfilename('fullpath');
             DASlocation = DASlocation(1:end-3);
             save([DASlocation,'DAS_LOG.mat'],'DAS_LOG')
@@ -4839,7 +4959,7 @@ classdef DAS < handle
         
         %%
         function saveDets(guiobj)
-            if ~guiobj.autoPilot && (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))...
+            if ~guiobj.roboDet && (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))...
                     && (isempty(guiobj.imaging_detections) || ~sum(~cellfun('isempty',guiobj.imaging_detections)))
                 choice = questdlg('Both datatypes have empty detections, save anyway?');
                 switch choice
@@ -4851,7 +4971,7 @@ classdef DAS < handle
             
             wb = waitbar(0,'Saving detections...');
             
-            if guiobj.autoPilot % temporary
+            if guiobj.roboDet % temporary
                 list = "Electrophysiology";
                 detTypeToSave = 1;
                 saveAllChans = 0;
@@ -5040,7 +5160,7 @@ classdef DAS < handle
                 end
             end
             
-            if guiobj.autoPilot
+            if guiobj.roboDet
                 comments = '';
             else
                 comments = inputdlg('Enter comment on detection:','Comments',...
@@ -5055,8 +5175,8 @@ classdef DAS < handle
                 fname = ['DASsave_',guiobj.rhdName];
             end
             
-            if guiobj.autoPilot
-                path = guiobj.autoPilot_path;
+            if guiobj.roboDet
+                path = guiobj.roboDet_detSavePath;
             else
                 [fname,path] = uiputfile('*.mat','Save DAS detections',fname);
             end
@@ -5792,7 +5912,6 @@ classdef DAS < handle
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0, 0, 1, 1],...
-                'String','Electrophysiology data',...
                 'Min',0,...
                 'Max',10,...
                 'Callback',@(h,e) guiobj.DatasetListBoxValueChanged);
@@ -5808,7 +5927,6 @@ classdef DAS < handle
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0, 0.55, 1, 0.4],...
-                'String','Electrophysiology data',...
                 'Min',0,...
                 'Max',10,...
                 'Callback',@(h,e) guiobj.EphysListBoxValueChanged);
@@ -5818,7 +5936,6 @@ classdef DAS < handle
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0, 0.05, 1, 0.4],...
-                'String','Imaging data',...
                 'Min',0,...
                 'Max',10,...
                 'Callback',@(h,e) guiobj.ImagingListBoxValueChanged);
