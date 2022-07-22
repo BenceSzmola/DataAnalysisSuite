@@ -259,6 +259,11 @@ classdef DAS < handle
     
     %% Initializing data stored in GUI
     properties (Access = private)
+        autoPilot = false;
+        autoPilot_idx
+        autoPilot_path
+        autoPilot_fnames
+        
         timedim = 1;                        % Determines whether the guiobj uses seconds or milliseconds
         datatyp = [0, 0, 0];                % datatypes currently handled (ephys,imaging,running)
         showXtraDetFigs = 0;
@@ -1473,8 +1478,12 @@ classdef DAS < handle
         end
         
         %%
-        function resetGuiData(guiobj,rhdORgor)
+        function guiobj = resetGuiData(guiobj,rhdORgor)
 
+            autoPilot_prev = guiobj.autoPilot;
+            autoPilot_fnames_prev = guiobj.autoPilot_fnames;
+            autoPilot_idx_prev = guiobj.autoPilot_idx;
+            autoPilot_path_prev = guiobj.autoPilot_path;
             dtyp = guiobj.datatyp;
             showXtraFigs = guiobj.showXtraDetFigs;
             evDetYlimMode = guiobj.evDetTabYlimMode;
@@ -1498,6 +1507,10 @@ classdef DAS < handle
             
             guiobj.mainfig.Position = figLastPos;
             guiobj.mainfig.WindowState = figLastState;
+            guiobj.autoPilot = autoPilot_prev;
+            guiobj.autoPilot_fnames = autoPilot_fnames_prev;
+            guiobj.autoPilot_idx = autoPilot_idx_prev;
+            guiobj.autoPilot_path = autoPilot_path_prev;
             guiobj.evDetTabYlimMode = evDetYlimMode;
             guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
             guiobj.importUpSamp = doImportUpSamp;
@@ -1536,21 +1549,27 @@ classdef DAS < handle
             if toRun(3)
                 runCheckBoxValueChanged(guiobj)
             end
-            if toRun(4)
-                ImportRHDButtonPushed(guiobj)
-            end
-            if toRun(5)
-                ImportgorobjButtonPushed(guiobj)
-            end
-            if toRun (6)
-                ImportruncsvButtonPushed(guiobj)
-            end
-            
-            if showXtraFigs
-                showXtraDetFigsMenuSel(guiobj)                
+            if ~guiobj.autoPilot
+                if toRun(4)
+                    ImportRHDButtonPushed(guiobj)
+                end
+                if toRun(5)
+                    ImportgorobjButtonPushed(guiobj)
+                end
+                if toRun (6)
+                    ImportruncsvButtonPushed(guiobj)
+                end
+
+                if showXtraFigs
+                    showXtraDetFigsMenuSel(guiobj)                
+                end
             end
                         
             delete(mbox)
+            
+            if nargout == 0
+                clear guiobj
+            end
         end
         
         %%
@@ -1713,30 +1732,42 @@ classdef DAS < handle
             
             inds2use = [];
             
-            quest = 'Which method do you want to use to discard intervals?';
-            questTitle = 'Interval selection method';
-            btn1 = 'Timestamp entry';
-            btn2 = 'Graphical';
-            btn3 = 'Cancel';
-            defbtn = btn1;
-            selMethod = questdlg(quest,questTitle,btn1,btn2,btn3,defbtn);
+%             quest = 'Which method do you want to use to discard intervals?';
+%             questTitle = 'Interval selection method';
+%             btn1 = 'Timestamp entry';
+%             btn2 = 'Graphical';
+%             btn3 = 'Cancel';
+%             defbtn = btn1;
+%             selMethod = questdlg(quest,questTitle,btn1,btn2,btn3,defbtn);
+            
+            if guiobj.autoPilot
+                selMethod = 3;
+            else
+                selList = {'Timestamp entry', 'Graphical', 'Automatic'};
+                [selMethod, tf] = listdlg('ListString', selList,...
+                    'Name', 'Interval selection method',...
+                    'PromptString', 'Which method do you want to use to discard intervals?',...
+                    'SelectionMode', 'single');
+                if ~tf
+                    return
+                end
+            end
             
             switch dTyp
                 case 1
                     len = length(guiobj.ephys_data);
+                    fs = guiobj.ephys_fs;
                     tAxis = guiobj.ephys_taxis;
 
                 case 2
                     len = length(guiobj.imaging_data);
+                    fs = guiobj.imaging_fs;
                     tAxis = guiobj.imaging_taxis;
 
             end
             
             switch selMethod
-                case 'Cancel'
-                    return
-                    
-                case 'Timestamp entry'
+                case 1
                     badIntervalsT = intervalInput(guiobj,dTyp);
                     
                     inds2use = 1:len;
@@ -1747,7 +1778,7 @@ classdef DAS < handle
                     end
                     inds2use(isnan(inds2use)) = [];
                     
-                case 'Graphical'
+                case 2
                     indSelFig = figure('NumberTitle','off',...
                         'Name','Selection of intervals to discard',...
                         'WindowState','maximized',...
@@ -1829,6 +1860,21 @@ classdef DAS < handle
                         inds2use(intervalStart:intervalEnd) = nan;
                     end
                     inds2use(isnan(inds2use)) = [];
+                    
+                case 3
+                    if isempty(refchans)
+                        eD = errordlg('Automatic discard requires reference channels!');
+                        pause(1)
+                        if ishandle(eD)
+                            close(eD)
+                        end
+                    end
+                    
+                    inds2use = 1:len;
+                    refchrows = ismember(chans, refchans);
+                    critData = mean(instPow(data(refchrows,:),fs,150,250));
+                    critThr = median(critData) + std(critData);
+                    inds2use(critData > critThr) = [];
                     
             end
         end
@@ -2016,6 +2062,52 @@ classdef DAS < handle
             end
         end
         
+        %%
+        function autoRun(guiobj)      
+            display('Starting autoRun')
+            guiobj.autoPilot = true;
+            
+            btn1 = 'Directory';
+            btn2 = 'Files';
+            btn3 = 'Cancel';
+            dirOrFile = questdlg('Select directory or files?', 'Selection method', btn1, btn2, btn3, btn1);
+            switch dirOrFile
+                case btn1
+                    path = uigetdir(cd, 'Select directory to analyse!');
+                    path = [path,'\'];
+                    saveFnames = dir([path,'*.rhd']);
+                    saveFnames = {saveFnames.name};
+
+                case btn2
+                    [saveFnames, path] = uigetfile('*.rhd', 'MultiSelect', 'on');
+
+                case {btn3, ''}
+                    return
+
+            end
+            
+            guiobj.autoPilot_path = path;
+            guiobj.autoPilot_fnames = saveFnames;
+            
+            for i = 1:length(saveFnames)
+                i
+                guiobj.autoPilot_idx = i;
+                fprintf(1,'Autopilot index = %d - starting\n',guiobj.autoPilot_idx)
+                
+                ImportRHDButtonPushed(guiobj)
+                
+                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_data,1:4,5);
+                
+                
+                pause(2)
+                guiobj = resetGuiData(guiobj,1);
+                isempty(guiobj.ephys_data)
+                fprintf(1,'Autopilot index = %d - after rhd butt call\n',guiobj.autoPilot_idx)
+            end
+            
+            guiobj.autoPilot = false;
+        end
+        
     end
     
     %% Callback functions
@@ -2042,7 +2134,12 @@ classdef DAS < handle
             
             guiobj.ephys_downSampd = false;
             
-            [filename,path] = uigetfile('*.rhd');
+            if guiobj.autoPilot
+                path = guiobj.autoPilot_path;
+                filename = guiobj.autoPilot_fnames{guiobj.autoPilot_idx};
+            else
+                [filename,path] = uigetfile('*.rhd');
+            end
             if filename == 0
                 figure(guiobj.mainfig)
                 return
@@ -4948,6 +5045,12 @@ classdef DAS < handle
         
         %%
         function keyboardPressFcn(guiobj,~,kD)
+            % testing autopilot
+            if strcmp(kD.Key,'p')
+                autoRun(guiobj)
+                return
+            end
+            
             if guiobj.tabs.SelectedTab == guiobj.tabs.Children(4)
                 if strcmp(kD.Key,'d') & (sum(guiobj.datatyp) > 1)
                     switch guiobj.keyboardPressDtyp
