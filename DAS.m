@@ -2179,7 +2179,7 @@ classdef DAS < handle
             
             for i = 1:length(saveFnames)
                 guiobj.roboDet_idx = i;
-                fprintf(1,'Autopilot running - file #%d - starting\n',guiobj.roboDet_idx)
+                fprintf(1,'Autopilot running - file #%d/%d - starting\n', guiobj.roboDet_idx, length(saveFnames))
                 
                 % import data
                 ImportRHDButtonPushed(guiobj)
@@ -2201,7 +2201,7 @@ classdef DAS < handle
                     guiobj.ephysCwtDetSdMultEdit.String = num2str(currSdLvl);
                     ephysDetRun(guiobj)
                     if isempty(guiobj.ephys_detections) && (currSdLvl > 4)
-                        fprintf(1,'Autopilot running - file #%d - No events found, lowering SD level...\n',guiobj.roboDet_idx)
+                        fprintf(1,'Autopilot running - file #%d/%d - No events found, lowering SD level...\n', guiobj.roboDet_idx, length(saveFnames))
                         currSdLvl = currSdLvl - 1;
                     else
                         doDet = false;
@@ -2214,10 +2214,10 @@ classdef DAS < handle
                 
                 % reset
                 guiobj = resetGuiData(guiobj,1);
-                fprintf(1,'Autopilot running - file #%d - Done\n',guiobj.roboDet_idx)
+                fprintf(1,'Autopilot running - file #%d/%d - Done\n',guiobj.roboDet_idx, length(saveFnames))
             end
             
-            operationDoneMsg('RoboDet is done!', 'RoboDet complete')
+            operationDoneMsg('RoboDet is done!')
             
             guiobj.roboDet = false;
         end
