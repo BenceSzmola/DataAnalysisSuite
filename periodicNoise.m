@@ -271,7 +271,7 @@ if ~f_fund_given
         feedbackText.String = [strcat("Ch#",num2str(i)," fund freq = ",num2str(f_fund(i))," Hz"); feedbackText_old];
         drawnow
 
-        fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))
+%         fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))
     end
     if length(unique(round(f_fund/2)*2)) > 1
         modeVal = mode(round(f_fund/2)*2);
@@ -281,7 +281,7 @@ if ~f_fund_given
         f_fund = mean(f_fund);
     end
     
-    fprintf(1,'The final result for the fundamental frequency of the periodic noise in the whole recording is: %f Hz\n',f_fund)
+%     fprintf(1,'The final result for the fundamental frequency of the periodic noise in the whole recording is: %f Hz\n',f_fund)
     
     progBarPlot.Position = [0, 0, 1, 0.1]; 
     progBarText.String = ['Done with all channels!'];
