@@ -263,6 +263,8 @@ classdef DAS < handle
         autoPilot_idx
         autoPilot_path
         autoPilot_fnames
+        autoPilot_selChans
+        autoPilot_refChans
         
         timedim = 1;                        % Determines whether the guiobj uses seconds or milliseconds
         datatyp = [0, 0, 0];                % datatypes currently handled (ephys,imaging,running)
@@ -1484,6 +1486,8 @@ classdef DAS < handle
             autoPilot_fnames_prev = guiobj.autoPilot_fnames;
             autoPilot_idx_prev = guiobj.autoPilot_idx;
             autoPilot_path_prev = guiobj.autoPilot_path;
+            autoPilot_selChans_prev = guiobj.autoPilot_selChans;
+            autoPilot_refChans_prev = guiobj.autoPilot_refChans;
             dtyp = guiobj.datatyp;
             showXtraFigs = guiobj.showXtraDetFigs;
             evDetYlimMode = guiobj.evDetTabYlimMode;
@@ -1511,6 +1515,8 @@ classdef DAS < handle
             guiobj.autoPilot_fnames = autoPilot_fnames_prev;
             guiobj.autoPilot_idx = autoPilot_idx_prev;
             guiobj.autoPilot_path = autoPilot_path_prev;
+            guiobj.autoPilot_selChans = autoPilot_selChans_prev;
+            guiobj.autoPilot_refChans = autoPilot_refChans_prev;
             guiobj.evDetTabYlimMode = evDetYlimMode;
             guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
             guiobj.importUpSamp = doImportUpSamp;
@@ -2066,6 +2072,7 @@ classdef DAS < handle
         function autoRun(guiobj)      
             display('Starting autoRun')
             guiobj.autoPilot = true;
+            guiobj = resetGuiData(guiobj,1);
             
             btn1 = 'Directory';
             btn2 = 'Files';
@@ -2089,19 +2096,42 @@ classdef DAS < handle
             guiobj.autoPilot_path = path;
             guiobj.autoPilot_fnames = saveFnames;
             
+            % channel selection (for now hardcoded for testing)
+            selChans = 1:5;
+            guiobj.autoPilot_selChans = selChans;
+            refChans = 5;
+            guiobj.autoPilot_refChans = refChans;
+            
             for i = 1:length(saveFnames)
                 i
                 guiobj.autoPilot_idx = i;
                 fprintf(1,'Autopilot index = %d - starting\n',guiobj.autoPilot_idx)
                 
+                % import data
                 ImportRHDButtonPushed(guiobj)
                 
-                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_data,1:4,5);
+                % run periodic filter, or other preproc
+                guiobj.ephysProcListBox.Value = selChans;
+                guiobj.ephysProcPopMenu.Value = 3;
+                guiobj.ephysArtSuppTypePopMenu.Value = 4;
+                ephysRunProc(guiobj)
+                guiobj.ephys_artSupp4Det = 1;
+                guiobj.ephys_artSuppedData4DetListInds = selChans;
                 
+                % run interval discarding
+                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_procced,selChans,refChans);
                 
-                pause(2)
+                % run detection
+                guiobj.ephysDetPopMenu.Value = 2;
+                guiobj.selIntervalsCheckBox.Value = 1;
+                guiobj.ephysDetUseProcDataCheckBox.Value = 1;
+                ephysDetRun(guiobj)
+                
+                % save detections
+                saveDets(guiobj)
+                
+                % reset
                 guiobj = resetGuiData(guiobj,1);
-                isempty(guiobj.ephys_data)
                 fprintf(1,'Autopilot index = %d - after rhd butt call\n',guiobj.autoPilot_idx)
             end
             
@@ -3629,7 +3659,11 @@ classdef DAS < handle
                 end
                 data = guiobj.ephys_data(chan,:);
             else
-                selInds = makeProcDataSelFig(guiobj,1);
+                if guiobj.autoPilot
+                    selInds = guiobj.autoPilot_selChans;
+                else
+                    selInds = makeProcDataSelFig(guiobj,1);
+                end
                 if isempty(selInds)
                     ed = errordlg('No channel selected!');
                     pause(1)
@@ -3662,28 +3696,32 @@ classdef DAS < handle
                         
             % check whether user requested interval selection
             if guiobj.selIntervalsCheckBox.Value
-                if ~any(ismember(refch, chan))
-                    inputData = [guiobj.ephys_data(refch,:); data];
-                    inputChans = [refch, chan];
-                else
-                    inputData = data;
-                    inputChans = chan;
-                end
-                
-                selNewIntervals = useNewOrOldIntervals(guiobj);
-                
-                if selNewIntervals
-                    inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
-                    guiobj.ephys_prevIntervalSel = inds2use_interval;
-                else
+                if guiobj.autoPilot
                     inds2use_interval = guiobj.ephys_prevIntervalSel;
-                end
-                
-                if isempty(inds2use_interval)
-                    warndlg('The whole recording was discarded!')
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                    return
+                else
+                    if ~any(ismember(refch, chan))
+                        inputData = [guiobj.ephys_data(refch,:); data];
+                        inputChans = [refch, chan];
+                    else
+                        inputData = data;
+                        inputChans = chan;
+                    end
+
+                    selNewIntervals = useNewOrOldIntervals(guiobj);
+
+                    if selNewIntervals
+                        inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
+                        guiobj.ephys_prevIntervalSel = inds2use_interval;
+                    else
+                        inds2use_interval = guiobj.ephys_prevIntervalSel;
+                    end
+
+                    if isempty(inds2use_interval)
+                        warndlg('The whole recording was discarded!')
+                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        return
+                    end
                 end
             else
                 inds2use_interval = 'all';
@@ -3892,9 +3930,11 @@ classdef DAS < handle
                     end
                                         
                     if ~refVal
-                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,0,0,[],showFigs);
+                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,...
+                            sdmult,w1,w2,0,0,[],showFigs,guiobj.autoPilot);
                     elseif refVal
-                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,sdmult,w1,w2,refVal,refch,refchData,showFigs);
+                        [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,...
+                            sdmult,w1,w2,refVal,refch,refchData,showFigs,guiobj.autoPilot);
                     end
                     
                     detinfo.DetType = "CWT";
@@ -3971,9 +4011,11 @@ classdef DAS < handle
                     end
                     
                     if ~refVal
-                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,0,0,[],showFigs);
+                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,...
+                            w1,w2,sdmult,minLen,0,0,[],showFigs,guiobj.autoPilot);
                     elseif refVal
-                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,w1,w2,sdmult,minLen,refVal,refch,refchData,showFigs);
+                        [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,...
+                            w1,w2,sdmult,minLen,refVal,refch,refchData,showFigs,guiobj.autoPilot);
                     end
                     
                     detinfo.DetType = "DoGInstPow";
@@ -4797,7 +4839,7 @@ classdef DAS < handle
         
         %%
         function saveDets(guiobj)
-            if (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))...
+            if ~guiobj.autoPilot && (isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))...
                     && (isempty(guiobj.imaging_detections) || ~sum(~cellfun('isempty',guiobj.imaging_detections)))
                 choice = questdlg('Both datatypes have empty detections, save anyway?');
                 switch choice
@@ -4809,46 +4851,51 @@ classdef DAS < handle
             
             wb = waitbar(0,'Saving detections...');
             
-            list = [];
-            if ~isempty(guiobj.ephys_data)
-                list = [list,"Electrophysiology"];
-            end
-            if ~isempty(guiobj.imaging_data)
-                list = [list,"Imaging"];
-            end
-            if ~isempty(guiobj.simult_detections)
-                list = [list,"Simultaneous"];
-            end
-            if isempty(list)
-                if ishandle(wb)
-                    close(wb)
+            if guiobj.autoPilot % temporary
+                list = "Electrophysiology";
+                detTypeToSave = 1;
+                saveAllChans = 0;
+            else
+                list = [];
+                if ~isempty(guiobj.ephys_data)
+                    list = [list,"Electrophysiology"];
                 end
-                return
-            end
-            [detTypeToSave,tf] = listdlg('PromptString','Which detection (or dataset if there are no detections) do you want to save?',...
-                'Name','Saving detections',...
-                'ListString',list,'ListSize',[250, 100]);
-            if ~tf
-                if ishandle(wb)
-                    close(wb)
+                if ~isempty(guiobj.imaging_data)
+                    list = [list,"Imaging"];
                 end
-                return
-            end
-            
-            saveAllChans = 0;
-            quest = ['Do you want to save the all channels/ROIs, or only those',...
-                ' which were used in the detection?'];
-            title = 'Save all channels';
-            answer = questdlg(quest,title,'All','Those used in detection','Cancel','All');
-            if strcmp(answer,'All')
-                saveAllChans = 1;
-            elseif isempty(answer) || strcmp(answer,'Cancel')
-                if ishandle(wb)
-                    close(wb)
+                if ~isempty(guiobj.simult_detections)
+                    list = [list,"Simultaneous"];
                 end
-                return
+                if isempty(list)
+                    if ishandle(wb)
+                        close(wb)
+                    end
+                    return
+                end
+                [detTypeToSave,tf] = listdlg('PromptString','Which detection (or dataset if there are no detections) do you want to save?',...
+                    'Name','Saving detections',...
+                    'ListString',list,'ListSize',[250, 100]);
+                if ~tf
+                    if ishandle(wb)
+                        close(wb)
+                    end
+                    return
+                end
+
+                saveAllChans = 0;
+                quest = ['Do you want to save the all channels/ROIs, or only those',...
+                    ' which were used in the detection?'];
+                title = 'Save all channels';
+                answer = questdlg(quest,title,'All','Those used in detection','Cancel','All');
+                if strcmp(answer,'All')
+                    saveAllChans = 1;
+                elseif isempty(answer) || strcmp(answer,'Cancel')
+                    if ishandle(wb)
+                        close(wb)
+                    end
+                    return
+                end
             end
-                
             
             if ~isempty(find(list(detTypeToSave) == "Electrophysiology",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % ephys save
@@ -4993,8 +5040,12 @@ classdef DAS < handle
                 end
             end
             
-            comments = inputdlg('Enter comment on detection:','Comments',...
-                [10,100]);
+            if guiobj.autoPilot
+                comments = '';
+            else
+                comments = inputdlg('Enter comment on detection:','Comments',...
+                    [10,100]);
+            end
             
             waitbar(0.99, wb, 'Creating savefile...')
             
@@ -5004,7 +5055,11 @@ classdef DAS < handle
                 fname = ['DASsave_',guiobj.rhdName];
             end
             
-            [fname,path] = uiputfile('*.mat','Save DAS detections',fname);
+            if guiobj.autoPilot
+                path = guiobj.autoPilot_path;
+            else
+                [fname,path] = uiputfile('*.mat','Save DAS detections',fname);
+            end
             if fname==0
                 if ishandle(wb)
                     close(wb)

@@ -1,4 +1,4 @@
-function [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refVal,refCh,refChData,showFigs)
+function [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refVal,refCh,refChData,showFigs,autoPilot)
 
 % [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,taxis,chan,fs,minLen,sdmult,w1,w2,refVal,refCh,refChData,showFigs)
 
@@ -115,7 +115,7 @@ for i = 1:size(data,1)
 end
     
 [dets,detBorders] = commDetAlg(taxis,chan,inds2use,data,instE,dogged,refCh,refDogged,refDets,fs,...
-    thr,refVal,minLen,extThr);
+    thr,refVal,minLen,extThr,autoPilot);
 
 % % check whether there is any power at the detected locations in other frequency ranges
 % for i = 1:min(size(data))

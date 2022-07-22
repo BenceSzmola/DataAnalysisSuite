@@ -1,5 +1,5 @@
 function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,...
-        refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
+        refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr,autoPilot)
 
 % [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
 
@@ -122,7 +122,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         
     end
     
-    if (refVal~=0) && (~isempty([refValVictims{:}]))
+    if ~autoPilot && (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
         questTitle = 'Review of discarded events';

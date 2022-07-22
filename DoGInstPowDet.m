@@ -1,4 +1,4 @@
-function [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,taxis,chan,fs,w1,w2,sdmult,minLen,refVal,refCh,refChData,showFigs)
+function [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,taxis,chan,fs,w1,w2,sdmult,minLen,refVal,refCh,refChData,showFigs,autoPilot)
 
 % [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,taxis,chan,fs,w1,w2,sdmult,minLen,refVal,refCh,refChData,showFigs)
 
@@ -93,7 +93,7 @@ for i = 1:size(data,1)
 end
 
 [dets,detBorders] = commDetAlg(taxis,chan,inds2use,data,instPowd,dogged,...
-    refCh,refDogged,refDets,fs,thr,refVal,minLen,extThr);
+    refCh,refDogged,refDets,fs,thr,refVal,minLen,extThr,autoPilot);
 
 for i = 1:min(size(data))
     
