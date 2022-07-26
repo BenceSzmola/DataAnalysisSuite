@@ -111,10 +111,12 @@ classdef DASeV < handle
         ephysDetDwnButt
         ephysChanUpButt
         ephysChanDwnButt
+        ephysDelCurrEvButt
         imagingDetUpButt
         imagingDetDwnButt
         imagingRoiUpButt
         imagingRoiDwnButt
+        imagingDelCurrEvButt
         
         
         % all the axes
@@ -352,6 +354,8 @@ classdef DASeV < handle
         
         %%
         function [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp,currChan,currDet)
+            % [numDets,numChans,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,dTyp,currChan,currDet)
+            
             switch gO.simultMode
                 case 0
                     switch dTyp
@@ -576,6 +580,12 @@ classdef DASeV < handle
             end
             
             if gO.parallelMode ~= 1
+                if ~sum(~cellfun('isempty',gO.ephysDets))
+                    cla(ax, 'reset');
+                    gO.ephysDetParamsTable.Data = '';
+                    return
+                end
+                
                 [numDets,~,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,1);
                 
                 if gO.simultMode
@@ -902,6 +912,12 @@ classdef DASeV < handle
         %%
         function imagingPlot(gO,ax)
             if gO.parallelMode ~= 2
+                if ~sum(~cellfun('isempty',gO.imagingDets))
+                    cla(ax, 'reset');
+                    gO.imagingDetParamsTable.Data = '';
+                    return
+                end
+                
                 [numDets,~,chanNum,chanOgNum,numDetsOg,detNum,detIdx,detBorders,detParams] = extractDetStruct(gO,2);
 
                 if gO.simultMode
@@ -1300,6 +1316,49 @@ classdef DASeV < handle
             win = winStart:winEnd;
         end
         
+        %%
+        function overwriteDASsave(gO,simult,dTyp)
+            switch simult
+                case 0
+                    switch dTyp
+                        case 1
+                            ephysSaveData.RawData = gO.ephysData;
+                            ephysSaveData.Fs = gO.ephysFs;
+                            ephysSaveData.TAxis = gO.ephysTaxis;
+                            ephysSaveData.YLabel = gO.ephysYlabel;
+                            ephysSaveData.Dets = gO.ephysDets;
+                            ephysSaveData.GlobalDets = gO.ephysGlobalDets;
+                            ephysSaveData.EventComplexes = gO.ephysEventComplexes;
+                            ephysSaveData.DetBorders = gO.ephysDetBorders;
+                            ephysSaveData.DetParams = gO.ephysDetParams;
+                            ephysSaveInfo = gO.ephysDetInfo;
+
+                            save(gO.path2loadedSave, 'ephysSaveData', 'ephysSaveInfo', '-append')
+                        case 2
+                            imagingSaveData.RawData = gO.imagingData;
+                            imagingSaveData.Fs = gO.imagingFs;
+                            imagingSaveData.TAxis = gO.imagingTaxis;
+                            imagingSaveData.YLabel = gO.imagingYlabel;
+                            imagingSaveData.Dets = gO.imagingDets;
+                            imagingSaveData.GlobalDets = gO.imagingGlobalDets;
+                            imagingSaveData.EventComplexes = gO.imagingEventComplexes;
+                            imagingSaveData.DetBorders = gO.imagingDetBorders;
+                            imagingSaveData.DetParams = gO.imagingDetParams;
+                            imagingSaveInfo = gO.imagingDetInfo;
+
+                            save(gO.path2loadedSave, 'imagingSaveData', 'imagingSaveInfo', '-append')
+
+                    end
+                    
+                case 1
+                    simultSaveData = gO.simultDets;
+                    simultSaveInfo = gO.simultDetInfo;
+                    
+                    save(gO.path2loadedSave, 'simultSaveData', 'simultSaveInfo', '-append')
+                    
+            end
+        end
+        
     end
     
     %% Callback functions
@@ -1623,6 +1682,7 @@ classdef DASeV < handle
             gO.ephysDetDwnButt.Enable = 'off';
             gO.ephysChanUpButt.Enable = 'off';
             gO.ephysChanDwnButt.Enable = 'off';
+            gO.ephysDelCurrEvButt.Enable = 'off';
             gO.ephysDetParamsTable.Data = {};
             gO.ephysDetParamsTable.ColumnName = {};
             gO.save2DbEphysCheckBox.Enable = 'off';
@@ -1655,19 +1715,19 @@ classdef DASeV < handle
                         gO.parallelMode = 1;
                         parallelModeMenuSel(gO,0)
                     end
-                    try
+                    if isfield(ephysSaveData, 'DetBorders')
                         gO.ephysDetBorders = ephysSaveData.DetBorders;
-                    catch
+                    else
                         gO.ephysDetBorders = cell(min(size(gO.ephysData)),1);
                     end
-                    try
+                    if isfield(ephysSaveData, 'DetParams')
                         gO.ephysDetParams = ephysSaveData.DetParams;
-                    catch
+                    else
                         gO.ephysDetParams = cell(min(size(gO.ephysData)),1);
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
-                    if ~strcmp(gO.ephysDetInfo(1).DetType,'Adapt')
-                        if ~isempty(gO.ephysDetInfo.DetSettings)
+                    if ~isempty(gO.ephysDetInfo)
+                        if ~isempty(gO.ephysDetInfo.DetSettings) && isfield(gO.ephysDetInfo.DetSettings, 'RefCh')
                             gO.ephysRefCh = numSelCharConverter(gO.ephysDetInfo(1).DetSettings.RefCh);
                         end
                     end
@@ -1676,6 +1736,7 @@ classdef DASeV < handle
                     gO.ephysDetDwnButt.Enable = 'on';
                     gO.ephysChanUpButt.Enable = 'on';
                     gO.ephysChanDwnButt.Enable = 'on';
+                    gO.ephysDelCurrEvButt.Enable = 'on';
                     gO.save2DbEphysCheckBox.Enable = 'on';
 
                     gO.loaded(1) = 1;
@@ -1691,6 +1752,7 @@ classdef DASeV < handle
             gO.imagingDetDwnButt.Enable = 'off';
             gO.imagingRoiUpButt.Enable = 'off';
             gO.imagingRoiDwnButt.Enable = 'off';
+            gO.imagingDelCurrEvButt.Enable = 'off';
             gO.save2DbImagingCheckBox.Enable = 'off';
             gO.save2DbImaging_wPar_CheckBox.Enable = 'off';
             gO.save2DbImaging_wPar_ChanSelect.Enable = 'off';
@@ -1724,14 +1786,14 @@ classdef DASeV < handle
                         parallelModeMenuSel(gO,0)
                     end
                     
-                    try
+                    if isfield(imagingSaveData, 'DetBorders')
                         gO.imagingDetBorders = imagingSaveData.DetBorders;
-                    catch
+                    else
                         gO.imagingDetBorders = cell(min(size(gO.imagingData)),1);
                     end
-                    try
+                    if isfield(imagingSaveData, 'DetParams')
                         gO.imagingDetParams = imagingSaveData.DetParams;
-                    catch
+                    else
                         gO.imagingDetParams = cell(min(size(gO.imagingData)),1);
                     end
                     gO.imagingDetInfo = imagingSaveInfo;
@@ -1740,6 +1802,7 @@ classdef DASeV < handle
                     gO.imagingDetDwnButt.Enable = 'on';
                     gO.imagingRoiUpButt.Enable = 'on';
                     gO.imagingRoiDwnButt.Enable = 'on';
+                    gO.imagingDelCurrEvButt.Enable = 'on';
                     gO.save2DbImagingCheckBox.Enable = 'on';
                     
                     if strcmp(gO.imagingDetInfo.DetType,'Mean+SD')
@@ -1811,9 +1874,9 @@ classdef DASeV < handle
             else
                 gO.parallelModeMenu.Enable = 'on';
                 gO.save2DbEphys_wPar_CheckBox.Enable = 'on';
-                gO.save2DbEphys_wPar_RoiSelect.Enable = 'off';
+                gO.save2DbEphys_wPar_RoiSelect.Enable = 'on';
                 gO.save2DbImaging_wPar_CheckBox.Enable = 'on';
-                gO.save2DbImaging_wPar_ChanSelect.Enable = 'off';
+                gO.save2DbImaging_wPar_ChanSelect.Enable = 'on';
             end
             
             
@@ -2005,6 +2068,21 @@ classdef DASeV < handle
         
         %%
         function axButtPress(gO,dTyp,detUpDwn,chanUpDwn)
+            if (gO.parallelMode ~= dTyp)
+                switch dTyp
+                    case 1
+                        if ~sum(~cellfun('isempty' ,gO.ephysDets))
+                            return
+                        end
+                        
+                    case 2
+                        if ~sum(~cellfun('isempty' ,gO.imagingDets))
+                            return
+                        end
+                        
+                end
+            end
+            
             if (gO.parallelMode == dTyp) || gO.fixWin
                 if nargin > 2
                     axButtPressAlter(gO,dTyp,chanUpDwn)
@@ -2209,6 +2287,299 @@ classdef DASeV < handle
 
             smartplot(gO)
             
+        end
+        
+        %%
+        function delCurrEventButtonCB(gO,dTyp)
+            switch gO.simultMode
+                case 0
+                    switch dTyp
+                        case 1
+                            if ~sum(~cellfun('isempty',gO.ephysDets))
+                                return
+                            end
+                            
+                            quest = 'Are you sure you want to delete the currently displayed ephys event?';
+                            butt2 = 'Delete every detection on channel';
+                        case 2
+                            if ~sum(~cellfun('isempty',gO.imagingDets))
+                                return
+                            end
+                            
+                            quest = 'Are you sure you want to delete the currently displayed imaging event?';
+                            butt2 = 'Delete every detection on ROI';
+                    end
+                    answer = questdlg(quest,'Detection deletion confirmation','Yes',butt2,'Cancel','Yes');
+                    switch answer
+                        case butt2
+                            delFullChan = true;
+                        case {'','Cancel'}
+                            return
+                        otherwise
+                            delFullChan = false;
+                    end
+                    [~,~,~,~,~,detNum,~,~,~] = extractDetStruct(gO,dTyp);
+                    
+                    switch dTyp
+                        case 1 % ephys
+                            currChan = gO.ephysCurrDetRow;
+                            currDet = gO.ephysCurrDetNum;
+                            
+                            if delFullChan
+                                gO.ephysDets(currChan) = [];
+                                gO.ephysGlobalDets(:,currChan) = [];
+                                gO.ephysEventComplexes(currChan) = [];
+                                gO.ephysDetParams(currChan) = [];
+                                gO.ephysDetBorders(currChan) = [];
+                                gO.ephysDetInfo.DetChannel(currChan) = [];
+                                gO.save2DbEphysSelection(currChan) = [];
+                                
+                                % check whether there are any detections on
+                                % any channel
+                                if ~sum(~cellfun('isempty',gO.ephysDets))
+                                    gO.ephysDets = {};
+                                    gO.ephysGlobalDets = [];
+                                    gO.ephysEventComplexes = {};
+                                    gO.ephysDetBorders = {};
+                                    gO.ephysDetParams = {};
+                                    gO.ephysDetInfo = [];
+                                    gO.save2DbEphysSelection = cell(1,1);
+                                    
+                                    smartplot(gO)
+                                    overwriteDASsave(gO,gO.simultMode,dTyp)
+                                    return
+                                end
+                                
+                                % make sure event display switches correctly
+                                if currChan ~= 1
+                                    currChan = currChan - 1;
+                                    currDet = 1;
+                                end
+                            else
+                                gO.ephysDets{currChan}(detNum) = [];
+                                
+                                gO.ephysGlobalDets(gO.ephysGlobalDets(:,currChan) == detNum,currChan) = nan;
+                                gO.ephysGlobalDets(gO.ephysGlobalDets(:,currChan) > detNum,currChan) = ...
+                                    gO.ephysGlobalDets(gO.ephysGlobalDets(:,currChan) > detNum,currChan) - 1;
+                                
+                                gO.ephysDetParams{currChan}(detNum) = [];
+                                gO.ephysDetBorders{currChan}(detNum,:) = [];
+                                
+                                gO.save2DbEphysSelection{currChan}(detNum) = [];
+                                
+                                maxSepInComplex = 0.1;
+                                maxSepInComplex = round(maxSepInComplex * gO.ephysFs);
+                                [evCompls, detParams] = extractEvComplexes(gO.ephysDetParams{currChan},...
+                                    gO.ephysDetBorders{currChan}, maxSepInComplex);
+                                gO.ephysEventComplexes{currChan} = evCompls;
+                                gO.ephysDetParams{currChan} = detParams;
+                                clear evCompls detParams
+
+                                % if after deleting no detections are left on the given
+                                % channel, delete that channel from the detection
+                                % storage
+                                detsLeft = length(gO.ephysDets{currChan});
+                            
+                                if detsLeft == 0
+                                    % check whether there are any detections on
+                                    % any channel
+                                    if ~sum(~cellfun('isempty',gO.ephysDets))
+                                        gO.ephysDets = {};
+                                        gO.ephysGlobalDets = [];
+                                        gO.ephysEventComplexes = {};
+                                        gO.ephysDetBorders = {};
+                                        gO.ephysDetParams = {};
+                                        gO.ephysDetInfo = [];
+                                        gO.save2DbEphysSelection = cell(1,1);
+                                        
+                                        smartplot(gO)
+                                        overwriteDASsave(gO,gO.simultMode,dTyp)
+                                        return
+                                    end
+
+                                    gO.ephysDets(currChan) = [];
+                                    gO.ephysGlobalDets(:,currChan) = [];
+                                    gO.ephysEventComplexes(currChan) = [];
+                                    gO.ephysDetParams(currChan) = [];
+                                    gO.ephysDetBorders(currChan) = [];
+                                    gO.ephysDetInfo.DetChannel(currChan) = [];
+                                    gO.save2DbEphysSelection(currChan) = [];
+
+                                    % make sure event display switches correctly
+                                    if currChan ~= 1
+                                        currChan = currChan - 1;
+                                        currDet = 1;
+                                    end
+                                else
+                                    if currDet ~= 1
+                                        currDet = currDet - 1;
+                                    end
+                                end
+                            end
+                            
+                            % controll globaldets container
+                            gO.ephysGlobalDets(sum(~isnan(gO.ephysGlobalDets), 2) < 2,:) = [];
+                            
+                            gO.ephysCurrDetRow = currChan;
+                            gO.ephysCurrDetNum = currDet;
+
+                        case 2 % imaging
+                            currChan = gO.imagingCurrDetRow;
+                            currDet = gO.imagingCurrDetNum;
+                            
+                            if delFullChan
+                                gO.imagingDets(currChan) = [];
+                                gO.imagingGlobalDets(:,currChan) = [];
+                                gO.imagingEventComplexes(currChan) = [];
+                                gO.imagingDetParams(currChan) = [];
+                                gO.imagingDetBorders(currChan) = [];
+                                gO.imagingDetInfo.DetROI(currChan) = [];
+                                gO.save2DbImagingSelection(currChan) = [];
+                                
+                                % check whether there are any detections on
+                                % any channel
+                                if ~sum(~cellfun('isempty',gO.imagingDets))
+                                    gO.imagingDets = {};
+                                    gO.imagingGlobalDets = [];
+                                    gO.imagingEventComplexes = {};
+                                    gO.imagingDetInfo = [];
+                                    gO.imagingDetBorders = {};
+                                    gO.imagingDetParams = {};
+                                    gO.save2DbImagingSelection = cell(1,1);
+                                    
+                                    smartplot(gO)
+                                    overwriteDASsave(gO,gO.simultMode,dTyp)
+                                    return
+                                end
+                                
+                                % make sure event display switches correctly
+                                if currChan ~= 1
+                                    currChan = currChan - 1;
+                                    currDet = 1;
+                                end
+                            else
+                                gO.imagingDets{currChan}(detNum) = [];
+                                
+                                gO.imagingGlobalDets(gO.imagingGlobalDets(:,currChan) == detNum,currChan) = nan;
+                                gO.imagingGlobalDets(gO.imagingGlobalDets(:,currChan) > detNum,currChan) = ...
+                                    gO.imagingGlobalDets(gO.imagingGlobalDets(:,currChan) > detNum,currChan) - 1;
+                                
+                                gO.imagingDetParams{currChan}(detNum) = [];
+                                gO.imagingDetBorders{currChan}(detNum,:) = [];
+                                
+                                gO.save2DbImagingSelection{currChan}(detNum) = [];
+                                
+                                maxSepInComplex = 0.1;
+                                maxSepInComplex = round(maxSepInComplex * gO.imagingFs);
+                                [evCompls, detParams] = extractEvComplexes(gO.imagingDetParams{currChan},...
+                                    gO.imagingDetBorders{currChan}, maxSepInComplex);
+                                gO.imagingEventComplexes{currChan} = evCompls;
+                                gO.imagingDetParams{currChan} = detParams;
+                                clear evCompls detParams
+
+                                detsLeft = length(gO.imagingDets{currChan});
+                                if detsLeft == 0
+                                    % check whether there are any detections on
+                                    % any channel
+                                    if ~sum(~cellfun('isempty',gO.imagingDets))
+                                        gO.imagingDets = {};
+                                        gO.imagingGlobalDets = [];
+                                        gO.imagingEventComplexes = {};
+                                        gO.imagingDetInfo = [];
+                                        gO.imagingDetBorders = {};
+                                        gO.imagingDetParams = {};
+                                        gO.save2DbImagingSelection = cell(1,1);
+                                        
+                                        smartplot(gO)
+                                        overwriteDASsave(gO,gO.simultMode,dTyp)
+                                        return
+                                    end
+
+                                    gO.imagingDets(currChan) = [];
+                                    gO.imagingGlobalDets(:,currChan) = [];
+                                    gO.imagingEventComplexes(currChan) = [];
+                                    gO.imagingDetParams(currChan) = [];
+                                    gO.imagingDetBorders(currChan) = [];
+                                    gO.imagingDetInfo.DetROI(currChan) = [];
+                                    gO.save2DbImagingSelection(currChan) = [];
+
+                                    % make sure event display switches correctly
+                                    if currChan ~= 1
+                                        currChan = currChan - 1;
+                                        currDet = 1;
+                                    end
+                                else
+                                    if currDet ~= 1
+                                        currDet = currDet - 1;
+                                    end
+                                end
+                            end
+                            
+                            % controll globaldets container
+                            gO.imagingGlobalDets(sum(~isnan(gO.imagingGlobalDets), 2) < 2,:) = [];
+                            
+                            gO.imagingCurrDetRow = currChan;
+                            gO.imagingCurrDetNum = currDet;
+                    end
+                    smartplot(gO)
+                    
+                case 1 % simult mode on
+                    if isempty(gO.simultDets)
+                        return
+                    end
+                    
+                    switch dTyp
+                        case 1
+                            quest = 'Are you sure you want to delete the currently displayed ephys event from the simultaneous events?';
+                        case 2
+                            quest = 'Are you sure you want to delete the currently displayed imaging event from the simultaneous events?';
+                    end
+                    answer = questdlg(quest,'Detection deletion confirmation');
+                    switch answer
+                        case {'','No','Cancel'}
+                            return
+                    end
+                    
+                    [~,~,chanNum,chan,~,detNum,~,~,~] = extractDetStruct(gO,dTyp);
+                    simDets = gO.simultDets;
+                    simDetInfo = gO.simultDetInfo;
+                    simDetsSel = gO.save2DbSimultSelection;
+                    
+                    switch dTyp
+                        case 1
+                            rows2nuke = (simDets(:,1) == chan) & (simDets(:,2) == detNum);
+                            simDets(rows2nuke,:) = [];
+                            
+                            dbSelRows2nuke = (simDetsSel(:,1) == chanNum) & (simDetsSel(:,2) == detNum);
+                            simDetsSel(dbSelRows2nuke,:) = [];
+                            
+                            if isempty(find(simDets(:,1) == chan, 1))
+                                simDetInfo.EphysChannels(simDetInfo.EphysChannels == chan) = [];
+                            end
+                        case 2
+                            rows2nuke = (simDets(:,3) == chan) & (simDets(:,4) == detNum);
+                            simDets(rows2nuke,:) = [];
+                            
+                            dbSelRows2nuke = (simDetsSel(:,3) == chanNum) & (simDetsSel(:,4) == detNum);
+                            simDetsSel(dbSelRows2nuke,:) = [];
+                            
+                            if isempty(find(simDets(:,3) == chan, 1))
+                                simDetInfo.ROIs(simDetInfo.ROIs == chan) = [];
+                            end
+                    end
+                    gO.simultDets = simDets;
+                    gO.simultDetInfo = simDetInfo;
+                    
+                    gO.save2DbSimultSelection = simDetsSel;
+                    
+                    if isempty(simDets)
+                        smartplot(gO)
+                        return
+                    end
+                    
+                    smartplot(gO)
+            end
+            overwriteDASsave(gO,gO.simultMode,dTyp)
         end
         
         %%
@@ -3330,31 +3701,43 @@ classdef DASeV < handle
                 'Position',[0.965, 0.7, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
                 'Callback',@(h,e) gO.axButtPress(1,0,-1));
+            gO.ephysDelCurrEvButt = uicontrol(gO.plotPanel,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.965, 0.65, 0.035, 0.05],...
+                'String', 'Del',...
+                'Callback', @(h,e) gO.delCurrEventButtonCB(1));
             
             gO.imagingDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.6, 0.035, 0.05],...
+                'Position',[0.965, 0.5, 0.035, 0.05],...
                 'String','<HTML>Det&uarr',...
                 'Callback',@(h,e) gO.axButtPress(2,1,0));
             gO.imagingDetDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.55, 0.035, 0.05],...
+                'Position',[0.965, 0.45, 0.035, 0.05],...
                 'String','<HTML>Det&darr',...
                 'Callback',@(h,e) gO.axButtPress(2,-1,0));
             gO.imagingRoiUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.5, 0.035, 0.05],...
+                'Position',[0.965, 0.4, 0.035, 0.05],...
                 'String','<HTML>ROI&uarr',...
                 'Callback',@(h,e) gO.axButtPress(2,0,1));
             gO.imagingRoiDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.965, 0.45, 0.035, 0.05],...
+                'Position',[0.965, 0.35, 0.035, 0.05],...
                 'String','<HTML>ROI&darr',...
                 'Callback',@(h,e) gO.axButtPress(2,0,-1));
+            gO.imagingDelCurrEvButt = uicontrol(gO.plotPanel,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.965, 0.3, 0.035, 0.05],...
+                'String', 'Del',...
+                'Callback', @(h,e) gO.delCurrEventButtonCB(2));
             
             kids = findobj(gO.plotPanel,'Type','uicontrol','-or',...
                 'Type','uitable');

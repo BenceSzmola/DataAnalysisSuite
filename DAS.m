@@ -5680,12 +5680,12 @@ classdef DAS < handle
         end
         
         %%
-        function testcallback(varargin)
-            display(varargin)
-%             assignin('base','testinput',varargin)
-%             get(h)
-%             display(inp)
-        end
+%         function testcallback(varargin)
+%             display(varargin)
+% %             assignin('base','testinput',varargin)
+% %             get(h)
+% %             display(inp)
+%         end
         
     end
     
