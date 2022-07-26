@@ -581,7 +581,9 @@ classdef DASeV < handle
             
             if gO.parallelMode ~= 1
                 if ~sum(~cellfun('isempty',gO.ephysDets))
-                    cla(ax, 'reset');
+                    for i = 1:length(ax)
+                        cla(ax(i), 'reset');
+                    end
                     gO.ephysDetParamsTable.Data = '';
                     return
                 end
