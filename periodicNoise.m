@@ -58,7 +58,7 @@ if nargin > 0 && nargin < 3
     errordlg('Pls specifiy the sampling frequency!')
 end
 
-if isempty(f_fund) || isnan(f_fund)
+if (nargin < 5) || isempty(f_fund) || isnan(f_fund)
     f_fund_given = false;
 else
     f_fund_given = true;
@@ -321,6 +321,10 @@ if (nargin < 7) || isempty(plotfft) || isnan(plotfft)
     plotfft = strcmp(plotfft,'Yes');
 end
 if plotfft
+    if isempty(chans)
+        chans = 1:size(data, 1);
+    end
+    
     [faxis,psd] = freqspec(data,fs,0,0,fmax);
     [faxis_cl,psd_cl] = freqspec(data_filt,fs,0,0,fmax);
     for ch = 1:size(data, 1)
