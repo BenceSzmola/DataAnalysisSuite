@@ -598,8 +598,8 @@ classdef DASeV < handle
                 end
 
                 if ~gO.plotFull
-                    gO.ephysDetUpButt.Enable = 'on';
-                    gO.ephysDetDwnButt.Enable = 'on';
+%                     gO.ephysDetUpButt.Enable = 'on';
+%                     gO.ephysDetDwnButt.Enable = 'on';
 
 
                     if ~isempty(detParams)
@@ -696,8 +696,8 @@ classdef DASeV < handle
 
                     end
                 elseif gO.plotFull
-                    gO.ephysDetUpButt.Enable = 'off';
-                    gO.ephysDetDwnButt.Enable = 'off';
+%                     gO.ephysDetUpButt.Enable = 'off';
+%                     gO.ephysDetDwnButt.Enable = 'off';
                     gO.ephysCurrDetNum = 1;
 
                     if ~isempty(detParams)
@@ -930,8 +930,8 @@ classdef DASeV < handle
                 end
 
                 if ~gO.plotFull
-                    gO.imagingDetUpButt.Enable = 'on';
-                    gO.imagingDetDwnButt.Enable = 'on';
+%                     gO.imagingDetUpButt.Enable = 'on';
+%                     gO.imagingDetDwnButt.Enable = 'on';
 
                     if ~isempty(detParams)
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
@@ -1017,8 +1017,8 @@ classdef DASeV < handle
                     end
 
                 elseif gO.plotFull
-                    gO.imagingDetUpButt.Enable = 'off';
-                    gO.imagingDetDwnButt.Enable = 'off';
+%                     gO.imagingDetUpButt.Enable = 'off';
+%                     gO.imagingDetDwnButt.Enable = 'off';
                     gO.imagingCurrDetNum = 1;
 
                     if ~isempty(detParams)
@@ -1356,6 +1356,83 @@ classdef DASeV < handle
             end
         end
         
+        %%
+        function buttonEnabler(gO)
+            allObjs = findobj(gO.mainFig, '-regexp', 'Tag', '^_');
+            
+            obj2enable = [];
+            if gO.loaded(1)
+                if sum(~cellfun('isempty', gO.ephysDets))
+                    obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'ephys')];
+                else
+                    obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'ephys(?!Dets)')];
+                end
+                
+                if ~gO.loaded(2)
+                    obj2enable = setdiff(obj2enable, findobj(obj2enable, '-regexp', 'Tag', 'imaging'));
+                end
+            end
+            
+            if gO.loaded(2)
+                if sum(~cellfun('isempty', gO.imagingDets))
+                    obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'imaging')];
+                else
+                    obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'imaging(?!Dets)')];
+                end
+                
+                if ~gO.loaded(1)
+                    obj2enable = setdiff(obj2enable, findobj(obj2enable, '-regexp', 'Tag', 'ephys'));
+                end
+            end
+            
+            if gO.loaded(3)
+                obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'running')];
+            end
+            
+            otherObjs = setdiff(allObjs, obj2enable);
+            
+            if gO.loaded(4) && ~gO.fixWin && ~gO.parallelMode && ~gO.plotFull
+                if gO.simultMode
+                    obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'simult');
+                    obj2enable = union(obj2enable, findobj(otherObjs, 'Tag', '_simult'));
+                end
+                obj2enable = union(obj2enable, findobj(otherObjs, '-regexp', 'Tag', 'simultSwitch'));
+            end
+            
+            if ~gO.simultMode && ~gO.parallelMode && ~gO.plotFull
+                if gO.fixWin
+                    obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'fixwin');
+                    obj2enable = union(obj2enable, findobj(otherObjs, 'Tag', '_fixwin'));
+                end
+                obj2enable = union(obj2enable, findobj(otherObjs, '-regexp', 'Tag', 'fixwinSwitch'));
+            end
+            
+            if (gO.loaded(1) && gO.loaded(2)) && ~gO.simultMode && ~gO.fixWin && ~gO.plotFull
+                if gO.parallelMode
+                    obj2enable = union(obj2enable, findobj(otherObjs, 'Tag', '_parallel'));
+                    if gO.parallelMode == 1
+                        obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'parallel(?!Imaging)|parallelEphys');
+                    elseif gO.parallelMode == 2
+                        obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'parallel(?!Ephys)|parallelImaging');
+                    end
+                end
+                obj2enable = union(obj2enable, findobj(otherObjs, '-regexp', 'Tag', 'parallelSwitch'));
+            end
+            
+            if ~gO.simultMode && ~gO.fixWin && ~gO.parallelMode
+                if gO.plotFull
+                    obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'plotfull');
+                    obj2enable = union(obj2enable, findobj(otherObjs, 'Tag', '_plotfull'));
+                end
+                obj2enable = union(obj2enable, findobj(otherObjs, '-regexp', 'Tag', 'plotfullSwitch'));
+            end
+            
+            allObjs = setdiff(allObjs, obj2enable);
+            set(allObjs, 'Enable', 'off')
+            set(obj2enable, 'Enable', 'on')
+            
+        end
+        
     end
     
     %% Callback functions
@@ -1532,13 +1609,11 @@ classdef DASeV < handle
         function plotFullMenuSel(gO,~,~)
             if gO.plotFull == 1
                 gO.plotFull = 0;
-                gO.showEventSpectroMenu.Enable = 'on';
             elseif gO.plotFull == 0
                 gO.plotFull = 1;
                 gO.fixWinSwitch.Value = 0;
-                gO.showEventSpectroMenu.Enable = 'off';
-                fixWinSwitchPress(gO)
             end
+            buttonEnabler(gO)
             smartplot(gO)
         end
         
@@ -1553,14 +1628,9 @@ classdef DASeV < handle
                 end
             end
             
-            if gO.parallelMode > 0
-                gO.simultModeSwitch.Enable = 'off';
-                gO.fixWinSwitch.Enable = 'off';
-            else
-                if gO.loaded(4)
-                    gO.simultModeSwitch.Enable = 'on';
-                end
-                gO.fixWinSwitch.Enable = 'on';
+            buttonEnabler(gO)
+            
+            if gO.parallelMode == 0
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
                 gO.parallelModeMenu.ForegroundColor = 'r';
             end
@@ -1568,17 +1638,9 @@ classdef DASeV < handle
             if gO.parallelMode == 1
                 gO.parallelModeMenu.Text = 'Parallel mode --Ephys--';
                 gO.parallelModeMenu.ForegroundColor = 'g';
-                gO.ephysDetUpButt.Enable = 'off';
-                gO.ephysDetDwnButt.Enable = 'off';
-                gO.imagingDetUpButt.Enable = 'on';
-                gO.imagingDetDwnButt.Enable = 'on';
             elseif gO.parallelMode == 2
                 gO.parallelModeMenu.Text = 'Parallel mode --Imaging--';
                 gO.parallelModeMenu.ForegroundColor = 'b';
-                gO.ephysDetUpButt.Enable = 'on';
-                gO.ephysDetDwnButt.Enable = 'on';
-                gO.imagingDetUpButt.Enable = 'off';
-                gO.imagingDetDwnButt.Enable = 'off';
             end
             
             smartplot(gO)
@@ -1675,23 +1737,15 @@ classdef DASeV < handle
             testload = matfile(fnameFull);
 
             gO.loaded(1) = 0;
-            gO.ephysDetUpButt.Enable = 'off';
-            gO.ephysDetDwnButt.Enable = 'off';
-            gO.ephysChanUpButt.Enable = 'off';
-            gO.ephysChanDwnButt.Enable = 'off';
-            gO.ephysDelCurrEvButt.Enable = 'off';
             gO.ephysDetParamsTable.Data = {};
             gO.ephysDetParamsTable.ColumnName = {};
-            gO.save2DbEphysCheckBox.Enable = 'off';
-            gO.save2DbEphys_wPar_CheckBox.Enable = 'off';
-            gO.save2DbEphys_wPar_RoiSelect.Enable = 'off';
 
             waitbar(0.25,wb1,'Looking for ephys data...')
             
             if sum(ismember(fieldnames(testload),{'ephysSaveData';'ephysSaveInfo'})) == 2
                 load(fnameFull,'ephysSaveData','ephysSaveInfo')
 
-                if ~isempty(ephysSaveData) %& ~isempty(ephysSaveInfo)
+                if ~isempty(ephysSaveData)
                     
                     waitbar(0.3,wb1,'Loading ephys data...')
                     
@@ -1729,13 +1783,6 @@ classdef DASeV < handle
                         end
                     end
 
-                    gO.ephysDetUpButt.Enable = 'on';
-                    gO.ephysDetDwnButt.Enable = 'on';
-                    gO.ephysChanUpButt.Enable = 'on';
-                    gO.ephysChanDwnButt.Enable = 'on';
-                    gO.ephysDelCurrEvButt.Enable = 'on';
-                    gO.save2DbEphysCheckBox.Enable = 'on';
-
                     gO.loaded(1) = 1;
 
                     gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
@@ -1745,14 +1792,6 @@ classdef DASeV < handle
             end
             
             gO.loaded(2) = 0;
-            gO.imagingDetUpButt.Enable = 'off';
-            gO.imagingDetDwnButt.Enable = 'off';
-            gO.imagingRoiUpButt.Enable = 'off';
-            gO.imagingRoiDwnButt.Enable = 'off';
-            gO.imagingDelCurrEvButt.Enable = 'off';
-            gO.save2DbImagingCheckBox.Enable = 'off';
-            gO.save2DbImaging_wPar_CheckBox.Enable = 'off';
-            gO.save2DbImaging_wPar_ChanSelect.Enable = 'off';
             gO.imagingDetParamsTable.Data = {};
             gO.imagingDetParamsTable.ColumnName = {};
 
@@ -1761,7 +1800,7 @@ classdef DASeV < handle
             if sum(ismember(fieldnames(testload),{'imagingSaveData';'imagingSaveInfo'})) == 2
                 load(fnameFull,'imagingSaveData','imagingSaveInfo')
                 
-                if ~isempty(imagingSaveData) %& ~isempty(imagingSaveInfo)
+                if ~isempty(imagingSaveData)
                     
                     waitbar(0.6,wb1,'Loading imaging data...')
                     
@@ -1794,13 +1833,6 @@ classdef DASeV < handle
                         gO.imagingDetParams = cell(min(size(gO.imagingData)),1);
                     end
                     gO.imagingDetInfo = imagingSaveInfo;
-
-                    gO.imagingDetUpButt.Enable = 'on';
-                    gO.imagingDetDwnButt.Enable = 'on';
-                    gO.imagingRoiUpButt.Enable = 'on';
-                    gO.imagingRoiDwnButt.Enable = 'on';
-                    gO.imagingDelCurrEvButt.Enable = 'on';
-                    gO.save2DbImagingCheckBox.Enable = 'on';
                     
                     if strcmp(gO.imagingDetInfo.DetType,'Mean+SD')
                         if strcmp(gO.imagingDetInfo.DetSettings.WinType,'Gaussian')
@@ -1835,7 +1867,6 @@ classdef DASeV < handle
             end
             
             gO.loaded(3) = 0;
-            gO.save2DbRunningChechBox.Enable = 'off';
             
             waitbar(0.75,wb1,'Looking for running data...')
             
@@ -1857,24 +1888,16 @@ classdef DASeV < handle
                     gO.runActState(gO.runVeloc >= gO.runActThr) = 1;
                     
                     gO.loaded(3) = 1;
-                    gO.save2DbRunningChechBox.Enable = 'on';
                 end
                 
             end
             
             if sum(gO.loaded(1:2)) < 2
-                gO.parallelModeMenu.Enable = 'off';
                 if gO.loaded(1)
                     gO.keyboardPressDtyp = 1;
                 elseif gO.loaded(2)
                     gO.keyboardPressDtyp = 2;
                 end
-            else
-                gO.parallelModeMenu.Enable = 'on';
-                gO.save2DbEphys_wPar_CheckBox.Enable = 'on';
-                gO.save2DbEphys_wPar_RoiSelect.Enable = 'on';
-                gO.save2DbImaging_wPar_CheckBox.Enable = 'on';
-                gO.save2DbImaging_wPar_ChanSelect.Enable = 'on';
             end
             
             
@@ -1882,8 +1905,6 @@ classdef DASeV < handle
             gO.simultMode = 0;
             gO.loaded(4) = 0;
             gO.simultModeSwitch.Value = 0;
-            gO.simultModeSwitch.Enable = 'off';
-            gO.save2DbSimultCheckBox.Enable = 'off';
             
             waitbar(0.9,wb1,'Looking for simult data...')
             
@@ -1900,14 +1921,6 @@ classdef DASeV < handle
                     gO.simultMode = 1;
                     gO.loaded(4) = 1;
                     gO.simultModeSwitch.Value = 1;
-                    gO.simultModeSwitch.Enable = 'on';
-                    gO.save2DbSimultCheckBox.Enable = 'on';
-                    gO.save2DbEphysCheckBox.Enable = 'off';
-                    gO.save2DbImagingCheckBox.Enable = 'off';
-                    
-                    gO.fixWinSwitch.Enable = 'off';
-                    
-                    gO.parallelModeMenu.Enable = 'off';
                 end
             end
                         
@@ -1929,9 +1942,6 @@ classdef DASeV < handle
                 end
                 for i = 1:length(gO.ephysDetBorders)
                     gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
-%                     if gO.loaded(2)
-%                         gO.save2DbEphysParallelRoiSelection{i} = false(size(gO.ephysDetBorders{i},1),size(gO.imagingData,1));
-%                     end
                 end
             end
             
@@ -1944,9 +1954,6 @@ classdef DASeV < handle
                 end
                 for i = 1:length(gO.imagingDetBorders)
                     gO.save2DbImagingSelection{i} = false(size(gO.imagingDetBorders{i},1),1);
-%                     if gO.loaded(1)
-%                         gO.save2DbImagingParallelChanSelection{i} = false(size(gO.imagingDetBorders{i},1),size(gO.ephysData,1));
-%                     end
                 end
             end
             
@@ -1958,6 +1965,8 @@ classdef DASeV < handle
             
             gO.mainFig.Name = ['DAS Event Viewer - ',fname];
             
+            buttonEnabler(gO)
+            
             if ~isempty(find(gO.loaded, 1))
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
                 gO.path2loadedSave = fnameFull;
@@ -1966,6 +1975,7 @@ classdef DASeV < handle
             waitbar(1,wb1,'Done!')
             pause(0.5)
             close(wb1)
+            
         end
         
         %%
@@ -2584,49 +2594,13 @@ classdef DASeV < handle
         function fixWinSwitchPress(gO,~,~)
             gO.fixWin = gO.fixWinSwitch.Value;
             
-            switch gO.fixWin
-                case 0
-                    gO.plotFullMenu.Enable = 'on';
-                    gO.parallelModeMenu.Enable = 'on';
-                    if gO.loaded(4)
-                        gO.simultModeSwitch.Enable = 'on';
-                    end
-                    
-                    if gO.loaded(1)
-                        gO.ephysDetUpButt.Enable = 'on';
-                        gO.ephysDetUpButt.Visible = 'on';
-                        gO.ephysDetDwnButt.Enable = 'on';
-                        gO.ephysDetDwnButt.Visible = 'on';
-                    end
-                    
-                    if gO.loaded(2)
-                        gO.imagingDetUpButt.Enable = 'on';
-                        gO.imagingDetUpButt.Visible = 'on';
-                        gO.imagingDetDwnButt.Enable = 'on';
-                        gO.imagingDetDwnButt.Visible = 'on';
-                    end
-                case 1
-                    gO.plotFull = 0;
-                    gO.parallelMode = 0;
-                    gO.parallelModeMenu.Enable = 'off';
-                    gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
-                    gO.parallelModeMenu.ForegroundColor = 'r';
-                    gO.plotFullMenu.Enable = 'off';
-                    gO.simultModeSwitch.Enable = 'off';
-                    
-                    if gO.loaded(1)
-                        gO.ephysDetUpButt.Enable = 'off';
-                        gO.ephysDetUpButt.Visible = 'off';
-                        gO.ephysDetDwnButt.Enable = 'off';
-                        gO.ephysDetDwnButt.Visible = 'off';
-                    end
-                    
-                    if gO.loaded(2)
-                        gO.imagingDetUpButt.Enable = 'off';
-                        gO.imagingDetUpButt.Visible = 'off';
-                        gO.imagingDetDwnButt.Enable = 'off';
-                        gO.imagingDetDwnButt.Visible = 'off';
-                    end
+            buttonEnabler(gO)
+            
+            if gO.fixWin
+                gO.plotFull = 0;
+                gO.parallelMode = 0;
+                gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+                gO.parallelModeMenu.ForegroundColor = 'r';
             end
             
             smartplot(gO)
@@ -2635,37 +2609,19 @@ classdef DASeV < handle
         
         %%
         function simultModeSwitchPress(gO,~,~)
-            if ~gO.loaded(4)
-                gO.simultMode = 0;
-                gO.simultFocusMenu.Enable = 'off';
-                gO.simultModeSwitch.Enable = 'off';
-                return
-            end
             if gO.simultModeSwitch.Value
                 gO.simultMode = 1;
                 
                 gO.fixWinSwitch.Value = 0;
-                gO.fixWinSwitch.Enable = 'off';
                 
                 gO.parallelMode = 0;
-                gO.parallelModeMenu.Enable = 'off';
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
                 gO.parallelModeMenu.ForegroundColor = 'r';
-                
-                gO.save2DbSimultCheckBox.Enable = 'on';
-                gO.save2DbEphysCheckBox.Enable = 'off';
-                gO.save2DbImagingCheckBox.Enable = 'off';
             elseif ~gO.simultModeSwitch.Value
                 gO.simultMode = 0;
-                
-                gO.fixWinSwitch.Enable = 'on';
-                
-                gO.parallelModeMenu.Enable = 'on';
-                
-                gO.save2DbSimultCheckBox.Enable = 'off';
-                gO.save2DbEphysCheckBox.Enable = 'on';
-                gO.save2DbImagingCheckBox.Enable = 'on';
             end
+            
+            buttonEnabler(gO)
             
             axButtPress(gO,1)
             axButtPress(gO,2)
@@ -3261,11 +3217,13 @@ classdef DASeV < handle
                 'Text','Options');
             gO.plotFullMenu = uimenu(gO.optMenu,...
                 'Text','Plot full data / Plot individual detections',...
-                'MenuSelectedFcn',@ gO.plotFullMenuSel);
+                'MenuSelectedFcn',@ gO.plotFullMenuSel,...
+                'Tag', '_plotfullSwitch');
             gO.parallelModeMenu = uimenu(gO.optMenu,...
                 'Text','Parallel mode --OFF--',...
                 'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1),...
-                'ForegroundColor','r');
+                'ForegroundColor','r',...
+                'Tag', '_parallelSwitch');
             gO.winLenMenu = uimenu(gO.optMenu,...
                 'Text', 'Change window length',...
                 'MenuSelectedFcn', @ gO.changeWinSize);
@@ -3281,10 +3239,12 @@ classdef DASeV < handle
             gO.highPassRawEphysMenu = uimenu(gO.ephysOptMenu,...
                 'Text','Apply high pass filter to displayed raw ephys data',...
                 'Checked','off',...
-                'MenuSelectedFcn',@ gO.highPassRawEphysMenuSel);
+                'MenuSelectedFcn',@ gO.highPassRawEphysMenuSel,...
+                'Tag', '_ephys_simult_parallel_fixwin_plotfull');
             gO.showEventSpectroMenu = uimenu(gO.ephysOptMenu,...
                 'Text','Show event spectrogram',...
-                'MenuSelectedFcn',@ gO.showEventSpectro);
+                'MenuSelectedFcn',@ gO.showEventSpectro,...
+                'Tag', '_ephysDets_simult');
             
             gO.imagingOptMenu = uimenu(gO.mainFig,...
                 'Text','Imaging options');
@@ -3306,7 +3266,8 @@ classdef DASeV < handle
                 'Text','Simultan mode options');
             gO.simultFocusMenu = uimenu(gO.simultOptMenu,...
                 'Text','Simultan mode focus --Ephys--',...
-                'MenuSelectedFcn',@ gO.simultFocusMenuSel);
+                'MenuSelectedFcn',@ gO.simultFocusMenuSel,...
+                'Tag', '_simult');
             
             gO.dbMenu = uimenu(gO.mainFig,...
                 'Text','Database menu');
@@ -3556,95 +3517,111 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.89, 0.35, 0.1],...
                 'String','Select current ephys event',...
-                'Callback',@(h,e) gO.save2DbCheckBoxPress(1));
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(1),...
+                'Tag', '_ephysDets');
             gO.save2DbEphys_wPar_CheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
                 'Position',[0.4, 0.89, 0.35, 0.15],...
-                'String','w/Parallel imaging');
+                'String','w/Parallel imaging',...
+                'Tag', '_ephysDets_imaging');
             gO.save2DbEphys_wPar_RoiSelect = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.76, 0.89, 0.23, 0.1],...
                 'String','Parallel ROIs',...
-                'Callback',@(h,e) gO.save2DbParallelChanSelect(2));
+                'Callback',@(h,e) gO.save2DbParallelChanSelect(2),...
+                'Tag', '_ephysDets_imaging');
             gO.save2DbEphysClrSelButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.01, 0.78, 0.3, 0.1],...
                 'String','Clear all selected events',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(1,'clrAll'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(1,'clrAll'),...
+                'Tag', '_ephysDets');
             gO.save2DbEphysSelAllButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.33, 0.78, 0.3, 0.1],...
                 'String','Select all events',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAll'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAll'),...
+                'Tag', '_ephysDets');
             gO.save2DbEphysSelAllCurrChButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.66, 0.78, 0.3, 0.1],...
                 'String','Select all events on channel',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAllChan'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(1,'selAllChan'),...
+                'Tag', '_ephysDets');
             gO.save2DbImagingCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
                 'Position',[0.01, 0.65, 0.35, 0.1],...
                 'String','Select current imaging event',...
-                'Callback',@(h,e) gO.save2DbCheckBoxPress(2));
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(2),...
+                'Tag', '_imagingDets');
             gO.save2DbImaging_wPar_CheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
                 'Position',[0.4, 0.65, 0.35, 0.1],...
-                'String','w/Parallel ephys');
+                'String','w/Parallel ephys',...
+                'Tag', '_imagingDets_ephys');
             gO.save2DbImaging_wPar_ChanSelect = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.76, 0.65, 0.23, 0.1],...
                 'String','Parallel Chans',...
-                'Callback',@(h,e) gO.save2DbParallelChanSelect(1));
+                'Callback',@(h,e) gO.save2DbParallelChanSelect(1),...
+                'Tag', '_imagingDets_ephys');
             gO.save2DbImagingClrSelButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.01, 0.54, 0.3, 0.1],...
                 'String','Clear all selected events',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(2,'clrAll'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(2,'clrAll'),...
+                'Tag', '_imagingDets');
             gO.save2DbImagingSelAllButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.33, 0.54, 0.3, 0.1],...
                 'String','Select all events',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAll'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAll'),...
+                'Tag', '_imagingDets');
             gO.save2DbImagingSelAllCurrRoiButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.66, 0.54, 0.3, 0.1],...
                 'String','Select all events on ROI',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAllROI'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(2,'selAllROI'),...
+                'Tag', '_imagingDets');
             gO.save2DbSimultCheckBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
                 'Position',[0.01, 0.4, 0.4, 0.1],...
                 'String','Select current simult. event pair',...
-                'Callback',@(h,e) gO.save2DbCheckBoxPress(3));
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(3),...
+                'Tag', '_simult');
             gO.save2DbSimultClrSelButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.01, 0.29, 0.3, 0.1],...
                 'String','Clear all selected events',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(4,'clrAll'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(4,'clrAll'),...
+                'Tag', '_simult');
             gO.save2DbSimultSelAllButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.33, 0.29, 0.3, 0.1],...
                 'String','Select all events',...
-                'Callback',@(h,e) gO.save2DbModifySelCB(4,'selAll'));
+                'Callback',@(h,e) gO.save2DbModifySelCB(4,'selAll'),...
+                'Tag', '_simult');
             gO.save2DbRunningChechBox = uicontrol(gO.save2DbPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
                 'Position',[0.5, 0.4, 0.4, 0.1],...
                 'String','Save running data',...
-                'Callback',@(h,e) gO.save2DbCheckBoxPress(4));
+                'Callback',@(h,e) gO.save2DbCheckBoxPress(4),...
+                'Tag', '_running_simult');
             gO.save2DbButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -3668,74 +3645,86 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.95, 0.965, 0.05, 0.05],...
                 'String','FixWin',...
-                'Callback',@ gO.fixWinSwitchPress);
+                'Callback',@ gO.fixWinSwitchPress,...
+                'Tag', '_fixwinSwitch');
             gO.simultModeSwitch = uicontrol(gO.plotPanel,...
                 'Style','checkbox',...
                 'Units','normalized',...
                 'Position',[0.95, 0.915, 0.05, 0.05],...
                 'String','Simult',...
-                'Callback',@ gO.simultModeSwitchPress);
+                'Callback',@ gO.simultModeSwitchPress,...
+                'Tag', '_simultSwitch');
             gO.ephysDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.85, 0.035, 0.05],...
                 'String','<HTML>Det&uarr',...
-                'Callback',@(h,e) gO.axButtPress(1,1,0));
+                'Callback',@(h,e) gO.axButtPress(1,1,0),...
+                'Tag', '_ephysDets_simult_parallelImaging');
             gO.ephysDetDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.8, 0.035, 0.05],...
                 'String','<HTML>Det&darr',...
-                'Callback',@(h,e) gO.axButtPress(1,-1,0));
+                'Callback',@(h,e) gO.axButtPress(1,-1,0),...
+                'Tag', '_ephysDets_simult_parallelImaging');
             gO.ephysChanUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.75, 0.035, 0.05],...
                 'String','<HTML>Chan&uarr',...
-                'Callback',@(h,e) gO.axButtPress(1,0,1));
+                'Callback',@(h,e) gO.axButtPress(1,0,1),...
+                'Tag', '_ephys_simult_parallel_fixwin_plotfull');
             gO.ephysChanDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.7, 0.035, 0.05],...
                 'String','<HTML>Chan&darr',...
-                'Callback',@(h,e) gO.axButtPress(1,0,-1));
+                'Callback',@(h,e) gO.axButtPress(1,0,-1),...
+                'Tag', '_ephys_simult_parallel_fixwin_plotfull');
             gO.ephysDelCurrEvButt = uicontrol(gO.plotPanel,...
                 'Style', 'pushbutton',...
                 'Units', 'normalized',...
                 'Position', [0.965, 0.65, 0.035, 0.05],...
                 'String', 'Del',...
-                'Callback', @(h,e) gO.delCurrEventButtonCB(1));
+                'Callback', @(h,e) gO.delCurrEventButtonCB(1),...
+                'Tag', '_ephysDets_simult_parallelImaging');
             
             gO.imagingDetUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.5, 0.035, 0.05],...
                 'String','<HTML>Det&uarr',...
-                'Callback',@(h,e) gO.axButtPress(2,1,0));
+                'Callback',@(h,e) gO.axButtPress(2,1,0),...
+                'Tag', '_imagingDets_simult_parallelEphys');
             gO.imagingDetDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.45, 0.035, 0.05],...
                 'String','<HTML>Det&darr',...
-                'Callback',@(h,e) gO.axButtPress(2,-1,0));
+                'Callback',@(h,e) gO.axButtPress(2,-1,0),...
+                'Tag', '_imagingDets_simult_parallelEphys');
             gO.imagingRoiUpButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.4, 0.035, 0.05],...
                 'String','<HTML>ROI&uarr',...
-                'Callback',@(h,e) gO.axButtPress(2,0,1));
+                'Callback',@(h,e) gO.axButtPress(2,0,1),...
+                'Tag', '_imaging_simult_parallel_fixwin_plotfull');
             gO.imagingRoiDwnButt = uicontrol(gO.plotPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.965, 0.35, 0.035, 0.05],...
                 'String','<HTML>ROI&darr',...
-                'Callback',@(h,e) gO.axButtPress(2,0,-1));
+                'Callback',@(h,e) gO.axButtPress(2,0,-1),...
+                'Tag', '_imaging_simult_parallel_fixwin_plotfull');
             gO.imagingDelCurrEvButt = uicontrol(gO.plotPanel,...
                 'Style', 'pushbutton',...
                 'Units', 'normalized',...
                 'Position', [0.965, 0.3, 0.035, 0.05],...
                 'String', 'Del',...
-                'Callback', @(h,e) gO.delCurrEventButtonCB(2));
+                'Callback', @(h,e) gO.delCurrEventButtonCB(2),...
+                'Tag', '_imagingDets_simult_parallelEphys');
             
             kids = findobj(gO.plotPanel,'Type','uicontrol','-or',...
                 'Type','uitable');
