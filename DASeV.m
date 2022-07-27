@@ -232,14 +232,9 @@ classdef DASeV < handle
         %% Constructor function
         function gO = DASeV
             createComponents(gO)
-%             allAx = findobj(gO.mainFig,'Type','axes');
-%             for i = 1:length(allAx)
-%                 allAx(i).Toolbar.Visible = 'on';
-%             end
             if ~isempty(gO.fileList.String)
                 fileListSel(gO)
             end
-%             mainFigOpenFcn(guiobj)
             if nargout == 0
                 clear gO
             end
@@ -1827,6 +1822,7 @@ classdef DASeV < handle
             end
             
             if isempty(gO.ephysDets) && isempty(gO.imagingDets)
+                gO.loaded(:) = 0;
                 wD = warndlg('No detections, loading aborted!');
                 pause(1)
                 if ishandle(wD)
