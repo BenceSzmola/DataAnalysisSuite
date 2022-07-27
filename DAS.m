@@ -569,6 +569,10 @@ classdef DAS < handle
         
         %%
         function runposplot(guiobj)
+            if isempty(guiobj.run_absPos) || isempty(guiobj.run_relPos)
+                return
+            end
+            
             switch sum(guiobj.datatyp)
                 case 1
                     ax = guiobj.axesPos1;
@@ -2109,7 +2113,7 @@ classdef DAS < handle
         end
         
         %%
-        function autoRun(guiobj)      
+        function autoRun(guiobj)
             answer = questdlg('Have you set the detection settings?');
             switch answer
                 case {'No', 'Cancel', ''}
@@ -2880,7 +2884,6 @@ classdef DAS < handle
                 case 'Gramophone'
                     guiobj.run_veloc = rundata(:,2);
                     guiobj.run_taxis = rundata(:,1)*(10^-3)/guiobj.timedim;
-                    guiobj.run_pos = zeros(length(rundata),1);
                 case 'Cancel'
                     return
             end
