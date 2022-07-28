@@ -1453,7 +1453,7 @@ classdef DASeV < handle
                     gO.fileList.Max = 1;
                     gO.fileList.Value = gO.fileList.Value(1);
                     gO.DASsaveAnalyserCheckRHDCheckBox.Enable = 'on';
-                    
+                    gO.fileListSel(gO)
             end
         end
         
@@ -1514,7 +1514,8 @@ classdef DASeV < handle
         %%
         function ephysTypMenuSel(gO,~,~)
             [idx,tf] = listdlg('ListString',{'Raw','DoG','InstPow'},...
-                'PromptString','Select data type(s) to show detections on!');
+                'PromptString','Select data type(s) to show detections on!',...
+                'InitialValue', find(gO.ephysTypSelected));
             if ~tf
                 return
             end
@@ -1528,7 +1529,8 @@ classdef DASeV < handle
         %%
         function imagingTypMenuSel(gO,~,~)
             [idx,tf] = listdlg('ListString',{'Raw','Smoothed'},...
-                'PromptString','Select data type(s) to show detections on!');
+                'PromptString','Select data type(s) to show detections on!',...
+                'InitialValue', find(gO.imagingTypSelected));
             if ~tf
                 return
             end
@@ -1543,7 +1545,8 @@ classdef DASeV < handle
         function runTypMenuSel(gO,~,~)
             [idx,tf] = listdlg('ListString',{'Velocity','Absolute position','Relative position','Still/Moving'},...
                 'PromptString','Select data type to show detections on!',...
-                'SelectionMode','single');
+                'SelectionMode','single',...
+                'InitialValue', find(gO.runDataTypSelected));
             if ~tf
                 return
             end
@@ -1712,17 +1715,43 @@ classdef DASeV < handle
         function loadSaveButtPress(gO,~,~)
             
             wb1 = waitbar(0,'Starting to load file...');
-            
+                        
             val = gO.fileList.Value;
+            if ~isempty(gO.path2loadedSave)
+                prevFname = gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end);
+                prevLoadedInd = find(~cellfun('isempty', strfind(gO.fileList.String, prevFname)));
+            else
+                prevLoadedInd = [];
+            end
+            if val == prevLoadedInd
+                eD = errordlg('File already loaded!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                if ishandle(wb1)
+                    close(wb1)
+                end
+                return
+            else
+                gO.fileList.String{prevLoadedInd} = prevFname;
+            end
+            
             if ~isempty(gO.fileList.String)
                 fname = gO.fileList.String{val};
                 fnameFull = [gO.selDir,'\',fname];
             else
-                warndlg('No file selected!')
-                close(wb1)
+                eD = errordlg('No file selected!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                if ishandle(wb1)
+                    close(wb1)
+                end
                 return
             end
-            
+                        
             gO.parallelMode = 0;
             
             gO.ephysCurrDetNum = 1;
@@ -1962,8 +1991,9 @@ classdef DASeV < handle
             buttonEnabler(gO)
             
             if ~isempty(find(gO.loaded, 1))
-                gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
                 gO.path2loadedSave = fnameFull;
+                gO.fileList.String{val} = ['<HTML><FONT color="red"><b>', gO.fileList.String{val}, '</b></FONT></HTML>'];
+                gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
             end
             
             waitbar(1,wb1,'Done!')
@@ -1974,9 +2004,19 @@ classdef DASeV < handle
         
         %%
         function fileListSel(gO,~,~)
+            if gO.fileList.Max > 1
+                return
+            end
+            
             val = gO.fileList.Value;
             if ~isempty(gO.fileList.String)
-                fname = gO.fileList.String{val};
+                if strfind(gO.fileList.String{val}, '<HTML>')
+                    currStr = gO.fileList.String{val};
+                    fname = regexp(currStr, '>DASsave\S*.mat<', 'match');
+                    fname = fname{1}(2:end - 1);
+                else
+                    fname = gO.fileList.String{val};
+                end
                 fnameFull = [gO.selDir,'\',fname];
             else
                 warndlg('No DAS save files in current directory!')
@@ -2626,6 +2666,48 @@ classdef DASeV < handle
             if gO.tabgrp.SelectedTab == gO.tabgrp.Children(2)
                 detChanUpDwn = [0,0];
                 switch kD.Key
+                    case 'delete'
+                        delCurrEventButtonCB(gO,gO.keyboardPressDtyp)
+                        
+                    case 'y'
+                        eventYlimModeMenuCB(gO)
+                        
+                    case 'f'
+                        if strcmp(gO.fixWinSwitch.Enable, 'on')
+                            switch gO.fixWinSwitch.Value
+                                case 0
+                                    gO.fixWinSwitch.Value = 1;
+                                    
+                                case 1
+                                    gO.fixWinSwitch.Value = 0;
+                                    
+                            end
+                            fixWinSwitchPress(gO)
+                        end
+                        
+                    case 's'
+                        if strcmp(gO.simultModeSwitch.Enable, 'on')
+                            switch gO.simultModeSwitch.Value
+                                case 0
+                                    gO.simultModeSwitch.Value = 1;
+                                    
+                                case 1
+                                    gO.simultModeSwitch.Value = 0;
+                                    
+                            end
+                            simultModeSwitchPress(gO)
+                        end
+                        
+                    case 'w'
+                        if strcmp(gO.plotFullMenu.Enable, 'on')
+                            plotFullMenuSel(gO)
+                        end
+                        
+                    case 'p'
+                        if strcmp(gO.parallelModeMenu.Enable, 'on')
+                            parallelModeMenuSel(gO,true)
+                        end
+                        
                     case 'd'
                         if sum(gO.loaded) > 1
                             switch gO.keyboardPressDtyp
@@ -2635,14 +2717,19 @@ classdef DASeV < handle
                                     gO.keyboardPressDtyp = 1;
                             end
                         end
+                        
                     case 'rightarrow'
                         detChanUpDwn = [1,0];
+                        
                     case 'leftarrow'
                         detChanUpDwn = [-1,0];
+                        
                     case 'uparrow'
                         detChanUpDwn = [0,1];
+                        
                     case 'downarrow'
                         detChanUpDwn = [0,-1];
+                        
                     case 'e'            
                         if strcmp(gO.save2DbEphysCheckBox.Enable,'on')
                             switch gO.save2DbEphysCheckBox.Value
@@ -2653,6 +2740,7 @@ classdef DASeV < handle
                             end
                             save2DbCheckBoxPress(gO,1)
                         end
+                        
                     case 'i'
                         if strcmp(gO.save2DbImagingCheckBox.Enable,'on')
                             switch gO.save2DbImagingCheckBox.Value
@@ -2663,14 +2751,11 @@ classdef DASeV < handle
                             end
                             save2DbCheckBoxPress(gO,2)
                         end
+                        
                 end
                 
                 if sum(detChanUpDwn) ~= 0
-                    if gO.fixWin == 1
-                        axButtPressFixWin(gO,gO.keyboardPressDtyp,detChanUpDwn(2))
-                    else
-                        axButtPress(gO,gO.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
-                    end
+                    axButtPress(gO,gO.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
                 end
             end
         end
