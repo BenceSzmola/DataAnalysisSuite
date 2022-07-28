@@ -4149,12 +4149,15 @@ classdef DAS < handle
         
         %%
         function imagingDetRun(guiobj)
+            dettype = guiobj.imagingDetPopMenu.Value;
+            if dettype == 1
+                return
+            end
+            dettype = guiobj.imagingDetPopMenu.String{dettype};
+            
             guiobj.imagingDetStatusLabel.String = 'Detection running';
             guiobj.imagingDetStatusLabel.BackgroundColor = 'r';
             drawnow
-            
-            dettype = guiobj.imagingDetPopMenu.Value;
-            dettype = guiobj.imagingDetPopMenu.String{dettype};
             
             if ~guiobj.imagingDetUseProcDataCheckBox.Value
                 data = guiobj.imaging_data;
@@ -4164,13 +4167,7 @@ classdef DAS < handle
                 selInds = makeProcDataSelFig(guiobj,2);
                 guiobj.imaging_artSuppedData4DetListInds = selInds;
                 if isempty(selInds)
-                    ed = errordlg('No ROI selected!');
-                    pause(1)
-                    if ishandle(ed)
-                        close(ed)
-                    end
-                    guiobj.imagingDetStatusLabel.String = '--IDLE--';
-                    guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
+                    dispErrorResetStatus('No ROIs selected!')
                     return
                 end
                 data = guiobj.imaging_procced(selInds,:);
@@ -4189,14 +4186,10 @@ classdef DAS < handle
                 detinfo.DetSettings.MinTimeInRange = str2double(guiobj.minTimeInSpeedRangeEdit.String);
                 
                 if isempty(inds2use)
-                    warndlg('No sections satisfied the running specifications!')
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    dispErrorResetStatus('No sections satisfied the running specifications!')
                     return
                 elseif (length(inds2use) / fs) < (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
-                    errordlg('The section falling in the specified speed range is too short!')
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    dispErrorResetStatus('The section falling in the specified speed range is too short!')
                     return
                 end
             else
@@ -4289,10 +4282,8 @@ classdef DAS < handle
                 guiobj.imaging_detBorders = {};
                 guiobj.imaging_detParams = {};
                 
-                warndlg('No detections!')
+                dispErrorResetStatus('No events found!')
                 eventDetPlotFcn(guiobj,2,0,1)
-                guiobj.imagingDetStatusLabel.String = '--IDLE--';
-                guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
                 return
             end
             
@@ -4340,6 +4331,16 @@ classdef DAS < handle
             guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
             
             eventDetAxesButtFcn(guiobj,2,0,0)
+            
+            function dispErrorResetStatus(errMsg)
+                eD = errordlg(errMsg);
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                guiobj.imagingDetStatusLabel.String = '--IDLE--';
+                guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
+            end
         end
         
         %%
