@@ -3713,66 +3713,159 @@ classdef DAS < handle
         
         %%
         function ephysDetRun(guiobj)
+            %% collecting basic parameters
+            dettype = guiobj.ephysDetPopMenu.Value;
+            dettype = guiobj.ephysDetPopMenu.String{dettype};
+            if strcmp(dettype,'--Ephys detection methods--')
+                dispErrorDlgResetStatus('Select detection method first!')
+                return
+            end
+            
             guiobj.ephysDetStatusLabel.String = 'Detection running';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'r';
             drawnow
             
-            % check whether the raw or processed data should be used
-            if ~guiobj.ephysDetUseProcDataCheckBox.Value
-                chan = guiobj.ephysDetChSelListBox.Value;
-                if isempty(chan)
-                    ed = errordlg('No channel selected!');
-                    pause(1)
-                    if ishandle(ed)
-                        close(ed)
-                    end
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                    return
-                end
-                data = guiobj.ephys_data(chan,:);
-            else
-                if guiobj.roboDet
-                    selInds = guiobj.roboDet_selChans;
-                else
-                    selInds = makeProcDataSelFig(guiobj,1);
-                end
-                if isempty(selInds)
-                    ed = errordlg('No channel selected!');
-                    pause(1)
-                    if ishandle(ed)
-                        close(ed)
-                    end
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                    return
-                end
-                data = guiobj.ephys_procced(selInds,:);
-                chan = [guiobj.ephys_proccedInfo(selInds).Channel];
-                guiobj.ephys_artSupp4Det = 1;
-                detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
-            end
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
             showFigs = guiobj.showXtraDetFigs;
             refchInp = guiobj.ephysDetRefChanEdit.String;
             refch = numSelCharConverter(refchInp);
             
-            dettype = guiobj.ephysDetPopMenu.Value;
-            dettype = guiobj.ephysDetPopMenu.String{dettype};
-            if strcmp(dettype,'--Ephys detection methods--')
-                errordlg('Select detection method first!')
-                guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+            switch dettype
+                case 'CWT based'
+                    refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
+
+                case 'DoG+InstPow'
+                    refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value - 1;
+
+                otherwise
+                    refVal = 0;
+
+            end
+            
+            if (refVal ~= 0) && isempty(refch)
+                dispErrorDlgResetStatus('Set reference channel(s) to use reference validation!')
                 return
             end
-                        
-            % check whether user requested interval selection
+            
+            %% check whether the raw or processed data should be used
+            if ~guiobj.ephysDetUseProcDataCheckBox.Value
+                chan = guiobj.ephysDetChSelListBox.Value;
+                if isempty(chan)
+                    dispErrorDlgResetStatus('No channel selected!')
+                    return
+                elseif (length(chan) == 1) && ismember(chan, refch)
+                    dispErrorDlgResetStatus('The one channel that you selected is a reference channel!')
+                    return
+                end
+                
+                if guiobj.ephysDetArtSuppPopMenu.Value == 1
+                    %% raw
+                    data = guiobj.ephys_data(chan,:);
+                    guiobj.ephys_artSupp4Det = 0;
+                    
+                else
+                    %% run processing now
+                    if (refVal ~= 0) && any(~ismember(refch, chan))
+                        dispErrorDlgResetStatus(['You should also select the processed reference channel(s),',...
+                            'because you selected reference channel validation!'])
+                        return
+                    end
+                    
+                    switch guiobj.ephysDetArtSuppPopMenu.Value
+                        case 2 % periodic
+                            callFromDetRun.procGrp = 'Artifact Suppression';
+                            callFromDetRun.filtype = [];
+                            callFromDetRun.artSuppName = 'Periodic';
+                            callFromDetRun.refChan = [];
+                        case 3
+                            callFromDetRun.procGrp = 'Artifact Suppression';
+                            callFromDetRun.filtype = [];
+                            callFromDetRun.artSuppName = 'DFER';
+                            callFromDetRun.refChan = [];
+                        case 4 % ref chan subtract
+                            if isempty(refch) || any(isnan(refch))
+                                dispErrorDlgResetStatus(['For this artifact suppression method you have to',...
+                                    'set the reference channel(s)!'])
+                                return
+                            end
+                            callFromDetRun.procGrp = 'Artifact Suppression';
+                            callFromDetRun.filtype = [];
+                            callFromDetRun.artSuppName = 'classic ref subtract';
+                            callFromDetRun.refChan = refch;
+                    end
+                    
+                    guiobj.ephys_artSupp4Det = 1;
+                    callFromDetRun.data_idx = chan;
+                    ephysRunProc(guiobj,callFromDetRun)
+                    temp = 1:size(guiobj.ephys_procced, 1);
+                    selInds = temp(end - (length(chan)-1):end);
+                    guiobj.ephys_artSuppedData4DetListInds = selInds;
+                    data = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
+                    detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
+                    
+                end
+                
+            elseif guiobj.ephysDetUseProcDataCheckBox.Value
+                %% select from previously processed data
+                if guiobj.roboDet
+                    selInds = guiobj.roboDet_selChans;
+                else
+                    selInds = makeProcDataSelFig(guiobj,1);
+                end
+                
+                if isempty(selInds)
+                    dispErrorDlgResetStatus('No channel selected!')
+                    return
+                end
+                
+                chan = [guiobj.ephys_proccedInfo(selInds).Channel];
+                
+                if (length(chan) == 1) && ismember(chan, refch)
+                    dispErrorDlgResetStatus('The one channel that you selected is a reference channel!')
+                    return
+                end
+                
+                if (refVal ~= 0) && any(~ismember(refch, chan))
+                    dispErrorDlgResetStatus(['You should also select the processed reference channel(s),',...
+                        'because you selected reference channel validation!'])
+                    return
+                end
+                
+                data = guiobj.ephys_procced(selInds,:);
+                
+                guiobj.ephys_artSupp4Det = 1;
+                guiobj.ephys_artSuppedData4DetListInds = selInds;
+                detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
+                
+            end
+            
+            %% creating refchanData vector, and eliminating refch from the data array
+            if (refVal == 0)
+                refchData = [];
+            else
+                if refch == 0
+                    refchData = mean(data);
+                else
+                    if all(ismember(refch, chan))
+                        refchData = mean(data(ismember(chan, refch),:), 1);
+                    else
+                        refchData = mean(guiobj.ephys_data(refch,:), 1);
+                    end
+                end
+
+                if any(ismember(refch, chan))
+                    data(ismember(chan, refch),:) = [];
+                    chan(ismember(chan, refch)) = [];
+                end
+            end
+            
+            %% check whether user requested interval selection
             if guiobj.selIntervalsCheckBox.Value
                 if guiobj.roboDet
                     inds2use_interval = guiobj.ephys_prevIntervalSel;
                 else
-                    if ~any(ismember(refch, chan))
+                    if ~isempty(refch) && ~any(ismember(refch, chan))
                         inputData = [guiobj.ephys_data(refch,:); data];
                         inputChans = [refch, chan];
                     else
@@ -3790,9 +3883,7 @@ classdef DAS < handle
                     end
 
                     if isempty(inds2use_interval)
-                        warndlg('The whole recording was discarded!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        dispErrorDlgResetStatus('The whole recording was discarded!')
                         return
                     end
                 end
@@ -3800,19 +3891,15 @@ classdef DAS < handle
                 inds2use_interval = 'all';
             end
             
-            % check whether running data based detection was requested
+            %% check whether running data based detection was requested
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 inds2use_run = convertRunInds4Dets(guiobj,1);
                 
                 if isempty(inds2use_run)
-                    warndlg('No sections satisfied the running specifications!')
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    dispErrorDlgResetStatus('No sections satisfied the running specifications!')
                     return
                 elseif (length(inds2use_run) / fs) < (str2double(guiobj.minTimeInSpeedRangeEdit.String) / 1000)
-                    errordlg('The section falling in the specified speed range is too short!')
-                    guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                    guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                    dispErrorDlgResetStatus('The section falling in the specified speed range is too short!')
                     return
                 end
                 
@@ -3824,7 +3911,7 @@ classdef DAS < handle
                 inds2use_run = 'all';
             end
             
-            % merging the inds2use
+            %% merging the inds2use
             if strcmp(inds2use_interval, 'all') && strcmp(inds2use_run, 'all')
                 inds2use = 'all';
             elseif xor(strcmp(inds2use_interval, 'all'), strcmp(inds2use_run, 'all'))
@@ -3837,171 +3924,26 @@ classdef DAS < handle
                 inds2use = intersect(inds2use_run, inds2use_interval);
             end
             if isempty(inds2use)
-                warndlg('No intervals remain for detection!')
-                guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                dispErrorDlgResetStatus('No intervals remain for detection after interval merging!')
                 return
             end
             
-            % Handling no input case when artsupp is enabled
-            if (ismember(guiobj.ephysDetArtSuppPopMenu.Value, 4)) && (isempty(refch) || any(isnan(refch)))
-                errordlg('Specifiy reference channel to use this type of artifact suppression!')
-                guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                return
-            end
-            
-            if ~isempty(refch) && ~any(isnan(refch)) && any(refch ~= 0)
-                switch dettype
-                    case 'CWT based'
-                        refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
-                        
-                    case 'DoG+InstPow'
-                        refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value - 1;
-                        
-                    otherwise
-                        refVal = 0;
-                        
-                end
-                if refVal && (guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1))
-                    if any(~ismember(refch, chan))
-                        errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
-                        pause(1)
-                        if ishandle(errdlg)
-                            close(errdlg)
-                        end
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                end
-            end
-            
-            % saving the artifact suppressed data as 
-            if guiobj.ephysDetUseProcDataCheckBox.Value
-                guiobj.ephys_artSuppedData4DetListInds = selInds;
-            else
-                switch guiobj.ephysDetArtSuppPopMenu.Value 
-                    case 1 % no artifact suppression
-                        guiobj.ephys_artSupp4Det = 0;
-                    case 2 % periodic
-                        guiobj.ephys_artSupp4Det = 1;
-                        callFromDetRun.procGrp = 'Artifact Suppression';
-                        callFromDetRun.filtype = [];
-                        callFromDetRun.artSuppName = 'Periodic';
-                        callFromDetRun.refChan = [];
-                    case 3
-                        guiobj.ephys_artSupp4Det = 1;
-                        callFromDetRun.procGrp = 'Artifact Suppression';
-                        callFromDetRun.filtype = [];
-                        callFromDetRun.artSuppName = 'DFER';
-                        callFromDetRun.refChan = [];
-                    case 4 % ref chan subtract
-                        guiobj.ephys_artSupp4Det = 1;
-                        callFromDetRun.procGrp = 'Artifact Suppression';
-                        callFromDetRun.filtype = [];
-                        callFromDetRun.artSuppName = 'classic ref subtract';
-                        callFromDetRun.refChan = refch;
-                end
-                if guiobj.ephys_artSupp4Det ~= 0
-                    callFromDetRun.data_idx = chan;
-                    ephysRunProc(guiobj,callFromDetRun)
-                    temp = 1:size(guiobj.ephys_procced, 1);
-                    selInds = temp(end - (length(chan)-1):end);
-                    guiobj.ephys_artSuppedData4DetListInds = selInds;
-                    data = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
-                    detinfo.DetSettings.ArtSupp = guiobj.ephys_proccedInfo(selInds(1)).ProcDetails(1).Type;
-                else
-                    guiobj.ephys_artSuppedData4DetListInds = [];
-                end
-            end
-            
-            if ~isempty(refch) && ~any(isnan(refch))
-                switch dettype
-                    case 'CWT based'
-                        refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
-                        
-                    case 'DoG+InstPow'
-                        refVal = guiobj.ephysDogInstPowDetRefValPopMenu.Value - 1;
-                        
-                    otherwise
-                        refVal = 0;
-                        
-                end
-                
-                if refVal ~= 0
-                    if guiobj.ephysDetUseProcDataCheckBox.Value || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1)
-                        if any(~ismember(refch, chan))
-                            errdlg = errordlg('To use refchan validation, refchan should be artifact suppressed as well!');
-                            pause(1)
-                            if ishandle(errdlg)
-                                close(errdlg)
-                            end
-                            guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                            guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                            return                            
-                        end
-                    end
-                                        
-                    if refch == 0
-                        refchData = mean(data);
-                    elseif length(refch) == 1
-                        if all(ismember(refch, chan))
-                            refchData = data(refch == chan,:);
-                        else
-                            refchData = guiobj.ephys_data(refch,:);
-                        end
-                    else
-                        if all(ismember(refch, chan))
-                            refchData = mean(data(ismember(chan, refch),:));
-                        else
-                            refchData = mean(guiobj.ephys_data(refch,:));
-                        end
-                    end
-                    
-                    if any(ismember(refch, chan))
-                        data(ismember(chan, refch),:) = [];
-                        chan(ismember(chan, refch)) = [];
-                    end
-                else
-                    refchData = [];
-                end
-                            
-            else
-                refchData = [];
-            end
-            
+            %%
             switch dettype
                 case 'CWT based'
+                    %%
                     minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String)/1000;
                     sdmult = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                     w1 = str2double(guiobj.ephysCwtDetW1Edit.String);
                     w2 = str2double(guiobj.ephysCwtDetW2Edit.String);
-                    refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
                     
                     % Handling no input cases
                     if (isempty(minLen)||isnan(minLen)) || (isempty(sdmult)||isnan(sdmult))...
                             || (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))
-                        errordlg('Missing parameters!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        dispErrorDlgResetStatus('Missing parameters!')
                         return
                     end
                                                             
-                    if refVal && (isempty(refch) || any(isnan(refch)))
-                        errordlg('No reference channel specified!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                    
-                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1)) && ((length(chan) == 1) && (chan == refch))
-                        errordlg('Requested channel and the reference channel are the same!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                                        
                     if ~refVal
                         [dets,detBorders,detParams,evComplexes] = wavyDet(data,inds2use,tAxis,chan,fs,minLen,...
                             sdmult,w1,w2,0,0,[],showFigs,guiobj.roboDet);
@@ -4016,10 +3958,10 @@ classdef DAS < handle
                     detinfo.DetSettings.MinLen = minLen*1000;
                     detinfo.DetSettings.SdMult = sdmult;
                     detinfo.DetSettings.RefVal = refVal;
-%                     detinfo.DetSettings.RefCh = refch;
                     detinfo.DetSettings.RefCh = regexprep(refchInp, ' +', '');
                     
                 case 'Adaptive threshold'
+                    %%
                     step = eval(guiobj.ephysAdaptDetStepEdit.String)/1000;
                     mindist = eval(guiobj.ephysAdaptDetMindistEdit.String)/1000;
                     minLen = eval(guiobj.ephysAdaptDetMinwidthEdit.String)/1000;
@@ -4028,9 +3970,7 @@ classdef DAS < handle
                     % Handling no input cases
                     if (isempty(step)||isnan(step)) || (isempty(mindist)||isnan(mindist))...
                             || (isempty(minLen)||isnan(minLen)) || (isempty(ratio)||isnan(ratio))
-                        errordlg('Missing parameters!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        dispErrorDlgResetStatus('Missing parameters!')
                         return
                     end
                     
@@ -4038,7 +3978,6 @@ classdef DAS < handle
                     detBorders = cell(min(size(data)),1);
                     for i = 1:min(size(data))
                         [detsTemp,detBordersTemp] = adaptive_thresh(data(i,:),tAxis,fs,step,minLen,mindist,ratio,showFigs);
-%                         dets(i,:) = detsTemp;
                         dets{i} = detsTemp;
                         detBorders(i) = detBordersTemp;
                     end
@@ -4049,11 +3988,9 @@ classdef DAS < handle
                     detinfo.DetSettings.MinLen = minLen*1000;
                     detinfo.DetSettings.MinDist = mindist*1000;
                     detinfo.DetSettings.Ratio = ratio;
-                    
-                    % to comply with a check later on
-                    refVal = 0;
-                    
+                                        
                 case 'DoG+InstPow'
+                    %%
                     w1 = str2double(guiobj.ephysDoGInstPowDetW1Edit.String);
                     w2 = str2double(guiobj.ephysDoGInstPowDetW2Edit.String);
                     sdmult = str2double(guiobj.ephysDoGInstPowDetSdMultEdit.String);
@@ -4063,26 +4000,10 @@ classdef DAS < handle
                     % Handling no input cases
                     if (isempty(w1)||isnan(w1)) || (isempty(w2)||isnan(w2))...
                             || (isempty(sdmult)||isnan(sdmult)) || (isempty(minLen)||isnan(minLen))
-                        errordlg('Missing parameters!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+                        dispErrorDlgResetStatus('Missing parameters!')
                         return
                     end
-                    
-                    if refVal && (isempty(refch) || any(isnan(refch)))
-                        errordlg('No reference channel specified!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                    
-                    if (refVal || (guiobj.ephysDetArtSuppPopMenu.Value ~= 1)) && ((length(chan) == 1) && (chan == refch))
-                        errordlg('Requested channel and the reference channel are the same!')
-                        guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                        guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        return
-                    end
-                    
+                                        
                     if ~refVal
                         [dets,detBorders,detParams,evComplexes] = DoGInstPowDet(data,inds2use,tAxis,chan,fs,...
                             w1,w2,sdmult,minLen,0,0,[],showFigs,guiobj.roboDet);
@@ -4097,11 +4018,11 @@ classdef DAS < handle
                     detinfo.DetSettings.MinLen = minLen*1000;
                     detinfo.DetSettings.SdMult = sdmult;
                     detinfo.DetSettings.RefVal = refVal;
-%                     detinfo.DetSettings.RefCh = refch;
                     detinfo.DetSettings.RefCh = regexprep(refchInp, ' +', '');
+                    
             end
             
-            % eliminate channels from detection cell with no dets
+            %% eliminate channels from detection cell with no dets
             emptyCells = cellfun('isempty',dets);
             if ~isempty(find(emptyCells, 1))
                 dets(emptyCells) = [];
@@ -4113,8 +4034,7 @@ classdef DAS < handle
             
             detinfo.DownSamp = guiobj.ephys_downSampd;
             
-            % check whether the only detections are in the reference
-            % channel
+            %% check whether the only detections are in the reference channel(s)
             if (refVal ~= 0) && (any(ismember(chan, refch)))
                 temp = dets;
                 temp(ismember(chan, refch)) = [];
@@ -4132,28 +4052,22 @@ classdef DAS < handle
                 guiobj.ephys_detParams = {};
                 guiobj.ephys_detectionsInfo = [];
                 
-                eD = errordlg('No events were found!');
-                pause(1)
-                if ishandle(eD)
-                    close(eD)
-                end
+                dispErrorDlgResetStatus('No events found!')
                 eventDetPlotFcn(guiobj,1,0,1)
-                guiobj.ephysDetStatusLabel.String = '--IDLE--';
-                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
                 return                
             end
             
-            % find global events
+            %% find global events
             guiobj.ephys_globalDets = extractGlobalEvents(dets,round(0.05*fs));
             
-            % recompute the ephys data types
+            %% recompute the ephys data types
             if (exist('w1','var') == 1) && (exist('w2','var') == 1)
                 guiobj.eventDet1W1 = w1;
                 guiobj.eventDet1W2 = w2;
             end
             computeEphysDataTypes(guiobj)
             
-            % add running related parameters if relevant
+            %% add running related parameters if relevant
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 for i = 1:length(detParams) % looping over channels
                     for j = 1:length(detParams{i}) % looping over dets
@@ -4171,7 +4085,8 @@ classdef DAS < handle
                     end
                 end
             end
-                        
+            
+            %% save data to guiobj
             guiobj.ephys_detections = dets;
             
             guiobj.ephys_eventComplexes = evComplexes;
@@ -4186,8 +4101,19 @@ classdef DAS < handle
             
             guiobj.ephysDetStatusLabel.String = '--IDLE--';
             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
-                        
+            
             eventDetAxesButtFcn(guiobj,1,0,0);
+            
+            %%
+            function dispErrorDlgResetStatus(errMsg)
+                eD = errordlg(errMsg);
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
+            end
         end
         
         %%
