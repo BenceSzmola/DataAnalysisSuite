@@ -4149,6 +4149,7 @@ classdef DAS < handle
         
         %%
         function imagingDetRun(guiobj)
+            %%
             dettype = guiobj.imagingDetPopMenu.Value;
             if dettype == 1
                 return
@@ -4159,11 +4160,16 @@ classdef DAS < handle
             guiobj.imagingDetStatusLabel.BackgroundColor = 'r';
             drawnow
             
+            fs = guiobj.imaging_fs;
+            
+            %%
             if ~guiobj.imagingDetUseProcDataCheckBox.Value
+                %%
                 data = guiobj.imaging_data;
                 roi = 1:size(data,1);
                 guiobj.imaging_artSupp4Det = 0;
             else
+                %%
                 selInds = makeProcDataSelFig(guiobj,2);
                 guiobj.imaging_artSuppedData4DetListInds = selInds;
                 if isempty(selInds)
@@ -4175,9 +4181,8 @@ classdef DAS < handle
                 guiobj.imaging_artSupp4Det = 1;
                 detinfo.DetSettings.ArtSupp = guiobj.imaging_proccedInfo(selInds(1)).ProcDetails(1).Type;
             end
-            fs = guiobj.imaging_fs;
             
-            % check whether running data based detection was requested
+            %% check whether running data based detection was requested
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 inds2use = convertRunInds4Dets(guiobj,2);
                 
@@ -4196,12 +4201,14 @@ classdef DAS < handle
                 inds2use = 'all';
             end            
             
+            %%
             dets = cell(min(size(data)),1);
             detBorders = cell(min(size(data)),1);
             detParams = cell(min(size(data)),1);
             evComplexes = cell(min(size(data)),1);
             switch dettype
                 case 'Mean+SD'
+                    %%
                     sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
                     winLen = str2double(guiobj.imagingMeanSdDetWinSizeEdit.String);
                     
@@ -4242,6 +4249,7 @@ classdef DAS < handle
                     end
 
                 case 'MLspike based' % in experimental phase
+                    %%
                     par = tps_mlspikes('par');
                     par.dt = 1/fs;
                     par.a = str2double(guiobj.imagingMlSpDetDFFSpikeEdit.String);
@@ -4263,7 +4271,7 @@ classdef DAS < handle
                     detinfo.DetSettings = par;
             end
             
-            % eliminating empty rois from detection cell
+            %% eliminating empty rois from detection cell
             emptyCells = cellfun('isempty',dets);
             if ~isempty(find(emptyCells, 1))
                 dets(emptyCells) = [];
@@ -4273,8 +4281,10 @@ classdef DAS < handle
             end
             detinfo.DetROI = roi;
             
+            %%
             detinfo.UpSamp = guiobj.imaging_upSampd;
             
+            %%
             if ~sum(~cellfun('isempty',dets))
                 guiobj.imaging_detections = {};
                 guiobj.imaging_globalDets = [];
@@ -4287,16 +4297,16 @@ classdef DAS < handle
                 return
             end
             
-            % find global events
+            %% find global events
             guiobj.imaging_globalDets = extractGlobalEvents(dets,round(0.05*fs));
             
-            % recompute the ephys data types
+            %% recompute the ephys data types
             if (exist('winLen','var') == 1)
                 guiobj.eventDet2GwinSize = winLen;
             end
             computeImagingDataTypes(guiobj)
             
-            % computing running related parameters if relevant
+            %% computing running related parameters if relevant
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 for i = 1:length(detParams) % looping over channels
                     for j = 1:length(detParams{i}) % looping over dets
@@ -4315,6 +4325,7 @@ classdef DAS < handle
                 end
             end
             
+            %%
             guiobj.imaging_detections = dets;
 
             guiobj.imaging_detectionsInfo = detinfo;
@@ -4332,6 +4343,7 @@ classdef DAS < handle
             
             eventDetAxesButtFcn(guiobj,2,0,0)
             
+            %%
             function dispErrorResetStatus(errMsg)
                 eD = errordlg(errMsg);
                 pause(1)
@@ -4350,17 +4362,16 @@ classdef DAS < handle
                 return
             end
             
+            %%
+            dettype = guiobj.simultDetPopMenu.Value;
+            if dettype == 1
+                return
+            end
+            dettype = guiobj.simultDetPopMenu.String{dettype};
+            
             guiobj.simultDetStatusLabel.String = 'Detection running';
             guiobj.simultDetStatusLabel.BackgroundColor = 'r';
             drawnow
-            
-            dettype = guiobj.simultDetPopMenu.Value;
-            dettype = guiobj.simultDetPopMenu.String{dettype};
-            
-            if strcmp(dettype,'--Simultan detection methods--')
-                warndlg('Choose detection type!')
-                return 
-            end
             
             ephys_tAx = guiobj.ephys_taxis;
             ephysDetParams = guiobj.ephys_detParams;
@@ -4376,8 +4387,10 @@ classdef DAS < handle
             
             simultDets = [];
             
+            %%
             switch dettype
                 case 'Standard'
+                    %%
                     delay1 = str2double(guiobj.simultDetStandardDelayEdit1.String)/1000;
                     delay2 = str2double(guiobj.simultDetStandardDelayEdit2.String)/1000;
                     for ephysRowNum = 1:size(guiobj.ephys_detections,1)
@@ -4424,9 +4437,7 @@ classdef DAS < handle
                     end
                     
                     if isempty(simultDets)
-                        warndlg('No simultaneous events found!')
-                        guiobj.simultDetStatusLabel.String = '--IDLE--';
-                        guiobj.simultDetStatusLabel.BackgroundColor = 'g';
+                        dispErrorResetStatus('No simultaneous events found!')
                         return
                     end
                     
@@ -4438,13 +4449,13 @@ classdef DAS < handle
                     simultDetInfo.Settings.Delay = ['[',num2str(delay1),' , ',num2str(delay2),']'];
             end
             
+            %%
             if isempty(simultDets)
-                warndlg('No simultaneous events found!')
-                guiobj.simultDetStatusLabel.String = '--IDLE--';
-                guiobj.simultDetStatusLabel.BackgroundColor = 'g';
+                dispErrorResetStatus('No simultaneous events found!')
                 return
             end
             
+            %%
             guiobj.simult_detections = simultDets;
             
             guiobj.simult_detectionsInfo = simultDetInfo;
@@ -4459,6 +4470,17 @@ classdef DAS < handle
                         
             guiobj.simultDetStatusLabel.String = '--IDLE--';
             guiobj.simultDetStatusLabel.BackgroundColor = 'g';
+            
+            %%
+            function dispErrorResetStatus(errMsg)
+                eD = errordlg(errMsg);
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                guiobj.simultDetStatusLabel.String = '--IDLE--';
+                guiobj.simultDetStatusLabel.BackgroundColor = 'g';
+            end
         end
         
         %%
