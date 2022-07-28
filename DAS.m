@@ -2202,16 +2202,19 @@ classdef DAS < handle
                 ImportRHDButtonPushed(guiobj)
                 
                 % run periodic filter, or other preproc
-                guiobj.ephysProcListBox.Value = union(guiobj.roboDet_selChans, guiobj.roboDet_refChans);
+                guiobj.tabs.SelectedTab = guiobj.ephysProcTab;
+                selAndRefChans = union(guiobj.roboDet_selChans, guiobj.roboDet_refChans);
+                guiobj.ephysProcListBox.Value = selAndRefChans;
                 ephysRunProc(guiobj)
                 guiobj.ephys_artSupp4Det = 1;
-                guiobj.ephys_artSuppedData4DetListInds = guiobj.roboDet_selChans;
+                guiobj.ephys_artSuppedData4DetListInds = selAndRefChans;
                 
                 % run interval discarding
                 guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_procced,...
-                    guiobj.roboDet_selChans,guiobj.roboDet_refChans);
+                    selAndRefChans,guiobj.roboDet_refChans);
                 
                 % run detection
+                guiobj.tabs.SelectedTab = guiobj.eventDetTab;
                 doDet = true;
                 initSdLvl = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                 currSdLvl = initSdLvl;
@@ -3809,7 +3812,7 @@ classdef DAS < handle
             elseif guiobj.ephysDetUseProcDataCheckBox.Value
                 %% select from previously processed data
                 if guiobj.roboDet
-                    selInds = guiobj.roboDet_selChans;
+                    selInds = union(guiobj.roboDet_selChans, guiobj.roboDet_refChans);
                 else
                     selInds = makeProcDataSelFig(guiobj,1);
                 end
