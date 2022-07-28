@@ -598,10 +598,6 @@ classdef DASeV < handle
                 end
 
                 if ~gO.plotFull
-%                     gO.ephysDetUpButt.Enable = 'on';
-%                     gO.ephysDetDwnButt.Enable = 'on';
-
-
                     if ~isempty(detParams)
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
                         gO.ephysDetParamsTable.Data = temp;
@@ -696,8 +692,6 @@ classdef DASeV < handle
 
                     end
                 elseif gO.plotFull
-%                     gO.ephysDetUpButt.Enable = 'off';
-%                     gO.ephysDetDwnButt.Enable = 'off';
                     gO.ephysCurrDetNum = 1;
 
                     if ~isempty(detParams)
@@ -848,7 +842,12 @@ classdef DASeV < handle
                     if gO.highPassRawEphys == 1
                         tempfull = filtfilt(b,a,gO.ephysData(chanNum,:));
                         temp = tempfull(winIdx);
-                        axLims = [min(tempfull), max(tempfull)];
+%                         axLims = [min(tempfull), max(tempfull)];
+                        if strcmp(gO.eventYlimMode, 'global')
+                            axLims = [min(tempfull), max(tempfull)];
+                        elseif strcmp(gO.eventYlimMode, 'window')
+                            axLims = [min(temp), max(temp)];
+                        end
                     elseif gO.highPassRawEphys == 0
                         temp = gO.ephysData(chanNum,winIdx);
 %                         axLims = [min(gO.ephysData(chanNum,:)), max(gO.ephysData(chanNum,:))];
@@ -930,9 +929,6 @@ classdef DASeV < handle
                 end
 
                 if ~gO.plotFull
-%                     gO.imagingDetUpButt.Enable = 'on';
-%                     gO.imagingDetDwnButt.Enable = 'on';
-
                     if ~isempty(detParams)
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
                         gO.imagingDetParamsTable.Data = temp;
@@ -1017,8 +1013,6 @@ classdef DASeV < handle
                     end
 
                 elseif gO.plotFull
-%                     gO.imagingDetUpButt.Enable = 'off';
-%                     gO.imagingDetDwnButt.Enable = 'off';
                     gO.imagingCurrDetNum = 1;
 
                     if ~isempty(detParams)
