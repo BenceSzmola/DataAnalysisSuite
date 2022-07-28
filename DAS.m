@@ -14,6 +14,9 @@ classdef DAS < handle
         showSimultMarkersMenu
         runPosModeMenu
         
+        roboDetMenu
+        runRoboDetMenu
+        
         procTabOptionsMenu
         ephysLinkProcListBoxesMenu
         imagingLinkProcListBoxesMenu
@@ -1779,14 +1782,6 @@ classdef DAS < handle
             
             inds2use = [];
             
-%             quest = 'Which method do you want to use to discard intervals?';
-%             questTitle = 'Interval selection method';
-%             btn1 = 'Timestamp entry';
-%             btn2 = 'Graphical';
-%             btn3 = 'Cancel';
-%             defbtn = btn1;
-%             selMethod = questdlg(quest,questTitle,btn1,btn2,btn3,defbtn);
-            
             if guiobj.roboDet
                 selMethod = 3;
             else
@@ -1915,6 +1910,13 @@ classdef DAS < handle
                             'Name', 'Refchan selection',...
                             'PromptString', 'Which is(are) the refchan(s)?');
                         if ~tf
+                            return
+                        elseif isempty(refchrows)
+                            eD = errordlg('Reference channel is needed here!');
+                            pause(1)
+                            if ishandle(eD)
+                                close(eD)
+                            end
                             return
                         end
                     else
@@ -2112,8 +2114,13 @@ classdef DAS < handle
             end
         end
         
+    end
+    
+    %% Callback functions
+    methods (Access = private)
+
         %%
-        function autoRun(guiobj)
+        function runRoboDet(guiobj)
             answer = questdlg('Have you set the detection settings?');
             switch answer
                 case {'No', 'Cancel', ''}
@@ -2175,11 +2182,17 @@ classdef DAS < handle
                     
             end
             
-            % channel selection (for now hardcoded for testing)
-            selChans = 1:5;
-            guiobj.roboDet_selChans = selChans;
-            refChans = 5;
-            guiobj.roboDet_refChans = refChans;
+            % channel selection
+            prompt = {'Channel(s) to use for detection (format: 1-5 OR 1,3,5)', 'Reference channel(s) (format: 1-5 OR 1,3,5)'};
+            dlgTitle = 'Channel selection';
+            answer = inputdlg(prompt,dlgTitle);
+            if isempty(answer) || isempty(answer{1})
+                guiobj.roboDet = false;
+                return
+            end
+            guiobj.roboDet_selChans = numSelCharConverter(answer{1});
+            guiobj.roboDet_refChans = numSelCharConverter(answer{2});
+            guiobj.ephysDetRefChanEdit.String = answer{2};
             
             for i = 1:length(saveFnames)
                 guiobj.roboDet_idx = i;
@@ -2189,13 +2202,14 @@ classdef DAS < handle
                 ImportRHDButtonPushed(guiobj)
                 
                 % run periodic filter, or other preproc
-                guiobj.ephysProcListBox.Value = selChans;
+                guiobj.ephysProcListBox.Value = union(guiobj.roboDet_selChans, guiobj.roboDet_refChans);
                 ephysRunProc(guiobj)
                 guiobj.ephys_artSupp4Det = 1;
-                guiobj.ephys_artSuppedData4DetListInds = selChans;
+                guiobj.ephys_artSuppedData4DetListInds = guiobj.roboDet_selChans;
                 
                 % run interval discarding
-                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_procced,selChans,refChans);
+                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_procced,...
+                    guiobj.roboDet_selChans,guiobj.roboDet_refChans);
                 
                 % run detection
                 doDet = true;
@@ -2226,11 +2240,6 @@ classdef DAS < handle
             guiobj.roboDet = false;
         end
         
-    end
-    
-    %% Callback functions
-    methods (Access = private)
-
         %% Button pushed function: ImportRHDButton
         function ImportRHDButtonPushed(guiobj)
 
@@ -5223,12 +5232,6 @@ classdef DAS < handle
         
         %%
         function keyboardPressFcn(guiobj,~,kD)
-            % testing autopilot
-            if strcmp(kD.Key,'p')
-                autoRun(guiobj)
-                return
-            end
-            
             if guiobj.tabs.SelectedTab == guiobj.tabs.Children(4)
                 if strcmp(kD.Key,'d') & (sum(guiobj.datatyp) > 1)
                     switch guiobj.keyboardPressDtyp
@@ -5747,6 +5750,13 @@ classdef DAS < handle
             guiobj.runPosModeMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'MenuSelectedFcn',@(h,e) guiobj.runPosModeMenuSelected,...
                 'Text','Switch position axes mode (absolute/relative)');
+            
+            % robodet menus
+            guiobj.roboDetMenu = uimenu(guiobj.mainfig,...
+                'Text', 'RoboDet');
+            guiobj.runRoboDetMenu = uimenu(guiobj.roboDetMenu,...
+                'Text', 'Run roboDet (only RHDs for now)',...
+                'MenuSelectedFcn', @(h,e) guiobj.runRoboDet);
             
             % proc tabs options
             guiobj.procTabOptionsMenu = uimenu(guiobj.mainfig,...
