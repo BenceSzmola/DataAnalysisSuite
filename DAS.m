@@ -4624,6 +4624,7 @@ classdef DAS < handle
                     temp = DAS_LOG.lastState.eventDetTab.general;
                     guiobj.selIntervalsCheckBox.Value = temp.selInterVals;
                     guiobj.ephysDetUseProcDataCheckBox.Value = temp.ephysDetUseProcData;
+                    ephysDetUseProcDataCheckBoxCB(guiobj)
                     guiobj.imagingDetUseProcDataCheckBox.Value = temp.imagingDetUseProcData;
                     clear temp
                 catch
