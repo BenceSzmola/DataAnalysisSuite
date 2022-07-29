@@ -5151,7 +5151,11 @@ classdef DAS < handle
                 return
             elseif ~contains(fname,'DASsave')
                 fname = ['DASsave_',fname];
-                warndlg(['File name automatically changed to: ',fname])
+                wD = warndlg(['File name automatically changed to: ',fname]);
+                pause(1)
+                if ishandle(wD)
+                    close(wD)
+                end
             end
             oldpath = cd(path);
             
