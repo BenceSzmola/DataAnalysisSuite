@@ -37,8 +37,13 @@ end
     function globalEvents = extraction(dets,tol)
         numChans = length(dets);
 
+        allDets = vertcat(dets{:});
         % check which detection indexes are within tolerance to one another
-        [c, ~, ic] = uniquetol(vertcat(dets{:}), tol, 'DataScale', 1);
+        c = uniquetol(allDets, tol, 'DataScale', 1);
+        ic = zeros(length(allDets),1);
+        for i = 1:length(allDets)
+            [~, ic(i)] = min(abs(c - allDets(i)));
+        end
         
         % group the indices according to channels
         numDets = cellfun(@length, dets);
