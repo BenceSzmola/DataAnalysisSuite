@@ -1,5 +1,5 @@
 function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,...
-        refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr,autoPilot)
+        refch,refCorrData,refDets,fs,thr,refVal,eventMinLen,extThr,autoPilot)
 
 % [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
 
@@ -8,8 +8,10 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     if nargin < 14
         extThr = [];
     end
+
     
-    minLen = round(minLen*fs);
+    aboveThrMinLen = round(0.01 * fs);
+    eventMinLen = round(eventMinLen * fs);
 
     if size(rawData,1) > size(rawData,2)
         rawData = rawData';
@@ -21,17 +23,18 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         corrData = corrData';
     end
 
-    % Creating a container to store events which were discarded by the
-    % refchan validation mechanic
+    %% Creating a container to store events which were discarded by the refchan validation mechanic
     if refVal ~= 0
         refValVictims = cell(size(rawData,1),1);
     end
     
+    %%
     eventsStartStop = cell(size(rawData,1),1);
     eventsPeak = cell(size(rawData,1),1);
     peakValues = cell(size(rawData,1),1);
     vEvents = cell(size(rawData,1),1);
     
+    %%
     for i = 1:size(rawData,1)
         if any(chan(i) == refch)
             continue
@@ -72,7 +75,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
                 eventsStartStop{i}(j,2) = aboveThr(events(j+1)-1);
             end
 
-            if (eventsStartStop{i}(j,2)-eventsStartStop{i}(j,1)) > minLen
+            if (eventsStartStop{i}(j,2)-eventsStartStop{i}(j,1)) > aboveThrMinLen
                 aboveMinLen(j) = true;
             end
 
@@ -122,6 +125,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         
     end
     
+    %%
     if ~autoPilot && (refVal~=0) && (~isempty([refValVictims{:}]))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
             length([refValVictims{:}]));
@@ -139,6 +143,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         end
     end
     
+    %%
     for i = 1:size(rawData,1)
         if any(chan(i) == refch)
             continue
@@ -149,6 +154,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         peakValues{i} = peakValues{i}(vEvents{i});
     end
     
+    %%
     if ~isempty(extThr)
         
         for i = 1:size(rawData,1)
@@ -163,6 +169,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         
     end
     
+    %%
     minSepar = round(0.01*fs);
     for i = 1:size(rawData,1)
         if any(chan(i) == refch)
@@ -172,6 +179,19 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},peakValues{i},eventsStartStop{i},minSepar);
     end
     
+    %%
+    for ch = 1:size(rawData, 1)
+        tooShort = false(length(eventsPeak{ch}),1);
+        for ev = 1:length(eventsPeak{ch})
+            if (eventsStartStop{ch}(ev,2) - eventsStartStop{ch}(ev,1)) < eventMinLen
+                tooShort(ev) = true;
+            end
+        end
+        eventsPeak{ch}(tooShort) = [];
+        eventsStartStop{ch}(tooShort,:) = [];
+    end
+    
+    %%
     dets = eventsPeak;
     if any(ismember(chan, refch))
         dets{ismember(chan, refch)} = [];
