@@ -21,25 +21,34 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
                 if detInd < length(refValVictims{chanInd})
                     detInd = detInd + 1;
                 end
+                
             case 'leftarrow'
                 if detInd > 1
                     detInd = detInd - 1;
                 end
+                
             case 'uparrow'
                 if chanInd < length(refValVictims)
                     chanInd = chanInd + 1;
                     detInd = 1;
                 end
+                
             case 'downarrow'
                 if chanInd > 1
                     chanInd = chanInd - 1; 
                     detInd = 1;
                 end
+                
             case 'space'
                 events2Restore{chanInd} = [events2Restore{chanInd}, detInd];
+                
             case 'backspace'
                 events2Restore{chanInd}(events2Restore{chanInd}==detInd) = [];
-            
+                
+            case 'escape'
+                close(h)
+                return
+                
         end
         
         % adjusted index (detInd works in refValVictims)

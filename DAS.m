@@ -1789,7 +1789,9 @@ classdef DAS < handle
                 [selMethod, tf] = listdlg('ListString', selList,...
                     'Name', 'Interval selection method',...
                     'PromptString', 'Which method do you want to use to discard intervals?',...
-                    'SelectionMode', 'single');
+                    'SelectionMode', 'single',...
+                    'ListSize', [300,160],...
+                    'InitialValue', 2);
                 if ~tf
                     return
                 end
@@ -2048,7 +2050,8 @@ classdef DAS < handle
                 'Name',figTitle,...
                 'Units','normalized',...
                 'Position',[0.2, 0.4, 0.6, 0.3],...
-                'MenuBar','none');
+                'MenuBar','none',...
+                'KeyPressFcn', @(h,e) figKeyFunc(h,e));
             
             listboxString = cell(1,length(procInfo));
             for i = 1:length(procInfo)
@@ -2077,7 +2080,8 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.1, 0.98, 0.89],...
                 'String',listboxString,...
-                'Max',2);
+                'Max',2,...
+                'KeyPressFcn', @(h,e) figKeyFunc(h,e));
             if selMode
                 uicontrol(fig,...
                     'Style','pushbutton',...
@@ -2098,6 +2102,12 @@ classdef DAS < handle
                     selInds = selList.Value;
                 end
                 close(fig)
+            end
+            
+            function figKeyFunc(~,e)
+                if strcmp(e.Key, 'return')
+                    uiresume
+                end
             end
         end
         
@@ -4959,7 +4969,7 @@ classdef DAS < handle
                 end
                 [detTypeToSave,tf] = listdlg('PromptString','Which detection (or dataset if there are no detections) do you want to save?',...
                     'Name','Saving detections',...
-                    'ListString',list,'ListSize',[250, 100]);
+                    'ListString',list,'ListSize',[300, 100]);
                 if ~tf
                     if ishandle(wb)
                         close(wb)
@@ -4970,8 +4980,8 @@ classdef DAS < handle
                 saveAllChans = 0;
                 quest = ['Do you want to save the all channels/ROIs, or only those',...
                     ' which were used in the detection?'];
-                title = 'Save all channels';
-                answer = questdlg(quest,title,'All','Those used in detection','Cancel','All');
+                questTitle = 'Save all channels';
+                answer = questdlg(quest,questTitle,'All','Those used in detection','Cancel','Those used in detection');
                 if strcmp(answer,'All')
                     saveAllChans = 1;
                 elseif isempty(answer) || strcmp(answer,'Cancel')
