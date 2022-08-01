@@ -1733,7 +1733,7 @@ classdef DASeV < handle
                     close(wb1)
                 end
                 return
-            else
+            elseif ~isempty(gO.path2loadedSave)
                 gO.fileList.String{prevLoadedInd} = prevFname;
             end
             
