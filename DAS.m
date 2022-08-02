@@ -1175,7 +1175,13 @@ classdef DAS < handle
                     axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
                     ylim(ax,axYMinMax)
                 elseif strcmp(guiobj.evDetTabYlimMode, 'window')
-                    ylim(ax,'auto')
+%                     ylim(ax,'auto')
+                    minVal = min(data(chanInd,winInds));
+                    minVal = minVal - 0.1*abs(minVal);
+                    maxVal = max(data(chanInd,winInds));
+                    maxVal = maxVal + 0.1*abs(maxVal);
+                    axYMinMax = [minVal, maxVal];
+                    ylim(ax,axYMinMax)
                 end
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
@@ -2216,16 +2222,31 @@ classdef DAS < handle
                 selAndRefChans = union(guiobj.roboDet_selChans, guiobj.roboDet_refChans);
                 guiobj.ephysProcListBox.Value = selAndRefChans;
                 ephysRunProc(guiobj)
-                guiobj.ephys_artSupp4Det = 1;
-                guiobj.ephys_artSuppedData4DetListInds = selAndRefChans;
+                if isempty(guiobj.ephys_procced)
+                    useProccd = false;
+                else
+                    useProccd = true;
+                    
+                    guiobj.ephys_artSupp4Det = 1;
+                    guiobj.ephys_artSuppedData4DetListInds = selAndRefChans;
+                end
                 
                 % run interval discarding
-                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,guiobj.ephys_procced,...
-                    selAndRefChans,guiobj.roboDet_refChans);
+                if useProccd
+                    data4discard = guiobj.ephys_procced;
+                else
+                    data4discard = guiobj.ephys_data;
+                end
+                guiobj.ephys_prevIntervalSel = discardIntervals4Dets(guiobj,1,data4discard,selAndRefChans,...
+                    guiobj.roboDet_refChans);
                 
                 % run detection
                 guiobj.tabs.SelectedTab = guiobj.eventDetTab;
                 doDet = true;
+                initEphysProcCheckValue = guiobj.ephysDetUseProcDataCheckBox.Value;
+                if ~useProccd
+                    guiobj.ephysDetUseProcDataCheckBox.Value = 0;
+                end
                 initSdLvl = str2double(guiobj.ephysCwtDetSdMultEdit.String);
                 currSdLvl = initSdLvl;
                 while doDet
@@ -2239,6 +2260,7 @@ classdef DAS < handle
                     end
                 end
                 guiobj.ephysCwtDetSdMultEdit.String = num2str(initSdLvl);
+                guiobj.ephysDetUseProcDataCheckBox.Value = initEphysProcCheckValue;
                 
                 % save detections
                 saveDets(guiobj)
@@ -3763,7 +3785,12 @@ classdef DAS < handle
             
             %% check whether the raw or processed data should be used
             if ~guiobj.ephysDetUseProcDataCheckBox.Value
-                chan = guiobj.ephysDetChSelListBox.Value;
+                if guiobj.roboDet
+                    chan = guiobj.roboDet_selChans;
+                else
+                    chan = guiobj.ephysDetChSelListBox.Value;
+                end
+                
                 if isempty(chan)
                     dispErrorDlgResetStatus('No channel selected!')
                     return
