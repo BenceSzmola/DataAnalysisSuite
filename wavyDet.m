@@ -222,13 +222,14 @@ for i = 1:min(size(data))
 %         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
         detPlot(sp2,dets{i},[],taxis,'stars','r',[])
         yline(sp2,thr(i),'Color','g');
+        yline(sp2,extThr(i),'Color','m');
         yline(sp2,quietThr(i),'Color','k');
         plot(sp2,taxis,qSegsInds{i},'-m')
         if ~isempty(dets{i})
-            legendNames = {'Inst. Energy integral','Detections','Detection threshold',...
+            legendNames = {'Inst. Energy integral','Detections','Detection threshold','Ext. threshold',...
                 'Quiet threshold','Quiet segments'};
         else
-            legendNames = {'Inst. Energy integral','Detection threshold',...
+            legendNames = {'Inst. Energy integral','Detection threshold','Ext. threshold',...
                 'Quiet threshold','Quiet segments'};
         end
         legend(sp2,legendNames)

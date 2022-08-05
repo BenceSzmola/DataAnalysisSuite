@@ -140,21 +140,20 @@ for i = 1:min(size(data))
 
         plot(sp2,taxis,instPowd(i,:))
         hold(sp2,'on')
-%         plot(sp2,taxis,dets(i,:),'*r','MarkerSize',10)
         detPlot(sp2,dets{i},[],taxis,'stars','r',[])
-        plot(sp2,taxis,thr(i)*ones(1,length(taxis)),'-g')
-        plot(sp2,taxis,quietThr(i)*ones(1,length(taxis)),'-k')
-%         plot(sp2,taxis,quietThr(i,:),'-k')
+        yline(sp2,thr(i),'g');
+        yline(sp2,extThr(i),'m');
+        yline(sp2,quietThr(i),'k');
         plot(sp2,taxis,qSegsInds{i},'-m')
         hold(sp2,'off')
         xlabel(sp2,'Time [s]')
         ylabel(sp2,'Power [\muV^2]')
         title(sp2,['Instantaneous Power of channel #',num2str(chan(i))])
         if ~isempty(dets{i})
-            legendNames = {'Inst.Power','Detections','Detection threshold',...
+            legendNames = {'Inst.Power','Detections','Detection threshold','Ext. threshold',...
             'Threshold for quiet intervals','Quiet intervals'};
         else
-            legendNames = {'Inst.Power','Detection threshold',...
+            legendNames = {'Inst.Power','Detection threshold','Ext. threshold',...
             'Threshold for quiet intervals','Quiet intervals'};
         end
         legend(sp2,legendNames)
