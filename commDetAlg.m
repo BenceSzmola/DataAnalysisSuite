@@ -35,91 +35,60 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     vEvents = cell(size(rawData,1),1);
     
     %%
-    for i = 1:size(rawData,1)
-        if any(chan(i) == refch)
+    for ch = 1:size(rawData,1)
+        if any(chan(ch) == refch)
             continue
         end
-        
-        detDataMod = detData(i,:);
-        detDataMod(detDataMod < thr(i)) = 0;
-        [~,aboveThr] = find(detDataMod);
-        aboveThr = unique(aboveThr);
-        if isempty(aboveThr)
-            continue
-        end
+
+        [eventsStartStop{ch}, evLens] = computeAboveThrLengths(detData(ch,:),thr(ch));
+        eventsStartStop{ch}(evLens < aboveThrMinLen,:) = [];
+        evLens(evLens < aboveThrMinLen) = [];
+        numEvs = length(evLens);
         
         if ~(ischar(inds2use) && strcmp(inds2use,'all'))
             if ~isempty(inds2use)
-                aboveThr = aboveThr(ismember(aboveThr,inds2use));
-                if isempty(aboveThr)
-                    continue
+                evs2del = false(numEvs, 1);
+                for ev = 1:numEvs
+                    currEvInds = eventsStartStop{ch}(ev,1):eventsStartStop{ch}(ev,2);
+                    intheClear = length(find(ismember(currEvInds, inds2use)));
+                    if (intheClear / evLens(ev)) < 0.75
+                        evs2del(ev) = true;
+                    end
                 end
+                eventsStartStop{ch}(evs2del,:) = [];
+                evLens(evs2del) = [];
+                numEvs = length(evLens);
             else
                 continue
             end
         end
-        steps = diff(aboveThr);
-        steps = [0, steps];
-        events = find(steps ~= 1);
-
-        eventsStartStop{i} = nan(length(events),2);
-        eventsPeak{i} = nan(length(events),1);
-        vEvents{i} = false(length(events),1);
-        aboveMinLen = false(length(events),1);
         
-        for j = 1:length(events)
-            eventsStartStop{i}(j,1) = aboveThr(events(j));
-            if j == length(events)
-                eventsStartStop{i}(j,2) = aboveThr(end);
-            else
-                eventsStartStop{i}(j,2) = aboveThr(events(j+1)-1);
-            end
-
-            if (eventsStartStop{i}(j,2)-eventsStartStop{i}(j,1)) > aboveThrMinLen
-                aboveMinLen(j) = true;
-            end
-
-            [peakValues{i}(j),maxIdx] = max(detData(i,eventsStartStop{i}(j,1):eventsStartStop{i}(j,2)));
-            eventsPeak{i}(j) = maxIdx + eventsStartStop{i}(j,1) - 1;
+        eventsPeak{ch} = nan(numEvs, 1);
+        peakValues{ch} = nan(numEvs, 1);
+        vEvents{ch} = true(numEvs, 1);
+        for ev = 1:numEvs
+            [peakValues{ch}(ev), maxIdx] = max(detData(ch,eventsStartStop{ch}(ev,1):eventsStartStop{ch}(ev,2)));
+            eventsPeak{ch}(ev) = maxIdx + eventsStartStop{ch}(ev,1) - 1;
             
-            if refVal~=0
-                halfWinSize = 0.1*fs;
-                
-                if eventsPeak{i}(j)-halfWinSize < 1
-                    winInds = 1:eventsPeak{i}(j)+halfWinSize;
-                elseif eventsPeak{i}(j)+halfWinSize > length(rawData)
-                    winInds = eventsPeak{i}(j)-halfWinSize:length(rawData);
-                else
-                    winInds = eventsPeak{i}(j)-halfWinSize:eventsPeak{i}(j)+halfWinSize;
-                end
+            if refVal ~= 0     
+                % up for debate what window should be used here
+                winInds = eventsStartStop{ch}(ev,1):eventsStartStop{ch}(ev,2);
 
                 if refVal == 1
                     refWin = refDets(winInds);
-                    condit = isempty(find(refWin==0,1));
+                    condit = isempty(find(refWin == 0, 1));
                 elseif refVal == 2
                     refWin = refCorrData(winInds);
-                    chanWin = corrData(i,winInds);
+                    chanWin = corrData(ch,winInds);
                     
                     r = corrcoef(refWin,chanWin);
                     condit = abs(r(2)) < corrThr;
-                    
-%                     testFig = figure;
-%                     subplot(211)
-%                     plot(taxis(winInds),chanWin)
-%                     subplot(212)
-%                     plot(taxis(winInds),refWin)
-%                     title(sprintf('corr between them=%.2f',r(2)))
-%                     waitfor(testFig)
                 end
                 
-                if condit && aboveMinLen(j)
-                    vEvents{i}(j) = true;
-                elseif ~condit && aboveMinLen(j)
-                    vEvents{i}(j) = false;
-                    refValVictims{i} = [refValVictims{i}, j];
+                if ~condit
+                    vEvents{ch}(ev) = false;
+                    refValVictims{ch} = [refValVictims{ch}, ev];
                 end
-            else
-                vEvents{i} = aboveMinLen;
             end
         end
         
@@ -135,48 +104,48 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
             reviewData = corrData;
             
             events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
-            for i = 1:length(events2Restore)
-                for j = 1:length(events2Restore{i})
-                    vEvents{i}(refValVictims{i}(events2Restore{i}(j))) = true;
+            for ch = 1:length(events2Restore)
+                for j = 1:length(events2Restore{ch})
+                    vEvents{ch}(refValVictims{ch}(events2Restore{ch}(j))) = true;
                 end
             end
         end
     end
     
     %%
-    for i = 1:size(rawData,1)
-        if any(chan(i) == refch)
+    for ch = 1:size(rawData,1)
+        if any(chan(ch) == refch)
             continue
         end
         
-        eventsStartStop{i} = eventsStartStop{i}(vEvents{i},:);
-        eventsPeak{i} = eventsPeak{i}(vEvents{i});
-        peakValues{i} = peakValues{i}(vEvents{i});
+        eventsStartStop{ch} = eventsStartStop{ch}(vEvents{ch},:);
+        eventsPeak{ch} = eventsPeak{ch}(vEvents{ch});
+        peakValues{ch} = peakValues{ch}(vEvents{ch});
     end
     
     %%
     if ~isempty(extThr)
         
-        for i = 1:size(rawData,1)
-            if any(chan(i) == refch)
+        for ch = 1:size(rawData,1)
+            if any(chan(ch) == refch)
                 continue
             end
             
-            detDataModQ = detData(i,:);
-            detDataModQ(detDataModQ < extThr(i)) = 0;
-            eventsStartStop{i} = extendEvents(eventsStartStop{i},detDataModQ,thr(i),extThr(i));
+            detDataModQ = detData(ch,:);
+            detDataModQ(detDataModQ < extThr(ch)) = 0;
+            eventsStartStop{ch} = extendEvents(eventsStartStop{ch},detDataModQ,thr(ch),extThr(ch));
         end
         
     end
     
     %%
-    minSepar = round(0.01*fs);
-    for i = 1:size(rawData,1)
-        if any(chan(i) == refch)
+    minSepar = round(eventMinLen / 2);
+    for ch = 1:size(rawData,1)
+        if any(chan(ch) == refch)
             continue
         end
         
-        [eventsPeak{i},eventsStartStop{i}] = mergeEvents(eventsPeak{i},peakValues{i},eventsStartStop{i},minSepar);
+        [eventsPeak{ch},eventsStartStop{ch}] = mergeEvents(eventsPeak{ch},peakValues{ch},eventsStartStop{ch},minSepar);
     end
     
     %%
