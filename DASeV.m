@@ -103,6 +103,7 @@ classdef DASeV < handle
         save2DbRunningChechBox
         save2DbButton
         save2ExcelButton
+        delSelectedEventsButton
         
         plotPanel
         fixWinSwitch
@@ -1678,10 +1679,24 @@ classdef DASeV < handle
         
         %%
         function tabChanged(gO,~,e)
-            if (e.NewValue == gO.tabgrp.Children(2)) & isempty(find(gO.loaded,1))
-                gO.tabgrp.SelectedTab = e.OldValue;
-                drawnow
-                warndlg('No file loaded!')
+            if nargin == 3
+                if (e.NewValue == gO.tabgrp.Children(2)) & isempty(find(gO.loaded,1))
+                    gO.tabgrp.SelectedTab = e.OldValue;
+                    drawnow
+                    warndlg('No file loaded!')
+                end
+            else
+                
+            end
+            
+            switch gO.tabgrp.SelectedTab
+                case gO.loadTab
+                    uicontrol(gO.fileList)
+                    
+                case gO.viewerTab
+                    gO.mainFig.CurrentObject = gO.plotPanel;
+                    figure(gO.mainFig)
+                    
             end
         end
         
@@ -1994,6 +2009,7 @@ classdef DASeV < handle
                 gO.path2loadedSave = fnameFull;
                 gO.fileList.String{val} = ['<HTML><FONT color="red"><b>', gO.fileList.String{val}, '</b></FONT></HTML>'];
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
+                tabChanged(gO)
             end
             
             waitbar(1,wb1,'Done!')
@@ -2121,11 +2137,13 @@ classdef DASeV < handle
                 switch dTyp
                     case 1
                         if ~sum(~cellfun('isempty' ,gO.ephysDets))
+                            smartplot(gO)
                             return
                         end
                         
                     case 2
                         if ~sum(~cellfun('isempty' ,gO.imagingDets))
+                            smartplot(gO)
                             return
                         end
                         
@@ -2339,7 +2357,7 @@ classdef DASeV < handle
         end
         
         %%
-        function delCurrEventButtonCB(gO,dTyp)
+        function delCurrEventButtonCB(gO,dTyp,currChan,detNum)
             switch gO.simultMode
                 case 0
                     switch dTyp
@@ -2348,31 +2366,45 @@ classdef DASeV < handle
                                 return
                             end
                             
-                            quest = 'Are you sure you want to delete the currently displayed ephys event?';
-                            butt2 = 'Delete every detection on channel';
+                            if nargin < 3
+                                quest = 'Are you sure you want to delete the currently displayed ephys event?';
+                                butt2 = 'Delete every detection on channel';
+                                
+                                currChan = gO.ephysCurrDetRow;
+                            end
+                            currDet = gO.ephysCurrDetNum;
                         case 2
                             if ~sum(~cellfun('isempty',gO.imagingDets))
                                 return
                             end
                             
-                            quest = 'Are you sure you want to delete the currently displayed imaging event?';
-                            butt2 = 'Delete every detection on ROI';
+                            if nargin < 3
+                                quest = 'Are you sure you want to delete the currently displayed imaging event?';
+                                butt2 = 'Delete every detection on ROI';
+                                
+                                currChan = gO.imagingCurrDetRow;
+                            end
+                            currDet = gO.imagingCurrDetNum;
                     end
-                    answer = questdlg(quest,'Detection deletion confirmation','Yes',butt2,'Cancel','Yes');
-                    switch answer
-                        case butt2
-                            delFullChan = true;
-                        case {'','Cancel'}
-                            return
-                        otherwise
-                            delFullChan = false;
-                    end
-                    [~,~,~,~,~,detNum,~,~,~] = extractDetStruct(gO,dTyp);
                     
+                    if nargin < 3
+                        answer = questdlg(quest,'Detection deletion confirmation','Yes',butt2,'Cancel','Yes');
+                        switch answer
+                            case butt2
+                                delFullChan = true;
+                            case {'','Cancel'}
+                                return
+                            otherwise
+                                delFullChan = false;
+                        end
+                        [~,~,~,~,~,detNum,~,~,~] = extractDetStruct(gO,dTyp);
+                    else
+                        delFullChan = false;
+                    end
+                    
+                    wb = waitbar(0, 'Starting deletion...');
                     switch dTyp
                         case 1 % ephys
-                            currChan = gO.ephysCurrDetRow;
-                            currDet = gO.ephysCurrDetNum;
                             
                             if delFullChan
                                 gO.ephysDets(currChan) = [];
@@ -2382,6 +2414,8 @@ classdef DASeV < handle
                                 gO.ephysDetBorders(currChan) = [];
                                 gO.ephysDetInfo.DetChannel(currChan) = [];
                                 gO.save2DbEphysSelection(currChan) = [];
+                                
+                                waitbar(0.33, wb, 'Running checks...')
                                 
                                 % check whether there are any detections on
                                 % any channel
@@ -2394,16 +2428,22 @@ classdef DASeV < handle
                                     gO.ephysDetInfo = [];
                                     gO.save2DbEphysSelection = cell(1,1);
                                     
-                                    smartplot(gO)
+%                                     smartplot(gO)
+                                    axButtPress(gO,dTyp)
+                                    waitbar(0.66, wb, 'Overwriting DASsave file...')
                                     overwriteDASsave(gO,gO.simultMode,dTyp)
+                                    waitbar(1, wb, 'Done!')
+                                    if ishandle(wb)
+                                        close(wb)
+                                    end
                                     return
                                 end
                                 
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
-                                    currDet = 1;
                                 end
+                                currDet = 1;
                             else
                                 gO.ephysDets{currChan}(detNum) = [];
                                 
@@ -2424,6 +2464,8 @@ classdef DASeV < handle
                                 gO.ephysDetParams{currChan} = detParams;
                                 clear evCompls detParams
 
+                                waitbar(0.33, wb, 'Running checks....')
+                                
                                 % if after deleting no detections are left on the given
                                 % channel, delete that channel from the detection
                                 % storage
@@ -2441,8 +2483,14 @@ classdef DASeV < handle
                                         gO.ephysDetInfo = [];
                                         gO.save2DbEphysSelection = cell(1,1);
                                         
-                                        smartplot(gO)
+%                                         smartplot(gO)
+                                        axButtPress(gO,dTyp)
+                                        waitbar(0.66, wb, 'Overwriting DASsave file...')
                                         overwriteDASsave(gO,gO.simultMode,dTyp)
+                                        waitbar(1, wb, 'Done!')
+                                        if ishandle(wb)
+                                            close(wb)
+                                        end
                                         return
                                     end
 
@@ -2457,10 +2505,10 @@ classdef DASeV < handle
                                     % make sure event display switches correctly
                                     if currChan ~= 1
                                         currChan = currChan - 1;
-                                        currDet = 1;
                                     end
+                                    currDet = 1;
                                 else
-                                    if currDet ~= 1
+                                    if currDet > length(gO.ephysDets{currChan})
                                         currDet = currDet - 1;
                                     end
                                 end
@@ -2473,8 +2521,6 @@ classdef DASeV < handle
                             gO.ephysCurrDetNum = currDet;
 
                         case 2 % imaging
-                            currChan = gO.imagingCurrDetRow;
-                            currDet = gO.imagingCurrDetNum;
                             
                             if delFullChan
                                 gO.imagingDets(currChan) = [];
@@ -2484,6 +2530,8 @@ classdef DASeV < handle
                                 gO.imagingDetBorders(currChan) = [];
                                 gO.imagingDetInfo.DetROI(currChan) = [];
                                 gO.save2DbImagingSelection(currChan) = [];
+                                
+                                waitbar(0.33, wb, 'Running checks...')
                                 
                                 % check whether there are any detections on
                                 % any channel
@@ -2496,16 +2544,22 @@ classdef DASeV < handle
                                     gO.imagingDetParams = {};
                                     gO.save2DbImagingSelection = cell(1,1);
                                     
-                                    smartplot(gO)
+%                                     smartplot(gO)
+                                    axButtPress(gO,dTyp)
+                                    waitbar(0.66, wb, 'Overwriting DASsave file...')
                                     overwriteDASsave(gO,gO.simultMode,dTyp)
+                                    waitbar(1, wb, 'Done!')
+                                    if ishandle(wb)
+                                        close(wb)
+                                    end
                                     return
                                 end
                                 
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
-                                    currDet = 1;
                                 end
+                                currDet = 1;
                             else
                                 gO.imagingDets{currChan}(detNum) = [];
                                 
@@ -2526,6 +2580,8 @@ classdef DASeV < handle
                                 gO.imagingDetParams{currChan} = detParams;
                                 clear evCompls detParams
 
+                                waitbar(0.33, wb, 'Running checks...')
+                                
                                 detsLeft = length(gO.imagingDets{currChan});
                                 if detsLeft == 0
                                     % check whether there are any detections on
@@ -2539,8 +2595,14 @@ classdef DASeV < handle
                                         gO.imagingDetParams = {};
                                         gO.save2DbImagingSelection = cell(1,1);
                                         
-                                        smartplot(gO)
+%                                         smartplot(gO)
+                                        axButtPress(gO,dTyp)
+                                        waitbar(0.66, wb, 'Overwriting DASsave file...')
                                         overwriteDASsave(gO,gO.simultMode,dTyp)
+                                        waitbar(1, wb, 'Done!')
+                                        if ishandle(wb)
+                                            close(wb)
+                                        end
                                         return
                                     end
 
@@ -2555,10 +2617,10 @@ classdef DASeV < handle
                                     % make sure event display switches correctly
                                     if currChan ~= 1
                                         currChan = currChan - 1;
-                                        currDet = 1;
                                     end
+                                    currDet = 1;
                                 else
-                                    if currDet ~= 1
+                                    if currDet > length(gO.imagingDets{currChan})
                                         currDet = currDet - 1;
                                     end
                                 end
@@ -2570,7 +2632,8 @@ classdef DASeV < handle
                             gO.imagingCurrDetRow = currChan;
                             gO.imagingCurrDetNum = currDet;
                     end
-                    smartplot(gO)
+%                     smartplot(gO)
+                    axButtPress(gO,dTyp)
                     
                 case 1 % simult mode on
                     if isempty(gO.simultDets)
@@ -2626,9 +2689,46 @@ classdef DASeV < handle
                         return
                     end
                     
-                    smartplot(gO)
+%                     smartplot(gO)
+                    axButtPress(gO,dTyp)
             end
+            waitbar(0.66, wb, 'Overwriting DASsave file...')
             overwriteDASsave(gO,gO.simultMode,dTyp)
+            waitbar(1, wb, 'Done!')
+            if ishandle(wb)
+                close(wb)
+            end
+        end
+        
+        %%
+        function delSelectedEventsButtonCB(gO)
+            wb = waitbar(0,'Getting ephys selections...');
+            ephysSel = cellfun(@(x) find(x), gO.save2DbEphysSelection, 'UniformOutput', false);
+            for ch = 1:length(ephysSel)
+                for ev = 1:length(ephysSel{ch})
+                    waitbar((ev / length(ephysSel{ch})) * ch / length(ephysSel),wb,'Deleting selected ephys events...')
+                    delCurrEventButtonCB(gO,1,ch,ephysSel{ch}(ev))
+                    numOfDeleted = ephysSel{ch}(ev);
+                    ephysSel{ch}(ephysSel{ch} > numOfDeleted) = ephysSel{ch}(ephysSel{ch} > numOfDeleted) - 1;
+                end
+            end
+            if ishandle(wb)
+                close(wb)
+            end
+            
+            wb = waitbar(0,'Getting imaging selections...');
+            imagingSel = cellfun(@(x) find(x), gO.save2DbImagingSelection, 'UniformOutput', false);
+            for roi = 1:length(imagingSel)
+                for ev = 1:length(imagingSel{roi})
+                    waitbar((ev / length(imagingSel{roi})) * roi / length(imagingSel),wb,'Deleting selected imaging events...')
+                    delCurrEventButtonCB(gO,2,roi,imagingSel{roi}(ev))
+                    numOfDeleted = imagingSel{roi}(ev);
+                    imagingSel{roi}(imagingSel{roi} > numOfDeleted) = imagingSel{roi}(imagingSel{roi} > numOfDeleted) - 1;
+                end
+            end
+            if ishandle(wb)
+                close(wb)
+            end            
         end
         
         %%
@@ -2670,11 +2770,31 @@ classdef DASeV < handle
         
         %%
         function keyboardPressFcn(gO,~,kD)
+            
+            if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'control') && strcmp(kD.Key, 't')
+                currTabIdx = find(gO.tabgrp.Children == gO.tabgrp.SelectedTab);
+                if currTabIdx < length(gO.tabgrp.Children)
+                    gO.tabgrp.SelectedTab = gO.tabgrp.Children(currTabIdx + 1);
+                else
+                    gO.tabgrp.SelectedTab = gO.tabgrp.Children(1);
+                end
+                tabChanged(gO)
+            end
+            
             if gO.tabgrp.SelectedTab == gO.tabgrp.Children(2)
                 detChanUpDwn = [0,0];
                 switch kD.Key
                     case 'delete'
-                        delCurrEventButtonCB(gO,gO.keyboardPressDtyp)
+                        if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'shift')
+                            delSelectedEventsButtonCB(gO)
+                        else
+                            delCurrEventButtonCB(gO,gO.keyboardPressDtyp)
+                        end
+                        
+                    case 'a'
+                        if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'control')
+                            gO.save2DbModifySelCB(gO.keyboardPressDtyp,'selAll')
+                        end
                         
                     case 'y'
                         eventYlimModeMenuCB(gO)
@@ -2693,16 +2813,22 @@ classdef DASeV < handle
                         end
                         
                     case 's'
-                        if strcmp(gO.simultModeSwitch.Enable, 'on')
-                            switch gO.simultModeSwitch.Value
-                                case 0
-                                    gO.simultModeSwitch.Value = 1;
-                                    
-                                case 1
-                                    gO.simultModeSwitch.Value = 0;
-                                    
+                        if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'control')
+                            save2DbButtonPress(gO,false)
+                        elseif (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'alt')
+                            showEventSpectro(gO)
+                        else
+                            if strcmp(gO.simultModeSwitch.Enable, 'on')
+                                switch gO.simultModeSwitch.Value
+                                    case 0
+                                        gO.simultModeSwitch.Value = 1;
+
+                                    case 1
+                                        gO.simultModeSwitch.Value = 0;
+
+                                end
+                                simultModeSwitchPress(gO)
                             end
-                            simultModeSwitchPress(gO)
                         end
                         
                     case 'w'
@@ -3270,6 +3396,8 @@ classdef DASeV < handle
 
                     try
                         save(saveFname,'saveStruct')
+                        
+                        operationDoneMsg('Saving complete!')
                     catch
                         errordlg(['Error while saving! Probably caused by missing folder.'...
                             'Make sure DASeventDBdir folder is in the same location as DASeV.m file!'])
@@ -3280,6 +3408,12 @@ classdef DASeV < handle
                 end
             end
             
+        end
+        
+        %%
+        function testCB(gO,~,~)
+            disp('gco after windowButtonDown')
+            gco
         end
         
     end
@@ -3712,15 +3846,21 @@ classdef DASeV < handle
             gO.save2DbButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.55, 0.01, 0.44, 0.15],...
+                'Position',[0.6, 0.01, 0.35, 0.15],...
                 'String','Save current selection to DB',...
                 'Callback',@(h,e) gO.save2DbButtonPress(false));
             gO.save2ExcelButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
-                'Position',[0.01, 0.01, 0.44, 0.15],...
+                'Position',[0.22, 0.01, 0.35, 0.15],...
                 'String','Save current selection to Excel',...
                 'Callback',@(h,e) gO.save2DbButtonPress(true));
+            gO.delSelectedEventsButton = uicontrol(gO.save2DbPanel,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.01, 0.01, 0.2, 0.15],...
+                'String', 'Del selected',...
+                'Callback', @(h,e) gO.delSelectedEventsButtonCB);
             
             gO.plotPanel = uipanel(gO.viewerTab,...
                 'Position',[0.3, 0, 0.7, 1],...
