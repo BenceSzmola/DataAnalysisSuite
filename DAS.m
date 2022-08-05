@@ -1933,8 +1933,18 @@ classdef DAS < handle
                     
                     inds2use = 1:len;
                     critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
-                    critThr = median(critData) + std(critData);
-                    inds2use(critData > critThr) = [];
+%                     critThr = median(critData) + std(critData);
+%                     critThr = movmedian(critData, 0.1*fs) + movstd(critData, 0.1*fs);
+                    [uEnv,~] = envelope(critData,0.05*fs,'peak');
+                    critThr = median(uEnv) + 2*std(uEnv);
+                    [interv, intervLens] = computeAboveThrLengths(uEnv, critThr);
+                    interv(intervLens < 0.05*fs,:) = [];
+                    for i = 1:size(interv,1)
+                        inds2use(interv(i,1):interv(i,2)) = nan;
+                    end
+                    inds2use(isnan(inds2use)) = [];
+                    
+%                     inds2use(critData > critThr) = [];
                     
             end
         end
@@ -2169,14 +2179,26 @@ classdef DAS < handle
             switch dirOrFile
                 case btn1
                     path = uigetdir(cd, 'Select directory to analyse!');
+                    if isequal(path,0)
+                        guiobj.roboDet = false;
+                        return
+                    end
                     path = [path,'\'];
                     saveFnames = dir([path,'*.rhd']);
                     saveFnames = {saveFnames.name};
 
                 case btn2
                     [saveFnames, path] = uigetfile('*.rhd', 'MultiSelect', 'on');
-
+                    if isequal(saveFnames,0)
+                        guiobj.roboDet = false;
+                        return
+                    end
+                    if ~iscell(saveFnames)
+                        saveFnames = {saveFnames};
+                    end
+                    
                 case {btn3, ''}
+                    guiobj.roboDet = false;
                     return
 
             end
@@ -2224,6 +2246,9 @@ classdef DAS < handle
                 ephysRunProc(guiobj)
                 if isempty(guiobj.ephys_procced)
                     useProccd = false;
+                    
+                    guiobj.ephys_artSupp4Det = 0;
+                    guiobj.ephys_artSuppedData4DetListInds = [];
                 else
                     useProccd = true;
                     
@@ -3880,6 +3905,38 @@ classdef DAS < handle
                 
             end
             
+            %% check whether user requested interval selection
+            if guiobj.selIntervalsCheckBox.Value
+                if guiobj.roboDet
+                    inds2use_interval = guiobj.ephys_prevIntervalSel;
+                else
+%                     if ~isempty(refch) && ~any(ismember(refch, chan))
+%                         inputData = [guiobj.ephys_data(refch,:); data];
+%                         inputChans = [refch, chan];
+%                     else
+%                         inputData = data;
+%                         inputChans = chan;
+%                     end
+
+                    selNewIntervals = useNewOrOldIntervals(guiobj);
+
+                    if selNewIntervals
+%                         inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
+                        inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan,refch);
+                        guiobj.ephys_prevIntervalSel = inds2use_interval;
+                    else
+                        inds2use_interval = guiobj.ephys_prevIntervalSel;
+                    end
+
+                    if isempty(inds2use_interval)
+                        dispErrorDlgResetStatus('The whole recording was discarded!')
+                        return
+                    end
+                end
+            else
+                inds2use_interval = 'all';
+            end
+            
             %% creating refchanData vector, and eliminating refch from the data array
             if (refVal == 0)
                 refchData = [];
@@ -3898,38 +3955,7 @@ classdef DAS < handle
                     data(ismember(chan, refch),:) = [];
                     chan(ismember(chan, refch)) = [];
                 end
-            end
-            
-            %% check whether user requested interval selection
-            if guiobj.selIntervalsCheckBox.Value
-                if guiobj.roboDet
-                    inds2use_interval = guiobj.ephys_prevIntervalSel;
-                else
-                    if ~isempty(refch) && ~any(ismember(refch, chan))
-                        inputData = [guiobj.ephys_data(refch,:); data];
-                        inputChans = [refch, chan];
-                    else
-                        inputData = data;
-                        inputChans = chan;
-                    end
-
-                    selNewIntervals = useNewOrOldIntervals(guiobj);
-
-                    if selNewIntervals
-                        inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
-                        guiobj.ephys_prevIntervalSel = inds2use_interval;
-                    else
-                        inds2use_interval = guiobj.ephys_prevIntervalSel;
-                    end
-
-                    if isempty(inds2use_interval)
-                        dispErrorDlgResetStatus('The whole recording was discarded!')
-                        return
-                    end
-                end
-            else
-                inds2use_interval = 'all';
-            end
+            end            
             
             %% check whether running data based detection was requested
             if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
