@@ -1935,10 +1935,10 @@ classdef DAS < handle
                     critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
 %                     critThr = median(critData) + std(critData);
 %                     critThr = movmedian(critData, 0.1*fs) + movstd(critData, 0.1*fs);
-                    [uEnv,~] = envelope(critData,0.05*fs,'peak');
+                    [uEnv,~] = envelope(critData, round(0.05*fs), 'peak');
                     critThr = median(uEnv) + 2*std(uEnv);
-                    [interv, intervLens] = computeAboveThrLengths(uEnv, critThr);
-                    interv(intervLens < 0.05*fs,:) = [];
+                    [interv, intervLens] = computeAboveThrLengths(uEnv, critThr, round(0.05*fs));
+%                     interv(intervLens < 0.05*fs,:) = [];
                     for i = 1:size(interv,1)
                         inds2use(interv(i,1):interv(i,2)) = nan;
                     end
