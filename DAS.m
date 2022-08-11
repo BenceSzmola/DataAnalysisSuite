@@ -1953,6 +1953,19 @@ classdef DAS < handle
                     
                     inds2use = getBaselineInds(critData, 'EnvelopeProminence', round(0.1*fs));
                     
+                    selIndFig = figure('WindowState', 'maximized');
+                    tempTaxis = tAxis;
+                    tempTaxis(inds2use) = nan;
+                    tempData = data(refchrows,:);
+                    tempData(:,inds2use) = nan;
+                    for ch = 1:length(refchrows)
+                        subplot(length(refchrows), 1, ch, 'Parent', selIndFig)
+                        plot(tAxis, data(refchrows(ch),:))
+                        hold on
+                        plot(tempTaxis, tempData(ch,:), 'r');
+                        hold off
+                    end
+                    
             end
         end
    
@@ -2025,7 +2038,7 @@ classdef DAS < handle
                 prevIntervals = guiobj.ephys_prevIntervalSel;
                 prevSelFig = figure('Name', 'Previous interval selection',...
                     'NumberTitle', 'off');
-                dataAvg = mean(guiobj.ephys_data);
+                dataAvg = mean(guiobj.ephys_data, 1);
                 plot(guiobj.ephys_taxis, dataAvg)
                 hold on
                 title('Average of loaded data, red regions are discarded')

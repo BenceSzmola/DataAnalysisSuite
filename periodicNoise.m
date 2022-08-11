@@ -79,7 +79,7 @@ if ~f_fund_given
 
         % Calculate FFT
         progBarPlot.Position = [0, 0, 0.3, 0.1]; 
-        progBarText.String = ['Ch#',num2str(i),' - computing FFT...']; drawnow
+        progBarText.String = ['Ch#',num2str(chans(i)),' - computing FFT...']; drawnow
         [faxis,psd] = freqspec(data(i,:),fs,0);
         
         % Cutting out low frequencies from PSD
@@ -92,7 +92,7 @@ if ~f_fund_given
         
         % simply detect the prominent peaks on the fft
         progBarPlot.Position = [0, 0, 0.6, 0.1]; 
-        progBarText.String = ['Ch#',num2str(i),' - detecting peaks on FFT...']; drawnow
+        progBarText.String = ['Ch#',num2str(chans(i)),' - detecting peaks on FFT...']; drawnow
         [peaks,locs,~,proms] = findpeaks(cutpsd,'MinPeakDistance',find(faxis > 30,1));
         
         % check if findpeaks' detections are above the moving average+4*std
@@ -123,7 +123,7 @@ if ~f_fund_given
         maxLocs = locs(maxPromInds);
         
         progBarPlot.Position = [0, 0, 0.9, 0.1]; 
-        progBarText.String = ['Ch#',num2str(i),' - checking possible frequencies...']; drawnow
+        progBarText.String = ['Ch#',num2str(chans(i)),' - checking possible frequencies...']; drawnow
         
         numproms = min([10,length(maxPromInds)]);
         putative_f_fund = zeros(1,numproms);
@@ -266,9 +266,9 @@ if ~f_fund_given
 %         close(wb1)
 
         progBarPlot.Position = [0, 0, 1, 0.1]; 
-        progBarText.String = ['Ch#',num2str(i),' - found the fundamental frequency!...'];
+        progBarText.String = ['Ch#',num2str(chans(i)),' - found the fundamental frequency!...'];
         feedbackText_old = feedbackText.String;
-        feedbackText.String = [strcat("Ch#",num2str(i)," fund freq = ",num2str(f_fund(i))," Hz"); feedbackText_old];
+        feedbackText.String = [strcat("Ch#",num2str(chans(i))," fund freq = ",num2str(f_fund(i))," Hz"); feedbackText_old];
         drawnow
 
 %         fprintf(1,'The fundamental frequency of the periodic noise in channel %d is: %f Hz\n',i,f_fund(i))

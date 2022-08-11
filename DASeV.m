@@ -609,7 +609,7 @@ classdef DASeV < handle
                     tDetInds = gO.ephysTaxis(detIdx);
 
                     win = gO.ephysWinLen;
-                    win = round(win*gO.ephysFs,4);
+                    win = round(win*gO.ephysFs);
                     if gO.simultMode
                         simTDetInd = simTaxis(simDetIdx);
                         simWin = 0.25;
