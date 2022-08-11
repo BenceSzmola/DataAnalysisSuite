@@ -1931,20 +1931,27 @@ classdef DAS < handle
                         refchrows = ismember(chans, refchans);
                     end
                     
-                    inds2use = 1:len;
-                    critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
-%                     critThr = median(critData) + std(critData);
-%                     critThr = movmedian(critData, 0.1*fs) + movstd(critData, 0.1*fs);
-                    [uEnv,~] = envelope(critData, round(0.05*fs), 'peak');
-                    critThr = median(uEnv) + 2*std(uEnv);
-                    [interv, intervLens] = computeAboveThrLengths(uEnv, critThr, round(0.05*fs));
-%                     interv(intervLens < 0.05*fs,:) = [];
-                    for i = 1:size(interv,1)
-                        inds2use(interv(i,1):interv(i,2)) = nan;
-                    end
-                    inds2use(isnan(inds2use)) = [];
+%                     inds2use = 1:len;
+%                     critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
+% %                     critThr = median(critData) + std(critData);
+% %                     critThr = movmedian(critData, 0.1*fs) + movstd(critData, 0.1*fs);
+%                     [uEnv,~] = envelope(critData, round(0.05*fs), 'peak');
+%                     critThr = median(uEnv) + 2*std(uEnv);
+%                     [interv, intervLens] = computeAboveThrLengths(uEnv, critThr, round(0.05*fs));
+% %                     interv(intervLens < 0.05*fs,:) = [];
+%                     for i = 1:size(interv,1)
+%                         inds2use(interv(i,1):interv(i,2)) = nan;
+%                     end
+%                     inds2use(isnan(inds2use)) = [];
                     
 %                     inds2use(critData > critThr) = [];
+
+%                     critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
+
+                    hilbi = hilbert(mean(data(refchrows,:), 1));
+                    critData = abs(hilbi);
+                    
+                    inds2use = getBaselineInds(critData, 'EnvelopeProminence', round(0.1*fs));
                     
             end
         end
