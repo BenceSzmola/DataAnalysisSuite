@@ -1,4 +1,18 @@
 function [intervals, lens] = computeAboveThrLengths(data,thr,minLen,maxLen)
+% [intervals, lens] = computeAboveThrLengths(data,thr,minLen,maxLen)
+% This function expects one channel at a time.
+% Threshold input (thr) can either be a single value or a list of values with length equal to data input.
+
+if all(size(data) > 1)
+    eD = errordlg('This function takes one channel at a time!');
+    pause(1)
+    if ishandle(eD)
+        close(eD)
+    end
+    intervals = [];
+    lens = [];
+    return
+end
 
 aboveThrInds = find(data > thr);
 if isempty(aboveThrInds) || isempty(aboveThrInds)
