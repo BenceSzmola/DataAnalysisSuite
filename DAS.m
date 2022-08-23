@@ -5666,6 +5666,13 @@ classdef DAS < handle
                             close(eD)
                         end
                         return
+                    elseif ~isempty(guiobj.ephys_artSuppedData4DetListInds)
+                        temp = guiobj.ephys_artSuppedData4DetListInds;
+                        for ind = 1:length(selInds)
+                            temp(temp < selInds(ind)) = temp(temp < selInds(ind)) - 1;
+                            
+                        end
+                        guiobj.ephys_artSuppedData4DetListInds = temp;
                     end
                     if length(selInds) == length(procInfo)
                         guiobj.ephysProcListBox2.Value = [];
@@ -5690,6 +5697,13 @@ classdef DAS < handle
                             close(eD)
                         end
                         return
+                    elseif ~isempty(guiobj.imaging_artSuppedData4DetListInds)
+                        temp = guiobj.imaging_artSuppedData4DetListInds;
+                        for ind = 1:length(selInds)
+                            temp(temp < selInds(ind)) = temp(temp < selInds(ind)) - 1;
+                            
+                        end
+                        guiobj.imaging_artSuppedData4DetListInds = temp;
                     end
                     if length(selInds) == length(procInfo)
                         guiobj.imagingProcListBox2.Value = [];
