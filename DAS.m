@@ -1953,7 +1953,8 @@ classdef DAS < handle
                     
                     inds2use = getBaselineInds(critData, 'EnvelopeProminence', round(0.1*fs));
                     
-                    selIndFig = figure('WindowState', 'maximized');
+                    selIndFig = figure('Name', 'Automatic interval selection',...
+                        'WindowState', 'maximized', 'NumberTitle', 'off');
                     tempTaxis = tAxis;
                     tempTaxis(inds2use) = nan;
                     tempData = data(refchrows,:);
@@ -1964,7 +1965,9 @@ classdef DAS < handle
                         hold on
                         plot(tempTaxis, tempData(ch,:), 'r');
                         hold off
+                        title(sprintf('Channel #%d - reference', refchrows(ch)))
                     end
+                    linkaxes(findobj(selIndFig, 'Type', 'axes'), 'x')
                     
             end
         end
@@ -5669,7 +5672,7 @@ classdef DAS < handle
                     elseif ~isempty(guiobj.ephys_artSuppedData4DetListInds)
                         temp = guiobj.ephys_artSuppedData4DetListInds;
                         for ind = 1:length(selInds)
-                            temp(temp < selInds(ind)) = temp(temp < selInds(ind)) - 1;
+                            temp(temp > selInds(ind)) = temp(temp > selInds(ind)) - 1;
                             
                         end
                         guiobj.ephys_artSuppedData4DetListInds = temp;
@@ -5700,7 +5703,7 @@ classdef DAS < handle
                     elseif ~isempty(guiobj.imaging_artSuppedData4DetListInds)
                         temp = guiobj.imaging_artSuppedData4DetListInds;
                         for ind = 1:length(selInds)
-                            temp(temp < selInds(ind)) = temp(temp < selInds(ind)) - 1;
+                            temp(temp > selInds(ind)) = temp(temp > selInds(ind)) - 1;
                             
                         end
                         guiobj.imaging_artSuppedData4DetListInds = temp;
