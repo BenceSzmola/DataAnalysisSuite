@@ -1928,7 +1928,7 @@ classdef DAS < handle
                             return
                         end
                     else
-                        refchrows = ismember(chans, refchans);
+                        refchrows = find(ismember(chans, refchans));
                     end
                     
 %                     inds2use = 1:len;
@@ -5422,8 +5422,9 @@ classdef DAS < handle
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
-                                    currDet = 1;
+%                                     currDet = 1;
                                 end
+                                currDet = 1;
                             else
                                 guiobj.ephys_detections{currChan}(detNum) = [];
                                 
@@ -5484,8 +5485,9 @@ classdef DAS < handle
                                     % make sure event display switches correctly
                                     if currChan ~= 1
                                         currChan = currChan - 1;
-                                        currDet = 1;
+%                                         currDet = 1;
                                     end
+                                    currDet = 1;
                                 else
                                     if currDet ~= 1
                                         currDet = currDet - 1;
@@ -5528,8 +5530,9 @@ classdef DAS < handle
                                 % make sure event display switches correctly
                                 if currChan ~= 1
                                     currChan = currChan - 1;
-                                    currDet = 1;
+%                                     currDet = 1;
                                 end
+                                currDet = 1;
                             else
                                 guiobj.imaging_detections{currChan}(detNum) = [];
                                 
@@ -5586,8 +5589,9 @@ classdef DAS < handle
                                     % make sure event display switches correctly
                                     if currChan ~= 1
                                         currChan = currChan - 1;
-                                        currDet = 1;
+%                                         currDet = 1;
                                     end
+                                    currDet = 1;
                                 else
                                     if currDet ~= 1
                                         currDet = currDet - 1;

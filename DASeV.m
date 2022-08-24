@@ -2357,7 +2357,7 @@ classdef DASeV < handle
         end
         
         %%
-        function delCurrEventButtonCB(gO,dTyp,currChan,detNum)
+        function delCurrEventButtonCB(gO,dTyp,delFullChan,currChan,detNum)
             switch gO.simultMode
                 case 0
                     switch dTyp
@@ -2369,7 +2369,8 @@ classdef DASeV < handle
                             if nargin < 3
                                 quest = 'Are you sure you want to delete the currently displayed ephys event?';
                                 butt2 = 'Delete every detection on channel';
-                                
+                            end
+                            if nargin < 4
                                 currChan = gO.ephysCurrDetRow;
                             end
                             currDet = gO.ephysCurrDetNum;
@@ -2381,7 +2382,8 @@ classdef DASeV < handle
                             if nargin < 3
                                 quest = 'Are you sure you want to delete the currently displayed imaging event?';
                                 butt2 = 'Delete every detection on ROI';
-                                
+                            end
+                            if nargin < 4
                                 currChan = gO.imagingCurrDetRow;
                             end
                             currDet = gO.imagingCurrDetNum;
@@ -2398,7 +2400,7 @@ classdef DASeV < handle
                                 delFullChan = false;
                         end
                         [~,~,~,~,~,detNum,~,~,~] = extractDetStruct(gO,dTyp);
-                    else
+                    elseif isempty(delFullChan)
                         delFullChan = false;
                     end
                     
@@ -2702,33 +2704,58 @@ classdef DASeV < handle
         
         %%
         function delSelectedEventsButtonCB(gO)
-            wb = waitbar(0,'Getting ephys selections...');
-            ephysSel = cellfun(@(x) find(x), gO.save2DbEphysSelection, 'UniformOutput', false);
-            for ch = 1:length(ephysSel)
-                for ev = 1:length(ephysSel{ch})
-                    waitbar((ev / length(ephysSel{ch})) * ch / length(ephysSel),wb,'Deleting selected ephys events...')
-                    delCurrEventButtonCB(gO,1,ch,ephysSel{ch}(ev))
-                    numOfDeleted = ephysSel{ch}(ev);
-                    ephysSel{ch}(ephysSel{ch} > numOfDeleted) = ephysSel{ch}(ephysSel{ch} > numOfDeleted) - 1;
+            if ~isempty(gO.ephysDetInfo)
+                wb = waitbar(0,'Getting ephys selections...');
+                ephysSel = cellfun(@(x) find(x), gO.save2DbEphysSelection, 'UniformOutput', false);
+                chans = gO.ephysDetInfo.DetChannel;
+                gO.ephysCurrDetNum = 1;
+                gO.ephysCurrDetRow = 1;
+                for ch = 1:length(ephysSel)
+                    currRow = find(chans(ch) == gO.ephysDetInfo.DetChannel);
+                    gO.ephysDetInfo.DetChannel(currRow)
+                    if isempty(currRow)
+                        continue
+                    elseif length(ephysSel{ch}) == length(gO.ephysDets{currRow})
+                        delCurrEventButtonCB(gO, 1, true, currRow)
+                    else
+                        for ev = 1:length(ephysSel{ch})
+                            waitbar((ev / length(ephysSel{ch})) * ch / length(ephysSel),wb,'Deleting selected ephys events...')
+                            delCurrEventButtonCB(gO, 1, false, currRow, ephysSel{ch}(ev))
+                            numOfDeleted = ephysSel{ch}(ev);
+                            ephysSel{ch}(ephysSel{ch} > numOfDeleted) = ephysSel{ch}(ephysSel{ch} > numOfDeleted) - 1;
+                        end
+                    end
                 end
-            end
-            if ishandle(wb)
-                close(wb)
+                if ishandle(wb)
+                    close(wb)
+                end
             end
             
-            wb = waitbar(0,'Getting imaging selections...');
-            imagingSel = cellfun(@(x) find(x), gO.save2DbImagingSelection, 'UniformOutput', false);
-            for roi = 1:length(imagingSel)
-                for ev = 1:length(imagingSel{roi})
-                    waitbar((ev / length(imagingSel{roi})) * roi / length(imagingSel),wb,'Deleting selected imaging events...')
-                    delCurrEventButtonCB(gO,2,roi,imagingSel{roi}(ev))
-                    numOfDeleted = imagingSel{roi}(ev);
-                    imagingSel{roi}(imagingSel{roi} > numOfDeleted) = imagingSel{roi}(imagingSel{roi} > numOfDeleted) - 1;
+            if ~isempty(gO.imagingDetInfo)
+                wb = waitbar(0,'Getting imaging selections...');
+                imagingSel = cellfun(@(x) find(x), gO.save2DbImagingSelection, 'UniformOutput', false);
+                rois = gO.imagingDetInfo.DetROI;
+                gO.imagingCurrDetNum = 1;
+                gO.imagingCurrDetRow = 1;
+                for roi = 1:length(imagingSel)
+                    currRow = find(rois(roi) == gO.imagingDetInfo.DetROI);
+                    if isempty(currRow)
+                        continue
+                    elseif length(imagingSel{roi}) == length(gO.imagingDets{currRow}) 
+                        delCurrEventButtonCB(gO, 2, true, currRow)
+                    else
+                        for ev = 1:length(imagingSel{roi})
+                            waitbar((ev / length(imagingSel{roi})) * roi / length(imagingSel),wb,'Deleting selected imaging events...')
+                            delCurrEventButtonCB(gO, 2, false, currRow, imagingSel{roi}(ev))
+                            numOfDeleted = imagingSel{roi}(ev);
+                            imagingSel{roi}(imagingSel{roi} > numOfDeleted) = imagingSel{roi}(imagingSel{roi} > numOfDeleted) - 1;
+                        end
+                    end
+                end
+                if ishandle(wb)
+                    close(wb)
                 end
             end
-            if ishandle(wb)
-                close(wb)
-            end            
         end
         
         %%
@@ -2898,6 +2925,9 @@ classdef DASeV < handle
             
             switch checkboxID
                 case 1
+                    assignin('base','save2DbEphysSelection',gO.save2DbEphysSelection)
+                    assignin('base','ephysDets',gO.ephysDets)
+                    
                     val = gO.save2DbEphysCheckBox.Value;
                     temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
                     temp = temp(gO.ephysCurrDetRow);
