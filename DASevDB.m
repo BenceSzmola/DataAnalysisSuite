@@ -405,7 +405,17 @@ classdef DASevDB < handle
                     warning('Cutoff set to default 150-250 Hz')
                 end
                 fs = round(1 / (currEv.Taxis(2) - currEv.Taxis(1)));
-                spectrogramMacher(currEv.DataWin.Raw(row2show,:),fs,w1,w2)
+                
+                if gO.ephysTypeSelected(2)
+                    data4spectro = currEv.DataWin.BP;
+                elseif gO.ephysTypSelected(1)
+                    data4spectro = currEv.DataWin.Raw;
+                elseif gO.ephysTypSelected(3)
+                    data4spectro = currEv.DataWin.Power;
+                end
+                
+%                 spectrogramMacher(currEv.DataWin.Raw(row2show,:),fs,w1,w2)
+                spectrogramMacher(data4spectro(row2show,:),fs,w1,w2)
                 return
             end
             
