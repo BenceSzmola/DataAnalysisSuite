@@ -743,7 +743,16 @@ classdef DASeV < handle
                     w2 = 250;
                     warning('Cutoff set to default 150-250 Hz')
                 end
-                spectrogramMacher(gO.ephysData(chanNum,winIdx),gO.ephysFs,w1,w2)
+                if gO.ephysTypSelected(2)
+                    data4spectro = gO.ephysDoGGed;
+                elseif gO.ephysTypSelected(1)
+                    data4spectro = gO.ephysData;
+                elseif gO.ephysTypSelected(3)
+                    data4spectro = gO.ephysInstPow;
+                end
+                    
+%                 spectrogramMacher(gO.ephysData(chanNum,winIdx),gO.ephysFs,w1,w2)
+                spectrogramMacher(data4spectro,gO.ephysFs,w1,w2)
                 return
             end
                         
@@ -2712,7 +2721,6 @@ classdef DASeV < handle
                 gO.ephysCurrDetRow = 1;
                 for ch = 1:length(ephysSel)
                     currRow = find(chans(ch) == gO.ephysDetInfo.DetChannel);
-                    gO.ephysDetInfo.DetChannel(currRow)
                     if isempty(currRow)
                         continue
                     elseif length(ephysSel{ch}) == length(gO.ephysDets{currRow})
@@ -2925,9 +2933,6 @@ classdef DASeV < handle
             
             switch checkboxID
                 case 1
-                    assignin('base','save2DbEphysSelection',gO.save2DbEphysSelection)
-                    assignin('base','ephysDets',gO.ephysDets)
-                    
                     val = gO.save2DbEphysCheckBox.Value;
                     temp = find(~cellfun('isempty',gO.save2DbEphysSelection));
                     temp = temp(gO.ephysCurrDetRow);

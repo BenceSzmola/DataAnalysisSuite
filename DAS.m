@@ -1149,11 +1149,12 @@ classdef DAS < handle
                     warning('Cutoff frequencies set to default 150-250')
                 end
                 
-                if guiobj.ephys_artSupp4Det == 0
-                    spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
-                else
-                    spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
-                end
+%                 if guiobj.ephys_artSupp4Det == 0
+%                     spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
+%                 else
+%                     spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
+%                 end
+                spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
                 
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
@@ -1834,7 +1835,7 @@ classdef DAS < handle
                         'WindowState','maximized',...
                         'WindowStyle','modal',...
                         'Visible','off');
-                    if ~isempty(refchans)
+                    if ~isempty(refchans) && ~ismember(0, refchans)
                         temp = ismember(chans, refchans);
                         list4dlg = cell(length(chans), 1);
                         list4dlg(temp) = mat2cell([num2str(chans(temp)'), repmat(' (ref)', length(find(temp)), 1)], ones(length(find(temp)), 1));
@@ -1927,6 +1928,8 @@ classdef DAS < handle
                             end
                             return
                         end
+                    elseif refchans == 0
+                        refchrows = 1:length(chans);
                     else
                         refchrows = find(ismember(chans, refchans));
                     end
@@ -3434,12 +3437,16 @@ classdef DAS < handle
                                 refChan = numSelCharConverter(refchInp);
                             end
                             
-                            refChan = ismember([newProcInfo.Channel], refChan);
-                            
-                            if length(find(refChan)) == 1
-                                procced = data - data(refChan,:);
+                            if refChan == 0
+                                procced = data - mean(data, 1);
                             else
-                                procced = data - mean(data(refChan,:));
+                                refChan = ismember([newProcInfo.Channel], refChan);
+
+                                if length(find(refChan)) == 1
+                                    procced = data - data(refChan,:);
+                                else
+                                    procced = data - mean(data(refChan,:));
+                                end
                             end
                             
                             if isempty(procced)
@@ -3854,7 +3861,7 @@ classdef DAS < handle
                     
                 else
                     %% run processing now
-                    if (refVal ~= 0) && any(~ismember(refch, chan))
+                    if (refVal ~= 0) && ~ismember(0, refch) && any(~ismember(refch, chan))
                         dispErrorDlgResetStatus(['You should also select the processed reference channel(s),',...
                             'because you selected reference channel validation!'])
                         return
@@ -3914,7 +3921,7 @@ classdef DAS < handle
                     return
                 end
                 
-                if (refVal ~= 0) && any(~ismember(refch, chan))
+                if (refVal ~= 0) && ~ismember(0, refch) && any(~ismember(refch, chan))
                     dispErrorDlgResetStatus(['You should also select the processed reference channel(s),',...
                         'because you selected reference channel validation!'])
                     return
