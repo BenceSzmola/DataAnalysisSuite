@@ -3,6 +3,14 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
     chanInd = 1;
     
     events2Restore = cell(length(refValVictims),1);
+    
+    victimsPeakInds = refValVictims;
+    for ch = 1:length(refValVictims)
+        for vic = 1:length(refValVictims{ch})
+            victimsPeakInds{ch}(vic) = eventsPeak{ch}(refValVictims{ch}(vic));
+        end
+    end
+    
     reviewFig = figure('Name','Review discarded events',...
         'NumberTitle','off','IntegerHandle','off',...
         'Units','normalized','Position',[0.3,0.3,0.33,0.33],...
@@ -43,9 +51,12 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
                 
             case 'space'
                 events2Restore{chanInd} = [events2Restore{chanInd}, detInd];
+                doOnOtherChans('rescue')
+                
                 
             case 'backspace'
                 events2Restore{chanInd}(events2Restore{chanInd}==detInd) = [];
+                doOnOtherChans('doom')
                 
             case 'escape'
                 close(h)
@@ -58,12 +69,12 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
         if ~isempty(refValVictims{chanInd})
             adjInd = refValVictims{chanInd}(detInd);
         
-            winInds = winMacher(adjInd,0.5);
-            r = corrCalculator(adjInd);
+            winInds = winMacher(0.5);
+            r = corrCalculator;
             
             plot(ax(2),taxis(winInds),data(chanInd,winInds),'-r')
             hold(ax(2),'on')
-            xline(ax(2),taxis(eventsPeak{chanInd}(adjInd)),'g','LineWidth',1);
+            xline(ax(2),taxis(victimsPeakInds{chanInd}(detInd)),'g','LineWidth',1);
             hold(ax(2),'off')
             if ~isempty(find(events2Restore{chanInd}==detInd,1))
                 title(ax(2),['Discarded event - Ch#',num2str(chan(chanInd)),...
@@ -90,25 +101,35 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
         end
     end
 
-    function winInds = winMacher(adjInd,winLen)
+    function winInds = winMacher(winLen)
         winLen = round((winLen/2)*fs);
         
-        if eventsPeak{chanInd}(adjInd)-winLen > 1
-            winStart = eventsPeak{chanInd}(adjInd)-winLen;
-        else
-            winStart = 1;
-        end
-        if eventsPeak{chanInd}(adjInd)+winLen <= length(data)
-            winEnd = eventsPeak{chanInd}(adjInd)+winLen;
-        else
-            winEnd = length(data);
-        end
-        
+        winStart = max(1, victimsPeakInds{chanInd}(detInd) - winLen);
+        winEnd = min(length(data), victimsPeakInds{chanInd}(detInd) + winLen);
         winInds = winStart:winEnd;
     end
 
-    function r = corrCalculator(adjInd)
-        winInds = winMacher(adjInd,0.2);
+    function doOnOtherChans(mode)
+        for ch1 = 1:length(refValVictims)
+            if ch1 == chanInd
+                continue
+            end
+            
+            matches = abs(victimsPeakInds{chanInd}(detInd) - victimsPeakInds{ch1}) < round(0.25*fs);
+            switch mode
+                case 'rescue'
+                    events2Restore{ch1} = unique([events2Restore{ch1}, find(matches)]);
+                    
+                case 'doom'
+                    events2Restore{ch1}(ismember(events2Restore{ch1}, find(matches))) = [];
+                    
+            end
+        end
+        
+    end
+
+    function r = corrCalculator
+        winInds = winMacher(0.2);
         r = corrcoef(refData(winInds),data(chanInd,winInds));
     end
 end
