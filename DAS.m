@@ -4795,8 +4795,9 @@ classdef DAS < handle
                 end
 
 %                 fclose(fID);
-            else
+            elseif fID == -1
                 disp('No log file found! It will be created when closing the GUI.')
+                return
             end
             
             fclose(fID);
