@@ -1154,8 +1154,9 @@ classdef DAS < handle
 %                 else
 %                     spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
 %                 end
+
                 spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
-                
+%                 spectrogramMacher(data(chanInd,detBorders(1):detBorders(2)),fs,w1,w2)
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
                 hold(ax,'on')
@@ -5075,8 +5076,10 @@ classdef DAS < handle
                 end
             end
             
-            if ~isempty(find(list(detTypeToSave) == "Electrophysiology",1))...
-                    || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % ephys save
+            % ephys saving
+            if (~isempty(find(list(detTypeToSave) == "Electrophysiology",1)) || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)))...
+                    && (~isempty(guiobj.ephys_detections) || (~isempty(find(list(detTypeToSave) == "Imaging",1)) && ~isempty(guiobj.imaging_detections)))
+                
                 waitbar(0.33, wb, 'Saving ephys...')
                 
                 ephysSaveData.TAxis = guiobj.ephys_taxis;
@@ -5126,8 +5129,9 @@ classdef DAS < handle
                 
             end
             
-            if ~isempty(find(list(detTypeToSave) == "Imaging",1))...
-                    || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)) % imaging save
+            % imaging save
+            if (~isempty(find(list(detTypeToSave) == "Imaging",1)) || ~isempty(find(list(detTypeToSave) == "Simultaneous",1)))...
+                    && (~isempty(guiobj.imaging_detections) || (~isempty(find(list(detTypeToSave) == "Electrophysiology",1)) && ~isempty(guiobj.ephys_detections)))
 
                 waitbar(0.66, wb, 'Saving imaging...')
                 

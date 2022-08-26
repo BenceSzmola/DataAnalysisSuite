@@ -408,14 +408,15 @@ classdef DASevDB < handle
                 
                 if gO.ephysTypeSelected(2)
                     data4spectro = currEv.DataWin.BP;
-                elseif gO.ephysTypSelected(1)
+                elseif gO.ephysTypeSelected(1)
                     data4spectro = currEv.DataWin.Raw;
-                elseif gO.ephysTypSelected(3)
+                elseif gO.ephysTypeSelected(3)
                     data4spectro = currEv.DataWin.Power;
                 end
                 
 %                 spectrogramMacher(currEv.DataWin.Raw(row2show,:),fs,w1,w2)
                 spectrogramMacher(data4spectro(row2show,:),fs,w1,w2)
+%                 spectrogramMacher(data4spectro(row2show,currEv.DetBorders(1):currEv.DetBorders(2)),fs,w1,w2)
                 return
             end
             

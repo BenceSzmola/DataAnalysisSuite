@@ -752,7 +752,7 @@ classdef DASeV < handle
                 end
                     
 %                 spectrogramMacher(gO.ephysData(chanNum,winIdx),gO.ephysFs,w1,w2)
-                spectrogramMacher(data4spectro,gO.ephysFs,w1,w2)
+                spectrogramMacher(data4spectro(chanNum,winIdx),gO.ephysFs,w1,w2)
                 return
             end
                         
