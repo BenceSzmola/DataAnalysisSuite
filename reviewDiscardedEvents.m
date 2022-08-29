@@ -111,11 +111,11 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
 
     function doOnOtherChans(mode)
         for ch1 = 1:length(refValVictims)
-            if ch1 == chanInd
-                continue
-            end
+%             if ch1 == chanInd
+%                 continue
+%             end
             
-            matches = abs(victimsPeakInds{chanInd}(detInd) - victimsPeakInds{ch1}) < round(0.25*fs);
+            matches = abs(victimsPeakInds{chanInd}(detInd) - victimsPeakInds{ch1}) < round(0.1*fs);
             switch mode
                 case 'rescue'
                     events2Restore{ch1} = unique([events2Restore{ch1}, find(matches)]);
