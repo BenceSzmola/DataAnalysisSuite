@@ -2360,7 +2360,7 @@ classdef DAS < handle
             end
             guiobj.rhdName = filename(1:end-4);
 %             drawnow;
-            figure(guiobj.mainfig)
+%             figure(guiobj.mainfig)
 %             oldpath = cd(path);
             rhdStruct = read_Intan_RHD2000_file_szb([path,filename]);
 %             cd(oldpath)
@@ -5432,9 +5432,12 @@ classdef DAS < handle
                                 end
                                 
                                 % make sure event display switches correctly
-                                if currChan ~= 1
+%                                 if currChan ~= 1
+%                                     currChan = currChan - 1;
+% %                                     currDet = 1;
+%                                 end
+                                if currChan > length(guiobj.ephys_detections)
                                     currChan = currChan - 1;
-%                                     currDet = 1;
                                 end
                                 currDet = 1;
                             else
@@ -5495,13 +5498,19 @@ classdef DAS < handle
                                     guiobj.ephys_detectionsInfo.DetChannel(currChan) = [];
 
                                     % make sure event display switches correctly
-                                    if currChan ~= 1
+%                                     if currChan ~= 1
+%                                         currChan = currChan - 1;
+% %                                         currDet = 1;
+%                                     end
+                                    if currChan > length(guiobj.ephys_detections)
                                         currChan = currChan - 1;
-%                                         currDet = 1;
                                     end
                                     currDet = 1;
                                 else
-                                    if currDet ~= 1
+%                                     if currDet ~= 1
+%                                         currDet = currDet - 1;
+%                                     end
+                                    if currDet > length(guiobj.ephys_detections{currChan})
                                         currDet = currDet - 1;
                                     end
                                 end
@@ -5540,9 +5549,12 @@ classdef DAS < handle
                                 end
                                 
                                 % make sure event display switches correctly
-                                if currChan ~= 1
+%                                 if currChan ~= 1
+%                                     currChan = currChan - 1;
+% %                                     currDet = 1;
+%                                 end
+                                if currChan > length(guiobj.imaging_detections)
                                     currChan = currChan - 1;
-%                                     currDet = 1;
                                 end
                                 currDet = 1;
                             else
@@ -5599,13 +5611,19 @@ classdef DAS < handle
                                     guiobj.imaging_detectionsInfo.DetROI(currChan) = [];
 
                                     % make sure event display switches correctly
-                                    if currChan ~= 1
+%                                     if currChan ~= 1
+%                                         currChan = currChan - 1;
+% %                                         currDet = 1;
+%                                     end
+                                    if currChan > length(guiobj.imaging_detections)
                                         currChan = currChan - 1;
-%                                         currDet = 1;
                                     end
                                     currDet = 1;
                                 else
-                                    if currDet ~= 1
+%                                     if currDet ~= 1
+%                                         currDet = currDet - 1;
+%                                     end
+                                    if currDet > length(guiobj.imaging_detections{currChan})
                                         currDet = currDet - 1;
                                     end
                                 end
