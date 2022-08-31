@@ -3451,9 +3451,15 @@ classdef DASeV < handle
                     end
 
                     try
-                        save(saveFname,'saveStruct')
+                        quest = sprintf('Save selected events to "%s"?', saveFname);
+                        confSave = questdlg(quest);
+                        if strcmp(confSave, 'Yes')
+                            save(saveFname,'saveStruct')
                         
-                        operationDoneMsg('Saving complete!')
+                            operationDoneMsg('Saving complete!')
+                        else
+                            return
+                        end
                     catch
                         errordlg(['Error while saving! Probably caused by missing folder.'...
                             'Make sure DASeventDBdir folder is in the same location as DASeV.m file!'])
