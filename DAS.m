@@ -2393,7 +2393,11 @@ classdef DAS < handle
 %             end
 
             if guiobj.doEphysDownSamp
-                runImportDownSamp(guiobj)
+                if round(guiobj.ephys_fs) > round(guiobj.doEphysDownSamp_targetFs)
+                    runImportDownSamp(guiobj)
+                else
+                    fprintf(1, 'Downsampling step skipped as Fs already at target value!\n')
+                end
             end
 %             assignin('base','downSampedRHD',guiobj.ephys_data)
             computeEphysDataTypes(guiobj)
@@ -3941,19 +3945,19 @@ classdef DAS < handle
                 if guiobj.roboDet
                     inds2use_interval = guiobj.ephys_prevIntervalSel;
                 else
-%                     if ~isempty(refch) && ~any(ismember(refch, chan))
-%                         inputData = [guiobj.ephys_data(refch,:); data];
-%                         inputChans = [refch, chan];
-%                     else
-%                         inputData = data;
-%                         inputChans = chan;
-%                     end
+                    if ~isempty(refch) && ~ismember(0, refch) && any(~ismember(refch, chan))
+                        inputData = [guiobj.ephys_data(refch,:); data];
+                        inputChans = [refch, chan];
+                    else
+                        inputData = data;
+                        inputChans = chan;
+                    end
 
                     selNewIntervals = useNewOrOldIntervals(guiobj);
 
                     if selNewIntervals
-%                         inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
-                        inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan,refch);
+                        inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
+%                         inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan,refch);
                         guiobj.ephys_prevIntervalSel = inds2use_interval;
                     else
                         inds2use_interval = guiobj.ephys_prevIntervalSel;
@@ -4340,8 +4344,8 @@ classdef DAS < handle
                         [],0,[],[],fs,thr,0,minLen,extThr);
                     
                     for i = 1:size(data,1)
-                        [detParams{i}, evComplexes{i}] = detParamMiner(2,dets{i},detBorders{i},fs,...
-                            data(i,:),detData(i,:),[],guiobj.imaging_taxis);
+                        [dets{i}, detBorders{i}, detParams{i}, evComplexes{i}] = detParamMiner(2,dets{i},...
+                            detBorders{i},fs, data(i,:),detData(i,:),[],guiobj.imaging_taxis);
                         
                     end
 
