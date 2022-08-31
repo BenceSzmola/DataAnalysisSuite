@@ -1,7 +1,8 @@
-function [detParams,evComplexes] = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData,tAxis)
+function [dets, detBorders, detParams, evComplexes] = detParamMiner(dTyp,dets,detBorders,fs,rawData,detData,dogData,tAxis)
 
 numDets = length(dets);
-detInds = dets;
+% detInds = dets;
+dets2del = false(numDets, 1);
 
 switch dTyp
     case 1
@@ -41,17 +42,17 @@ for i = 1:numDets
 %         detParams(i).Frequency = 0;
     end
     detParams(i).AUC = trapz(detData(detBorders(i,1):detBorders(i,2)));
-    detParams(i).RiseTime = (detInds(i) - detBorders(i,1))/fs;
-    detParams(i).DecayTime = (detBorders(i,2) - detInds(i))/fs;
+    detParams(i).RiseTime = (dets(i) - detBorders(i,1))/fs;
+    detParams(i).DecayTime = (detBorders(i,2) - dets(i))/fs;
     
-    peak20 = detData(detInds(i))*0.2;
-    peak80 = detData(detInds(i))*0.8;
+    peak20 = detData(dets(i))*0.2;
+    peak80 = detData(dets(i))*0.8;
     indsBelow80 = find(detData <= peak80);
     indsBelow20 = find(detData <= peak20);
-    indsBelow80pre = indsBelow80(indsBelow80 < detInds(i));
-    indsBelow80post = indsBelow80(indsBelow80 > detInds(i));
-    indsBelow20pre = indsBelow20(indsBelow20 < detInds(i));
-    indsBelow20post = indsBelow20(indsBelow20 > detInds(i));
+    indsBelow80pre = indsBelow80(indsBelow80 < dets(i));
+    indsBelow80post = indsBelow80(indsBelow80 > dets(i));
+    indsBelow20pre = indsBelow20(indsBelow20 < dets(i));
+    indsBelow20post = indsBelow20(indsBelow20 > dets(i));
     pre20Ind = max(indsBelow20pre);
     pre80Ind = max(indsBelow80pre);
     post20Ind = min(indsBelow20post);
@@ -69,9 +70,9 @@ for i = 1:numDets
         detParams(i).DecayTau = nan;
     end
     
-    halfmax = detData(detInds(i))/2;
+    halfmax = detData(dets(i))/2;
     aboveHM = find(detData > halfmax);
-    aboveHMtInd = find(aboveHM==detInds(i));
+    aboveHMtInd = find(aboveHM==dets(i));
     steps = diff(aboveHM);
     steps = [0,steps,length(detData)];
     disconts = find(steps~=1);
@@ -84,6 +85,10 @@ for i = 1:numDets
     end
     
 end
+
+dets(dets2del) = [];
+detBorders(dets2del,:) = [];
+detParams(dets2del) = [];
 
 maxSepInComplex = 0.1;
 maxSepInComplex = round(maxSepInComplex * fs);
