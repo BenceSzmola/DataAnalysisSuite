@@ -1,4 +1,4 @@
-function globalEventsAnalyzer(path,saveFnames)
+function [ephysStats, imagingStats] = globalEventsAnalyzer(path,saveFnames)
 
 if (nargin == 0) || (isempty(path) || isempty(saveFnames))
     btn1 = 'Directory';
@@ -200,10 +200,15 @@ else
     imagingStats = [];
 end
 
-cutInd = find(path=='\');
+if nargout == 0
+    cutInd = find(path=='\');
 
-forInfoTab = cell(3,2);
-forInfoTab(1,:) = {'Directory name', path(cutInd(end-1)+1:end-1)};
+    forInfoTab = cell(3,2);
+    forInfoTab(1,:) = {'Directory name', path(cutInd(end-1)+1:end-1)};
 
-DAS2Excel(forInfoTab,ephysStats,imagingStats,[path(cutInd(end-1)+1:end-1),'_globEvAnalysis'])
+    DAS2Excel(forInfoTab,ephysStats,imagingStats,[path(cutInd(end-1)+1:end-1),'_globEvAnalysis'])
+
+    clear ephysStats imagingStats
+end
+
 end
