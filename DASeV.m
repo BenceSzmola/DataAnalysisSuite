@@ -2366,7 +2366,11 @@ classdef DASeV < handle
         end
         
         %%
-        function delCurrEventButtonCB(gO,dTyp,delFullChan,currChan,detNum)
+        function delCurrEventButtonCB(gO,dTyp,delFullChan,currChan,detNum,inDelLoop)
+            if nargin < 6
+                inDelLoop = false;
+            end
+            
             switch gO.simultMode
                 case 0
                     switch dTyp
@@ -2703,8 +2707,10 @@ classdef DASeV < handle
 %                     smartplot(gO)
                     axButtPress(gO,dTyp)
             end
-            waitbar(0.66, wb, 'Overwriting DASsave file...')
-            overwriteDASsave(gO,gO.simultMode,dTyp)
+            if ~inDelLoop
+                waitbar(0.66, wb, 'Overwriting DASsave file...')
+                overwriteDASsave(gO,gO.simultMode,dTyp)
+            end
             waitbar(1, wb, 'Done!')
             if ishandle(wb)
                 close(wb)
@@ -2713,6 +2719,11 @@ classdef DASeV < handle
         
         %%
         function delSelectedEventsButtonCB(gO)
+            confDel = questdlg('Delete selected events?');
+            if ~strcmp(confDel, 'Yes')
+                return
+            end
+            
             if ~isempty(gO.ephysDetInfo)
                 wb = waitbar(0,'Getting ephys selections...');
                 ephysSel = cellfun(@(x) find(x), gO.save2DbEphysSelection, 'UniformOutput', false);
@@ -2724,11 +2735,16 @@ classdef DASeV < handle
                     if isempty(currRow)
                         continue
                     elseif length(ephysSel{ch}) == length(gO.ephysDets{currRow})
-                        delCurrEventButtonCB(gO, 1, true, currRow)
+                        delCurrEventButtonCB(gO, 1, true, currRow, false)
                     else
                         for ev = 1:length(ephysSel{ch})
+                            if ev == length(ephysSel{ch})
+                                inDelLoop = false;
+                            else
+                                inDelLoop = true;
+                            end
                             waitbar((ev / length(ephysSel{ch})) * ch / length(ephysSel),wb,'Deleting selected ephys events...')
-                            delCurrEventButtonCB(gO, 1, false, currRow, ephysSel{ch}(ev))
+                            delCurrEventButtonCB(gO, 1, false, currRow, ephysSel{ch}(ev), inDelLoop)
                             numOfDeleted = ephysSel{ch}(ev);
                             ephysSel{ch}(ephysSel{ch} > numOfDeleted) = ephysSel{ch}(ephysSel{ch} > numOfDeleted) - 1;
                         end
@@ -2750,11 +2766,16 @@ classdef DASeV < handle
                     if isempty(currRow)
                         continue
                     elseif length(imagingSel{roi}) == length(gO.imagingDets{currRow}) 
-                        delCurrEventButtonCB(gO, 2, true, currRow)
+                        delCurrEventButtonCB(gO, 2, true, currRow, false)
                     else
                         for ev = 1:length(imagingSel{roi})
+                            if ev == length(imagingSel{roi})
+                                inDelLoop = false;
+                            else
+                                inDelLoop = true;
+                            end
                             waitbar((ev / length(imagingSel{roi})) * roi / length(imagingSel),wb,'Deleting selected imaging events...')
-                            delCurrEventButtonCB(gO, 2, false, currRow, imagingSel{roi}(ev))
+                            delCurrEventButtonCB(gO, 2, false, currRow, imagingSel{roi}(ev), inDelLoop)
                             numOfDeleted = imagingSel{roi}(ev);
                             imagingSel{roi}(imagingSel{roi} > numOfDeleted) = imagingSel{roi}(imagingSel{roi} > numOfDeleted) - 1;
                         end
