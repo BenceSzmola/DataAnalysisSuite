@@ -147,7 +147,8 @@ for i = 1:min(size(data))
         continue
     end
     
-    [detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instE(i,:),dogged(i,:),taxis);
+    [dets{i}, detBorders{i}, detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),...
+        instE(i,:),dogged(i,:),taxis);
 %     evs2del = false(1,length(detParams{i}));
 %     for j = 1:length(detParams{i})
 %         if (detParams{i}(j).Frequency < (w1 * 0.85)) || (detParams{i}(j).Frequency > (w2 * 1.15))

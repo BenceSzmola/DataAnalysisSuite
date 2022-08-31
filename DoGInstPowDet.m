@@ -102,7 +102,8 @@ for i = 1:min(size(data))
     end
     
     % det stats
-    [detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),instPowd(i,:),dogged(i,:),taxis);
+    [dets{i}, detBorders{i}, detParams{i},evComplexes{i}] = detParamMiner(1,dets{i},detBorders{i},fs,data(i,:),...
+        instPowd(i,:),dogged(i,:),taxis);
     
     % plotting part mainly for bugfixing
     if showFigs
