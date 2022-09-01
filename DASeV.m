@@ -1692,7 +1692,11 @@ classdef DASeV < handle
                 if (e.NewValue == gO.tabgrp.Children(2)) & isempty(find(gO.loaded,1))
                     gO.tabgrp.SelectedTab = e.OldValue;
                     drawnow
-                    warndlg('No file loaded!')
+                    eD = errordlg('No file loaded!');
+                    pause(1)
+                    if ishandle(eD)
+                        close(eD)
+                    end
                 end
             else
                 
@@ -1739,7 +1743,7 @@ classdef DASeV < handle
         function loadSaveButtPress(gO,~,~)
             
             wb1 = waitbar(0,'Starting to load file...');
-                        
+            
             val = gO.fileList.Value;
             if ~isempty(gO.path2loadedSave)
                 prevFname = gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end);
@@ -1757,7 +1761,7 @@ classdef DASeV < handle
                     close(wb1)
                 end
                 return
-            elseif ~isempty(gO.path2loadedSave)
+            elseif ~isempty(prevLoadedInd) %~isempty(gO.path2loadedSave)
                 gO.fileList.String{prevLoadedInd} = prevFname;
             end
             
@@ -1776,6 +1780,8 @@ classdef DASeV < handle
                 return
             end
                         
+            dataPresent = false(2,1); % indicates whether there has been data loaded
+            
             gO.parallelMode = 0;
             
             gO.ephysCurrDetNum = 1;
@@ -1834,7 +1840,10 @@ classdef DASeV < handle
 
                     gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
                     gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
-                                                            
+                    
+                    dataPresent(1) = true;
+                else
+                    dataPresent(1) = false;
                 end
             end
             
@@ -1897,10 +1906,13 @@ classdef DASeV < handle
                     
                     gO.loaded(2) = 1;
                     
+                    dataPresent(2) = true;
+                else
+                    dataPresent(2) = false;
                 end
             end
             
-            if isempty(gO.ephysDets) && isempty(gO.imagingDets)
+            if (~dataPresent(1) || isempty(gO.ephysDets)) && (~dataPresent(2) || isempty(gO.imagingDets))
                 gO.loaded(:) = 0;
                 wD = warndlg('No detections, loading aborted!');
                 pause(1)
