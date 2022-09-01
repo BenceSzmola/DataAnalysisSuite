@@ -751,9 +751,14 @@ classdef DASeV < handle
                 elseif gO.ephysTypSelected(3)
                     data4spectro = gO.ephysInstPow;
                 end
-                    
+                
+                if ~isempty(currDetBorders)
+                    relDetBords = find(ismember(winIdx, currDetBorders));
+                else
+                    relDetBords = [];
+                end
 %                 spectrogramMacher(gO.ephysData(chanNum,winIdx),gO.ephysFs,w1,w2)
-                spectrogramMacher(data4spectro(chanNum,winIdx),gO.ephysFs,w1,w2)
+                spectrogramMacher(data4spectro(chanNum,winIdx),gO.ephysFs,w1,w2,relDetBords)
                 return
             end
                         

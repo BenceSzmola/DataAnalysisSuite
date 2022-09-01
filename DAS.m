@@ -1155,7 +1155,13 @@ classdef DAS < handle
 %                     spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
 %                 end
 
-                spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
+                if ~isempty(detBorders)
+                    relDetBords = find(ismember(winInds, detBorders));
+                else
+                    relDetBords = [];
+                end
+
+                spectrogramMacher(data(chanInd,winInds),fs,w1,w2,relDetBords)
 %                 spectrogramMacher(data(chanInd,detBorders(1):detBorders(2)),fs,w1,w2)
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)

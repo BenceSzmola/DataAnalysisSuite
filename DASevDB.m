@@ -415,7 +415,7 @@ classdef DASevDB < handle
                 end
                 
 %                 spectrogramMacher(currEv.DataWin.Raw(row2show,:),fs,w1,w2)
-                spectrogramMacher(data4spectro(row2show,:),fs,w1,w2)
+                spectrogramMacher(data4spectro(row2show,:),fs,w1,w2,currEv.DetBorders)
 %                 spectrogramMacher(data4spectro(row2show,currEv.DetBorders(1):currEv.DetBorders(2)),fs,w1,w2)
                 return
             end
