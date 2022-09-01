@@ -14,6 +14,7 @@ classdef DASeV < handle
         ephysTypMenu
         highPassRawEphysMenu
         showEventSpectroMenu
+        makeFoilDistrPlotMenu
         
         imagingOptMenu
         imagingTypMenu
@@ -1669,6 +1670,38 @@ classdef DASeV < handle
         %%
         function showEventSpectro(gO,~,~)
             ephysPlot(gO,[],1)
+        end
+        
+        %%
+        function makeFoilDistrPlotCB(gO,~,~)
+            % basic checks
+            if isempty(gO.ephysDets) || ~any(~isnan(gO.ephysGlobalDets), 'all')
+                eD = errordlg('No ephys global events!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                return
+            end
+            
+            % check whether recording is actually from foil electrode (this is not 100% ofc)
+            if max(gO.ephysDetInfo.AllChannel) > 32
+                confirm = questdlg('Are you sure this is a foil electrode recording? If not the feature will not work correctly!');
+                if ~strcmp(confirm, 'Yes')
+                    return
+                end
+            end
+            
+            [~,~,~,~,~,detNum,~,~,~] = extractDetStruct(gO,1);
+            globEvNum = gO.ephysGlobalDets(:,gO.ephysCurrDetRow) == detNum;
+            globDet = gO.ephysGlobalDets(globEvNum,:);
+            foilDistrFig = foilSpatialDistrPlotter(gO.ephysTaxis, gO.ephysFs, gO.ephysData, globDet, gO.ephysDets,...
+                gO.ephysDetInfo.DetChannel, gO.ephysDetBorders);
+            theAx = findobj(foilDistrFig, 'Type', 'axes');
+            title(theAx, sprintf('Source: %s | event @ %.2f s', ...
+                gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end),...
+                gO.ephysTaxis(gO.ephysDets{gO.ephysCurrDetRow}(detNum))),...
+                'Interpreter', 'none')
         end
         
         %%
@@ -3539,6 +3572,9 @@ classdef DASeV < handle
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@ gO.showEventSpectro,...
                 'Tag', '_ephysDets_simult');
+            gO.makeFoilDistrPlotMenu = uimenu(gO.ephysOptMenu,...
+                'Text', 'Create foil electrode topography plot',...
+                'MenuSelectedFcn', @ gO.makeFoilDistrPlotCB);
             
             gO.imagingOptMenu = uimenu(gO.mainFig,...
                 'Text','Imaging options');
