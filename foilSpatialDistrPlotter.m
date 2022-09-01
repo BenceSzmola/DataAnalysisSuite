@@ -48,29 +48,20 @@ electrodeGrid(5,2:6) = 1:5;
 
 %% main code
 
-% globDet = ephysSaveData.GlobalDets(globDetNum,:);
 notNanCols = find(~isnan(globDet));
 if isempty(notNanCols)
     errordlg('Empty row!')
     return
 end
 
-% chanNums = ephysSaveInfo.DetChannel(notNanCols);
 chanNums = detChans(notNanCols);
 
 tStamps = zeros(length(notNanCols), 1);
 for col = 1:length(notNanCols)
     currCol = notNanCols(col);
-%     tStamps(col) = ephysSaveData.Dets{currCol}(globDet(currCol));
     tStamps(col) = dets{currCol}(globDet(currCol));
-    
-    
-%     if ~isempty(ephysSaveData.DetParams)
-%         params(col) = ephysSaveData.DetParams{currCol}(globDet(currCol));
-%     end
 end
 
-% tStamps = ephysSaveData.TAxis(tStamps);
 tStamps = tAxis(tStamps);
 timeShifts = tStamps - max(tStamps);
 timeShifts = timeShifts * 1000;
@@ -83,7 +74,8 @@ for ch = 1:length(chanNums)
 end
 
 foilDistrFig = figure('Name', 'Time shift of global event on electrode grid',...
-    'NumberTitle', 'off');
+    'NumberTitle', 'off',...
+    'WindowState', 'maximized');
 imagesc(timeShiftTopo, 'AlphaData', ~isnan(timeShiftTopo))
 hold on
 colormap('autumn')
@@ -96,14 +88,14 @@ for i = 1:length(notNanCols)
     
     text(c - 0.5, r - 0.4, sprintf('Site#%d',siteNum), 'FontSize', 8)
     text(c - 0.5, r + 0.4, sprintf('Chan#%d',chanNums(i)), 'FontSize', 8)
+    if any(ismember(timeShifts(i), [min(timeShifts), max(timeShifts)]))
+        text(c + 0.1, r + 0.4, sprintf('Shift: %.1f ms', timeShifts(i)), 'FontSize', 8, 'FontWeight', 'bold')
+    else
+        text(c + 0.1, r + 0.4, sprintf('Shift: %.1f ms', timeShifts(i)), 'FontSize', 8)
+    end
     
     row2use = notNanCols(i);
     
-%     detBorders = ephysSaveData.DetBorders{row2use}(globDet(row2use),:);
-%     fs = ephysSaveData.Fs;
-%     dataLen = length(ephysSaveData.TAxis);
-%     doggo = DoG(ephysSaveData.RawData(row2use,:), fs, 150, 250);
-
     currDetBords = detBorders{row2use}(globDet(row2use),:);
     dataLen = length(tAxis);
     doggo = DoG(rawData(row2use,:), fs, 150, 250);

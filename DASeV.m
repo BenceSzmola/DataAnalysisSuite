@@ -1694,6 +1694,14 @@ classdef DASeV < handle
             
             [~,~,~,~,~,detNum,~,~,~] = extractDetStruct(gO,1);
             globEvNum = gO.ephysGlobalDets(:,gO.ephysCurrDetRow) == detNum;
+            if ~any(globEvNum)
+                eD = errordlg('This is not a global event!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                return
+            end
             globDet = gO.ephysGlobalDets(globEvNum,:);
             foilDistrFig = foilSpatialDistrPlotter(gO.ephysTaxis, gO.ephysFs, gO.ephysData, globDet, gO.ephysDets,...
                 gO.ephysDetInfo.DetChannel, gO.ephysDetBorders);
@@ -3574,7 +3582,8 @@ classdef DASeV < handle
                 'Tag', '_ephysDets_simult');
             gO.makeFoilDistrPlotMenu = uimenu(gO.ephysOptMenu,...
                 'Text', 'Create foil electrode topography plot',...
-                'MenuSelectedFcn', @ gO.makeFoilDistrPlotCB);
+                'MenuSelectedFcn', @ gO.makeFoilDistrPlotCB,...
+                'Tag', '_ephysDets_simult');
             
             gO.imagingOptMenu = uimenu(gO.mainFig,...
                 'Text','Imaging options');
