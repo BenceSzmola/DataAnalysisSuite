@@ -1,6 +1,5 @@
 
 *.asv
-*.jpg
 *.mat
 testGUI.fig
 testGUI.m
