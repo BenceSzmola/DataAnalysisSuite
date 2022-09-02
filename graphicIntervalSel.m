@@ -1,19 +1,42 @@
-function selIvs = graphicIntervalSel(tAxis,fs,data,chans)
+function selIvs = graphicIntervalSel(tAxis,fs,data,chans,refchans)
 %% preparation
 delMode = false;
 numChans = length(chans);
 dataLen = length(tAxis);
-stepSize = round(0.1*fs);
+stepSize_ms = 100;
+stepSize = round((stepSize_ms/1000)*fs);
 selIvs = zeros(0,2);
 currInd = 1;
 
 %% main code
-ivSelFig = figure('Name', 'Graphical interval selection', 'NumberTitle', 'off', 'WindowState', 'maximized',...
+ivSelFig = figure('Name', 'Graphical interval selection',...
+    'NumberTitle', 'off',...
+    'WindowState', 'maximized',...
     'MenuBar', 'none',...
     'KeyPressFcn', @figKeyCB,...
     'WindowButtonDownFcn', @axButtDwnCB,...
     'CloseRequestFcn', @figCloseReqCB);
-delIvMenu = uimenu(ivSelFig, 'Text', 'Delete interval mode (Keyboard: Delete) - OFF', 'MenuSelectedFcn', @delIvMenuCB);
+delIvMenu = uimenu(ivSelFig, 'Text', 'Delete interval mode (Keyboard: Delete) - OFF',...
+    'MenuSelectedFcn', @delIvMenuCB);
+uicontrol(ivSelFig,...
+    'Style', 'text',...
+    'Units', 'normalized',...
+    'Position', [0.01, 0.97, 0.075, 0.025],...
+    'String', 'Keyboard step size [ms]:');
+stepSizeEdit = uicontrol(ivSelFig,...
+    'Style', 'edit',...
+    'Units', 'normalized',...
+    'Position', [0.085, 0.97, 0.05, 0.025],...
+    'String', num2str(stepSize_ms),...
+    'Callback', @stepSizeEditCB);
+stepSizeSlider = uicontrol(ivSelFig,...
+    'Style', 'slider',...
+    'Units', 'normalized',...
+    'Position', [0.01, 0.945, 0.135, 0.02],...
+    'Min', 50,...
+    'Max', 1000,...
+    'Value', stepSize_ms,...
+    'Callback', @stepSizeSliderCB);
 
 selLines = gobjects(numChans, 1);
 highLightLines = gobjects(numChans, 1);
@@ -22,7 +45,11 @@ subTtl = sgtitle(ivSelFig, 'Start selecting intervals! When you''re done just cl
 for i = 1:numChans
     subs(i) = subplot(numChans, 1, i);
     plot(tAxis, data(i,:))
-    title(sprintf('Ch #%d', chans(i)))
+    if ismember(chans(i), refchans)
+        title(sprintf('Ch #%d (ref)', chans(i)))
+    else
+        title(sprintf('Ch #%d', chans(i)))
+    end
     hold on
     selLines(i) = xline(tAxis(currInd), '-r', 'LineWidth', 1);
     highLightLines(i) = plot(tAxis, nan(dataLen, 1), '-r');
@@ -148,6 +175,24 @@ waitfor(ivSelFig)
                 subTtl.String = 'Exited delete mode';
             end
         end
+    end
+
+    function stepSizeEditCB(~,~)
+        newVal = str2double(stepSizeEdit.String);
+        if newVal < 50
+            stepSizeEdit.String = num2str(50);
+            newVal = 50;
+        elseif newVal > 1000
+            stepSizeEdit.String = num2str(1000);
+            newVal = 1000;
+        end
+        stepSizeSlider.Value = newVal;
+        stepSize = round((newVal/1000)*fs);
+    end
+
+    function stepSizeSliderCB(~,~)
+        stepSizeEdit.String = num2str(stepSizeSlider.Value);
+        stepSize = round((stepSizeSlider.Value/1000)*fs);
     end
 
     function figCloseReqCB(h,~)
