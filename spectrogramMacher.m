@@ -1,4 +1,4 @@
-function spectrogramMacher(data,fs,w1,w2)
+function spectrogramMacher(data,fs,w1,w2,detBorders)
 
 if size(data,1) > size(data,2)
     data = data';
@@ -21,14 +21,21 @@ for i = 1:size(data,1)
     [cfs,f] = cwt(data(i,:),'amor',fs,'FrequencyLimits',[1,1000]);
     cfs = abs(cfs);
     
-    figure('Name',['CWT Spectrogram'])
+    figure('Name', 'CWT Spectrogram', 'NumberTitle', 'off')
 %     surface('XData',taxis,'YData',f,'CData',abs(cfs),...
 %         'ZData',zeros(size(cfs)),'EdgeColor','none','CDataMapping','scaled')
     surf(taxis,f,cfs,'EdgeColor','interp')
     view([0,90])
     hold on
+
 %     plot3(taxis,normdog*300+600,ones(size(taxis))*max(abs(cfs(:))),'-r')
     plot3(taxis, normData*300 + 600, ones(size(taxis))*max(cfs(:)), '-r')
+    
+    if (nargin > 4) && ~isempty(detBorders)
+        xline(taxis(detBorders(1)),'--w','LineWidth',1);
+        xline(taxis(detBorders(2)),'--w','LineWidth',1);
+    end
+    
     hold off
     axis tight
     ylabel('Frequency [Hz]')
