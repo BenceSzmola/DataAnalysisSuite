@@ -1837,85 +1837,10 @@ classdef DAS < handle
                     inds2use(isnan(inds2use)) = [];
                     
                 case 2
-                    indSelFig = figure('NumberTitle','off',...
-                        'Name','Selection of intervals to discard',...
-                        'WindowState','maximized',...
-                        'WindowStyle','modal',...
-                        'Visible','off');
-                    if ~isempty(refchans) && ~ismember(0, refchans)
-                        temp = ismember(chans, refchans);
-                        list4dlg = cell(length(chans), 1);
-                        list4dlg(temp) = mat2cell([num2str(chans(temp)'), repmat(' (ref)', length(find(temp)), 1)], ones(length(find(temp)), 1));
-                        list4dlg(~temp) = mat2cell(num2str(chans(~temp)'), ones(length(find(~temp)), 1));
-                    else
-                        list4dlg = mat2cell(num2str(chans'), ones(length(chans), 1));
-                    end
-                    if size(data,1) > 10
-                        goodSel = false;
-                        while ~goodSel
-                            [ch2use, tf] = listdlg('ListString', list4dlg,...
-                                'PromptString', 'Too many channels to display, select at most 10!',...
-                                'ListSize', [300, 300]);
-                            if ~tf
-                                return
-                            elseif length(ch2use) <= 10
-                                goodSel = true;
-                            end
-                        end
-                    else
-                        ch2use = 1:length(chans);
-                    end
-                        
-                    for i = 1:length(ch2use)
-                        sp = subplot(length(ch2use), 1, i, 'Parent', indSelFig);
-                        plot(sp, tAxis, data(ch2use(i),:))
-                        title(sp, ['Ch #',list4dlg{ch2use(i)}])
-                    end
-                    sgtitle(indSelFig, 'Select intervals by clicking in one of the plots! Finish with Return key!')
-                    
-                    inpGud = false;
-                    while ~inpGud
-                        figure(indSelFig)
-                        try
-                            [selPoints, ~] = ginput;
-                        catch
-                            selPoints = [];
-                        end
-                        selPoints(selPoints <= tAxis(1)) = tAxis(1);
-                        selPoints(selPoints > tAxis(end)) = tAxis(end);
-
-                        if mod(length(selPoints), 2) == 0
-                            inpGud = true;
-                        else
-                            eD = errordlg('Repeat selection and give pairs of indexes (start of segment, end of segment)!');
-                            pause(1)
-                            if ishandle(eD)
-                                close(eD)
-                            end
-                        end
-                    end
-                    
-                    if (length(selPoints) / 2) == 1
-                        msgTxt = '%d interval selected!';
-                    elseif (length(selPoints) / 2) == 0
-                        msgTxt = 'No intervals selected!';
-                    else
-                        msgTxt = '%d intervals selected!';
-                    end
-                    mb = msgbox(sprintf(msgTxt, length(selPoints) / 2));
-                    pause(1)
-                    if ishandle(mb)
-                        close(mb)
-                    end
-                    if ishandle(indSelFig)
-                        close(indSelFig)
-                    end
-                    
+                    selIvs = graphicIntervalSel(tAxis,fs,data,chans,refchans);
                     inds2use = 1:len;
-                    for i = 1:2:length(selPoints)
-                        [~, intervalStart] = min(abs(selPoints(i) - tAxis));
-                        [~, intervalEnd] = min(abs(selPoints(i+1) - tAxis));
-                        inds2use(intervalStart:intervalEnd) = nan;
+                    for i = 1:size(selIvs, 1)
+                        inds2use(selIvs(i,1):selIvs(i,2)) = nan;
                     end
                     inds2use(isnan(inds2use)) = [];
                     
