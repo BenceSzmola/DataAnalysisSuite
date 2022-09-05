@@ -6,6 +6,8 @@ classdef DASeV < handle
         %% menus
         optMenu
         plotFullMenu
+        enableKbSlideMenu
+        setKbSlideStepSizeMenu
         parallelModeMenu
         eventYlimModeMenu
         eventYlimSetCustomMenu
@@ -152,6 +154,8 @@ classdef DASeV < handle
         loaded = [0,0,0,0]; % ephys-imaging-running-simultan (0-1)
         prevNumAx = 1;
         plotFull = 0;
+        enableKbSlide = false;
+        kbSlidingStepSize = 0.2;
         fixWin = 0;
         simultMode = 0;
         simultFocusTyp = 1;
@@ -574,6 +578,27 @@ classdef DASeV < handle
                                                         
                     end
             end
+        end
+        
+        %%
+        function kbSliding(gO,dir)
+            if gO.keyboardPressDtyp == 1
+                [ax,~,~] = smartplot(gO,true);
+            elseif gO.keyboardPressDtyp == 2
+                [~,ax,~] = smartplot(gO,false);
+            end
+            
+            slideSize = gO.kbSlidingStepSize;
+            
+            currLims = get(ax(1), 'Xlim');
+            
+            if strcmp(dir, '+')
+                currLims = currLims + slideSize;
+            elseif strcmp(dir, '-')
+                currLims = currLims - slideSize;
+            end
+            
+            set(ax(1), 'Xlim', currLims)
         end
         
         %%
@@ -1575,12 +1600,55 @@ classdef DASeV < handle
         function plotFullMenuSel(gO,~,~)
             if gO.plotFull == 1
                 gO.plotFull = 0;
+                if gO.enableKbSlide
+                    gO.enableKbSlide = false;
+                    gO.enableKbSlideMenu.Text = 'Keyboard sliding - OFF';
+                    gO.enableKbSlideMenu.ForegroundColor = 'k';
+                end
             elseif gO.plotFull == 0
                 gO.plotFull = 1;
                 gO.fixWinSwitch.Value = 0;
             end
             buttonEnabler(gO)
             smartplot(gO)
+        end
+        
+        %%
+        function enableKbSlideMenuCB(gO)
+            if ~gO.plotFull
+                return
+            end
+            
+            gO.enableKbSlide = ~gO.enableKbSlide;
+            if gO.enableKbSlide
+                gO.enableKbSlideMenu.Text = 'Keyboard sliding - ON';
+                gO.enableKbSlideMenu.ForegroundColor = 'g';
+            else
+                gO.enableKbSlideMenu.Text = 'Keyboard sliding - OFF';
+                gO.enableKbSlideMenu.ForegroundColor = 'k';
+            end
+        end
+        
+        %%
+        function setKbSlideStepSizeMenuCB(gO)
+            prompt = 'Keyboard sliding step size [s]:';
+            ttl = 'Sliding step size';
+            dims = [1 35];
+            definput = {num2str(gO.kbSlidingStepSize)};
+            answ = inputdlg(prompt,ttl,dims,definput);
+            answ = str2double(answ{1});
+            if answ < 0
+                eD = errordlg('Step size should be a positive number!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                setKbSlideStepSizeMenuCB(gO)
+                return
+            else
+                gO.kbSlidingStepSize = answ;
+                gO.setKbSlideStepSizeMenu.Text = sprintf('Set keyboard sliding step size| %.2f [s]',gO.kbSlidingStepSize);
+            end
         end
         
         %%
@@ -3006,28 +3074,28 @@ classdef DASeV < handle
                         else
                             delCurrEventButtonCB(gO,gO.keyboardPressDtyp)
                         end
-                        
+
                     case 'a'
                         if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'control')
                             gO.save2DbModifySelCB(gO.keyboardPressDtyp,'selAll')
                         end
-                        
+
                     case 'y'
                         eventYlimModeMenuCB(gO)
-                        
+
                     case 'f'
                         if strcmp(gO.fixWinSwitch.Enable, 'on')
                             switch gO.fixWinSwitch.Value
                                 case 0
                                     gO.fixWinSwitch.Value = 1;
-                                    
+
                                 case 1
                                     gO.fixWinSwitch.Value = 0;
-                                    
+
                             end
                             fixWinSwitchPress(gO)
                         end
-                        
+
                     case 's'
                         if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'control')
                             save2DbButtonPress(gO,false)
@@ -3046,17 +3114,17 @@ classdef DASeV < handle
                                 simultModeSwitchPress(gO)
                             end
                         end
-                        
+
                     case 'w'
                         if strcmp(gO.plotFullMenu.Enable, 'on')
                             plotFullMenuSel(gO)
                         end
-                        
+
                     case 'p'
                         if strcmp(gO.parallelModeMenu.Enable, 'on')
                             parallelModeMenuSel(gO,true)
                         end
-                        
+
                     case 'd'
                         if sum(gO.loaded) > 1
                             switch gO.keyboardPressDtyp
@@ -3066,19 +3134,27 @@ classdef DASeV < handle
                                     gO.keyboardPressDtyp = 1;
                             end
                         end
-                        
+
                     case 'rightarrow'
-                        detChanUpDwn = [1,0];
-                        
+                        if gO.enableKbSlide
+                            kbSliding(gO,'+')
+                        else
+                            detChanUpDwn = [1,0];
+                        end
+
                     case 'leftarrow'
-                        detChanUpDwn = [-1,0];
-                        
+                        if gO.enableKbSlide
+                            kbSliding(gO,'-');
+                        else
+                            detChanUpDwn = [-1,0];
+                        end
+
                     case 'uparrow'
                         detChanUpDwn = [0,1];
-                        
+
                     case 'downarrow'
                         detChanUpDwn = [0,-1];
-                        
+
                     case 'e'            
                         if strcmp(gO.save2DbEphysCheckBox.Enable,'on')
                             switch gO.save2DbEphysCheckBox.Value
@@ -3089,7 +3165,7 @@ classdef DASeV < handle
                             end
                             save2DbCheckBoxPress(gO,1)
                         end
-                        
+
                     case 'i'
                         if strcmp(gO.save2DbImagingCheckBox.Enable,'on')
                             switch gO.save2DbImagingCheckBox.Value
@@ -3100,9 +3176,9 @@ classdef DASeV < handle
                             end
                             save2DbCheckBoxPress(gO,2)
                         end
-                        
+
                 end
-                
+
                 if sum(detChanUpDwn) ~= 0
                     axButtPress(gO,gO.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
                 end
@@ -3661,6 +3737,14 @@ classdef DASeV < handle
                 'Text','Plot full data / Plot individual detections',...
                 'MenuSelectedFcn',@ gO.plotFullMenuSel,...
                 'Tag', '_plotfullSwitch');
+            gO.enableKbSlideMenu = uimenu(gO.optMenu,...
+                'Text', 'Keyboard sliding - OFF',...
+                'MenuSelectedFcn', @(h,e) gO.enableKbSlideMenuCB,...
+                'Tag', '_plotfull');
+            gO.setKbSlideStepSizeMenu = uimenu(gO.optMenu,...
+                'Text', sprintf('Set keyboard sliding step size| %.2f [s]',gO.kbSlidingStepSize),...
+                'MenuSelectedFcn', @(h,e) gO.setKbSlideStepSizeMenuCB,...
+                'Tag', '_plotfull');
             gO.parallelModeMenu = uimenu(gO.optMenu,...
                 'Text','Parallel mode --OFF--',...
                 'MenuSelectedFcn',@(h,e) gO.parallelModeMenuSel(1),...
