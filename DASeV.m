@@ -970,23 +970,20 @@ classdef DASeV < handle
                 tDetInds = [];
             end
             
-%             if gO.imagingTypSelected(1)
-%                 data = gO.imagingData(chanNum,winIdx);
-%                 axLims = [min(gO.imagingData(chanNum,:)), max(gO.imagingData(chanNum,:))];
-%             elseif gO.imagingTypSelected(2)
-%                 data = gO.imagingSmoothed(chanNum,winIdx);
-%                 axLims = [min(gO.imagingSmoothed(chanNum,:)), max(gO.imagingSmoothed(chanNum,:))];
-%             end
-%             
-%             yLabels = string(gO.imagingYlabel);
-            
             yLabels = string(gO.imagingYlabel);
+            
             if gO.imagingTypSelected(1)
                 data = gO.imagingData(chanNum,:);
             elseif gO.imagingTypSelected(2)
                 data = gO.imagingSmoothed(chanNum,:);
             end
-            axLims = computeAxLims(data, gO.eventYlimMode, gO.imagingTaxis, winIdx);
+            
+            if ~strcmp('custom', gO.eventYlimMode)
+                ylimModeInput = gO.eventYlimMode;
+            else
+                ylimModeInput = gO.eventYlimCustom_imaging(find(gO.imagingTypSelected),:);
+            end
+            axLims = computeAxLims(data, ylimModeInput, gO.imagingTaxis, winIdx);
             data = data(:,winIdx);
             
             for i = 1:min(size(data))
