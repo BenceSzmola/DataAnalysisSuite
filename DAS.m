@@ -27,6 +27,7 @@ classdef DAS < handle
         eventDetTabWinSizeMenu
         imagingEventDetTabDataTypeMenu
         evDetTabYlimModeMenu
+        eventYlimSetCustomMenu
         showXtraDetFigsMenu
         showEventSpectroMenu
         editSpectroFreqLimsMenu
@@ -277,6 +278,8 @@ classdef DAS < handle
         keyboardPressDtyp = 1;
         evDetTabSimultMode = 0;
         evDetTabYlimMode = 'global';
+        eventYlimCustom_ephys = [-1000, 1000; -100, 100; -1, 20];
+        eventYlimCustom_imaging = [-5, 10; -5, 10];
         simultFocusTyp = 1;                 % this stores from which datatype we are approaching
         mainTabPosPlotMode = 0;             % 0=absPos; 1=relPos
         doEphysDownSamp = 0;
@@ -1066,12 +1069,6 @@ classdef DAS < handle
                 [~,~,~,~,simDetBorders,~,~] = extractDetStructs(guiobj,simDtyp);
             end
             
-%             if guiobj.evDetTabYlimMode == "global"
-%                 axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
-%             elseif guiobj.evDetTabYlimMode == "window"
-%                 axYMinMax = [];
-%             end
-            
             switch dTyp
                 case 1
                     if ~isempty(detParams)
@@ -1090,7 +1087,6 @@ classdef DAS < handle
             end
 
             tStamp = taxis(detInd);
-%             win = guiobj.eventDet1Win/2000;
             win = win/2000;
             win = round(win*fs,0);
             if guiobj.evDetTabSimultMode
@@ -1115,31 +1111,24 @@ classdef DAS < handle
                     winStart = detBorders(1)-win;
                     winEnd = detBorders(2)+win;
                 end
-                if (winStart>0) & (winEnd <= length(taxis))
-                    tWin = taxis(winStart:winEnd);
-                    dataWin = data(chanInd,winStart:winEnd);
-                    winInds = winStart:winEnd;
-                elseif winStart <= 0
-                    tWin = taxis(1:winEnd);
-                    dataWin = data(chanInd,1:winEnd);
-                    winInds = 1:winEnd;
-                elseif winEnd > length(taxis)
-                    tWin = taxis(winStart:end);
-                    dataWin = data(chanInd,winStart:end);
-                    winInds = winStart:length(taxis);
-                end
+                
+                winInds = max(1, winStart):min(length(taxis), winEnd);
             else
-                if (detInd-win > 0) & (detInd+win <= length(taxis))
-                    tWin = taxis(detInd-win:detInd+win);
-                    dataWin = data(chanInd,detInd-win:detInd+win);
-                elseif detInd-win <= 0
-                    tWin = taxis(1:detInd+win);
-                    dataWin = data(chanInd,1:detInd+win);
-                elseif detInd+win > length(taxis)
-                    tWin = taxis(detInd-win:end);
-                    dataWin = data(chanInd,detInd-win:end);
+                winInds = max(1, detInd-win):min(length(taxis), detInd+win);
+            end
+            tWin = taxis(winInds);
+            dataWin = data(chanInd,winInds);
+            
+            if ~strcmp('custom', guiobj.evDetTabYlimMode)
+                ylimModeInput = guiobj.evDetTabYlimMode;
+            else
+                if dTyp == 1
+                    ylimModeInput = guiobj.eventYlimCustom_ephys(guiobj.eventDet1DataType,:);
+                elseif dTyp == 2
+                    ylimModeInput = guiobj.eventYlimCustom_imaging(guiobj.eventDet2DataType,:);
                 end
             end
+            axLims = computeAxLims(data(chanInd,:), ylimModeInput, taxis, winInds);
             
             if forSpectro
                 if ~isempty(detBorders)
@@ -1166,18 +1155,7 @@ classdef DAS < handle
                 end
                 hold(ax,'off')
                 axis(ax,'tight')
-                if strcmp(guiobj.evDetTabYlimMode, 'global')
-                    axYMinMax = [min(data(chanInd,:)), max(data(chanInd,:))];
-                    ylim(ax,axYMinMax)
-                elseif strcmp(guiobj.evDetTabYlimMode, 'window')
-%                     ylim(ax,'auto')
-                    minVal = min(data(chanInd,winInds));
-                    minVal = minVal - 0.1*abs(minVal);
-                    maxVal = max(data(chanInd,winInds));
-                    maxVal = maxVal + 0.1*abs(maxVal);
-                    axYMinMax = [minVal, maxVal];
-                    ylim(ax,axYMinMax)
-                end
+                ylim(ax,axLims)
                 xlabel(ax,guiobj.xtitle)
                 ylabel(ax,yAxLbl);
                 
@@ -4593,12 +4571,26 @@ classdef DAS < handle
                 guiobj.evDetTabYlimMode = 'window';
                 guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: window';
             elseif strcmp(guiobj.evDetTabYlimMode, 'window')
+                guiobj.evDetTabYlimMode = 'custom';
+                guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: custom';
+            elseif strcmp(guiobj.evDetTabYlimMode, 'custom')
                 guiobj.evDetTabYlimMode = 'global';
                 guiobj.evDetTabYlimModeMenu.Text = 'Event plotting Y limit, current mode: global';
             end
             
             eventDetAxesButtFcn(guiobj,1)
             eventDetAxesButtFcn(guiobj,2)
+        end
+        
+        %%
+        function eventYlimSetCustomMenuCB(guiobj)
+            [guiobj.eventYlimCustom_ephys, guiobj.eventYlimCustom_imaging] = setCustomYlim(guiobj.eventYlimCustom_ephys,...
+                guiobj.eventYlimCustom_imaging);
+            
+            if strcmp(guiobj.evDetTabYlimMode, 'custom')
+                eventDetAxesButtFcn(guiobj,1)
+                eventDetAxesButtFcn(guiobj,2)
+            end
         end
         
         %%
@@ -5853,6 +5845,9 @@ classdef DAS < handle
             guiobj.evDetTabYlimModeMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text',sprintf('Event plotting Y limit, current mode: %s',guiobj.evDetTabYlimMode),...
                 'MenuSelectedFcn', @(h,e) guiobj.evDetTabYlimModeMenuCB);
+            guiobj.eventYlimSetCustomMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
+                'Text', 'Set custom Y limits',...
+                'MenuSelectedFcn', @(h,e) guiobj.eventYlimSetCustomMenuCB);
             guiobj.showXtraDetFigsMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show extra detection figures',...
                 'Checked','off',...

@@ -7,6 +7,8 @@ classdef DASevDB < handle
         optionsMenu
         showAvgParamsMenu
         displayAvgDataWinMenu
+        changeYlimModeMenu
+        setCustomYlimMenu
         
         ephysOptMenu
         ephysTypeChangeMenu
@@ -128,8 +130,11 @@ classdef DASevDB < handle
         loadedEntryFname
         displayAvgDataWin = 0;
         spectroFreqLims = [1,1000];
+        ylimMode = 'window';
+        ylimCustom_ephys = [-1000, 1000; -100, 100; -1, 20];
+        ylimCustom_imaging = [-5, 10; -5, 10];
         
-        ephysTypeSelected = [1, 0, 0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
+        ephysTypeSelected = [true, false, false]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
         avgEphysEvents
         ephysParamUnits = [{'RawAmplitudePeakT'}, {'[s]'};...
@@ -148,7 +153,7 @@ classdef DASevDB < handle
             {'FWHM'             }, {'[s]'};...
             {'NumSimultEvents'  }, {'[# Events]'}];
         
-        imagingTypeSelected = [1,0]; %1==Raw; 2==Smoothed
+        imagingTypeSelected = [true,false]; %1==Raw; 2==Smoothed
         imagingEvents
         avgImagingEvents
         imagingParamUnits = [{'RawAmplitudePeakT'}, {'[s]'};...
@@ -400,11 +405,11 @@ classdef DASevDB < handle
             if forSpectro
                 fs = round(1 / (currEv.Taxis(2) - currEv.Taxis(1)));
                 
-                if gO.ephysTypeSelected(2)
+                if type(2)
                     data4spectro = currEv.DataWin.BP;
-                elseif gO.ephysTypeSelected(1)
+                elseif type(1)
                     data4spectro = currEv.DataWin.Raw;
-                elseif gO.ephysTypeSelected(3)
+                elseif type(3)
                     data4spectro = currEv.DataWin.Power;
                 end
                 
@@ -412,38 +417,42 @@ classdef DASevDB < handle
                 return
             end
             
-            dataWin = [];
-            yLabels = [];
-            plotTitle = [];
+            if ~gO.displayAvgDataWin
+                dataWin = nan(3,length(currEv.Taxis));
+            else
+                dataWin = nan(3,length(gO.avgEphysEvents.Taxis));
+            end
+            yLabels = strings(3,1);
+            plotTitle = strings(3,1);
             if type(1)
                 if ~gO.displayAvgDataWin
-                    dataWin = [dataWin; currEv.DataWin.Raw(row2show,:)];
-                    plotTitle = [plotTitle; "Raw data"];
+                    dataWin(1,:) = currEv.DataWin.Raw(row2show,:);
+                    plotTitle(1) = "Raw data";
                 else
-                    dataWin = [dataWin; gO.avgEphysEvents.Raw];
-                    plotTitle = [plotTitle; "Average of Raw data"];
+                    dataWin(1,:) = gO.avgEphysEvents.Raw;
+                    plotTitle(1) = "Average of Raw data";
                 end
-                yLabels = [yLabels; "Voltage [\muV]"];
+                yLabels(1) = "Voltage [\muV]";
             end
             if type(2)
                 if ~gO.displayAvgDataWin
-                    dataWin = [dataWin; currEv.DataWin.BP(row2show,:)];
-                    plotTitle = [plotTitle; "Bandpass filtered data"];
+                    dataWin(2,:) = currEv.DataWin.BP(row2show,:);
+                    plotTitle(2) = "Bandpass filtered data";
                 else
-                    dataWin = [dataWin; gO.avgEphysEvents.BP];
-                    plotTitle = [plotTitle; "Average of Bandpass filtered data"];
+                    dataWin(2,:) = gO.avgEphysEvents.BP;
+                    plotTitle(2) = "Average of Bandpass filtered data";
                 end
-                yLabels = [yLabels; "Voltage [\muV]"];
+                yLabels(2) = "Voltage [\muV]";
             end
             if type(3)
                 if ~gO.displayAvgDataWin
-                    dataWin = [dataWin; currEv.DataWin.Power(row2show,:)];
-                    plotTitle = [plotTitle; "Instantaneous power of data"];
+                    dataWin(3,:) = currEv.DataWin.Power(row2show,:);
+                    plotTitle(3) = "Instantaneous power of data";
                 else
-                    dataWin = [dataWin; gO.avgEphysEvents.Power];
-                    plotTitle = [plotTitle; "Average of Instantaneous power"];
+                    dataWin(3,:) = gO.avgEphysEvents.Power;
+                    plotTitle(3) = "Average of Instantaneous power";
                 end
-                yLabels = [yLabels; "Power [\muV^2]"];
+                yLabels(3) = "Power [\muV^2]";
             end
             
             if ~gO.displayAvgDataWin
@@ -451,6 +460,19 @@ classdef DASevDB < handle
             else
                 taxisWin = gO.avgEphysEvents.Taxis;
             end
+            
+            types2del = find(~type);
+            yLabels(types2del) = [];
+            dataWin(types2del,:) = [];
+            plotTitle(types2del) = [];
+            if ~strcmp('custom', gO.ylimMode)
+                ylimModeInput = gO.ylimMode;
+            else
+                temp = gO.ylimCustom_ephys;
+                temp(types2del,:) = [];
+                ylimModeInput = temp;
+            end
+            axLims = computeAxLims(dataWin, ylimModeInput, taxisWin, 1:length(taxisWin));
             
             for i = 1:length(ax)
                 plot(ax(i),taxisWin,dataWin(i,:))
@@ -477,6 +499,7 @@ classdef DASevDB < handle
                 end
                 xlabel(ax(i),'Time [s]')
                 axis(ax(i),'tight')
+                ylim(ax(i),axLims(i,:))
                 ax(i).Tag = axTag{i};
             end
             
@@ -534,6 +557,13 @@ classdef DASevDB < handle
                 taxisWin = gO.avgImagingEvents.Taxis;
             end
             
+            if ~strcmp('custom', gO.ylimMode)
+                ylimModeInput = gO.ylimMode;
+            else
+                ylimModeInput = gO.ylimCustom_imaging(type,:);
+            end
+            axLims = computeAxLims(dataWin, ylimModeInput, taxisWin, 1:length(taxisWin));
+            
             plot(ax,taxisWin,dataWin)
             
             hold(ax,'on')
@@ -558,6 +588,7 @@ classdef DASevDB < handle
             end
             xlabel(ax,'Time [s]')
             axis(ax,'tight')
+            ylim(ax, axLims)
             ax.Tag = axTag;
             
             if ~isempty(currEv.Params)
@@ -962,6 +993,28 @@ classdef DASevDB < handle
         end
         
         %%
+        function changeYlimModeMenuCB(gO)
+            if strcmp(gO.ylimMode, 'window')
+                gO.ylimMode = 'custom';
+                gO.changeYlimModeMenu.Text = 'Event plotting Y limit - current mode: custom';
+            elseif strcmp(gO.ylimMode, 'custom')
+                gO.ylimMode = 'window';
+                gO.changeYlimModeMenu.Text = 'Event plotting Y limit - current mode: window';
+            end
+            
+            smartplot(gO,false)
+        end
+        
+        %%
+        function setCustomYlimModeMenuCB(gO)
+            [gO.ylimCustom_ephys, gO.ylimCustom_imaging] = setCustomYlim(gO.ylimCustom_ephys, gO.ylimCustom_imaging);
+            
+            if strcmp(gO.ylimMode, 'custom')
+                smartplot(gO,false)
+            end
+        end
+        
+        %%
         function ephysTypeMenuSel(gO,~,~)
             initVal = find(gO.ephysTypeSelected);
             [idx,tf] = listdlg('ListString',{'Raw','DoG','InstPow'},...
@@ -971,8 +1024,8 @@ classdef DASevDB < handle
                 return
             end
             
-            gO.ephysTypeSelected(:) = 0;
-            gO.ephysTypeSelected(idx) = 1;
+            gO.ephysTypeSelected(:) = false;
+            gO.ephysTypeSelected(idx) = true;
             
             smartplot(gO,1)
         end
@@ -1032,8 +1085,8 @@ classdef DASevDB < handle
                 return
             end
             
-            gO.imagingTypeSelected(:) = 0;
-            gO.imagingTypeSelected(idx) = 1;
+            gO.imagingTypeSelected(:) = false;
+            gO.imagingTypeSelected(idx) = true;
             
             smartplot(gO,0)
         end
@@ -1704,6 +1757,12 @@ classdef DASevDB < handle
                 'Text','Display the average data window --OFF--',...
                 'ForegroundColor','r',...
                 'MenuSelectedFcn',@ gO.displayAvgDataWinMenuSel);
+            gO.changeYlimModeMenu = uimenu(gO.optionsMenu,...
+                'Text', 'Event plotting Y limit - current mode: window',...
+                'MenuSelectedFcn', @(h,e) gO.changeYlimModeMenuCB);
+            gO.setCustomYlimMenu = uimenu(gO.optionsMenu,...
+                'Text', 'Set custom Y limits',...
+                'MenuSelectedFcn', @(h,e) gO.setCustomYlimModeMenuCB);
             
             gO.ephysOptMenu = uimenu(gO.mainFig,...
                 'Text','Electrophysiological options');
