@@ -1876,13 +1876,12 @@ classdef DASeV < handle
                 return
             end
             globDet = gO.ephysGlobalDets(globEvNum,:);
-            foilDistrFig = foilSpatialDistrPlotter(gO.ephysTaxis, gO.ephysFs, gO.ephysData, globDet, gO.ephysDets,...
-                gO.ephysDetInfo.DetChannel, gO.ephysDetBorders);
-            theAx = findobj(foilDistrFig, 'Type', 'axes');
-            title(theAx, sprintf('Source: %s | event @ %.2f s', ...
-                gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end),...
-                gO.ephysTaxis(gO.ephysDets{gO.ephysCurrDetRow}(detNum))),...
-                'Interpreter', 'none')
+            
+            src = gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end);
+            rawData = gO.ephysData(ismember(gO.ephysDetInfo.AllChannel, gO.ephysDetInfo.DetChannel),:);
+            
+            foilSpatialDistrPlotter(src, gO.ephysTaxis, gO.ephysFs, rawData, globDet, gO.ephysDets,...
+                gO.ephysDetInfo.DetChannel, gO.ephysDetBorders, gO.ephysDetParams);
         end
         
         %%
