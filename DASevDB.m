@@ -11,6 +11,7 @@ classdef DASevDB < handle
         ephysOptMenu
         ephysTypeChangeMenu
         ephysShowEventSpectroMenu
+        editSpectroFreqLimsMenu
         
         imagingOptMenu
         imagingTypeChangeMenu
@@ -126,6 +127,7 @@ classdef DASevDB < handle
         parallelFromSaveStruct
         loadedEntryFname
         displayAvgDataWin = 0;
+        spectroFreqLims = [1,1000];
         
         ephysTypeSelected = [1, 0, 0]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
@@ -396,14 +398,6 @@ classdef DASevDB < handle
             end
             
             if forSpectro
-                try
-                    w1 = currEv.DetSettings.W1;
-                    w2 = currEv.DetSettings.W2;
-                catch
-                    w1 = 150;
-                    w2 = 250;
-                    warning('Cutoff set to default 150-250 Hz')
-                end
                 fs = round(1 / (currEv.Taxis(2) - currEv.Taxis(1)));
                 
                 if gO.ephysTypeSelected(2)
@@ -414,9 +408,7 @@ classdef DASevDB < handle
                     data4spectro = currEv.DataWin.Power;
                 end
                 
-%                 spectrogramMacher(currEv.DataWin.Raw(row2show,:),fs,w1,w2)
-                spectrogramMacher(data4spectro(row2show,:),fs,w1,w2,currEv.DetBorders)
-%                 spectrogramMacher(data4spectro(row2show,currEv.DetBorders(1):currEv.DetBorders(2)),fs,w1,w2)
+                spectrogramMacher(data4spectro(row2show,:),fs,gO.spectroFreqLims,currEv.DetBorders)
                 return
             end
             
@@ -983,6 +975,51 @@ classdef DASevDB < handle
             gO.ephysTypeSelected(idx) = 1;
             
             smartplot(gO,1)
+        end
+        
+        %%
+        function editSpectroFreqLimsMenuCB(gO)
+            prompt = {'Lower limit [Hz]','Upper limit [Hz]:'};
+            ttl = 'Spectrogram frequency limits';
+            dims = [1 35];
+            definput = {num2str(gO.spectroFreqLims(1)), num2str(gO.spectroFreqLims(2))};
+            answ = inputdlg(prompt,ttl,dims,definput);
+            fmin = round(str2double(answ{1}));
+            fmax = round(str2double(answ{2}));
+            
+            currEv = gO.ephysEvents(gO.currEvent);
+            fs = round(1 / (currEv.Taxis(2) - currEv.Taxis(1)));
+            
+            redo = false;
+            if fmin < 1
+                eD = errordlg('Lower limit shouldnt be smaller than 1 Hz!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            elseif fmax > (fs / 2)
+                eD = errordlg(sprintf('Upper limit shouldnt be larger than fs/2 (%.2f)!',fs/2));
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            elseif fmin >= fmax
+                eD = errordlg('Lower limit should be smaller than upper limit!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            end
+            
+            if redo
+                editSpectroFreqLimsMenuCB(gO)
+                return
+            else
+                gO.spectroFreqLims = [fmin, fmax];
+            end
         end
         
         %%
@@ -1676,6 +1713,9 @@ classdef DASevDB < handle
             gO.ephysShowEventSpectroMenu = uimenu(gO.ephysOptMenu,...
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@(h,e) gO.ephysPlot([],true));
+            gO.editSpectroFreqLimsMenu = uimenu(gO.ephysOptMenu,...
+                'Text', 'Edit spectrogram frequency limits',...
+                'MenuSelectedFcn', @(h,e) gO.editSpectroFreqLimsMenuCB);
             
             gO.imagingOptMenu = uimenu(gO.mainFig,...
                 'Text','Imaging options');

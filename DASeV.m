@@ -17,6 +17,7 @@ classdef DASeV < handle
         ephysTypMenu
         highPassRawEphysMenu
         showEventSpectroMenu
+        editSpectroFreqLimsMenu
         makeFoilDistrPlotMenu
         
         imagingOptMenu
@@ -161,6 +162,7 @@ classdef DASeV < handle
         simultFocusTyp = 1;
         parallelMode = 0;
         keyboardPressDtyp = 1;
+        spectroFreqLims = [1,1000];
         eventYlimMode = 'global';
         eventYlimCustom_ephys = [-1000, 1000; -100, 100; -1, 20];
         eventYlimCustom_imaging = [-5, 10; -5, 10];
@@ -767,14 +769,6 @@ classdef DASeV < handle
             end
             
             if forSpectro
-                try
-                    w1 = gO.ephysDetInfo(1).DetSettings.W1;
-                    w2 = gO.ephysDetInfo(1).DetSettings.W2;
-                catch
-                    w1 = 150;
-                    w2 = 250;
-                    warning('Cutoff set to default 150-250 Hz')
-                end
                 if gO.ephysTypSelected(2)
                     data4spectro = gO.ephysDoGGed;
                 elseif gO.ephysTypSelected(1)
@@ -788,8 +782,7 @@ classdef DASeV < handle
                 else
                     relDetBords = [];
                 end
-%                 spectrogramMacher(gO.ephysData(chanNum,winIdx),gO.ephysFs,w1,w2)
-                spectrogramMacher(data4spectro(chanNum,winIdx),gO.ephysFs,w1,w2,relDetBords)
+                spectrogramMacher(data4spectro(chanNum,winIdx),gO.ephysFs,gO.spectroFreqLims,relDetBords)
                 return
             end
             
@@ -1808,6 +1801,48 @@ classdef DASeV < handle
         %%
         function showEventSpectro(gO,~,~)
             ephysPlot(gO,[],1)
+        end
+        
+        %%
+        function editSpectroFreqLimsMenuCB(gO)
+            prompt = {'Lower limit [Hz]','Upper limit [Hz]:'};
+            ttl = 'Spectrogram frequency limits';
+            dims = [1 35];
+            definput = {num2str(gO.spectroFreqLims(1)), num2str(gO.spectroFreqLims(2))};
+            answ = inputdlg(prompt,ttl,dims,definput);
+            fmin = round(str2double(answ{1}));
+            fmax = round(str2double(answ{2}));
+            
+            redo = false;
+            if fmin < 1
+                eD = errordlg('Lower limit shouldnt be smaller than 1 Hz!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            elseif fmax > (gO.ephysFs / 2)
+                eD = errordlg(sprintf('Upper limit shouldnt be larger than fs/2 (%.2f)!',gO.ephysFs/2));
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            elseif fmin >= fmax
+                eD = errordlg('Lower limit should be smaller than upper limit!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            end
+            
+            if redo
+                editSpectroFreqLimsMenuCB(gO)
+                return
+            else
+                gO.spectroFreqLims = [fmin, fmax];
+            end
         end
         
         %%
@@ -3774,6 +3809,9 @@ classdef DASeV < handle
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@ gO.showEventSpectro,...
                 'Tag', '_ephysDets_simult');
+            gO.editSpectroFreqLimsMenu = uimenu(gO.ephysOptMenu,...
+                'Text', 'Edit spectrogram frequency limits',...
+                'MenuSelectedFcn', @(h,e) gO.editSpectroFreqLimsMenuCB);
             gO.makeFoilDistrPlotMenu = uimenu(gO.ephysOptMenu,...
                 'Text', 'Create foil electrode topography plot',...
                 'MenuSelectedFcn', @ gO.makeFoilDistrPlotCB,...

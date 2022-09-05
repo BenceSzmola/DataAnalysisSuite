@@ -29,6 +29,7 @@ classdef DAS < handle
         evDetTabYlimModeMenu
         showXtraDetFigsMenu
         showEventSpectroMenu
+        editSpectroFreqLimsMenu
         
         procDataMenu
         showEphysProcInfoMenu
@@ -282,6 +283,7 @@ classdef DAS < handle
         doEphysDownSamp_targetFs = 1250;
         importUpSamp = 0;
         importUpSamp_targetFs = 150;
+        spectroFreqLims = [1,1000];
         
         xtitle = 'Time [s]';
         
@@ -1140,29 +1142,14 @@ classdef DAS < handle
             end
             
             if forSpectro
-                try
-                    w1 = guiobj.ephys_detectionsInfo.DetSettings.W1;
-                    w2 = guiobj.ephys_detectionsInfo.DetSettings.W2;
-                catch
-                    w1 = 150;
-                    w2 = 250;
-                    warning('Cutoff frequencies set to default 150-250')
-                end
-                
-%                 if guiobj.ephys_artSupp4Det == 0
-%                     spectrogramMacher(guiobj.ephys_data(chanInd,winInds),fs,w1,w2)
-%                 else
-%                     spectrogramMacher(data(chanInd,winInds),fs,w1,w2)
-%                 end
-
                 if ~isempty(detBorders)
                     relDetBords = find(ismember(winInds, detBorders));
                 else
                     relDetBords = [];
                 end
 
-                spectrogramMacher(data(chanInd,winInds),fs,w1,w2,relDetBords)
-%                 spectrogramMacher(data(chanInd,detBorders(1):detBorders(2)),fs,w1,w2)
+                spectrogramMacher(data(chanInd,winInds),fs,guiobj.spectroFreqLims,relDetBords)
+                
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
                 hold(ax,'on')
@@ -5270,6 +5257,49 @@ classdef DAS < handle
         end
         
         %%
+        function editSpectroFreqLimsMenuCB(guiobj)
+            prompt = {'Lower limit [Hz]','Upper limit [Hz]:'};
+            ttl = 'Spectrogram frequency limits';
+            dims = [1 35];
+            definput = {num2str(guiobj.spectroFreqLims(1)), num2str(guiobj.spectroFreqLims(2))};
+            answ = inputdlg(prompt,ttl,dims,definput);
+            fmin = round(str2double(answ{1}));
+            fmax = round(str2double(answ{2}));
+                        
+            redo = false;
+            if fmin < 1
+                eD = errordlg('Lower limit shouldnt be smaller than 1 Hz!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            elseif fmax > (guiobj.ephys_fs / 2)
+                eD = errordlg(sprintf('Upper limit shouldnt be larger than fs/2 (%.2f)!',guiobj.ephys_fs/2));
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            elseif fmin >= fmax
+                eD = errordlg('Lower limit should be smaller than upper limit!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+                redo = true;
+            end
+            
+            if redo
+                editSpectroFreqLimsMenuCB(guiobj)
+                return
+            else
+                guiobj.spectroFreqLims = [fmin, fmax];
+            end
+            
+        end
+        
+        %%
         function runPosModeMenuSelected(guiobj)
             switch guiobj.mainTabPosPlotMode
                 case 0
@@ -5830,6 +5860,9 @@ classdef DAS < handle
             guiobj.showEventSpectroMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
                 'Text','Show event spectrogram',...
                 'MenuSelectedFcn',@(h,e) guiobj.showEventSpectro);
+            guiobj.editSpectroFreqLimsMenu = uimenu(guiobj.EvDetTabOptionsMenu,...
+                'Text', 'Edit spectrogram frequency limits',...
+                'MenuSelectedFcn', @(h,e) guiobj.editSpectroFreqLimsMenuCB);
 
             guiobj.SaveMenu = uimenu(guiobj.mainfig,...
                 'Text','Saving options');
