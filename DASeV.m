@@ -169,7 +169,7 @@ classdef DASeV < handle
         %% ephys stuff
         highPassRawEphys = 0;
         ephysRefCh = 0;
-        ephysTypSelected = [1,0,0]; % raw-dog-instpow
+        ephysTypSelected = [true,false,false]; % raw-dog-instpow
         ephysWinLen = 0.25;
         ephysData
         ephysDoGGed
@@ -190,7 +190,7 @@ classdef DASeV < handle
         ephysParallDetRow = 1;
         
         %% imaging
-        imagingTypSelected = [1,0];         % Raw-Gauss
+        imagingTypSelected = [true,false];         % Raw-Gauss
         imagingWinLen = 0.25;
         imagingData
         imagingSmoothed
@@ -1449,8 +1449,8 @@ classdef DASeV < handle
                 return
             end
             
-            gO.ephysTypSelected(:) = 0;
-            gO.ephysTypSelected(idx) = 1;
+            gO.ephysTypSelected(:) = false;
+            gO.ephysTypSelected(idx) = true;
             
             smartplot(gO)
         end
@@ -1458,14 +1458,15 @@ classdef DASeV < handle
         %%
         function imagingTypMenuSel(gO,~,~)
             [idx,tf] = listdlg('ListString',{'Raw','Smoothed'},...
-                'PromptString','Select data type(s) to show detections on!',...
-                'InitialValue', find(gO.imagingTypSelected));
+                'PromptString','Select data type to show detections on!',...
+                'InitialValue', find(gO.imagingTypSelected),...
+                'SelectionMode', 'single');
             if ~tf
                 return
             end
             
-            gO.imagingTypSelected(:) = 0;
-            gO.imagingTypSelected(idx) = 1;
+            gO.imagingTypSelected(:) = false;
+            gO.imagingTypSelected(idx) = true;
             
             smartplot(gO)
         end
