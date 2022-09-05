@@ -1050,7 +1050,15 @@ classdef DASeV < handle
         end
         
         %% 
-        function smartplot(gO)
+        function [eAx,iAx,rAx] = smartplot(gO,onlyAx)
+            if nargin < 2
+                onlyAx = false;
+            else
+                eAx = [];
+                iAx = [];
+                rAx = [];
+            end
+            
             axVisSwitch(gO,sum(gO.loaded(1:3))+(sum(gO.ephysTypSelected)-1))
 
             switch sum(gO.loaded(1:3))
@@ -1064,16 +1072,25 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax31, gO.ax32, gO.ax33];
                         end
-                        linkaxes(ax,'x')
-                        ephysPlot(gO,ax)
+                        eAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            ephysPlot(gO,ax)
+                        end
                     elseif gO.loaded(2)
                         ax = [gO.ax11];
-                        linkaxes(ax,'x')
-                        imagingPlot(gO,ax)
+                        iAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            imagingPlot(gO,ax)
+                        end
                     elseif gO.loaded(3)
                         ax = [gO.ax11];
-                        linkaxes(ax,'x')
-                        runPlot(gO,ax)
+                        rAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            runPlot(gO,ax)
+                        end
                     end
                 case 2
                     ephysAxCount = 0;
@@ -1089,8 +1106,11 @@ classdef DASeV < handle
                                 ax = [gO.ax41, gO.ax42, gO.ax43];
                                 ephysAxCount = 3;
                         end
-                        linkaxes(ax,'x')
-                        ephysPlot(gO,ax)
+                        eAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            ephysPlot(gO,ax)
+                        end
                     end
                     if gO.loaded(2)
                         switch ephysAxCount
@@ -1103,8 +1123,11 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax44];
                         end
-                        linkaxes(ax,'x')
-                        imagingPlot(gO,ax)
+                        iAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            imagingPlot(gO,ax)
+                        end
                     end
                     if gO.loaded(3)
                         switch ephysAxCount
@@ -1117,8 +1140,11 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax44];
                         end
-                        linkaxes(ax,'x')
-                        runPlot(gO,ax)                        
+                        rAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            runPlot(gO,ax)
+                        end
                     end
                 case 3
                     ephysAxCount = 0;
@@ -1134,8 +1160,11 @@ classdef DASeV < handle
                                 ephysAxCount = 3;
                                 ax = [gO.ax51, gO.ax52, gO.ax53];
                         end
-                        linkaxes(ax,'x')
-                        ephysPlot(gO,ax)
+                        eAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            ephysPlot(gO,ax)
+                        end
                     end
                     if gO.loaded(2)
                         switch ephysAxCount
@@ -1148,8 +1177,11 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax54];
                         end
-                        linkaxes(ax,'x')
-                        imagingPlot(gO,ax)
+                        iAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            imagingPlot(gO,ax)
+                        end
                     end
                     if gO.loaded(3)
                         switch ephysAxCount
@@ -1162,9 +1194,16 @@ classdef DASeV < handle
                             case 3
                                 ax = [gO.ax55];
                         end
-                        linkaxes(ax,'x')
-                        runPlot(gO,ax)
+                        rAx = ax;
+                        if ~onlyAx
+                            linkaxes(ax,'x')
+                            runPlot(gO,ax)
+                        end
                     end
+            end
+            
+            if nargout == 0
+                clear eAx iAx rAx
             end
             
         end
