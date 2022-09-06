@@ -5730,6 +5730,7 @@ classdef DAS < handle
                         guiobj.axesEphysProc2.Title = [];
                         guiobj.axesEphysProc2.XLabel = [];
                         guiobj.axesEphysProc2.YLabel = [];
+                        guiobj.ephysProcSrcButtGroup.SelectedObject = guiobj.ephysProcRawRadioButt;
                     else
                         guiobj.ephysProcListBox2.Value = 1;
                     end
@@ -5761,6 +5762,7 @@ classdef DAS < handle
                         guiobj.axesImagingProc2.Title = [];
                         guiobj.axesImagingProc2.XLabel = [];
                         guiobj.axesImagingProc2.YLabel = [];
+                        guiobj.imagingProcSrcButtGroup.SelectedObject = guiobj.imagingProcRawRadioButt;
                     else
                         guiobj.imagingProcListBox2.Value = 1;
                     end
