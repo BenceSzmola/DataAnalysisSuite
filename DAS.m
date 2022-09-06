@@ -106,6 +106,13 @@ classdef DAS < handle
         ephysArtSuppTypePopMenu
         ephysArtSuppRefChanLabel
         ephysArtSuppRefChanEdit
+        ephysPeriodicFmaxLabel
+        ephysPeriodicFmaxEdit
+        ephysPeriodicFfundLabel
+        ephysPeriodicFfundEdit
+        ephysPeriodicStopbandWidthLabel
+        ephysPeriodicStopbandWidthEdit
+        ephysPeriodicPlotFFTCheckBox
         
         ephysFiltSettingsPanel
         filterTypePopMenu
@@ -114,13 +121,11 @@ classdef DAS < handle
         w2Edit
         filtOrderLabel
         filtOrderEdit
-        ephysPeriodicFmaxLabel
-        ephysPeriodicFmaxEdit
-        ephysPeriodicFfundLabel
-        ephysPeriodicFfundEdit
-        ephysPeriodicStopbandWidthLabel
-        ephysPeriodicStopbandWidthEdit
-        ephysPeriodicPlotFFTCheckBox
+        notchF0Label
+        notchF0Edit
+        notchQfactLabel
+        notchQfactEdit
+        notchPlotFFTCheckBox
         
         ephysSpectroPanel
         ephysSpectroFreqLimitLabel
@@ -3145,16 +3150,21 @@ classdef DAS < handle
         %%
         function fiterTypePopMenuCallback(guiobj)
             selIdx = guiobj.filterTypePopMenu.Value;
+            selFilt = guiobj.filterTypePopMenu.String{selIdx};
             
             filtSettingPanelObjs = findobj(guiobj.ephysFiltSettingsPanel, '-regexp', 'Tag', 'ephysFilt');
             set(filtSettingPanelObjs, 'Visible', 'off')
-            switch selIdx
-                case 2 % Butterworth
+            switch selFilt
+                case 'Butterworth'
                     set(filtSettingPanelObjs, 'Visible', 'on')
                     
-                case 3  % DoG
+                case 'DoG'
                     objs = findobj(filtSettingPanelObjs, 'Tag', 'ephysFilt');
                     set(objs, 'Visible', 'on')
+                    
+                case 'Notch'
+                    objs = findobj(filtSettingPanelObjs, 'Tag', 'ephysFilt_notch');
+                    set(objs, 'Visible', 'on');
                     
             end
         end
@@ -3315,6 +3325,42 @@ classdef DAS < handle
                             end
                             
                             txt4name = ['DoG(',num2str(w1),'-',num2str(w2),')| '];
+                            
+                        case 'Notch'
+                            notchF0 = str2double(guiobj.notchF0Edit.String);
+                            qFact = str2double(guiobj.notchQfactEdit.String);
+                            wo = notchF0/(guiobj.ephys_fs/2);
+                            bw = wo/qFact;
+                            [b,a] = iirnotch(wo,bw);
+                            procced = zeros(size(data));
+                            for i = 1:size(data,1)
+                                procced(i,:) = filtfilt(b,a,data(i,:));
+                            end
+                            
+                            procDetails = struct('Type','Filt-Notch','Settings',cell(1));
+                            procDetails.Settings = struct('F0', notchF0, 'Qfactor', qFact);
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                            end
+                            
+                            txt4name = ['Notch(',num2str(notchF0),')| '];
+                            
+                            if guiobj.notchPlotFFTCheckBox.Value
+                                [faxis,psd] = freqspec(data,guiobj.ephys_fs,0,0,1000);
+                                [faxis_cl,psd_cl] = freqspec(procced,guiobj.ephys_fs,0,0,1000);
+                                for ch = 1:size(data, 1)
+                                    figure('NumberTitle', 'off', 'Name', ['FFT before & after - Ch #',num2str(newProcInfo(ch).Channel)]);
+                                    subplot(211)
+                                    plot(faxis(ch,:), psd(ch,:))
+                                    title(sprintf('Ch #%d - FFT before',newProcInfo(ch).Channel))
+
+                                    subplot(212)
+                                    plot(faxis_cl(ch,:), psd_cl(ch,:))
+                                    title(sprintf('Ch #%d - FFT after',newProcInfo(ch).Channel))
+
+                                    linkaxes(findobj(gcf, 'Type', 'axes'), 'xy')
+                                end
+                            end
                             
                         otherwise
                             guiobj.ephysRunProcButton.BackgroundColor = 'g';
@@ -6143,7 +6189,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
-                'String',{'--Select filter type--','Butterworth','DoG'},...
+                'String',{'--Select filter type--','Butterworth','DoG','Notch'},...
                 'Callback',@(h,e) guiobj.fiterTypePopMenuCallback);
             guiobj.cutoffLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
@@ -6182,6 +6228,41 @@ classdef DAS < handle
                 'String','4',...
                 'Visible','off',...
                 'Tag','ephysFilt_others');
+            guiobj.notchF0Label = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.3, 0.85, 0.5, 0.1],...
+                'String','Cut frequency [Hz]',...
+                'Visible','off',...
+                'Tag','ephysFilt_notch');
+            guiobj.notchF0Edit = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.85, 0.85, 0.1, 0.1],...
+                'String','50',...
+                'Visible','off',...
+                'Tag','ephysFilt_notch');
+            guiobj.notchQfactLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.3, 0.65, 0.5, 0.1],...
+                'String','Q factor (for BW)',...
+                'Visible','off',...
+                'Tag','ephysFilt_notch');
+            guiobj.notchQfactEdit = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.85, 0.65, 0.1, 0.1],...
+                'String','35',...
+                'Visible','off',...
+                'Tag','ephysFilt_notch');
+            guiobj.notchPlotFFTCheckBox = uicontrol(guiobj.ephysFiltSettingsPanel,...
+                'Style', 'checkbox',...
+                'Units', 'normalized',...
+                'Position', [0.3, 0.45, 0.5, 0.1],...
+                'Visible', 'off',...
+                'String', 'Plot before&after FFT',...
+                'Tag', 'ephysFilt_notch');
             
             % Create ephysArtSuppPanel
             guiobj.ephysArtSuppPanel = uipanel(guiobj.ephysProcTab,...
