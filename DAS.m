@@ -5,6 +5,7 @@ classdef DAS < handle
         mainfig
         
         MainTabOptionsMenu
+        showRHDinfoMenu
         timedimChangeMenu
         showProcDataMenu
         showDetMarkersMenu
@@ -291,6 +292,8 @@ classdef DAS < handle
         xtitle = 'Time [s]';
         
         rhdName
+        path2rhd
+        rhdFname
         ephys_data                          % Currently imported electrophysiology data
         ephys_downSampd = false;
         ephys_dogged
@@ -2223,6 +2226,11 @@ classdef DAS < handle
             guiobj.roboDet = false;
         end
         
+        %%
+        function showRHDinfoMenuCB(guiobj)
+            showRHDinfo(guiobj.path2rhd, guiobj.rhdFname)
+        end
+        
         %% Button pushed function: ImportRHDButton
         function ImportRHDButtonPushed(guiobj)
 
@@ -2258,6 +2266,8 @@ classdef DAS < handle
 %             drawnow;
 %             figure(guiobj.mainfig)
 %             oldpath = cd(path);
+            guiobj.path2rhd = path;
+            guiobj.rhdFname = filename;
             rhdStruct = read_Intan_RHD2000_file_szb([path,filename]);
 %             cd(oldpath)
             guiobj.ephys_fs = rhdStruct.fs;
@@ -5764,7 +5774,10 @@ classdef DAS < handle
             % Create OptionsMenu
             guiobj.MainTabOptionsMenu = uimenu(guiobj.mainfig,...
                 'Text', 'MainTab Options');
-
+            guiobj.showRHDinfoMenu = uimenu(guiobj.MainTabOptionsMenu,...
+                'Text', 'Show information on loaded RHD file',...
+                'MenuSelectedFcn', @(h,e) guiobj.showRHDinfoMenuCB);
+            
             % Create timedimChangeMenu
             guiobj.timedimChangeMenu = uimenu(guiobj.MainTabOptionsMenu,...
                 'MenuSelectedFcn',@(h,e) guiobj.timedimChangeMenuSelected,...
