@@ -33,7 +33,7 @@ stepSizeSlider = uicontrol(ivSelFig,...
     'Style', 'slider',...
     'Units', 'normalized',...
     'Position', [0.01, 0.945, 0.135, 0.02],...
-    'Min', 50,...
+    'Min', 10,...
     'Max', 1000,...
     'Value', stepSize_ms,...
     'Callback', @stepSizeSliderCB);
@@ -69,6 +69,16 @@ waitfor(ivSelFig)
                 
             case 'rightarrow'
                 currInd = min(dataLen, currInd + stepSize);
+                
+            case 'uparrow'
+                stepSize = min(round(fs*stepSizeSlider.Max/1000), stepSize + round(fs*10/1000));
+                stepSizeEdit.String = num2str(round(1000*stepSize/fs));
+                stepSizeSlider.Value = round(1000*stepSize/fs);
+                
+            case 'downarrow'
+                stepSize = max(round(fs*stepSizeSlider.Min/1000), stepSize - round(fs*10/1000));
+                stepSizeEdit.String = num2str(round(1000*stepSize/fs));
+                stepSizeSlider.Value = round(1000*stepSize/fs);
                 
             case 'end'
                 currInd = dataLen;
@@ -179,12 +189,12 @@ waitfor(ivSelFig)
 
     function stepSizeEditCB(~,~)
         newVal = str2double(stepSizeEdit.String);
-        if newVal < 50
-            stepSizeEdit.String = num2str(50);
-            newVal = 50;
-        elseif newVal > 1000
-            stepSizeEdit.String = num2str(1000);
-            newVal = 1000;
+        if newVal < stepSizeSlider.Min
+            newVal = stepSizeSlider.Min;
+            stepSizeEdit.String = num2str(newVal);
+        elseif newVal > stepSizeSlider.Max
+            newVal = stepSizeSlider.Max;
+            stepSizeEdit.String = num2str(newVal);
         end
         stepSizeSlider.Value = newVal;
         stepSize = round((newVal/1000)*fs);
