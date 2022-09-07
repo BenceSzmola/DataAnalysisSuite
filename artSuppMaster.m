@@ -105,7 +105,7 @@ end
 
 %% run periodic filter if requested
 if doPeriodFilt
-    data = periodicNoise(data,fs);
+    data = periodicNoise(data,1:numChans,fs);
 elseif ~isempty(data_perio)
     data = data_perio;
 end
