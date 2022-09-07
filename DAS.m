@@ -1675,11 +1675,13 @@ classdef DAS < handle
             [b,a] = butter(4,(targetFs/4)/(ogFs/2),'low');
             lpFilt_data = zeros(size(ogData));
             downSampFactor = ogFs/targetFs;
-            downSamp_data = zeros(size(ogData,1),size(ogData,2)/downSampFactor);
+            downSampLen = round(length(ogTaxis)/downSampFactor);
+            downSamp_data = zeros(size(ogData,1),downSampLen);
             for i = 1:min(size(ogData))
 %                 lpFilt_data(i,:) = firfilt( ogData(i,:), lpFilt );
                 lpFilt_data(i,:) = filtfilt(b,a,ogData(i,:));
-                downSamp_data(i,:) = downsample(lpFilt_data(i,:),downSampFactor);
+                temp = downsample(lpFilt_data(i,:),downSampFactor);
+                downSamp_data(i,:) = temp(1:downSampLen);
             end
             
             newTaxis = linspace(ogTaxis(1),ogTaxis(end),length(ogTaxis)/downSampFactor);
@@ -1861,21 +1863,23 @@ classdef DAS < handle
                     
                     inds2use = getBaselineInds(critData, 'EnvelopeProminence', round(0.1*fs));
                     
-                    selIndFig = figure('Name', 'Automatic interval selection',...
-                        'WindowState', 'maximized', 'NumberTitle', 'off');
-                    tempTaxis = tAxis;
-                    tempTaxis(inds2use) = nan;
-                    tempData = data(refchrows,:);
-                    tempData(:,inds2use) = nan;
-                    for ch = 1:length(refchrows)
-                        subplot(length(refchrows), 1, ch, 'Parent', selIndFig)
-                        plot(tAxis, data(refchrows(ch),:))
-                        hold on
-                        plot(tempTaxis, tempData(ch,:), 'r');
-                        hold off
-                        title(sprintf('Channel #%d - reference', refchrows(ch)))
+                    if ~guiobj.roboDet
+                        selIndFig = figure('Name', 'Automatic interval selection',...
+                            'WindowState', 'maximized', 'NumberTitle', 'off');
+                        tempTaxis = tAxis;
+                        tempTaxis(inds2use) = nan;
+                        tempData = data(refchrows,:);
+                        tempData(:,inds2use) = nan;
+                        for ch = 1:length(refchrows)
+                            subplot(length(refchrows), 1, ch, 'Parent', selIndFig)
+                            plot(tAxis, data(refchrows(ch),:))
+                            hold on
+                            plot(tempTaxis, tempData(ch,:), 'r');
+                            hold off
+                            title(sprintf('Channel #%d - reference', refchrows(ch)))
+                        end
+                        linkaxes(findobj(selIndFig, 'Type', 'axes'), 'x')
                     end
-                    linkaxes(findobj(selIndFig, 'Type', 'axes'), 'x')
                     
             end
         end
@@ -2312,6 +2316,10 @@ classdef DAS < handle
             end
 %             assignin('base','downSampedRHD',guiobj.ephys_data)
             computeEphysDataTypes(guiobj)
+            
+            if guiobj.spectroFreqLims(2) > (guiobj.ephys_fs/2)
+                guiobj.spectroFreqLims(2) = guiobj.ephys_fs/2;
+            end
 
             setXlims(guiobj)
             clear rhdStruct
