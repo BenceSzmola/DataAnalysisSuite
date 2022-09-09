@@ -1081,6 +1081,7 @@ classdef DAS < handle
             switch dTyp
                 case 1
                     if ~isempty(detParams)
+                        cyclePerLen = detParams.NumCycles / detParams.Length
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
                         guiobj.ephysDetParamsTable.Data = temp;
                         guiobj.ephysDetParamsTable.RowName = [];
@@ -3218,11 +3219,13 @@ classdef DAS < handle
             filtSettingPanelObjs = findobj(guiobj.ephysFiltSettingsPanel, '-regexp', 'Tag', 'ephysFilt');
             set(filtSettingPanelObjs, 'Visible', 'off')
             switch selFilt
-                case 'Butterworth'
-                    set(filtSettingPanelObjs, 'Visible', 'on')
+                case {'Butterworth','DoG'}
+                    objs = findobj(filtSettingPanelObjs, 'Tag', 'ephysFilt_base');
                     
-                case 'DoG'
-                    objs = findobj(filtSettingPanelObjs, 'Tag', 'ephysFilt');
+                    if strcmp(selFilt, 'Butterworth')
+                        objs = [objs; findobj(filtSettingPanelObjs, 'Tag', 'ephysFilt_others')];
+                    end
+                    
                     set(objs, 'Visible', 'on')
                     
                 case 'Notch'
@@ -3822,7 +3825,7 @@ classdef DAS < handle
         end
         
         %%
-        function ephysDetRun(guiobj)
+        function ephysDetRun(guiobj,h)
             %% collecting basic parameters
             dettype = guiobj.ephysDetPopMenu.Value;
             dettype = guiobj.ephysDetPopMenu.String{dettype};
@@ -4219,6 +4222,12 @@ classdef DAS < handle
             guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
             
             eventDetAxesButtFcn(guiobj,1,0,0);
+            
+            if nargin > 1
+                set(h, 'Enable', 'off');
+                drawnow;
+                set(h, 'Enable', 'on');
+            end
             
             %%
             function dispErrorDlgResetStatus(errMsg)
@@ -5321,36 +5330,57 @@ classdef DAS < handle
         %%
         function keyboardPressFcn(guiobj,~,kD)
             if guiobj.tabs.SelectedTab == guiobj.tabs.Children(4)
-                if strcmp(kD.Key,'d') & (sum(guiobj.datatyp) > 1)
-                    switch guiobj.keyboardPressDtyp
-                        case 1
-                            guiobj.keyboardPressDtyp = 2;
-                        case 2
-                            guiobj.keyboardPressDtyp = 1;
-                    end
-                    
-                elseif strcmp(kD.Key,'delete')
-                    delCurrEventButtonCB(guiobj,guiobj.keyboardPressDtyp);
-                    
-                else
-                    detChanUpDwn = [0,0];
-                    switch kD.Key
-                        case 'rightarrow'
-                            detChanUpDwn = [0,1];
-                            
-                        case 'leftarrow'
-                            detChanUpDwn = [0,-1];
-                            
-                        case 'uparrow'
-                            detChanUpDwn = [1,0];
-                            
-                        case 'downarrow'
-                            detChanUpDwn = [-1,0];
-                            
-                    end
+                switch kD.Key
+                    case 's'
+                        if (length(kD.Modifier) == 1)
+                            if strcmp(kD.Modifier{1}, 'control')
+                                saveDets(guiobj)
+                            elseif strcmp(kD.Modifier{1}, 'alt')
+                                if ~(isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)))
+                                    eventDetPlotFcn(guiobj,1,true)
+                                end
+                            end
+                        end
+                        
+                    case 't'
+                        changeEventDetTabDataType(guiobj,guiobj.keyboardPressDtyp)
+                        
+                    case 'y'
+                        evDetTabYlimModeMenuCB(guiobj)
+                        
+                    case 'd'
+                        if sum(guiobj.datatyp) > 1
+                            switch guiobj.keyboardPressDtyp
+                                case 1
+                                    guiobj.keyboardPressDtyp = 2;
+                                case 2
+                                    guiobj.keyboardPressDtyp = 1;
+                            end
+                        end
+                        
+                    case 'delete'
+                        delCurrEventButtonCB(guiobj,guiobj.keyboardPressDtyp);
+                        
+                    case {'rightarrow','leftarrow','uparrow','downarrow'}
+                        detChanUpDwn = [0,0];
+                        switch kD.Key
+                            case 'rightarrow'
+                                detChanUpDwn = [0,1];
 
-                    eventDetAxesButtFcn(guiobj,guiobj.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
+                            case 'leftarrow'
+                                detChanUpDwn = [0,-1];
+
+                            case 'uparrow'
+                                detChanUpDwn = [1,0];
+
+                            case 'downarrow'
+                                detChanUpDwn = [-1,0];
+
+                        end
+                        eventDetAxesButtFcn(guiobj,guiobj.keyboardPressDtyp,detChanUpDwn(1),detChanUpDwn(2))
+                        
                 end
+                
             else % MATbol importáláshoz
                 if strcmp(kD.Key,'m')
                     ImportMatButtionPushed(guiobj)
@@ -6262,7 +6292,7 @@ classdef DAS < handle
                 'Position',[0.3, 0.85, 0.5, 0.1],...
                 'String','Lower - Upper cutoff [Hz]',...
                 'Visible','off',...
-                'Tag','ephysFilt');
+                'Tag','ephysFilt_base');
             guiobj.w1Edit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
@@ -6270,7 +6300,7 @@ classdef DAS < handle
                 'Visible','off',...
                 'Tooltip','Lower cutoff frequency [Hz]',...
                 'String','150',...
-                'Tag','ephysFilt');
+                'Tag','ephysFilt_base');
             guiobj.w2Edit = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','edit',...
                 'Units','normalized',...
@@ -6278,7 +6308,7 @@ classdef DAS < handle
                 'Visible','off',...
                 'Tooltip','Upper cutoff frequency [Hz]',...
                 'String','250',...
-                'Tag','ephysFilt');
+                'Tag','ephysFilt_base');
             guiobj.filtOrderLabel = uicontrol(guiobj.ephysFiltSettingsPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -6783,7 +6813,7 @@ classdef DAS < handle
                 'Units','normalized',...
                 'Position',[0.01, 0.705, 0.1, 0.05],...
                 'String','Run ephys detection',...
-                'Callback',@(h,e) guiobj.ephysDetRun);
+                'Callback',@(h,e) guiobj.ephysDetRun(h));
             guiobj.ephysDetStatusLabel = uicontrol(guiobj.eventDetTab,...
                 'Style','text',...
                 'Units','normalized',...
