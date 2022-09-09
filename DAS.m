@@ -1685,11 +1685,14 @@ classdef DAS < handle
             if mod(downSampFactor, 1) ~= 0
                 dsFactRound = round(downSampFactor);
                 maxFact = round(ogFs / 1000);
-                choices_newFs = ogFs ./ (min(2, dsFactRound-3):max(maxFact, dsFactRound+3));
+                choices_newFs = ogFs ./ (max(2, dsFactRound-3):min(maxFact, dsFactRound+3));
                 choices = ogFs ./ choices_newFs;
-                listStr = compose("Downsamp fact = %.0f | new Fs = %.0f",choices',choices_newFs');
+                choices_lpCut = choices_newFs / 4;
+                listStr = compose("Downsamp fact = %.0f | new Fs = %.2f | lp cut = %.2f",choices',choices_newFs',choices_lpCut');
+                [~,maxInd] = max(strlength(listStr));
+                [wid,hei] = getTxtPixelSize(listStr(maxInd));
                 [ind,tf] = listdlg('ListString', listStr, 'PromptString', 'Choose down sample factor!',...
-                    'ListSize', [300,400]);
+                    'ListSize', [wid*1.25,hei*length(listStr)]);
                 if ~tf
                     eD = errordlg('Downsampling interrupted!');
                     pause(1)
@@ -1701,6 +1704,7 @@ classdef DAS < handle
                 
                 downSampFactor = choices(ind);
                 targetFs = ogFs / downSampFactor;
+                guiobj.doEphysDownSamp_targetFs = targetFs;
             end
             
             [b,a] = butter(4,(targetFs/4)/(ogFs/2),'low');
