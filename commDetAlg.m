@@ -87,7 +87,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
                 
                 if ~condit
                     vEvents{ch}(ev) = false;
-                    refValVictims{ch} = [refValVictims{ch}, ev];
+                    refValVictims{ch} = [refValVictims{ch}; ev];
                 end
             end
         end
@@ -95,15 +95,16 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
     end
     
     %%
-    if ~autoPilot && (refVal~=0) && (~isempty([refValVictims{:}]))
+    if ~autoPilot && (refVal~=0) && (~isempty(vertcat(refValVictims{:})))
         quest = sprintf('Do you want to review the %d discarded events (from all channels)',...
-            length([refValVictims{:}]));
+            length(vertcat(refValVictims{:})));
         questTitle = 'Review of discarded events';
         answer = questdlg(quest,questTitle);
         if strcmp(answer,'Yes')
             reviewData = corrData;
             
-            events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
+%             events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
+            events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,eventsPeak,refValVictims);
             for ch = 1:length(events2Restore)
                 for j = 1:length(events2Restore{ch})
                     vEvents{ch}(refValVictims{ch}(events2Restore{ch}(j))) = true;
