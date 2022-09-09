@@ -133,6 +133,7 @@ classdef DAS < handle
         ephysSpectroFreqLimit2Edit
         
         ephysSelNewIntervalsButton
+        ephysShowCurrIntervalsButton
         ephysRunProcButton
         
         %% Members of imagingProcTab
@@ -297,6 +298,7 @@ classdef DAS < handle
         xtitle = 'Time [s]';
         
         autoLoadNextRHD = {};
+        ephysShowCurrIntervals = false;
         rhdName
         path2rhd
         rhdFname
@@ -446,12 +448,24 @@ classdef DAS < handle
                         plot(ax,guiobj.ephys_taxis,guiobj.ephys_data(rawInds,:))
                         hold(ax,'on')
                         dataname = guiobj.ephys_datanames(rawInds);
+                        if guiobj.ephysShowCurrIntervals
+                            currIntervals = guiobj.ephys_prevIntervalSel;
+                            redLine = guiobj.ephys_data(rawInds,:);
+                            redLine(currIntervals) = nan;
+                            plot(ax,guiobj.ephys_taxis,redLine,'-r')
+                        end
                     end
                     if ~isempty(procInds)
                         rawProc2Plot(2) = true;
                         plot(ax,guiobj.ephys_taxis,guiobj.ephys_procced(procInds,:))
                         hold(ax,'on')
                         dataname = guiobj.ephysProcListBox2.String{procInds};
+                        if guiobj.ephysShowCurrIntervals
+                            currIntervals = guiobj.ephys_prevIntervalSel;
+                            redLine = guiobj.ephys_procced(procInds,:);
+                            redLine(currIntervals) = nan;
+                            plot(ax,guiobj.ephys_taxis,redLine,'-r')
+                        end
                     end
                     ax.NextPlot = 'replacechildren';
                     
@@ -464,13 +478,27 @@ classdef DAS < handle
                         rawInds = index;
                         plot(ax,guiobj.ephys_taxis,...
                             guiobj.ephys_data(index,:))
+                        hold(ax, 'on')
                         dataname = guiobj.ephys_datanames(index);
+                        if guiobj.ephysShowCurrIntervals
+                            currIntervals = guiobj.ephys_prevIntervalSel;
+                            redLine = guiobj.ephys_data(index,:);
+                            redLine(currIntervals) = nan;
+                            plot(ax,guiobj.ephys_taxis,redLine,'-r')
+                        end
                     elseif ax == guiobj.axesEphysProc2
                         rawProc2Plot(2) = true;
                         procInds = index;
                         plot(ax,guiobj.ephys_taxis,...
                             guiobj.ephys_procced(index,:))
+                        hold(ax, 'on')
                         dataname = guiobj.ephys_procdatanames(index);
+                        if guiobj.ephysShowCurrIntervals
+                            currIntervals = guiobj.ephys_prevIntervalSel;
+                            redLine = guiobj.ephys_procced(procInds,:);
+                            redLine(currIntervals) = nan;
+                            plot(ax,guiobj.ephys_taxis,redLine,'-r')
+                        end
                     end
                     
                     if firstplot
@@ -2075,6 +2103,7 @@ classdef DAS < handle
                     'Position',[0.8, 0.01, 0.19, 0.05],...
                     'String','Use selected data',...
                     'Callback','uiresume');
+                uicontrol(selList)
                 uiwait
 
                 if ~ishandle(fig)
@@ -2286,20 +2315,19 @@ classdef DAS < handle
                 btn3 = 'Import without resetting';
                 defbtn = btn1;
                 clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
+                
                 if strcmp(clrGUI,btn1)
                     rhdsInCd = dir([guiobj.path2rhd, '*.rhd']);
                     rhdsInCd = {rhdsInCd.name};
                     prevLoadedInd = find(cellfun(@(x) strcmp(x, guiobj.rhdFname), rhdsInCd));
                     if ~isempty(rhdsInCd) && (length(rhdsInCd) ~= prevLoadedInd)
-                        choice = questdlg('Load next RHD from directory?');
+                        choice = questdlg(sprintf('Load next RHD from directory? (%s)', rhdsInCd{prevLoadedInd+1}));
                         if strcmp(choice, 'Yes')
-%                             rhdsInCd = {rhdsInCd.name};
-%                             prevLoadedInd = find(cellfun(@(x) strcmp(x, guiobj.rhdFname), rhdsInCd));
-                            if prevLoadedInd ~= length(rhdsInCd)
-                                path = [cd,'\'];
-                                filename = rhdsInCd{prevLoadedInd+1};
-                                guiobj.autoLoadNextRHD = {path,filename};
-                            end
+                            path = [cd,'\'];
+                            filename = rhdsInCd{prevLoadedInd+1};
+                            guiobj.autoLoadNextRHD = {path,filename};
+                        else
+                            guiobj.autoLoadNextRHD = {};
                         end
                     else
                         guiobj.autoLoadNextRHD = {};
@@ -2312,8 +2340,6 @@ classdef DAS < handle
                     return
                     
                 end
-            else
-                guiobj.autoLoadNextRHD = {};
             end
             
             guiobj.ephys_downSampd = false;
@@ -3274,7 +3300,33 @@ classdef DAS < handle
             end
             
             inds2use = discardIntervals4Dets(guiobj,1,data,chans);
-            guiobj.ephys_prevIntervalSel = inds2use;
+            if length(inds2use) < length(guiobj.ephys_taxis)
+                guiobj.ephys_prevIntervalSel = inds2use;
+                guiobj.ephysShowCurrIntervalsButton.Enable = 'on';
+            end
+        end
+        
+        %%
+        function ephysShowCurrIntervalsButtonCB(guiobj)
+            guiobj.ephysShowCurrIntervals = ~guiobj.ephysShowCurrIntervals;
+            if guiobj.ephysShowCurrIntervals
+                guiobj.ephysShowCurrIntervalsButton.BackgroundColor = 'g';
+                
+            else
+                guiobj.ephysShowCurrIntervalsButton.BackgroundColor = [0.94,0.94,0.94];
+            end
+            
+            switch guiobj.tabs.SelectedTab
+                case guiobj.maintab
+                    smartplot(guiobj)
+
+                case guiobj.ephysProcTab
+                    ephysProcListBoxValueChanged(guiobj)
+                    if ~isempty(guiobj.ephys_procced)
+                        ephysProcListBox2ValueChanged(guiobj)
+                    end
+
+            end
         end
         
         %%
@@ -3980,7 +4032,10 @@ classdef DAS < handle
                     if selNewIntervals
                         inds2use_interval = discardIntervals4Dets(guiobj,1,inputData,inputChans,refch);
 %                         inds2use_interval = discardIntervals4Dets(guiobj,1,data,chan,refch);
-                        guiobj.ephys_prevIntervalSel = inds2use_interval;
+                        if length(inds2use_interval) < length(guiobj.ephys_taxis)
+                            guiobj.ephys_prevIntervalSel = inds2use_interval;
+                            guiobj.ephysShowCurrIntervalsButton.Enable = 'on';
+                        end
                     else
                         inds2use_interval = guiobj.ephys_prevIntervalSel;
                     end
@@ -4177,6 +4232,9 @@ classdef DAS < handle
                 
                 dispErrorDlgResetStatus('No events found!')
                 eventDetPlotFcn(guiobj,1,0,1)
+                if nargin > 1
+                    removeUIcompFocus(h)
+                end
                 return                
             end
             
@@ -4228,9 +4286,10 @@ classdef DAS < handle
             eventDetAxesButtFcn(guiobj,1,0,0);
             
             if nargin > 1
-                set(h, 'Enable', 'off');
-                drawnow;
-                set(h, 'Enable', 'on');
+%                 set(h, 'Enable', 'off');
+%                 drawnow;
+%                 set(h, 'Enable', 'on');
+                removeUIcompFocus(h)
             end
             
             %%
@@ -6479,9 +6538,16 @@ classdef DAS < handle
             guiobj.ephysSelNewIntervalsButton = uicontrol(guiobj.ephysProcTab,...
                 'Style', 'pushbutton',...
                 'Units', 'normalized',...
-                'Position', [0.1, 0.47, 0.05, 0.05],...
-                'String', 'Select interval',...
+                'Position', [0.01, 0.47, 0.05, 0.05],...
+                'String', 'Select intervals',...
                 'Callback', @(h,e) guiobj.ephysSelNewIntervalsButtonCB);
+            guiobj.ephysShowCurrIntervalsButton = uicontrol(guiobj.ephysProcTab,...
+                'Style', 'pushbutton',...
+                'Units', 'normalized',...
+                'Position', [0.15, 0.47, 0.05, 0.05],...
+                'String', 'Show intervals',...
+                'Enable', 'off',...
+                'Callback', @(h,e) guiobj.ephysShowCurrIntervalsButtonCB);
             
             % Create axes
             guiobj.axesEphysProc1 = axes(guiobj.ephysProcTab,...
