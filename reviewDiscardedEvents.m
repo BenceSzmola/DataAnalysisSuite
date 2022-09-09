@@ -22,7 +22,12 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
     reviewAxRef = subplot(2,1,2,'Parent',reviewFig);
     title(reviewAx,'Use the arrows to change between events!')
     title(reviewAxRef,'Use space to mark event to be restored, and backspace to remove mark!')
-    
+    hold(reviewAx, 'on')
+    revLine = plot(reviewAx,0,0,'-r');
+    revGreenLine = xline(reviewAx,0,'g','LineWidth',1);
+    hold(reviewAx, 'off')
+    refLine = plot(reviewAxRef,0,0,'-b');
+    linkaxes([reviewAx,reviewAxRef],'xy')
     uiwait(reviewFig)
     
     function figKeyCB(h,kD)
@@ -72,10 +77,9 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
             winInds = winMacher(0.5);
             r = corrCalculator;
             
-            plot(ax(2),taxis(winInds),data(chanInd,winInds),'-r')
-            hold(ax(2),'on')
-            xline(ax(2),taxis(victimsPeakInds{chanInd}(detInd)),'g','LineWidth',1);
-            hold(ax(2),'off')
+            revLine.XData = taxis(winInds);
+            revLine.YData = data(chanInd,winInds);
+            revGreenLine.Value = taxis(victimsPeakInds{chanInd}(detInd));
             if ~isempty(find(events2Restore{chanInd}==detInd,1))
                 title(ax(2),['Discarded event - Ch#',num2str(chan(chanInd)),...
                     ' Event#',num2str(adjInd),' - marked for recovery'])
@@ -86,11 +90,20 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
             xlabel(ax(2),'Time [s]')
             ylabel(ax(2),'Voltage [\muV]')
 
-            plot(ax(1),taxis(winInds),refData(winInds))
+            refLine.XData = taxis(winInds);
+            refLine.YData = refData(winInds);
             title(ax(1),['Reference channel - rho=',num2str(r(2))])
             xlabel(ax(1),'Time [s]')
             ylabel(ax(1),'Voltage [\muV]')
             
+            lowerLim = min(min(refData(winInds)), min(data(chanInd,winInds)));
+            upperLim = max(max(refData(winInds)), max(data(chanInd,winInds)));
+            yrange = upperLim - lowerLim;
+            lowerLim = lowerLim - 0.1*yrange;
+            upperLim = upperLim + 0.1*yrange;
+            xlim(ax(1), [taxis(winInds(1)), taxis(winInds(end))])
+            ylim(ax(1), [lowerLim, upperLim])
+                        
         else
             cla(ax(1))
             cla(ax(2))
@@ -111,9 +124,6 @@ function events2Restore = reviewDiscardedEvents(taxis,fs,chan,data,refData,vEven
 
     function doOnOtherChans(mode)
         for ch1 = 1:length(refValVictims)
-%             if ch1 == chanInd
-%                 continue
-%             end
             
             matches = abs(victimsPeakInds{chanInd}(detInd) - victimsPeakInds{ch1}) < round(0.1*fs);
             switch mode
