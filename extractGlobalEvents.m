@@ -1,7 +1,7 @@
-function [globalEvents] = extractGlobalEvents(dets,tol,runOnSaves)
+function [globalEvents] = extractGlobalEvents(dets,tol,singleGrp,runOnSaves)
 % [globalEvents] = extractGlobalEvents(dets,tol,fromSaves)
 
-if (nargin >= 3) && runOnSaves
+if (nargin >= 4) && runOnSaves
     [saveFnames, path] = uigetfile('DASsave*.mat', 'MultiSelect', 'on');
     if ~iscell(saveFnames)
         saveFnames = {saveFnames};
@@ -14,7 +14,7 @@ if (nargin >= 3) && runOnSaves
 
         if ~isempty(ephysSaveData)
             if ~isempty(ephysSaveData.Dets)
-                globalEvents = extraction(ephysSaveData.Dets, round(0.05*ephysSaveData.Fs));
+                globalEvents = extraction(ephysSaveData.Dets, round(0.05*ephysSaveData.Fs), singleGrp);
                 ephysSaveData.GlobalDets = globalEvents;
                 save([path,saveFnames{saveNum}], '-append', 'ephysSaveData')
             end
@@ -22,7 +22,7 @@ if (nargin >= 3) && runOnSaves
         
         if ~isempty(imagingSaveData)
             if ~isempty(imagingSaveData.Dets)
-                globalEvents = extraction(imagingSaveData.Dets, round(0.05*imagingSaveData.Fs));
+                globalEvents = extraction(imagingSaveData.Dets, round(0.05*imagingSaveData.Fs), singleGrp);
                 imagingSaveData.GlobalDets = globalEvents;
                 save([path,saveFnames{saveNum}], '-append', 'imagingSaveData')
             end
@@ -30,11 +30,11 @@ if (nargin >= 3) && runOnSaves
 
     end
 else
-    globalEvents = extraction(dets,tol);
+    globalEvents = extraction(dets,tol,singleGrp);
 end
 
 
-    function globalEvents = extraction(dets,tol)
+    function globalEvents = extraction(dets,tol,singleGrp)
         numChans = length(dets);
 
         allDets = vertcat(dets{:});
@@ -51,13 +51,15 @@ end
         
         % tag the indices which only occur once (occuring more than once on one channel doesnt count,
         %                             we are interested in events that appear on at least 2 channels)
-        icUniq = unique(ic);
-        tooUniq = false(length(icUniq), 1);
-        for i = 1:length(icUniq)
-            temp = cellfun(@(x) x == icUniq(i), icByChan, 'UniformOutput', false);
-            temp = cellfun(@(x) length(find(x)), temp);
-            if length(find(temp)) < 2
-                tooUniq(i) = true;
+        if ~singleGrp
+            icUniq = unique(ic);
+            tooUniq = false(length(icUniq), 1);
+            for i = 1:length(icUniq)
+                temp = cellfun(@(x) x == icUniq(i), icByChan, 'UniformOutput', false);
+                temp = cellfun(@(x) length(find(x)), temp);
+                if length(find(temp)) < 2
+                    tooUniq(i) = true;
+                end
             end
         end
 
@@ -67,7 +69,7 @@ end
         for ch = 1:numChans
             currIc = icByChan{ch};
             for i = 1:length(currIc)
-                if tooUniq(currIc(i))
+                if ~singleGrp && tooUniq(currIc(i))
                     continue
                 end
                 globalEvents(currIc(i),ch) = i;

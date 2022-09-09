@@ -4239,7 +4239,7 @@ classdef DAS < handle
             end
             
             %% find global events
-            guiobj.ephys_globalDets = extractGlobalEvents(dets,round(0.05*fs));
+            guiobj.ephys_globalDets = extractGlobalEvents(dets,round(0.05*fs),false);
             
             %% recompute the ephys data types
             if (exist('w1','var') == 1) && (exist('w2','var') == 1)
@@ -4486,7 +4486,7 @@ classdef DAS < handle
             end
             
             %% find global events
-            guiobj.imaging_globalDets = extractGlobalEvents(dets,round(0.05*fs));
+            guiobj.imaging_globalDets = extractGlobalEvents(dets,round(0.05*fs),false);
             
             %% recompute the ephys data types
             if (exist('winLen','var') == 1)
