@@ -296,6 +296,7 @@ classdef DAS < handle
         
         xtitle = 'Time [s]';
         
+        autoLoadNextRHD = {};
         rhdName
         path2rhd
         rhdFname
@@ -1538,6 +1539,8 @@ classdef DAS < handle
             guiobj.doEphysDownSamp = doImportEphysDownSamp;
             guiobj.doEphysDownSamp_targetFs = doImportEphysDownSamp_targetFs;
             
+            guiobj.autoLoadNextRHD = autoImportRhd;
+            
             guiobj.eventDet1DataType = evDetTabEphysDTyp;
             guiobj.eventDet2DataType = evDetTabImagingDTyp;
             
@@ -2273,11 +2276,33 @@ classdef DAS < handle
                 defbtn = btn1;
                 clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
                 if strcmp(clrGUI,btn1)
+                    rhdsInCd = dir([guiobj.path2rhd, '*.rhd']);
+                    rhdsInCd = {rhdsInCd.name};
+                    prevLoadedInd = find(cellfun(@(x) strcmp(x, guiobj.rhdFname), rhdsInCd));
+                    if ~isempty(rhdsInCd) && (length(rhdsInCd) ~= prevLoadedInd)
+                        choice = questdlg('Load next RHD from directory?');
+                        if strcmp(choice, 'Yes')
+%                             rhdsInCd = {rhdsInCd.name};
+%                             prevLoadedInd = find(cellfun(@(x) strcmp(x, guiobj.rhdFname), rhdsInCd));
+                            if prevLoadedInd ~= length(rhdsInCd)
+                                path = [cd,'\'];
+                                filename = rhdsInCd{prevLoadedInd+1};
+                                guiobj.autoLoadNextRHD = {path,filename};
+                            end
+                        end
+                    else
+                        guiobj.autoLoadNextRHD = {};
+                    end
+                    
                     resetGuiData(guiobj,1)
                     return
+                    
                 elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
                     return
+                    
                 end
+            else
+                guiobj.autoLoadNextRHD = {};
             end
             
             guiobj.ephys_downSampd = false;
@@ -2285,8 +2310,11 @@ classdef DAS < handle
             if guiobj.roboDet
                 path = guiobj.roboDet_path;
                 filename = guiobj.roboDet_fnames{guiobj.roboDet_idx};
-            else
+            elseif isempty(guiobj.autoLoadNextRHD)
                 [filename,path] = uigetfile('*.rhd');
+            else
+                filename = guiobj.autoLoadNextRHD{2};
+                path = guiobj.autoLoadNextRHD{1};
             end
             if filename == 0
                 figure(guiobj.mainfig)
