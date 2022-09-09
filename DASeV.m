@@ -3045,6 +3045,18 @@ classdef DASeV < handle
 
                     case 'y'
                         eventYlimModeMenuCB(gO)
+                        
+                    case 't'
+                        if isempty(kD.Modifier)
+                            switch gO.keyboardPressDtyp
+                                case 1
+                                    ephysTypMenuSel(gO)
+                                    
+                                case 2
+                                    imagingTypMenuSel(gO)
+                                
+                            end
+                        end
 
                     case 'f'
                         if strcmp(gO.fixWinSwitch.Enable, 'on')
