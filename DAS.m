@@ -1492,11 +1492,15 @@ classdef DAS < handle
             
             evDetYlimMode = guiobj.evDetTabYlimMode;
             evDetYlimModeMenuText = guiobj.evDetTabYlimModeMenu.Text;
+            ephysCustomYlim = guiobj.eventYlimCustom_ephys;
+            imagingCustomYlim = guiobj.eventYlimCustom_imaging;
             
             doImportUpSamp = guiobj.importUpSamp;
             doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
             doImportEphysDownSamp = guiobj.doEphysDownSamp;
             doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
+            
+            autoImportRhd = guiobj.autoLoadNextRHD;
             
             figLastPos = guiobj.mainfig.Position;
             figLastState = guiobj.mainfig.WindowState;
@@ -1533,6 +1537,8 @@ classdef DAS < handle
             
             guiobj.evDetTabYlimMode = evDetYlimMode;
             guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
+            guiobj.eventYlimCustom_ephys = ephysCustomYlim;
+            guiobj.eventYlimCustom_imaging = imagingCustomYlim;
             
             guiobj.importUpSamp = doImportUpSamp;
             guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
