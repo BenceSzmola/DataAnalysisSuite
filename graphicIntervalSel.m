@@ -37,6 +37,20 @@ stepSizeSlider = uicontrol(ivSelFig,...
     'Max', 1000,...
     'Value', stepSize_ms,...
     'Callback', @stepSizeSliderCB);
+toggleZoomButton = uicontrol(ivSelFig,...
+    'Style', 'pushbutton',...
+    'Units', 'normalized',...
+    'Position', [0.01, 0.9, 0.075, 0.025],...
+    'String', 'Zoom - OFF',...
+    'ForegroundColor', 'r',...
+    'Callback', @toggleZoomButtonCB);
+togglePanButton = uicontrol(ivSelFig,...
+    'Style', 'pushbutton',...
+    'Units', 'normalized',...
+    'Position', [0.01, 0.85, 0.075, 0.025],...
+    'String', 'Pan - OFF',...
+    'ForegroundColor', 'r',...
+    'Callback', @togglePanButtonCB);
 
 selLines = gobjects(numChans, 1);
 highLightLines = gobjects(numChans, 1);
@@ -116,6 +130,36 @@ waitfor(ivSelFig)
         end
         if ~strcmp(e.Key, 'return')
             updateSelLines
+        end
+    end
+
+    function togglePanButtonCB(~,~)
+        pO = pan(ivSelFig);
+        switch pO.Enable
+            case 'on'
+                pO.Enable = 'off';
+                togglePanButton.String = 'Pan - OFF';
+                togglePanButton.ForegroundColor = 'r';
+                
+            case 'off'
+                pO.Enable = 'on';
+                togglePanButton.String = 'Pan - ON';
+                togglePanButton.ForegroundColor = 'g';
+        end
+    end
+
+    function toggleZoomButtonCB(~,~)
+        zO = zoom(ivSelFig);
+        switch zO.Enable
+            case 'on'
+                zO.Enable = 'off';
+                toggleZoomButton.String = 'Zoom - OFF';
+                toggleZoomButton.ForegroundColor = 'r';
+                
+            case 'off'
+                zO.Enable = 'on';
+                toggleZoomButton.String = 'Zoom - ON';
+                toggleZoomButton.ForegroundColor = 'g';
         end
     end
 
