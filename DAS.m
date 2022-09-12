@@ -1192,10 +1192,12 @@ classdef DAS < handle
                     plot(ax,tWin,hL,'-r','LineWidth',0.75)
                 end
                 hold(ax,'off')
-                axis(ax,'tight')
-                ylim(ax,axLims)
+%                 ylim(ax,axLims)
+%                 axis(ax,'tight')
+                xlim(ax, [min(tWin), max(tWin)])
+                ylim(ax, axLims)
                 xlabel(ax,guiobj.xtitle)
-                ylabel(ax,yAxLbl);
+                ylabel(ax,yAxLbl)
                 
                 switch dTyp
                     case 1
