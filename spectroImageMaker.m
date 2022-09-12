@@ -23,6 +23,7 @@ for ch = 1:size(data, 1)
         while ~strcmp(cwtFig.Type, 'figure')
             cwtFig = cwtFig.Parent;
         end
+        cwtFig.SizeChangedFcn = @updateSpectroLabels;
     end
     zoomObj = zoom(cwtFig);
     zoomObj.ActionPostCallback = @updateSpectroLabels;
