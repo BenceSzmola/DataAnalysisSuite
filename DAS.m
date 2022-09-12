@@ -3587,8 +3587,8 @@ classdef DAS < handle
                     end
                     
                     freqLim = [str2double(guiobj.ephysSpectroFreqLimit1Edit.String), str2double(guiobj.ephysSpectroFreqLimit2Edit.String)];
-                    spectroImageMaker(guiobj.ephys_taxis,guiobj.ephys_fs,data,[newProcInfo.Channel],freqLim,inds2use)
-                                        
+                    spectroImageMaker([],guiobj.ephys_taxis,guiobj.ephys_fs,data,[newProcInfo.Channel],freqLim,inds2use)
+                    
                     guiobj.ephysRunProcButton.BackgroundColor = 'g';
                     return
                     
