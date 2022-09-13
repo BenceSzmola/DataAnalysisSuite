@@ -1,7 +1,7 @@
 function [data_filt,f_fund,fmax,stopbandwidth] = periodicNoise(data,chans,fs,fmax,f_fund,stopbandwidth,plotfft)
 
 % Detect and filter out periodic Noise (fundamental and harmonics)
-% data_filt = periodicNoise(data,fs,fmax,f_fund,stopbandwidth)
+% [data_filt,f_fund,fmax,stopbandwidth] = periodicNoise(data,chans,fs,fmax,f_fund,stopbandwidth,plotfft)
 % fs : sampling frequency
 % fmax : manually set maximal frequency up to which the algorithm will filter
 % f_fund : manually specify the fundamental frequency of the noise

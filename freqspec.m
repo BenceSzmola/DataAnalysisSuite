@@ -1,6 +1,6 @@
 function [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax,titleXtra)
 % from matlab help
-% [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax)
+% [faxis,psd] = freqspec(data,Fs,plots,fmin,fmax,titleXtra)
 
 if nargin == 0 || isempty(data)
     [filename,path] = uigetfile('*.rhd');
