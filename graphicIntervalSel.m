@@ -1,4 +1,6 @@
 function selIvs = graphicIntervalSel(tAxis,fs,data,chans,refchans)
+% selIvs = graphicIntervalSel(tAxis,fs,data,chans,refchans)
+
 %% preparation
 delMode = false;
 numChans = length(chans);
