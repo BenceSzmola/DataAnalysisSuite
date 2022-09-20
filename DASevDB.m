@@ -1665,11 +1665,14 @@ classdef DASevDB < handle
             
             
             fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
+            fNames_trim = cell(size(fNames));
             DASloc = mfilename('fullpath');
 
             paramMat = [];
             
             for i = 1:length(fNames)
+                fNames_trim{i} = fNames{i}(find(fNames{i}=='_',1)+1:find(fNames{i}=='.',1,'last')-1);
+                
                 file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
                 load(file2load,'saveStruct');
                 
@@ -1723,8 +1726,9 @@ classdef DASevDB < handle
                     xlabel(gO.axStatTab,xTitle)
                     
                 case 'Boxplot'
-                    boxplot(gO.axStatTab,paramMat,fNames,'LabelOrientation','inline')
+                    boxplot(gO.axStatTab,paramMat,fNames_trim,'LabelOrientation','inline')
                     ylabel(gO.axStatTab,xTitle)
+                    title(gO.axStatTab,[gO.ephysParamUnits{paramUnitInd,1},' distribution'])
                     
             end
             
