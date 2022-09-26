@@ -1,4 +1,4 @@
-function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,checkRHD,bestChMode,bestChInd,makeExcel)
+function [ephysStats, imagingStats] = DASsaveAnalyse(path,saveFnames,checkRHD,includeEmpty,bestChMode,bestChInd,makeExcel)
 
 
 if (nargin == 0) || (isempty(path) || isempty(saveFnames))
@@ -136,7 +136,18 @@ for i = 1:numSaves
             paramsCell(cellfun('isempty', paramsCell)) = {nan};
             tempEphysCell(i,10:(10 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
         end
+    elseif isempty(ephysSaveData) && includeEmpty(1)
+        hasEphys(i) = true;
         
+        tempEphysCell{i,1} = saveFnames{i};
+        
+        ephysSaveData.Dets = {};
+        ephysSaveData.GlobalDets = [];
+        ephysSaveData.TAxis = 0;
+        ephysSaveData.EventComplexes = {};
+        ephysSaveData.DetParams = {};
+
+        ephysSaveInfo.DetChannel = [];
     end
     
     if ~isempty(imagingSaveData)
@@ -163,7 +174,17 @@ for i = 1:numSaves
             paramsCell(cellfun('isempty', paramsCell)) = {nan};
             tempImagingCell(i,5:(5 + numParams - 1)) = mat2cell(mean(cell2mat(paramsCell), 2, 'omitnan'), ones(numParams, 1))';
         end
+    elseif isempty(imagingSaveData) && includeEmpty(2)
+        hasImaging(i) = true;
         
+        tempImagingCell{i,1} = saveFnames{i};
+        
+        imagingSaveData.Dets = {};
+        imagingSaveData.GlobalDets = [];
+        imagingSaveData.TAxis = 0;
+        imagingSaveData.EventComplexes = {};
+        imagingSaveData.DetParams = {};
+
     end
     
     if ~isempty(simultSaveData)

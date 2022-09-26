@@ -1482,7 +1482,7 @@ classdef DASeV < handle
                 bestChInd = [];
             end
             makeExcel = true;
-            DASsaveAnalyse(path,saveFnames,checkRHD,bestChMode,bestChInd,makeExcel)
+            DASsaveAnalyse(path,saveFnames,checkRHD,[true,false],bestChMode,bestChInd,makeExcel)
         end
         
         %%
