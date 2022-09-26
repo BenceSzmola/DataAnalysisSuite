@@ -34,6 +34,7 @@ xticks(xrange)
 xticklabels(dates)
 xlim([0,length(xrange)+1])
 currAx = gca;
+currAx.FontSize = 14;
 currYlim = currAx.YLim;
 yrange = currYlim(2)-currYlim(1);
 currYlim(1) = currYlim(1) - yrange*.1;
