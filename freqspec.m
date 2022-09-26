@@ -30,7 +30,7 @@ if nargin < 6
 %     titleXtra = [' - ',titleXtra];
 end
 
-L = max(size(data));
+L = ceil(max(size(data))*1.5);
 numchan = min(size(data));
 if size(data,1) > size(data,2)
     data = data';
@@ -42,7 +42,7 @@ if nargout ~= 0
 end
 
 for i = 1:numchan
-    Y = fft(data(i,:));
+    Y = fft(data(i,:),L);
 
     P2 = abs(Y/L);
     P1 = P2(1:floor(L/2)+1);
