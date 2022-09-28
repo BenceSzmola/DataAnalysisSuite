@@ -40,7 +40,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
             continue
         end
 
-        [eventsStartStop{ch}, evLens] = computeAboveThrLengths(detData(ch,:),thr(ch),aboveThrMinLen);
+        [eventsStartStop{ch}, evLens] = computeAboveThrLengths(detData(ch,:),thr(ch),'>',aboveThrMinLen);
 %         eventsStartStop{ch}(evLens < aboveThrMinLen,:) = [];
 %         evLens(evLens < aboveThrMinLen) = [];
         numEvs = length(evLens);

@@ -45,7 +45,7 @@ function [intervals, widths] = fullWaveWidth(data, peakInds, thr)
         rightBot = find(diffSign(pInd + 1:end) == 1, 1, 'first') + pInd - 1;
         
         if (nargin > 2) && ~isempty(thr) && ~isnan(thr)
-            [aboveThrIvs, ~] = computeAboveThrLengths(data, thr);
+            [aboveThrIvs, ~] = computeAboveThrLengths(data, thr, '>');
             aboveThrIvs = aboveThrIvs((aboveThrIvs(:,1) < pInd) & (aboveThrIvs(:,2) > pInd),:);
             [~, leftBotThr] = min(abs(pInd - aboveThrIvs(:,1)));
             leftBotThr = aboveThrIvs(leftBotThr,1);
