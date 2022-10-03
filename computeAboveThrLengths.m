@@ -1,5 +1,5 @@
 function [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
-% [intervals, lens] = computeAboveThrLengths(data,thr,minLen,maxLen)
+% [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
 % This function expects one channel at a time.
 % Threshold input (thr) can either be a single value or a list of values with length equal to data input.
 
