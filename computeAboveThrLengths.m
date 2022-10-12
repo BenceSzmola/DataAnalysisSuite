@@ -1,31 +1,51 @@
 function [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
 % [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
 % This function expects one channel at a time.
+% But it can take various features from one channel, then it will check
+%   when both features satisfy their respective thresholds.
 % Threshold input (thr) can either be a single value or a list of values with length equal to data input.
 
-if all(size(data) > 1)
-    eD = errordlg('This function takes one channel at a time!');
-    pause(1)
-    if ishandle(eD)
-        close(eD)
+if size(data,1) > size(data,2)
+    data = data';
+end
+
+if all(ismember(size(data),size(thr)))
+    if size(thr,1) > size(thr,2)
+        thr = thr';
     end
+elseif size(data,1) ~= size(thr,1)
+    thr = thr';
+elseif ~ismember(size(data,1),size(thr))
+    errordlg('Threshold input should be of compatible size with data input!')
     intervals = [];
     lens = [];
     return
 end
 
 if (nargin < 3) || isempty(thrMode)
-    thrMode = '>';
+    thrMode = ">";
+elseif ~isstring(thrMode)
+    thrMode = string(thrMode);
 end
 
-switch thrMode
-    case '>'
-        selectedInds = find(data > thr);
-    case '<'
-        selectedInds = find(data < thr);
-    case '=='
-        selectedInds = find(data == thr);
+if size(data,1) ~= length(thrMode)
+    thrMode = repmat(thrMode(1),1,size(data,1));
 end
+
+selectedInds = true(1,size(data,2));
+for i = 1:size(data,1)
+    switch thrMode(i)
+        case ">"
+            selectedInds_temp = data(i,:) > thr(i,:);
+        case "<"
+            selectedInds_temp = data(i,:) < thr(i,:);
+        case "=="
+            selectedInds_temp = data(i,:) == thr(i,:);
+    end
+
+    selectedInds = selectedInds & selectedInds_temp;
+end
+selectedInds = find(selectedInds);
 
 if isempty(selectedInds)
     intervals = [];
