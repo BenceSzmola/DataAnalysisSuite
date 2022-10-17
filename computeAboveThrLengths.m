@@ -1,4 +1,4 @@
-function [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
+function [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen,multFeatMode)
 % [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
 % This function expects one channel at a time.
 % But it can take various features from one channel, then it will check
@@ -32,7 +32,11 @@ if size(data,1) ~= length(thrMode)
     thrMode = repmat(thrMode(1),1,size(data,1));
 end
 
-selectedInds = true(1,size(data,2));
+if (nargin < 6 ) || isempty(multFeatMode)
+    multFeatMode = "&";
+end
+
+% selectedInds = true(1,size(data,2));
 for i = 1:size(data,1)
     switch thrMode(i)
         case ">"
@@ -43,7 +47,22 @@ for i = 1:size(data,1)
             selectedInds_temp = data(i,:) == thr(i,:);
     end
 
-    selectedInds = selectedInds & selectedInds_temp;
+    if i == 1
+        selectedInds = selectedInds_temp;
+    else
+
+        switch multFeatMode
+            case "&"
+                selectedInds = selectedInds & selectedInds_temp;
+            case "|"
+                selectedInds = selectedInds | selectedInds_temp;
+            case "xor"
+                selectedInds = xor(selectedInds,selectedInds_temp);
+            case "only1st"
+                selectedInds = selectedInds & ~selectedInds_temp;
+        end
+
+    end
 end
 selectedInds = find(selectedInds);
 
