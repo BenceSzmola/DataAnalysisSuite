@@ -57,8 +57,8 @@ end
 if nargin > 0 && nargin < 3
     errordlg('Pls specifiy the sampling frequency!')
 end
-
-if (nargin < 5) || isempty(f_fund) || isnan(f_fund)
+    
+if isempty(f_fund) || isnan(f_fund)
     f_fund_given = false;
 else
     f_fund_given = true;
@@ -306,8 +306,15 @@ for i = 1:min(size(data))
     wb2 = waitbar(0,'Initializing filtering...','Name','Filtering the data');
     while f < fmax
         waitbar(f/fmax,wb2,['Filtering at ',num2str(f),' Hz'])
-        [b,a] = butter(2,[f-stopbandwidth, f+stopbandwidth]/(fs/2),'stop');
+%         [b,a] = butter(2,[f-stopbandwidth, f+stopbandwidth]/(fs/2),'stop');
+%         data_filt(i,:) = filtfilt(b,a,data_filt(i,:));
+
+        qFact = 35;
+        wo = f/(fs/2);
+        bw = wo/qFact;
+        [b,a] = iirnotch(wo,bw);
         data_filt(i,:) = filtfilt(b,a,data_filt(i,:));
+
         f = f+f_fund;
 %         freqz(b,a)
 %         [data_filt(i,:),d] = bandstop(data(i,:),[f-1,f+1],fs);
