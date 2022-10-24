@@ -1,4 +1,4 @@
-function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,refData,eventsPeak,refValVictims)
+function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,compData,eventsPeak,refValVictims)
     globVictInd = 0;
     colInd = 1;
     
@@ -92,7 +92,12 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,refData,ev
         
         
         winInds = winMacher(0.5);
-        r = corrCalculator;
+        if strcmp(compMode,'ref')
+            r = corrCalculator;
+            compData2plot = compData(winInds);
+        elseif strcmp(compMode,'raw')
+            compData2plot = compData(chInd,winInds);
+        end
 
         revLine.XData = taxis(winInds);
         revLine.YData = data(chInd,winInds);
@@ -108,13 +113,17 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,refData,ev
         ylabel(ax(2),'Voltage [\muV]')
 
         refLine.XData = taxis(winInds);
-        refLine.YData = refData(winInds);
-        title(ax(1),['Reference channel - rho=',num2str(r(2))])
+        refLine.YData = compData2plot;
+        if strcmp(compMode,'ref')
+            title(ax(1),['Reference channel - rho=',num2str(r(2))])
+        elseif strcmp(compMode,'raw')
+            title(ax(1),['Wideband data - Ch#',num2str(chan(chInd))])
+        end
         xlabel(ax(1),'Time [s]')
         ylabel(ax(1),'Voltage [\muV]')
 
-        lowerLim = min(min(refData(winInds)), min(data(chInd,winInds)));
-        upperLim = max(max(refData(winInds)), max(data(chInd,winInds)));
+        lowerLim = min(min(compData2plot), min(data(chInd,winInds)));
+        upperLim = max(max(compData2plot), max(data(chInd,winInds)));
         yrange = upperLim - lowerLim;
         lowerLim = lowerLim - 0.1*yrange;
         upperLim = upperLim + 0.1*yrange;
@@ -150,7 +159,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,refData,ev
 
     function r = corrCalculator
         winInds = winMacher(0.2);
-        r = corrcoef(refData(winInds),data(colInd2chanInd,winInds));
+        r = corrcoef(compData(winInds),data(colInd2chanInd,winInds));
     end
     
     function chanInd = colInd2chanInd

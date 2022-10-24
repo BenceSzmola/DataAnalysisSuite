@@ -104,7 +104,7 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
             reviewData = corrData;
             
 %             events2Restore = reviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,vEvents,eventsPeak,refValVictims);
-            events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,reviewData,refCorrData,eventsPeak,refValVictims);
+            events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,reviewData,'ref',refCorrData,eventsPeak,refValVictims);
             for ch = 1:length(events2Restore)
                 for j = 1:length(events2Restore{ch})
                     vEvents{ch}(refValVictims{ch}(events2Restore{ch}(j))) = true;
