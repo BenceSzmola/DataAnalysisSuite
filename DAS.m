@@ -168,6 +168,13 @@ classdef DAS < handle
         ephysDetRefChanEdit
         ephysDetArtSuppPopMenu
         
+        ephysGMMACDetPanel
+        ephysGMMACDetRefValPopMenu
+        ephysGMMACDetSettButtGroup
+        ephysGMMACDetDefSettButt
+        ephysGMMACDetPrevSettButt
+        ephysGMMACDetGUISettButt
+
         ephysCwtDetPanel
         ephysCwtDetMinlenLabel
         ephysCwtDetMinlenEdit
@@ -3817,19 +3824,28 @@ classdef DAS < handle
             dettype = guiobj.ephysDetPopMenu.String{dettype};
             
             switch dettype
+                case 'GMM+AutocorrFit'
+                    guiobj.ephysGMMACDetPanel.Visible =  'on';
+                    guiobj.ephysAdaptDetPanel.Visible = 'off';
+                    guiobj.ephysCwtDetPanel.Visible = 'off';
+                    guiobj.ephysDoGInstPowDetPanel.Visible = 'off';
                 case 'CWT based'
+                    guiobj.ephysGMMACDetPanel.Visible =  'off';
                     guiobj.ephysAdaptDetPanel.Visible = 'off';
                     guiobj.ephysCwtDetPanel.Visible = 'on';
                     guiobj.ephysDoGInstPowDetPanel.Visible = 'off';
                 case 'Adaptive threshold'
+                    guiobj.ephysGMMACDetPanel.Visible =  'off';
                     guiobj.ephysAdaptDetPanel.Visible = 'on';
                     guiobj.ephysCwtDetPanel.Visible = 'off';
                     guiobj.ephysDoGInstPowDetPanel.Visible = 'off';
                 case 'DoG+InstPow'
+                    guiobj.ephysGMMACDetPanel.Visible =  'off';
                     guiobj.ephysAdaptDetPanel.Visible = 'off';
                     guiobj.ephysCwtDetPanel.Visible = 'off';
                     guiobj.ephysDoGInstPowDetPanel.Visible = 'on';
                 otherwise
+                    guiobj.ephysGMMACDetPanel.Visible =  'off';
                     guiobj.ephysAdaptDetPanel.Visible = 'off';
                     guiobj.ephysCwtDetPanel.Visible = 'off';
                     guiobj.ephysDoGInstPowDetPanel.Visible = 'off';
@@ -3868,6 +3884,9 @@ classdef DAS < handle
             refch = numSelCharConverter(refchInp);
             
             switch dettype
+                case 'GMM+AutocorrFit'
+                    refVal = guiobj.ephysGMMACDetRefValPopMenu.Value - 1;
+
                 case 'CWT based'
                     refVal = guiobj.ephysCwtDetRefValPopMenu.Value - 1;
 
@@ -4076,7 +4095,19 @@ classdef DAS < handle
             %%
             switch dettype
                 case 'GMM+AutocorrFit'
-                    [dets,detBorders,detParams,evComplexes] = gmmAutoCorrDet(data,fs,tAxis,chan,refch,refchData,refVal);
+                    switch guiobj.ephysGMMACDetSettButtGroup.SelectedObject
+                        case guiobj.ephysGMMACDetDefSettButt
+                            settMode = 'def';
+
+                        case guiobj.ephysGMMACDetPrevSettButt
+                            settMode = 'prev';
+
+                        case guiobj.ephysGMMACDetGUISettButt
+                            settMode = 'gui';
+
+                    end
+
+                    [dets,detBorders,detParams,evComplexes] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal);
 
                     detinfo.DetType = "GMM_AutoCorrFit";
 
@@ -6671,6 +6702,36 @@ classdef DAS < handle
                 'Position',[0.255, 0.96, 0.1, 0.03],...
                 'String',{'--Select artifact suppression method!--','Periodic','DFER','RefSubtract'});
             
+            guiobj.ephysGMMACDetPanel = uipanel(guiobj.eventDetTab,...
+                'Position',[0.12, 0.65, 0.2, 0.3],...
+                'Title','Settings for GMM+AutocorrFit detection algorithm',...
+                'Visible','off');
+            guiobj.ephysGMMACDetSettButtGroup = uibuttongroup(guiobj.ephysGMMACDetPanel,...
+                'Units','normalized',...
+                'Position',[0.01, 0.2, 0.98, 0.8],...
+                'Title','Settings mode');
+            guiobj.ephysGMMACDetDefSettButt = uicontrol(guiobj.ephysGMMACDetSettButtGroup,...
+                'Style','radiobutton',...
+                'Units','normalized',...
+                'Position',[0.1, 0.75, 0.8, 0.2],...
+                'String','Use default settings');
+            guiobj.ephysGMMACDetPrevSettButt = uicontrol(guiobj.ephysGMMACDetSettButtGroup,...
+                'Style','radiobutton',...
+                'Units','normalized',...
+                'Position',[0.1, 0.45, 0.8, 0.2],...
+                'String','Use previously used settings');
+            guiobj.ephysGMMACDetGUISettButt = uicontrol(guiobj.ephysGMMACDetSettButtGroup,...
+                'Style','radiobutton',...
+                'Units','normalized',...
+                'Position',[0.1, 0.15, 0.8, 0.2],...
+                'String','Input settings with GUI');
+            guiobj.ephysGMMACDetRefValPopMenu = uicontrol(guiobj.ephysGMMACDetPanel,...
+                'Style','popupmenu',...
+                'Units','normalized',...
+                'Position',[0.01, 0.01, 0.5, 0.1],...
+                'String',{'No refchan validation', 'Time match based refchan validation',...
+                'Correlation based refchan validation'});
+
             guiobj.ephysCwtDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...
                 'Title','Settings for CWT based detection',...
