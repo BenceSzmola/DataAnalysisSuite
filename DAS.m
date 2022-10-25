@@ -4107,7 +4107,7 @@ classdef DAS < handle
 
                     end
 
-                    [dets,detBorders,detParams,evComplexes] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal);
+                    [dets,detBorders,detParams,evComplexes] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal,guiobj.roboDet);
 
                     detinfo.DetType = "GMM_AutoCorrFit";
 
