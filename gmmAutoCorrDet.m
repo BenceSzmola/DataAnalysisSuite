@@ -1,4 +1,4 @@
-function [detPeaks,detBorders,detParams,evComplexes] = gmmAutoCorrDet(getSettMode,data,fs,tAxis,chans,refch,refData,refVal,autoPilot)
+function [detPeaks,detBorders,detParams,evComplexes,s] = gmmAutoCorrDet(getSettMode,data,fs,tAxis,chans,refch,refData,refVal,autoPilot)
 
 switch getSettMode
     case 'gui'
@@ -163,10 +163,7 @@ if ~autoPilot && ~isempty(vertcat(peaks2val{:}))
         peaks2del = peaks2val{ch}(~ismember(peaks2val{ch},evs2keep));
         detPeaks{ch}(peaks2del) = [];
         peakVals{ch}(peaks2del) = [];
-%         detBorders{ch}(peaks2del,:) = [];
-%         [detPeaks{ch},sortIdx] = sort(detPeaks{ch});
-%         peakVals{ch} = peakVals{ch}(sortIdx);
-%         detBorders{ch} = detBorders{ch}(sortIdx,:);
+        detBorders{ch}(peaks2del,:) = [];
     end
 end
 

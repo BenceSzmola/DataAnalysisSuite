@@ -4137,10 +4137,15 @@ classdef DAS < handle
 
                     end
 
-                    [dets,detBorders,detParams,evComplexes] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal,guiobj.roboDet);
+                    [dets,detBorders,detParams,evComplexes,algSett] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal,guiobj.roboDet);
+                    w1 = algSett.goodBand(1);
+                    w2 = algSett.goodBand(2);
+                    clear algSett
 
                     detinfo.DetType = "GMM_AutoCorrFit";
-
+                    detinfo.DetSettings.W1 = w1;
+                    detinfo.DetSettings.W2 = w2;
+                    
                 case 'CWT based'
                     %%
                     minLen = str2double(guiobj.ephysCwtDetMinlenEdit.String)/1000;
