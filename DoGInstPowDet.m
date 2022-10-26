@@ -46,13 +46,38 @@ if refVal
                 refInstPowdCut = refInstPowd(inds2use);
         end
     end
-    refThr = median(refInstPowdCut) + std(refInstPowdCut);
-    [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
+%     refThr = median(refInstPowdCut) + std(refInstPowdCut);
+%     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstPowd,refDogged,refThr,fs); 
+
+    refQuietThr = median(refInstPowdCut) + std(refInstPowdCut);
+    refQuietSegs = refInstPowdCut(refInstPowdCut < refQuietThr);
+    refThr = median(refQuietSegs) + 2*std(refQuietSegs);
+    
+    [refAboveThrIvs, refIvLens] = computeAboveThrLengths(refInstPowd,refThr,round(0.01*fs));
+    if ~(ischar(inds2use) && strcmp(inds2use,'all'))
+        if ~isempty(inds2use)
+            ivs2del = false(length(refIvLens), 1);
+            for iv = 1:length(refIvLens)
+                currIvInds = refAboveThrIvs(iv,1):refAboveThrIvs(iv,2);
+                intheClear = length(find(ismember(currIvInds, inds2use)));
+                if (intheClear / refIvLens(iv)) < 0.75
+                    ivs2del(iv) = true;
+                end
+            end
+            refAboveThrIvs(ivs2del,:) = [];
+            refIvLens(ivs2del) = [];
+        end
+    end
+    refDets = nan(length(refChData), 1);
+    for ivs = 1:length(refIvLens)
+        refDets(refAboveThrIvs(ivs,1):refAboveThrIvs(ivs,2)) = 0;
+    end
+    aboveRefThr = nan(length(refChData), 1);
+    aboveRefThr(refDets == 0) = refDogged(refDets == 0);
 else
     refDets = [];
     refDetMarks = [];
     aboveRefThr = [];
-    belowRefThr = [];
 end
 
 quietThr = nan(size(data,1),1);
@@ -115,15 +140,18 @@ for i = 1:min(size(data))
             sp3 = subplot(313);
             linkaxes([sp1,sp2,sp3],'x')
             
-            plot(sp3,taxis,belowRefThr)
+            plot(sp3,taxis,refDogged)
             hold(sp3,'on')
             plot(sp3,taxis,aboveRefThr,'-r')
+            discInds = refDogged;
+            discInds(inds2use) = nan;
+            plot(sp3,taxis,discInds,'-m')
             hold(sp3,'off')
 
             xlabel(sp3,'Time [s]')
             ylabel(sp3,'Voltage [\muV]')
             title(sp3,'DoG of reference channel')
-            legend(sp3,{'DoG','Above threshold'})
+            legend(sp3,{'DoG','Above threshold','Discarded indices'})
         else
             sp1 = subplot(211);
             sp2 = subplot(212);

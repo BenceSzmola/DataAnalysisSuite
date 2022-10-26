@@ -29,6 +29,8 @@ for ch = 1:size(data, 1)
     zoomObj.ActionPostCallback = @updateSpectroLabels;
     drawnow
     [cfs,f] = cwt(data(ch,:), 'amor', fs, 'FrequencyLimits', freqLim);
+    % z scoring
+%     cfs = (cfs-mean(cfs,'all'))/std(cfs,0,'all');
     if nargin >= 7 && ~isempty(inds2use)
         cfs(:,setxor(1:size(data, 2), inds2use)) = nan;
     end
