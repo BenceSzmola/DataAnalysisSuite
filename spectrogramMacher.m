@@ -24,18 +24,6 @@ for i = 1:size(data,1)
     [cfs,f] = cwt(data(i,:),'amor',fs,'FrequencyLimits',freqLims);
     cfs = abs(cfs);
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    freqsOI = (round(f) >= 150) & (round(f) <= 250);
-    %round(length(data)/2) - round(0.25*fs) : round(length(data)/2) + round(0.25*fs)
-    powInRange = sum(cfs(freqsOI,:), 'all');% / length(find(freqsOI));
-    powOuttaRange = sum(cfs(~freqsOI,:), 'all');% / length(find(~freqsOI));
-    powFullRange = sum(cfs, 'all');%/ length(f);
-    powInPerFull = powInRange / powFullRange
-    
-    [~, maxFreqs] = max(cfs,[],1);
-    avgFreq = mean(f(maxFreqs))
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
     figure('Name', 'CWT Spectrogram', 'NumberTitle', 'off')
     surf(taxis,f,cfs,'EdgeColor','interp')
     view([0,90])
