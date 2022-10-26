@@ -153,7 +153,7 @@ if s.debugPlots
     resFig.Visible = 'on';
 end
 
-if ~autoPilot
+if ~autoPilot && ~isempty(vertcat(peaks2val{:}))
     mehEvs2keep = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'raw',data,detPeaks,peaks2val);
     for ch = 1:numChans
         if ismember(chans(ch),refch)
@@ -163,27 +163,36 @@ if ~autoPilot
         peaks2del = peaks2val{ch}(~ismember(peaks2val{ch},evs2keep));
         detPeaks{ch}(peaks2del) = [];
         peakVals{ch}(peaks2del) = [];
-        detBorders{ch}(peaks2del,:) = [];
-        [detPeaks{ch},sortIdx] = sort(detPeaks{ch});
-        peakVals{ch} = peakVals{ch}(sortIdx);
-        detBorders{ch} = detBorders{ch}(sortIdx,:);
+%         detBorders{ch}(peaks2del,:) = [];
+%         [detPeaks{ch},sortIdx] = sort(detPeaks{ch});
+%         peakVals{ch} = peakVals{ch}(sortIdx);
+%         detBorders{ch} = detBorders{ch}(sortIdx,:);
     end
-    if refVal
-        refDog = DoG(refData,fs,s.goodBand(1),s.goodBand(2));
-        refValVictims = cell(numChans,1);
-        for ch = 1:numChans
-            if ismember(chans(ch),refch)
-                continue
-            end
-            for iv = 1:size(detBorders{ch},1)
-                winInds = detBorders{ch}(iv,1):detBorders{ch}(iv,2);
-                r = corrcoef(dogged(ch,winInds),refDog(winInds));
-                if r(2) > .5
-                    refValVictims{ch} = [refValVictims{ch}; iv];
-                end
+end
+
+for ch = 1:numChans
+    [detPeaks{ch},sortIdx] = sort(detPeaks{ch});
+    peakVals{ch} = peakVals{ch}(sortIdx);
+    detBorders{ch} = detBorders{ch}(sortIdx,:);
+end
+
+if ~autoPilot && refVal
+    refDog = DoG(refData,fs,s.goodBand(1),s.goodBand(2));
+    refValVictims = cell(numChans,1);
+    for ch = 1:numChans
+        if ismember(chans(ch),refch)
+            continue
+        end
+        for iv = 1:size(detBorders{ch},1)
+            winInds = detBorders{ch}(iv,1):detBorders{ch}(iv,2);
+            r = corrcoef(dogged(ch,winInds),refDog(winInds));
+            if r(2) > .5
+                refValVictims{ch} = [refValVictims{ch}; iv];
             end
         end
-    
+    end
+
+    if ~isempty(vertcat(refValVictims{:}))
         evs2Restore = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'ref',refDog,detPeaks,refValVictims);
         for ch = 1:numChans
             if ismember(chans(ch),refch)
@@ -195,12 +204,6 @@ if ~autoPilot
             peakVals{ch}(peaks2del) = [];
             detBorders{ch}(peaks2del,:) = [];
         end
-    end
-else
-    for ch = 1:numChans
-        [detPeaks{ch},sortIdx] = sort(detPeaks{ch});
-        peakVals{ch} = peakVals{ch}(sortIdx);
-        detBorders{ch} = detBorders{ch}(sortIdx,:);
     end
 end
 
