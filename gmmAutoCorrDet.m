@@ -196,7 +196,12 @@ if ~autoPilot
             detBorders{ch}(peaks2del,:) = [];
         end
     end
-
+else
+    for ch = 1:numChans
+        [detPeaks{ch},sortIdx] = sort(detPeaks{ch});
+        peakVals{ch} = peakVals{ch}(sortIdx);
+        detBorders{ch} = detBorders{ch}(sortIdx,:);
+    end
 end
 
 for ch = 1:numChans

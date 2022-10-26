@@ -23,9 +23,9 @@ classdef detAlgSettingGUI < handle
                 return
             elseif nargin >= 2
                 gO.detAlg = detAlg;
-                
+                gO.fs     = fs;
+
                 if nargin < 3
-                    gO.fs     = fs;
                     loadPrevSetts(gO)
     
                     initializeComps(gO)
