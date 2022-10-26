@@ -2349,7 +2349,7 @@ classdef DAS < handle
                     if ~isempty(rhdsInCd) && (length(rhdsInCd) ~= prevLoadedInd)
                         choice = questdlg(sprintf('Load next RHD from directory? (%s)', rhdsInCd{prevLoadedInd+1}));
                         if strcmp(choice, 'Yes')
-                            path = [cd,'\'];
+                            path = guiobj.path2rhd;
                             filename = rhdsInCd{prevLoadedInd+1};
                             guiobj.autoLoadNextRHD = {path,filename};
                         else
