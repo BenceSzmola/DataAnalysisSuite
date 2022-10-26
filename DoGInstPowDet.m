@@ -53,7 +53,7 @@ if refVal
     refQuietSegs = refInstPowdCut(refInstPowdCut < refQuietThr);
     refThr = median(refQuietSegs) + 2*std(refQuietSegs);
     
-    [refAboveThrIvs, refIvLens] = computeAboveThrLengths(refInstPowd,refThr,round(0.01*fs));
+    [refAboveThrIvs, refIvLens] = computeAboveThrLengths(refInstPowd,refThr,'>',round(0.01*fs));
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
             ivs2del = false(length(refIvLens), 1);

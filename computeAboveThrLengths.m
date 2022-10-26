@@ -1,5 +1,5 @@
 function [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen,multFeatMode)
-% [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen)
+% [intervals, lens] = computeAboveThrLengths(data,thr,thrMode,minLen,maxLen,multFeatMode)
 % This function expects one channel at a time.
 % But it can take various features from one channel, then it will check
 %   when both features satisfy their respective thresholds.

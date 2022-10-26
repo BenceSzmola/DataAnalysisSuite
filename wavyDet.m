@@ -51,7 +51,7 @@ if refVal ~= 0
     refThr = median(refQuietSegs) + sdmult*std(refQuietSegs);
     
 %     [refDets,refDetMarks,aboveRefThr,belowRefThr] = refDetAlg(refInstE,[],refThr,fs);
-    [refAboveThrIvs, refIvLens] = computeAboveThrLengths(refInstE,refThr,round(0.05*fs));
+    [refAboveThrIvs, refIvLens] = computeAboveThrLengths(refInstE,refThr,'>',round(0.05*fs));
     if ~(ischar(inds2use) && strcmp(inds2use,'all'))
         if ~isempty(inds2use)
             ivs2del = false(length(refIvLens), 1);
@@ -146,7 +146,7 @@ for i = 1:size(data,1)
     
     inds2use(ismember(inds2use, edgeEffIntervalBegin)) = [];
     inds2use(ismember(inds2use, edgeEffIntervalEnd)) = [];
-%     [ivs, ~] = computeAboveThrLengths(currInstE_wide, thr_otherFreq, round(0.1*fs));
+%     [ivs, ~] = computeAboveThrLengths(currInstE_wide, thr_otherFreq, '>', round(0.1*fs));
 %     for ivInd = 1:size(ivs, 1)
 %         currIv = ivs(ivInd,1):ivs(ivInd,2);
 %         inds2use(ismember(inds2use, currIv)) = [];

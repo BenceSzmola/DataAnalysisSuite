@@ -1116,7 +1116,6 @@ classdef DAS < handle
             switch dTyp
                 case 1
                     if ~isempty(detParams)
-                        cyclePerLen = detParams.NumCycles / detParams.Length
                         temp = [fieldnames([detParams]), squeeze(struct2cell([detParams]))];
                         guiobj.ephysDetParamsTable.Data = temp;
                         guiobj.ephysDetParamsTable.RowName = [];
