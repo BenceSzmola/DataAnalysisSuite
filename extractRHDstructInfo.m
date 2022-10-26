@@ -11,7 +11,9 @@ function rhdInfoCell = extractRHDstructInfo(varargin)
         end
         return
     end
-    
+
+    numChans = length(rhdStruct.amplifier_channels);
+    seqNums = cellfun(@(x) num2str(x), mat2cell( (1:numChans)', ones(numChans,1) ), 'UniformOutput', false);
     customChanNames = {rhdStruct.amplifier_channels.custom_channel_name}';
     electrImpeds = cellfun(@(x) num2str(x,'%.2e'), {rhdStruct.amplifier_channels.electrode_impedance_magnitude},'UniformOutput', false)';
     rhdInfoCell = cell(2,1);
@@ -20,5 +22,5 @@ function rhdInfoCell = extractRHDstructInfo(varargin)
                         'Actual lower bandwidth', num2str(rhdStruct.frequency_parameters.actual_lower_bandwidth);...
                         'Actual upper bandwidth', num2str(rhdStruct.frequency_parameters.actual_upper_bandwidth);...
                         'Actual impedance test freq.', num2str(rhdStruct.frequency_parameters.actual_impedance_test_frequency)  };
-    rhdInfoCell{2} = [ customChanNames, electrImpeds   ];
+    rhdInfoCell{2} = [seqNums, customChanNames, electrImpeds];
 end
