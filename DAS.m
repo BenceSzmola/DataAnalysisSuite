@@ -2262,24 +2262,55 @@ classdef DAS < handle
                 
                 % run detection
                 guiobj.tabs.SelectedTab = guiobj.eventDetTab;
-                doDet = true;
+%                 doDet = true;
                 initEphysProcCheckValue = guiobj.ephysDetUseProcDataCheckBox.Value;
                 if ~useProccd
                     guiobj.ephysDetUseProcDataCheckBox.Value = 0;
                 end
-                initSdLvl = str2double(guiobj.ephysCwtDetSdMultEdit.String);
-                currSdLvl = initSdLvl;
-                while doDet
-                    guiobj.ephysCwtDetSdMultEdit.String = num2str(currSdLvl);
-                    ephysDetRun(guiobj)
-                    if isempty(guiobj.ephys_detections) && (currSdLvl > 4)
-                        fprintf(1,'Autopilot running - file #%d/%d - No events found, lowering SD level...\n', guiobj.roboDet_idx, length(saveFnames))
-                        currSdLvl = currSdLvl - 1;
-                    else
-                        doDet = false;
-                    end
+
+                dettype = guiobj.ephysDetPopMenu.Value;
+                dettype = guiobj.ephysDetPopMenu.String{dettype};
+                switch dettype
+                    case 'GMM+AutocorrFit'
+                        ephysDetRun(guiobj)
+                        
+                    case 'CWT based'
+                        doDet = true;
+                        initSdLvl = str2double(guiobj.ephysCwtDetSdMultEdit.String);
+                        currSdLvl = initSdLvl;
+                        while doDet
+                            guiobj.ephysCwtDetSdMultEdit.String = num2str(currSdLvl);
+                            ephysDetRun(guiobj)
+                            if isempty(guiobj.ephys_detections) && (currSdLvl > 4)
+                                fprintf(1,'Autopilot running - file #%d/%d - No events found, lowering SD level...\n', guiobj.roboDet_idx, length(saveFnames))
+                                currSdLvl = currSdLvl - 1;
+                            else
+                                doDet = false;
+                            end
+                        end
+                        guiobj.ephysCwtDetSdMultEdit.String = num2str(initSdLvl);
+
+                    case 'Adaptive threshold'
+                        ephysDetRun(guiobj)
+
+                    case 'DoG+InstPow'
+                        ephysDetRun(guiobj)
+
                 end
-                guiobj.ephysCwtDetSdMultEdit.String = num2str(initSdLvl);
+
+%                 initSdLvl = str2double(guiobj.ephysCwtDetSdMultEdit.String);
+%                 currSdLvl = initSdLvl;
+%                 while doDet
+%                     guiobj.ephysCwtDetSdMultEdit.String = num2str(currSdLvl);
+%                     ephysDetRun(guiobj)
+%                     if isempty(guiobj.ephys_detections) && (currSdLvl > 4)
+%                         fprintf(1,'Autopilot running - file #%d/%d - No events found, lowering SD level...\n', guiobj.roboDet_idx, length(saveFnames))
+%                         currSdLvl = currSdLvl - 1;
+%                     else
+%                         doDet = false;
+%                     end
+%                 end
+%                 guiobj.ephysCwtDetSdMultEdit.String = num2str(initSdLvl);
                 guiobj.ephysDetUseProcDataCheckBox.Value = initEphysProcCheckValue;
                 
                 % save detections
@@ -4856,6 +4887,15 @@ classdef DAS < handle
                 catch
                     disp('Last state of CWT based detection settings could not be loaded! They will be saved when you close the GUI.')
                 end
+
+                try 
+                    temp = DAS_LOG.lastState.eventDetTab.ephys.GMMAC;
+                    guiobj.ephysGMMACDetSettButtGroup.SelectedObject = guiobj.ephysGMMACDetSettButtGroup.Children(temp.settMode);
+                    guiobj.ephysGMMACDetRefValPopMenu.Value = temp.refVal;
+                    clear temp
+                catch
+                    disp('Last state of GMM autocorr detection settings could not be loaded! They will be saved when you close the GUI.')
+                end
                 
                 guiobj.ephysDetRefChanEdit.String = DAS_LOG.lastState.eventDetTab.ephys.refChan;
 
@@ -4956,6 +4996,13 @@ classdef DAS < handle
             DAS_LOG.lastState.eventDetTab.ephys.CWT = temp;
             clear temp
                         
+            %% GMM autocorr det stuff
+            temp.settMode = find(guiobj.ephysGMMACDetSettButtGroup.SelectedObject == guiobj.ephysGMMACDetSettButtGroup.Children);
+            temp.refVal = guiobj.ephysGMMACDetRefValPopMenu.Value;
+
+            DAS_LOG.lastState.eventDetTab.ephys.GMMAC = temp;
+            clear temp
+
             %% refchan
             DAS_LOG.lastState.eventDetTab.ephys.refChan = guiobj.ephysDetRefChanEdit.String;
             

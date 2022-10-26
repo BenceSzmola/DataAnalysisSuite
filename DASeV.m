@@ -844,6 +844,8 @@ classdef DASeV < handle
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
+
+                ax(i).Toolbar.Visible = 'on';
             end
             
         end
@@ -1028,6 +1030,8 @@ classdef DASeV < handle
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
+
+                ax(i).Toolbar.Visible = 'on';
             end
         end
         
@@ -1066,7 +1070,8 @@ classdef DASeV < handle
                 yticks(ax,[0,1])
                 yticklabels(ax,{'Still','Moving'})
             end
-            
+
+            ax.Toolbar.Visible = 'on';
         end
         
         %% 

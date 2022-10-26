@@ -501,6 +501,8 @@ classdef DASevDB < handle
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 ax(i).Tag = axTag{i};
+
+                ax(i).Toolbar.Visible = 'on';
             end
             
             if ~isempty(currEv.Params)
@@ -591,6 +593,8 @@ classdef DASevDB < handle
             ylim(ax, axLims)
             ax.Tag = axTag;
             
+            ax.Toolbar.Visible = 'on';
+
             if ~isempty(currEv.Params)
                 temp = [fieldnames([currEv.Params]),squeeze(struct2cell([currEv.Params]))];
                 gO.imagingParamTable.Data = temp;
@@ -650,6 +654,8 @@ classdef DASevDB < handle
                 yticklabels(ax,{'Still','Moving'})
             end
             ax.Tag = axTag;
+
+            ax.Toolbar.Visible = 'on';
         end
         
         %%
