@@ -154,7 +154,7 @@ if s.debugPlots
 end
 
 if ~autoPilot && ~isempty(vertcat(peaks2val{:}))
-    mehEvs2keep = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'raw',data,detPeaks,peaks2val);
+    mehEvs2keep = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'raw',data,detPeaks,peaks2val,'Dubious events');
     for ch = 1:numChans
         if ismember(chans(ch),refch)
             continue
@@ -183,14 +183,14 @@ if ~autoPilot && refVal
         for iv = 1:size(detBorders{ch},1)
             winInds = detBorders{ch}(iv,1):detBorders{ch}(iv,2);
             r = corrcoef(dogged(ch,winInds),refDog(winInds));
-            if r(2) > .5
+            if abs(r(2)) > .6
                 refValVictims{ch} = [refValVictims{ch}; iv];
             end
         end
     end
 
     if ~isempty(vertcat(refValVictims{:}))
-        evs2Restore = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'ref',refDog,detPeaks,refValVictims);
+        evs2Restore = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'ref',refDog,detPeaks,refValVictims,'Reference validation');
         for ch = 1:numChans
             if ismember(chans(ch),refch)
                 continue

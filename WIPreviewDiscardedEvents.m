@@ -1,4 +1,10 @@
-function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,compData,eventsPeak,refValVictims)
+function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,compData,eventsPeak,refValVictims,figTitle)
+    if nargin < 9
+        figTitle = '';
+    else
+        figTitle = [' - ',figTitle];
+    end
+
     globVictInd = 0;
     colInd = 1;
     
@@ -13,7 +19,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
     
     globVicts = extractGlobalEvents(victimsPeakInds,round(0.01*fs),true);
     
-    reviewFig = figure('Name','Review discarded events',...
+    reviewFig = figure('Name',['Review discarded events',figTitle],...
         'NumberTitle','off','IntegerHandle','off',...
         'Units','normalized','Position',[0.3,0.3,0.33,0.33],...
         'KeyPressFcn',@ figKeyCB,...
@@ -94,6 +100,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
         winInds = winMacher(0.5);
         if strcmp(compMode,'ref')
             r = corrCalculator;
+            r = abs(r(2));
             compData2plot = compData(winInds);
         elseif strcmp(compMode,'raw')
             compData2plot = compData(chInd,winInds);
@@ -115,7 +122,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
         refLine.XData = taxis(winInds);
         refLine.YData = compData2plot;
         if strcmp(compMode,'ref')
-            title(ax(1),['Reference channel - rho=',num2str(r(2))])
+            title(ax(1),['Reference channel - rho=',num2str(r)])
         elseif strcmp(compMode,'raw')
             title(ax(1),['Wideband data - Ch#',num2str(chan(chInd))])
         end
@@ -158,7 +165,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
     end
 
     function r = corrCalculator
-        winInds = winMacher(0.2);
+        winInds = winMacher(0.4);
         r = corrcoef(compData(winInds),data(colInd2chanInd,winInds));
     end
     
