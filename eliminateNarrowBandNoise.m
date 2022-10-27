@@ -32,7 +32,16 @@ end
 
 for ch = 1:numChans
     [faxis,psd] = freqspec(data(ch,:),fs,0,0,fmax);
+
     faxisStep   = faxis(2) - faxis(1);
+    upsampMult = ceil(faxisStep/0.005);
+    interpFaxis = linspace(faxis(1),faxis(end),length(faxis)*upsampMult);
+    temp = spline(faxis,psd,interpFaxis);
+
+    psd = temp;
+    faxis = interpFaxis;
+    faxisStep   = faxis(2) - faxis(1);
+    
     if plotFFTs
         faxisOG(ch,1:length(faxis)) = faxis;
         psdOG(ch,1:length(psd)) = psd;
@@ -41,8 +50,19 @@ for ch = 1:numChans
     runMed = movmedian(psd,round(20/faxisStep));
     runSD  = movstd(psd,round(20/faxisStep));
 
-    ivs2check = computeAboveThrLengths(psd, runMed + 4*runSD, '>', round(.1/faxisStep));
+%     figure;
+%     plot(faxis,psd)
+%     hold on
+%     plot(faxis,runMed + 4*runSD, '--')
+%     hold off
+%     title(num2str(ch))
+
+    ivs2check = computeAboveThrLengths(psd, runMed + 4*runSD, '>', round(.05/faxisStep));
+%     faxis(ivs2check)
     for iv = 1:size(ivs2check,1)
+        if faxis(ivs2check(iv,1)) < 30
+            continue
+        end
         [~,maxInd]   = max(psd(ivs2check(iv,1):ivs2check(iv,2)));
         f2filt = faxis(ivs2check(iv,1) + maxInd - 1);
 
@@ -53,7 +73,7 @@ for ch = 1:numChans
     end
 
     if plotFFTs
-        [faxis,psd] = freqspec(dataCl(ch,:),fs,0,0,fmax);    
+        [faxis,psd] = freqspec(dataCl(ch,:),fs,0,0,fmax);
         faxisCl(ch,1:length(faxis)) = faxis;
         psdCl(ch,1:length(psd)) = psd;
     end
