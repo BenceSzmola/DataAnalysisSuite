@@ -3311,7 +3311,7 @@ classdef DAS < handle
                     objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_periodic');
                     set(objs, 'Visible', 'on')
                     
-                case 5
+                case 5 % Narrow band
                     objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_narrowBand');
                     set(objs, 'Visible', 'on')
             end
