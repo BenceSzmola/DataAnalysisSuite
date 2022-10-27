@@ -3487,7 +3487,7 @@ classdef DAS < handle
                             qFact = str2double(guiobj.notchQfactEdit.String);
                             wo = notchF0/(guiobj.ephys_fs/2);
                             bw = wo/qFact;
-                            [b,a] = iirnotch(wo,bw);
+                            [b,a] = iirnotch(wo,bw,1);
                             procced = zeros(size(data));
                             for i = 1:size(data,1)
                                 procced(i,:) = filtfilt(b,a,data(i,:));
