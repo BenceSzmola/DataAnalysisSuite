@@ -113,6 +113,11 @@ classdef DAS < handle
         ephysPeriodicStopbandWidthLabel
         ephysPeriodicStopbandWidthEdit
         ephysPeriodicPlotFFTCheckBox
+        ephysElimNarrBandFmaxLabel
+        ephysElimNarrBandFmaxEdit
+        ephysElimNarrBandQFactLabel
+        ephysElimNarrBandQFactEdit
+        ephysElimNarrBandPlotFFTChBox
         
         ephysFiltSettingsPanel
         filterTypePopMenu
@@ -3306,6 +3311,9 @@ classdef DAS < handle
                     objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_periodic');
                     set(objs, 'Visible', 'on')
                     
+                case 5
+                    objs = findobj(artSuppPanelObjs, 'Tag', 'ephysArtSupp_narrowBand');
+                    set(objs, 'Visible', 'on')
             end
         end
         
@@ -3588,6 +3596,27 @@ classdef DAS < handle
                             end
                             txt4name = sprintf('Periodic @%.2f',f_fund);
                             
+                        case 'Narrow band'
+                            if nargin == 1
+                                fmax    = str2double(guiobj.ephysElimNarrBandFmaxEdit.String);
+                                qFact   = str2double(guiobj.ephysElimNarrBandQFactEdit.String);
+                                plotfft = logical(guiobj.ephysElimNarrBandPlotFFTChBox.Value);
+                                procced = eliminateNarrowBandNoise(data,guiobj.ephys_fs,fmax,qFact,plotfft,[newProcInfo.Channel]);
+                            else
+                                [procced,fmax,qFact] = eliminateNarrowBandNoise(data,guiobj.ephys_fs,[],[],[],[newProcInfo.Channel]);
+                            end
+                            if isempty(procced)
+                                guiobj.ephysRunProcButton.BackgroundColor = 'g';
+                                return
+                            end
+
+                            procDetails = struct('Type','Filt-NarrowBand','Settings',cell(1));
+                            procDetails.Settings = struct('Fmax',fmax,'QFact',qFact);
+                            for i = 1:length(data_idx)
+                                newProcInfo(i).ProcDetails = [newProcInfo(i).ProcDetails; procDetails];
+                            end
+                            txt4name = 'NarrowBand';
+
                         otherwise
                             guiobj.ephysRunProcButton.BackgroundColor = 'g';
                             return
@@ -3963,17 +3992,22 @@ classdef DAS < handle
                     end
                     
                     switch guiobj.ephysDetArtSuppPopMenu.Value
-                        case 2 % periodic
+                        case 2 % Narrow band
+                            callFromDetRun.procGrp = 'Artifact Suppression';
+                            callFromDetRun.filtype = [];
+                            callFromDetRun.artSuppName = 'Narrow band';
+                            callFromDetRun.refChan = [];
+                        case 3 % periodic
                             callFromDetRun.procGrp = 'Artifact Suppression';
                             callFromDetRun.filtype = [];
                             callFromDetRun.artSuppName = 'Periodic';
                             callFromDetRun.refChan = [];
-                        case 3
+                        case 4
                             callFromDetRun.procGrp = 'Artifact Suppression';
                             callFromDetRun.filtype = [];
                             callFromDetRun.artSuppName = 'DFER';
                             callFromDetRun.refChan = [];
-                        case 4 % ref chan subtract
+                        case 5 % ref chan subtract
                             if isempty(refch) || any(isnan(refch))
                                 dispErrorDlgResetStatus(['For this artifact suppression method you have to',...
                                     'set the reference channel(s)!'])
@@ -4848,6 +4882,16 @@ classdef DAS < handle
                 catch
                     disp('Last state of Periodic filter settings could not be loaded! They will be saved when you close the GUI.')
                 end
+
+                try
+                    temp = DAS_LOG.lastState.ephysProcTab.NarrowBand;
+                    guiobj.ephysElimNarrBandFmaxEdit.String = temp.fmax;
+                    guiobj.ephysElimNarrBandQFactEdit.String = temp.qfact;
+                    guiobj.ephysElimNarrBandPlotFFTChBox.Value = temp.plotfft;
+                    clear temp
+                catch
+                    disp('Last state of Narrow band filter settings could not be loaded! They will be saved when you close the GUI.')
+                end
                 
                 try
                     temp = DAS_LOG.lastState.imagingProcTab.Filt;
@@ -4965,7 +5009,15 @@ classdef DAS < handle
             
             DAS_LOG.lastState.ephysProcTab.Periodic = temp;
             clear temp
-            
+
+            %% Narrow band filt stuff
+            temp.fmax    = guiobj.ephysElimNarrBandFmaxEdit.String;
+            temp.qfact   = guiobj.ephysElimNarrBandQFactEdit.String;
+            temp.plotfft = guiobj.ephysElimNarrBandPlotFFTChBox.Value;
+
+            DAS_LOG.lastState.ephysProcTab.NarrowBand = temp;
+            clear temp
+
             %% Imaging filt stuff
             temp.winSize = guiobj.imagingFiltWinSizeEdit.String;
             
@@ -6487,8 +6539,9 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.85, 0.25, 0.1],...
-                'String',{'--Select artifact suppression!--','classic ref subtract','DFER','Periodic'},...
+                'String',{'--Select artifact suppression!--','classic ref subtract','DFER','Periodic','Narrow band'},...
                 'Callback',@(h,e) guiobj.ephysArtSuppTypePopMenuCB);
+            
             guiobj.ephysArtSuppRefChanLabel = uicontrol(guiobj.ephysArtSuppPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -6502,6 +6555,7 @@ classdef DAS < handle
                 'Position',[0.75, 0.85, 0.1, 0.1],...
                 'Tag','ephysArtSupp_refCh',...
                 'Visible','off');
+            
             guiobj.ephysPeriodicFmaxLabel = uicontrol(guiobj.ephysArtSuppPanel,...
                 'Style','text',...
                 'Units','normalized',...
@@ -6550,6 +6604,42 @@ classdef DAS < handle
                 'Visible', 'off',...
                 'String', 'Plot before&after FFT',...
                 'Tag', 'ephysArtSupp_periodic');
+            
+            guiobj.ephysElimNarrBandFmaxLabel = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.3, 0.75, 0.5, 0.1],...
+                'String','Max frequency to consider [Hz]',...
+                'Visible','off',...
+                'Tag','ephysArtSupp_narrowBand');
+            guiobj.ephysElimNarrBandFmaxEdit = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.8, 0.75, 0.1, 0.1],...
+                'String','1000',...
+                'Visible','off',...
+                'Tag','ephysArtSupp_narrowBand');
+            guiobj.ephysElimNarrBandQFactLabel = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0.3, 0.65, 0.5, 0.1],...
+                'String','Q Factor for notch filter',...
+                'Visible','off',...
+                'Tag','ephysArtSupp_narrowBand');
+            guiobj.ephysElimNarrBandQFactEdit = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style','edit',...
+                'Units','normalized',...
+                'Position',[0.8, 0.65, 0.1, 0.1],...
+                'Visible','off',...
+                'String','35',...
+                'Tag','ephysArtSupp_narrowBand');
+            guiobj.ephysElimNarrBandPlotFFTChBox = uicontrol(guiobj.ephysArtSuppPanel,...
+                'Style', 'checkbox',...
+                'Units', 'normalized',...
+                'Position', [0.3, 0.55, 0.5, 0.1],...
+                'Visible', 'off',...
+                'String', 'Plot before&after FFT',...
+                'Tag', 'ephysArtSupp_narrowBand');
             
             % spectrogram panel
             guiobj.ephysSpectroPanel = uipanel(guiobj.ephysProcTab,...
@@ -6751,7 +6841,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.255, 0.96, 0.1, 0.03],...
-                'String',{'--Select artifact suppression method!--','Periodic','DFER','RefSubtract'});
+                'String',{'--Select artifact suppression method!--','Narrow band','Periodic','DFER','RefSubtract'});
             
             guiobj.ephysGMMACDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.65, 0.2, 0.3],...

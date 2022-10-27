@@ -75,7 +75,7 @@ end
 indDiffs = diff(selectedInds);
 startInds = find([0,indDiffs] ~= 1);
 endInds = find([indDiffs, length(selectedInds)] ~= 1);
-lens = 1 + (endInds-startInds);
+lens = (endInds - startInds) + 1;
 
 intervals(:,1) = selectedInds(startInds);
 intervals(:,2) = selectedInds(endInds);

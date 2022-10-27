@@ -1,6 +1,11 @@
 function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,compData,eventsPeak,refValVictims,figTitle)
     if nargin < 9
-        figTitle = '';
+        switch compMode
+            case 'ref'
+                figTitle = ' - Reference validation';
+            case 'raw'
+                figTitle = ' - Dubious events';
+        end
     else
         figTitle = [' - ',figTitle];
     end
