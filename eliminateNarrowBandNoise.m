@@ -12,7 +12,7 @@ if nargin < 3 || isempty(fmax) || isnan(fmax)
 end
 
 if nargin < 4 || isempty(qFact) || isnan(qFact)
-    qFact = 35;
+    qFact = 100;
 end
 
 if nargin < 5 || isempty(plotFFTs) || isnan(plotFFTs)
@@ -48,7 +48,7 @@ for ch = 1:numChans
 
         wo = f2filt/(fs/2);
         bw = wo/qFact;
-        [b,a] = iirnotch(wo,bw);
+        [b,a] = iirnotch(wo,bw,1);
         dataCl(ch,:) = filtfilt(b,a,dataCl(ch,:));
     end
 
