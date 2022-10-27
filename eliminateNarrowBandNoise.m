@@ -30,6 +30,8 @@ if plotFFTs
     psdCl   = zeros(size(data));
 end
 
+foundPeaks = false;
+
 for ch = 1:numChans
     [faxis,psd] = freqspec(data(ch,:),fs,0,0,fmax);
 
@@ -59,6 +61,9 @@ for ch = 1:numChans
 
     ivs2check = computeAboveThrLengths(psd, runMed + 4*runSD, '>', round(.05/faxisStep));
 %     faxis(ivs2check)
+    if ~isempty(ivs2check)
+        foundPeaks = true;
+    end
     for iv = 1:size(ivs2check,1)
         if faxis(ivs2check(iv,1)) < 30
             continue
@@ -78,6 +83,16 @@ for ch = 1:numChans
         psdCl(ch,1:length(psd)) = psd;
     end
 
+end
+
+if ~foundPeaks
+    dataCl = [];
+    eD = errordlg('No anomalous peaks found!');
+    pause(1)
+    if ishandle(eD)
+        close(eD)
+    end
+    return
 end
 
 if plotFFTs
