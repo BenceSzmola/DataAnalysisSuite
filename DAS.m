@@ -4858,6 +4858,9 @@ classdef DAS < handle
         
         %%
         function mainFigOpenFcn(guiobj)
+            fprintf(1,'\n-|--|--|--|--|--|--|--|--|--|--|--|--|--|-\n')
+            fprintf(1,'DAS startup initiated, stand by...\n')
+
             % Check if logfile exists
             DASlocation = mfilename('fullpath');
             DASlocation = DASlocation(1:end-3);
@@ -4997,6 +5000,9 @@ classdef DAS < handle
             end
             
             fclose(fID);
+
+            fprintf(1,'DAS startup completed.\n')
+            fprintf(1,'-|--|--|--|--|--|--|--|--|--|--|--|--|--|-\n')
         end
         
         %%
