@@ -47,7 +47,7 @@ classdef DASeV < handle
         currDirTxt
         selDirButt
         
-        fileList
+        fileListBox
         fileListContMenu
         fileListContMenuUpdate
         
@@ -150,6 +150,7 @@ classdef DASeV < handle
     properties (Access = private)
         %% general
         selDir = cd;
+        selDirFiles
         path2loadedSave
         xLabel = 'Time [s]';
         loaded = [0,0,0,0]; % ephys-imaging-running-simultan (0-1)
@@ -246,7 +247,7 @@ classdef DASeV < handle
         %% Constructor function
         function gO = DASeV
             createComponents(gO)
-            if ~isempty(gO.fileList.String)
+            if ~isempty(gO.selDirFiles)
                 fileListSel(gO)
             end
             if nargout == 0
@@ -1438,13 +1439,13 @@ classdef DASeV < handle
         function saveFileAnalysisSourceCB(gO,~,ev)
             switch ev.NewValue.String
                 case 'Select files'
-                    gO.fileList.Max = 2;
+                    gO.fileListBox.Max = 2;
                     gO.DASsaveAnalyserCheckRHDCheckBox.Value = 0;
                     gO.DASsaveAnalyserCheckRHDCheckBox.Enable = 'off';
                     
                 case 'Whole directory'
-                    gO.fileList.Max = 1;
-                    gO.fileList.Value = gO.fileList.Value(1);
+                    gO.fileListBox.Max = 1;
+                    gO.fileListBox.Value = gO.fileListBox.Value(1);
                     gO.DASsaveAnalyserCheckRHDCheckBox.Enable = 'on';
                     gO.fileListSel(gO)
             end
@@ -1465,10 +1466,10 @@ classdef DASeV < handle
             path = [gO.selDir,'\'];
             switch gO.saveFileAnalysisSourceButtonGroup.SelectedObject.String
                 case 'Whole directory'
-                    saveFnames = gO.fileList.String;
+                    saveFnames = gO.selDirFiles;
                     
                 case 'Select files'
-                    saveFnames = gO.fileList.String(gO.fileList.Value);
+                    saveFnames = gO.selDirFiles(gO.fileListBox.Value);
                     
             end
             checkRHD = logical(gO.DASsaveAnalyserCheckRHDCheckBox.Value);
@@ -1495,10 +1496,10 @@ classdef DASeV < handle
             path = [gO.selDir,'\'];
             switch gO.saveFileAnalysisSourceButtonGroup.SelectedObject.String
                 case 'Whole directory'
-                    saveFnames = gO.fileList.String;
+                    saveFnames = gO.selDirFiles;
                     
                 case 'Select files'
-                    saveFnames = gO.fileList.String(gO.fileList.Value);
+                    saveFnames = gO.selDirFiles(gO.fileListBox.Value);
                     
             end
             globalEventsAnalyzer(path,saveFnames)
@@ -1885,7 +1886,7 @@ classdef DASeV < handle
             
             switch gO.tabgrp.SelectedTab
                 case gO.loadTab
-                    uicontrol(gO.fileList)
+                    uicontrol(gO.fileListBox)
                     
                 case gO.viewerTab
                     gO.mainFig.CurrentObject = gO.plotPanel;
@@ -1911,8 +1912,9 @@ classdef DASeV < handle
                 return
             end
             newlist = {newlist.name};
-            gO.fileList.Value = 1;
-            gO.fileList.String = newlist;
+            gO.selDirFiles = newlist;
+            gO.fileListBox.Value = 1;
+            gO.fileListBox.String = newlist;
             
             if changeOrUpdate == 0
                 gO.selDir = newdir;
@@ -1925,10 +1927,10 @@ classdef DASeV < handle
             
             wb1 = waitbar(0,'Starting to load file...');
             
-            val = gO.fileList.Value;
+            val = gO.fileListBox.Value;
             if ~isempty(gO.path2loadedSave)
                 prevFname = gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end);
-                prevLoadedInd = find(~cellfun('isempty', strfind(gO.fileList.String, prevFname)));
+                prevLoadedInd = find(ismember(gO.selDirFiles, prevFname));
             else
                 prevLoadedInd = [];
             end
@@ -1943,11 +1945,11 @@ classdef DASeV < handle
                 end
                 return
             elseif ~isempty(prevLoadedInd) %~isempty(gO.path2loadedSave)
-                gO.fileList.String{prevLoadedInd} = prevFname;
+                gO.fileListBox.String{prevLoadedInd} = prevFname;
             end
             
-            if ~isempty(gO.fileList.String)
-                fname = gO.fileList.String{val};
+            if ~isempty(gO.selDirFiles)
+                fname = gO.selDirFiles{val};
                 fnameFull = [gO.selDir,'\',fname];
             else
                 eD = errordlg('No file selected!');
@@ -2212,7 +2214,7 @@ classdef DASeV < handle
             
             if ~isempty(find(gO.loaded, 1))
                 gO.path2loadedSave = fnameFull;
-                gO.fileList.String{val} = ['<HTML><FONT color="red"><b>', gO.fileList.String{val}, '</b></FONT></HTML>'];
+                gO.fileListBox.String{val} = ['<HTML><FONT color="red"><b>', gO.fileListBox.String{val}, '</b></FONT></HTML>'];
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
                 tabChanged(gO)
             end
@@ -2232,19 +2234,13 @@ classdef DASeV < handle
         
         %%
         function fileListSel(gO,~,~)
-            if gO.fileList.Max > 1
+            if gO.fileListBox.Max > 1
                 return
             end
             
-            val = gO.fileList.Value;
-            if ~isempty(gO.fileList.String)
-                if strfind(gO.fileList.String{val}, '<HTML>')
-                    currStr = gO.fileList.String{val};
-                    fname = regexp(currStr, '>DASsave\S*.mat<', 'match');
-                    fname = fname{1}(2:end - 1);
-                else
-                    fname = gO.fileList.String{val};
-                end
+            val = gO.fileListBox.Value;
+            if ~isempty(gO.selDirFiles)
+                fname = gO.selDirFiles{val};
                 fnameFull = [gO.selDir,'\',fname];
             else
                 warndlg('No DAS save files in current directory!')
@@ -3891,11 +3887,12 @@ classdef DASeV < handle
             
             
             gO.fileListContMenu = uicontextmenu(gO.mainFig);
-            gO.selDir = cd;
-            initFileList = dir('*DASsave*.mat');
+            gO.selDir           = cd;
+            initFileList        = dir('*DASsave*.mat');
             initFileList(strcmp({initFileList.name},'DAS_LOG.mat')) = [];
-            initFileList = {initFileList.name};
-            gO.fileList = uicontrol(gO.loadTab,...
+            initFileList        = {initFileList.name};
+            gO.selDirFiles      = initFileList;
+            gO.fileListBox = uicontrol(gO.loadTab,...
                 'Style','listbox',...
                 'Units','normalized',...
                 'Position',[0.12,0.1,0.3,0.9],...
