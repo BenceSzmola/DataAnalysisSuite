@@ -15,6 +15,29 @@ if saveFn == 0
     return    
 end
 
+fileAlreadyOpen = false;
+try
+    %Check if an Excel server is running
+    ex = actxGetRunningServer('Excel.Application');
+
+    %Get the names of all open Excel files
+    wbs = ex.Workbooks;
+    %List the entire path of all excel workbooks that are currently open
+    for i = 1:wbs.Count
+        if strcmp(wbs.Item(i).FullName, [saveP,saveFn])
+            fileAlreadyOpen = true;
+            break
+        end
+    end
+
+    if fileAlreadyOpen
+        eD = errordlg('File currently open! Close it then start again!');
+        return
+    end
+catch
+
+end
+
 exc = actxserver('Excel.Application');
 
 exc.Visible = 1;
