@@ -40,7 +40,11 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
     revGreenLine = xline(reviewAx,0,'g','LineWidth',1);
     hold(reviewAx, 'off')
     refLine = plot(reviewAxRef,0,0,'-b');
-    linkaxes([reviewAx,reviewAxRef],'xy')
+    if strcmp(compMode,'ref')
+        linkaxes([reviewAx,reviewAxRef],'xy')
+    elseif strcmp(compMode,'raw')
+        linkaxes([reviewAx,reviewAxRef],'x')
+    end
     uiwait(reviewFig)
     
     function figKeyCB(h,kD)
