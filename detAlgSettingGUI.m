@@ -6,6 +6,7 @@ classdef detAlgSettingGUI < handle
         detAlg
         algSett
         fields2conv = {'winLen','envWinLen','clustGapFillLen','clustGapMinLen','clustIvLen','envThrCrossMinLen'};
+        convSett
         fs
 
         %% UI components
@@ -38,6 +39,8 @@ classdef detAlgSettingGUI < handle
                             loadPrevSetts(gO)
                     end
                 end
+                gO.convSett = gO.algSett;
+                doConv(gO,'all')
             end
             
             if nargout == 0
@@ -109,19 +112,13 @@ classdef detAlgSettingGUI < handle
                 
                 else
                     numVals = length(settVals{i});
-                    doConv = ismember(settNames{i}, gO.fields2conv);
                     uicW = 1 / numVals;
                     for j = 1:numVals
-                        if doConv
-                            uicVal = settVals{i}(j) / gO.fs;
-                        else
-                            uicVal = settVals{i}(j);
-                        end
                         uicontrol(gO.inputPanels(i),...
                             'Style','edit',...
                             'Units','normalized',...
                             'Position',[(j-1)*uicW,0,uicW,1],...
-                            'String',num2str(uicVal),...
+                            'String',num2str(settVals{i}(j)),...
                             'Callback',@(h,e) gO.valChanged(h,'num',settNames{i},j))
                     end
                 end
@@ -137,12 +134,10 @@ classdef detAlgSettingGUI < handle
                     gO.algSett.(field).sel = h.Value;
 
                 case 'num'
+                    gO.algSett.(field)(pos) = str2double(h.String);
                     if ismember(field,gO.fields2conv)
-                        newVal = str2double(h.String) * gO.fs;
-                    else
-                        newVal = str2double(h.String);
-                    end
-                    gO.algSett.(field)(pos) = newVal;
+                        doConv(gO,field)
+                    end 
 
             end
         end
@@ -171,10 +166,10 @@ classdef detAlgSettingGUI < handle
             switch gO.detAlg
                 case 'gmmAutoCorrDet'
                     s.debugPlots           = false;
-                    s.winLen               = round(1*gO.fs);
+                    s.winLen               = 1;
                     s.goodBand             = [80,250];
                     s.badBand              = [300,500];
-                    s.envWinLen            = round((1/500)*gO.fs);
+                    s.envWinLen            = (1/500);
                     s.maxCompNum           = 4;
                     s.compNumSelMode.sel   = 1;
                     s.compNumSelMode.list  = {'AICelbow','AICmin','BICelbow','BICmin','silh'};
@@ -183,9 +178,9 @@ classdef detAlgSettingGUI < handle
                     s.envHigh2Low          = 3;
                     s.instEHigh2Low        = 10;
                     s.envThrSdMult         = 2;
-                    s.clustGapFillLen      = round(.015*gO.fs);
-                    s.clustGapMinLen       = round(.01*gO.fs);
-                    s.clustIvLen           = [round(.02*gO.fs), round(.3*gO.fs)];
+                    s.clustGapFillLen      = .015;
+                    s.clustGapMinLen       = .01;
+                    s.clustIvLen           = [.02, .3];
                     s.clustIvFitRsqMin     = .6;
                     s.clustIvFitCycMin     = 1.5;
                     s.clustIvFitTMin       = .008;
@@ -195,7 +190,7 @@ classdef detAlgSettingGUI < handle
                     s.clustIvGoodRatioMin  = .25;
                     s.envThrCrossMode.sel  = 1;
                     s.envThrCrossMode.list = {'&','|'};
-                    s.envThrCrossMinLen    = round(.01*gO.fs);
+                    s.envThrCrossMinLen    = .01;
                     s.upEnv2Baseline       = 2;
                     s.lowEnv2Baseline      = 2;
                     s.instPow2Baseline     = 3;
@@ -210,6 +205,16 @@ classdef detAlgSettingGUI < handle
             gO.algSett = s;
         end
 
+        function doConv(gO,field)
+            if strcmp(field,'all')
+                for f = gO.fields2conv
+                    gO.convSett.(f{:}) = round(gO.algSett.(f{:}) * gO.fs);
+                end
+            else
+                gO.convSett.(field) = round(gO.algSett.(field) * gO.fs);
+            end
+        end
+
         function fillInSetts(gO,loadFrom)
             if strcmp(loadFrom,'def')
                 loadDefSetts(gO)
@@ -217,7 +222,6 @@ classdef detAlgSettingGUI < handle
                 loadPrevSetts(gO)
             end
 
-            fields   = fieldnames(gO.algSett);
             settVals = struct2cell(gO.algSett);
 
             for i = 1:length(gO.inputPanels)
@@ -229,13 +233,8 @@ classdef detAlgSettingGUI < handle
                     panelChildren.String = settVals{i}.list;
                     panelChildren.Value  = settVals{i}.sel;
                 else
-                    if ismember(fields{i},gO.fields2conv)
-                        vals2fill = settVals{i} / gO.fs;
-                    else
-                        vals2fill = settVals{i};
-                    end
                     for j = 1:length(panelChildren)
-                        panelChildren(j).String = num2str(vals2fill(j));
+                        panelChildren(j).String = num2str(settVals{i}(j));
                     end
                 end
 

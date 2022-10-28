@@ -12,7 +12,7 @@ switch getSettMode
         inpGUI = detAlgSettingGUI('gmmAutoCorrDet',fs,'prev');
 
 end
-s = inpGUI.algSett;
+s = inpGUI.convSett;
 clear inpGUI
 s.compNumSelMode  = s.compNumSelMode.list{s.compNumSelMode.sel};
 s.envThrCrossMode = s.envThrCrossMode.list{s.envThrCrossMode.sel};
