@@ -1924,9 +1924,6 @@ classdef DASeV < handle
         
         %%
         function loadSaveButtPress(gO,~,~)
-            
-            wb1 = waitbar(0,'Starting to load file...');
-            
             val = gO.fileListBox.Value;
             if ~isempty(gO.path2loadedSave)
                 prevFname = gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end);
@@ -1940,12 +1937,9 @@ classdef DASeV < handle
                 if ishandle(eD)
                     close(eD)
                 end
-                if ishandle(wb1)
-                    close(wb1)
-                end
                 return
-            elseif ~isempty(prevLoadedInd) %~isempty(gO.path2loadedSave)
-                gO.fileListBox.String{prevLoadedInd} = prevFname;
+%             elseif ~isempty(prevLoadedInd) %~isempty(gO.path2loadedSave)
+%                 gO.fileListBox.String{prevLoadedInd} = prevFname;
             end
             
             if ~isempty(gO.selDirFiles)
@@ -1957,12 +1951,11 @@ classdef DASeV < handle
                 if ishandle(eD)
                     close(eD)
                 end
-                if ishandle(wb1)
-                    close(wb1)
-                end
                 return
             end
                         
+            wb1 = waitbar(0,'Starting to load file...');
+
             dataPresent = false(2,1); % indicates whether there has been data loaded
             
             gO.parallelMode = 0;
@@ -2213,15 +2206,22 @@ classdef DASeV < handle
             buttonEnabler(gO)
             
             if ~isempty(find(gO.loaded, 1))
+                if ~isempty(prevLoadedInd)
+                    gO.fileListBox.String{prevLoadedInd} = prevFname;
+                end
+
                 gO.path2loadedSave = fnameFull;
                 gO.fileListBox.String{val} = ['<HTML><FONT color="red"><b>', gO.fileListBox.String{val}, '</b></FONT></HTML>'];
                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
                 tabChanged(gO)
+
             end
             
             waitbar(1,wb1,'Done!')
             pause(0.5)
-            close(wb1)
+            if ishandle(wb1)
+                close(wb1)
+            end
             
         end
         
