@@ -1925,21 +1925,20 @@ classdef DASeV < handle
         %%
         function loadSaveButtPress(gO,~,~)
             val = gO.fileListBox.Value;
-            if ~isempty(gO.path2loadedSave)
+            if ~isempty(gO.path2loadedSave) && strcmp(gO.selDir, gO.path2loadedSave(1:find(gO.path2loadedSave == '\', 1, 'last') - 1))
                 prevFname = gO.path2loadedSave(find(gO.path2loadedSave == '\', 1, 'last') + 1:end);
                 prevLoadedInd = find(ismember(gO.selDirFiles, prevFname));
             else
                 prevLoadedInd = [];
             end
-            if val == prevLoadedInd
+
+            if strcmp([gO.selDir,'\',gO.selDirFiles{val}],gO.path2loadedSave)
                 eD = errordlg('File already loaded!');
                 pause(1)
                 if ishandle(eD)
                     close(eD)
                 end
                 return
-%             elseif ~isempty(prevLoadedInd) %~isempty(gO.path2loadedSave)
-%                 gO.fileListBox.String{prevLoadedInd} = prevFname;
             end
             
             if ~isempty(gO.selDirFiles)
