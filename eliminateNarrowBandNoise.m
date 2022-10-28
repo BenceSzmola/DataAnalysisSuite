@@ -31,9 +31,15 @@ if plotFFTs
 end
 
 foundPeaks = false;
+anomPeaks  = cell(numChans,1);
 
 for ch = 1:numChans
     [faxis,psd] = freqspec(data(ch,:),fs,0,0,fmax);
+
+    if plotFFTs
+        faxisOG(ch,1:length(faxis)) = faxis;
+        psdOG(ch,1:length(psd)) = psd;
+    end
 
     faxisStep   = faxis(2) - faxis(1);
     upsampMult = ceil(faxisStep/0.005);
@@ -43,12 +49,7 @@ for ch = 1:numChans
     psd = temp;
     faxis = interpFaxis;
     faxisStep   = faxis(2) - faxis(1);
-    
-    if plotFFTs
-        faxisOG(ch,1:length(faxis)) = faxis;
-        psdOG(ch,1:length(psd)) = psd;
-    end
-
+   
     runMed = movmedian(psd,round(20/faxisStep));
     runSD  = movstd(psd,round(20/faxisStep));
 
@@ -64,18 +65,22 @@ for ch = 1:numChans
     if ~isempty(ivs2check)
         foundPeaks = true;
     end
+    anomPeaks{ch} = zeros(size(ivs2check,1),2);
     for iv = 1:size(ivs2check,1)
         if faxis(ivs2check(iv,1)) < 30
+            anomPeaks{ch}(iv,:) = [nan, nan];
             continue
         end
-        [~,maxInd]   = max(psd(ivs2check(iv,1):ivs2check(iv,2)));
+        [peakVal,maxInd]   = max(psd(ivs2check(iv,1):ivs2check(iv,2)));
         f2filt = faxis(ivs2check(iv,1) + maxInd - 1);
+        anomPeaks{ch}(iv,:) = [f2filt, peakVal];
 
         wo = f2filt/(fs/2);
         bw = wo/qFact;
         [b,a] = iirnotch(wo,bw,1);
         dataCl(ch,:) = filtfilt(b,a,dataCl(ch,:));
     end
+    anomPeaks{ch}(all(isnan(anomPeaks{ch}),2),:) = [];
 
     if plotFFTs
         [faxis,psd] = freqspec(dataCl(ch,:),fs,0,0,fmax);
@@ -107,11 +112,17 @@ if plotFFTs
         subplot(211)
         plot(faxisOG(ch,:), psdOG(ch,:))
         title(sprintf('Ch #%d - FFT before',chans(ch)))
+        hold on
+        plot(anomPeaks{ch}(:,1),anomPeaks{ch}(:,2),'r*')
+        hold off
         
         subplot(212)
         plot(faxisCl(ch,:), psdCl(ch,:))
         title(sprintf('Ch #%d - FFT after',chans(ch)))
-        
+        hold on
+        plot(anomPeaks{ch}(:,1),anomPeaks{ch}(:,2),'r*')
+        hold off
+
         linkaxes(findobj(gcf, 'Type', 'axes'), 'xy')
     end
 
