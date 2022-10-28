@@ -5579,6 +5579,9 @@ classdef DAS < handle
             dims = [1 35];
             definput = {num2str(guiobj.spectroFreqLims(1)), num2str(guiobj.spectroFreqLims(2))};
             answ = inputdlg(prompt,ttl,dims,definput);
+            if isempty(answ)
+                return
+            end
             fmin = round(str2double(answ{1}));
             fmax = round(str2double(answ{2}));
                         
