@@ -57,7 +57,7 @@ for i = 1:numDets
     pre80Ind = max(indsBelow80pre);
     post20Ind = min(indsBelow20post);
     post80Ind = min(indsBelow80post);
-    if ~isempty(pre20Ind) && ~isempty(pre80Ind) && ~isempty(post20Ind) && ~isempty(post80Ind)
+    if ~isempty(pre20Ind) && ~isempty(pre80Ind) && ~isempty(post20Ind) && ~isempty(post80Ind) && (post80Ind - post20Ind) > 2
         detParams(i).RiseTime2080 = (pre80Ind - pre20Ind)/fs;
         detParams(i).DecayTime8020 = (post20Ind - post80Ind)/fs;
         if ~isempty(detParams(i).DecayTime8020)
