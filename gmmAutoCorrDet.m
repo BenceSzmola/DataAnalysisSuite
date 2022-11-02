@@ -36,12 +36,18 @@ upEnvFeatInd  = 1;
 lowEnvFeatInd = 2;
 
 if s.debugPlots
-    resFig = figure('WindowState','maximized','Visible','off');
+    resFig = figure('Name','Results figure','WindowState','minimized');
 end
 
 for ch = 1:size(data,1)
     if ismember(chans(ch),refch)
         continue
+    end
+
+    if s.debugPlots
+        slideFig = figure('Name','Current interval figure',...
+                          'Units','normalized',...
+                          'Position',[0.2, 0.3, 0.7, 0.5]);
     end
 
     %% computing features
@@ -80,7 +86,7 @@ for ch = 1:size(data,1)
     for startInd = 1:s.winLen:dataLen
         currInds      = startInd:min(dataLen, startInd + s.winLen - 1);
         
-%         currTaxis     = tAxis(currInds);
+        currTaxis     = tAxis(currInds);
         currDoG       = dogged(ch,currInds);
         currUpEnv     = upEnv(currInds);
         currLowEnv    = lowEnv(currInds);
@@ -90,7 +96,50 @@ for ch = 1:size(data,1)
         currInstEbad  = instEbad(currInds);
         
         data2fit = [currUpEnv',currLowEnv',currIp',currIpBad',currInstE',currInstEbad'];
-        [chosenGMM,clustInds,lowClust] = runGMM(data2fit,s);
+        [chosenGMM,clustInds,lowClust,gofVals,dropPercent] = runGMM(data2fit,s);
+
+        if s.debugPlots
+            figure(slideFig)
+        
+            sp1 = subplot(4,1,1,'Parent',slideFig);
+            for k = 1:chosenGMM.NumComponents
+                segments = nan(size(currDoG));
+                segments(clustInds==k) = currDoG(clustInds==k);
+                plot(sp1,currTaxis,segments,'DisplayName',num2str(k))
+                hold(sp1,'on')
+            end
+            legend(sp1)
+            hold(sp1,'off')
+            title(sp1,'DoG of current segment')
+    
+            sp2 = subplot(4,1,2,'Parent',slideFig);
+            for k = 1:chosenGMM.NumComponents
+                segments = nan(size(currInstE));
+                segments(clustInds==k) = currInstE(clustInds==k);
+                plot(sp2,currTaxis,segments,'DisplayName',num2str(k))
+                hold(sp2,'on')
+            end
+            legend(sp2)
+            hold(sp2,'off')
+            title(sp2,'CWT InstE (good freqs) of current segment')
+    
+            sp3 = subplot(4,1,3,'Parent',slideFig);
+            for k = 1:chosenGMM.NumComponents
+                segments = nan(size(currInstEbad));
+                segments(clustInds==k) = currInstEbad(clustInds==k);
+                plot(sp3,currTaxis,segments,'DisplayName',num2str(k))
+                hold(sp3,'on')
+            end
+            legend(sp3)
+            hold(sp3,'off')
+            title(sp3,'CWT InstE (bad freqs) of current segment')
+        
+            sp4 = subplot(4,1,4,'Parent',slideFig);
+            plot(sp4,gofVals,'o-')
+            title(sp4,sprintf('Best component num: %d, best drop=%.4f',chosenGMM.NumComponents,dropPercent))
+
+            waitforbuttonpress
+        end
 
         if chosenGMM.NumComponents  > 1
 
@@ -102,13 +151,17 @@ for ch = 1:size(data,1)
             for k = goodClusters
 
 %                 [niceIvsTemp,mehIvsTemp,badIvsTemp] = clustIvFilter(fs,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
-                evInds = clustIvFilter(fs,evInds,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
+                evInds = clustIvFilter(fs,evInds,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currTaxis,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
 %                 niceIvs = [niceIvs; niceIvsTemp];
 %                 mehIvs  = [mehIvs; mehIvsTemp];
 %                 badIvs  = [badIvs; badIvsTemp];
             end
 
         end
+    end
+
+    if s.debugPlots
+        delete(slideFig)
     end
 
     niceIvs = computeAboveThrLengths(evInds,1,'==');
@@ -130,7 +183,7 @@ for ch = 1:size(data,1)
     if s.debugPlots
         sp = subplot(numChans,1,ch,'Parent',resFig);
         plot(sp,tAxis,dogged(ch,:))
-        hold on
+        hold(sp,'on')
         y = [min(dogged(ch,:)),min(dogged(ch,:)),max(dogged(ch,:)),max(dogged(ch,:))];
     %     for iv = 1:size(badIvs,1)
     %         x = [badIvs(iv,1),badIvs(iv,2),badIvs(iv,2),badIvs(iv,1)];
@@ -144,13 +197,13 @@ for ch = 1:size(data,1)
             x = [niceIvs(iv,1),niceIvs(iv,2),niceIvs(iv,2),niceIvs(iv,1)];
             patch(sp,tAxis(x),y,'r','FaceAlpha',.25,'EdgeColor','r')
         end
-        hold off
+        hold(sp,'off')
         title(sp,sprintf('Channel #%d',ch))
     end
 end
 if s.debugPlots
     linkaxes(findobj(resFig,'Type','axes'),'x')
-    resFig.Visible = 'on';
+    resFig.WindowState = 'maximized';
 end
 
 if ~autoPilot && ~isempty(vertcat(peaks2val{:}))
