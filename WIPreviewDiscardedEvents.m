@@ -21,7 +21,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
             victimsPeakInds{ch}(vic) = eventsPeak{ch}(refValVictims{ch}(vic));
         end
     end
-    
+
     globVicts = extractGlobalEvents(victimsPeakInds,round(0.01*fs),true);
     
     reviewFig = figure('Name',['Review discarded events',figTitle],...
@@ -76,7 +76,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
                 if globVictInd == 0
                     return
                 end
-                events2Restore{colInd2chanInd} = [events2Restore{colInd2chanInd}, globVictInd2detInd];
+                events2Restore{colInd2chanInd} = [events2Restore{colInd2chanInd}; globVictInd2detInd];
                 doOnOtherChans('rescue')
                 
                 
@@ -163,7 +163,7 @@ function events2Restore = WIPreviewDiscardedEvents(taxis,fs,chan,data,compMode,c
             matches = abs(victimsPeakInds{colInd2chanInd}(globVictInd2detInd) - victimsPeakInds{ch1}) < round(0.01*fs);
             switch mode
                 case 'rescue'
-                    events2Restore{ch1} = unique([events2Restore{ch1}, find(matches)]);
+                    events2Restore{ch1} = unique([events2Restore{ch1}; find(matches)]);
                     
                 case 'doom'
                     events2Restore{ch1}(ismember(events2Restore{ch1}, find(matches))) = [];
