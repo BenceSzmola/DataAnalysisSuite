@@ -128,15 +128,19 @@ classdef detAlgSettingGUI < handle
         function valChanged(gO,h,valType,field,pos)
             switch valType
                 case 'bool'
-                    gO.algSett.(field) = h.Value;
+                    gO.algSett.(field) = logical(h.Value);
+                    gO.convSett.(field) = logical(h.Value);
 
                 case 'list'
                     gO.algSett.(field).sel = h.Value;
+                    gO.convSett.(field).sel = h.Value;
 
                 case 'num'
                     gO.algSett.(field)(pos) = str2double(h.String);
                     if ismember(field,gO.fields2conv)
                         doConv(gO,field)
+                    else
+                        gO.convSett.(field)(pos) = str2double(h.String);
                     end 
 
             end
