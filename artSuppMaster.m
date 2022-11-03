@@ -35,6 +35,7 @@ elseif (nargin == 1) && ~isstruct(varargin{1})
     output.tAxis = [];
     output.fs = [];
     output.data_perio = [];
+    output.doNarrowBandFilt =  false;
     output.doPeriodFilt = false;
     output.decompType = 'SWT';
     output.freqLow = 2;
@@ -60,6 +61,7 @@ elseif (nargin == 1) && (isstruct(varargin{1}))
     tAxis = inputStruct.tAxis;
     fs = inputStruct.fs;
     data_perio = inputStruct.data_perio;
+    doNarrowBandFilt = inputStruct.doNarrowBandFilt;
     doPeriodFilt = inputStruct.doPeriodFilt;
     decompType = inputStruct.decompType;
     freqLow = inputStruct.freqLow;
@@ -103,8 +105,10 @@ elseif slideWinSize > numSamples
     slideWinSize = numSamples;
 end
 
-%% run periodic filter if requested
-if doPeriodFilt
+%% run narrow band or periodic filter if requested
+if doNarrowBandFilt
+    data = eliminateNarrowBandNoise(data,fs);
+elseif doPeriodFilt
     data = periodicNoise(data,1:numChans,fs);
 elseif ~isempty(data_perio)
     data = data_perio;
@@ -769,8 +773,13 @@ function inputStruct = artSuppMaster_inputGUI(inputStruct)
     doPerioUIC = uicontrol(inputFig,...
         'Style','checkbox',...
         'Units','normalized',...
-        'Position',[0.01, 0.95, 0.7, 0.05],...
+        'Position',[0.01, 0.95, 0.45, 0.05],...
         'String','Do periodic filtering');
+    doNarrowBandUIC = uicontrol(inputFig,...
+        'Style','checkbox',...
+        'Units','normalized',...
+        'Position',[0.5, 0.95, 0.45, 0.05],...
+        'String','Do narrow band filtering');
     decompTypeUIC = uicontrol(inputFig,...
         'Style','popupmenu',...
         'Units','normalized',...
@@ -905,6 +914,7 @@ function inputStruct = artSuppMaster_inputGUI(inputStruct)
     end
     
     inputStruct.doPeriodFilt = logical(doPerioUIC.Value);
+    inputStruct.doNarrowBandFilt = logical(doNarrowBandUIC.Value);
     inputStruct.decompType = decompTypeUIC.String{decompTypeUIC.Value};
     inputStruct.freqLow = str2double(freqLowUICedit.String);
     inputStruct.flagType = flagTypeUIC.String{flagTypeUIC.Value};
