@@ -556,7 +556,7 @@ function [reconstr,skip] = doICAdiscard(inputMat,decompType,compNum,segNum,numSe
     end
     
     % discard selected ICs, then reconstruct using mixing matrix
-    ICs(ICs2discard,:) = 0;
+    A(:,ICs2discard) = 0;
     reconstr = A*ICs;
 end
 
