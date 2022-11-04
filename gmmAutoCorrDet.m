@@ -252,6 +252,10 @@ if refVal
             detPeaks{ch}(peaks2del) = [];
             peakVals{ch}(peaks2del) = [];
             detBorders{ch}(peaks2del,:) = [];
+
+            for p = 1:length(peaks2del)
+                refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) = refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) - 1;
+            end
         end
     end
 
