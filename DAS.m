@@ -3685,6 +3685,8 @@ classdef DAS < handle
             guiobj.ephys_proccedInfo = [guiobj.ephys_proccedInfo; newProcInfo];
             guiobj.ephys_procdatanames = procDatanames;
             guiobj.ephysProcListBox2.String = procDatanames;
+            guiobj.ephysProcListBox2.Value = length(procDatanames):-1:length(procDatanames)-(length(data_idx)-1);
+            ephysProcListBox2ValueChanged(guiobj)
             
             guiobj.ephysRunProcButton.BackgroundColor = 'g';
         end
@@ -3863,6 +3865,8 @@ classdef DAS < handle
             guiobj.imaging_proccedInfo = [guiobj.imaging_proccedInfo; newProcInfo];
             guiobj.imaging_procDatanames = procDatanames;
             guiobj.imagingProcListBox2.String = procDatanames;
+            guiobj.imagingProcListBox2.Value = length(procDatanames):-1:length(procDatanames)-(length(data_idx)-1);
+            imagingProcListBox2ValueChanged(guiobj)
             
             guiobj.imagingRunProcButton.BackgroundColor = 'g';
         end
