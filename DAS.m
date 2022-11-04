@@ -3266,7 +3266,7 @@ classdef DAS < handle
             ephysplot(guiobj,guiobj.axesEphysProc2,idx)
             
             if strcmp(guiobj.ephysLinkProcListBoxesMenu.Checked, 'on')
-                otherIdx = [guiobj.ephys_proccedInfo(idx).Channel];
+                otherIdx = unique([guiobj.ephys_proccedInfo(idx).Channel]);
                 guiobj.ephysProcListBox.Value = otherIdx;
                 ephysplot(guiobj, guiobj.axesEphysProc1, otherIdx)
             end
@@ -3744,7 +3744,7 @@ classdef DAS < handle
             imagingplot(guiobj,guiobj.axesImagingProc2,idx)
             
             if strcmp(guiobj.imagingLinkProcListBoxesMenu.Checked, 'on')
-                otherIdx = [guiobj.imaging_proccedInfo(idx).ROI];
+                otherIdx = unique([guiobj.imaging_proccedInfo(idx).ROI]);
                 guiobj.imagingProcListBox.Value = otherIdx;
                 imagingplot(guiobj, guiobj.axesImagingProc1, otherIdx)
             end
