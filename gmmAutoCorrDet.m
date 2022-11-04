@@ -226,33 +226,55 @@ for ch = 1:numChans
     detBorders{ch} = detBorders{ch}(sortIdx,:);
 end
 
-if ~autoPilot && refVal
+if refVal
     refDog = DoG(refData,fs,s.goodBand(1),s.goodBand(2));
-    refValVictims = cell(numChans,1);
+    refValVictims2Del = cell(numChans,1);
+    refValVictimsEval = cell(numChans,1);
+    refValWinHalfLen = round(.025*fs);
     for ch = 1:numChans
         if ismember(chans(ch),refch)
             continue
         end
-        for iv = 1:size(detBorders{ch},1)
-            winInds = detBorders{ch}(iv,1):detBorders{ch}(iv,2);
+        for iv = 1:length(detPeaks{ch})
+            winInds = max(1, detPeaks{ch}(iv) - refValWinHalfLen):min(dataLen, detPeaks{ch}(iv) + refValWinHalfLen);
             r = corrcoef(dogged(ch,winInds),refDog(winInds));
-            if abs(r(2)) > .6
-                refValVictims{ch} = [refValVictims{ch}; iv];
+            if abs(r(2)) > .9
+                refValVictims2Del{ch} = [refValVictims2Del{ch}; iv];
+            elseif abs(r(2)) > .6
+                refValVictimsEval{ch} = [refValVictimsEval{ch}; iv];
             end
         end
     end
 
-    if ~isempty(vertcat(refValVictims{:}))
-        evs2Restore = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'ref',refDog,detPeaks,refValVictims,'Reference validation');
+    if ~isempty(vertcat(refValVictims2Del{:}))
         for ch = 1:numChans
-            if ismember(chans(ch),refch)
-                continue
-            end
-            evs2keep = refValVictims{ch}(evs2Restore{ch});
-            peaks2del = refValVictims{ch}(~ismember(refValVictims{ch},evs2keep));
+            peaks2del = refValVictims2Del{ch};
             detPeaks{ch}(peaks2del) = [];
             peakVals{ch}(peaks2del) = [];
             detBorders{ch}(peaks2del,:) = [];
+        end
+    end
+
+    if ~isempty(vertcat(refValVictimsEval{:}))
+        if ~autoPilot
+            evs2Restore = WIPreviewDiscardedEvents(tAxis,fs,chans,dogged,'ref',refDog,detPeaks,refValVictimsEval,'Reference validation');
+            for ch = 1:numChans
+                if ismember(chans(ch),refch)
+                    continue
+                end
+                evs2keep = refValVictimsEval{ch}(evs2Restore{ch});
+                peaks2del = refValVictimsEval{ch}(~ismember(refValVictimsEval{ch},evs2keep));
+                detPeaks{ch}(peaks2del) = [];
+                peakVals{ch}(peaks2del) = [];
+                detBorders{ch}(peaks2del,:) = [];
+            end
+        else
+            for ch = 1:numChans
+                peaks2del = refValVictimsEval{ch};
+                detPeaks{ch}(peaks2del) = [];
+                peakVals{ch}(peaks2del) = [];
+                detBorders{ch}(peaks2del,:) = [];
+            end
         end
     end
 end
