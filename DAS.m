@@ -3865,7 +3865,7 @@ classdef DAS < handle
             guiobj.imaging_proccedInfo = [guiobj.imaging_proccedInfo; newProcInfo];
             guiobj.imaging_procDatanames = procDatanames;
             guiobj.imagingProcListBox2.String = procDatanames;
-            guiobj.imagingProcListBox2.Value = length(procDatanames)-(length(data_idx)-1):length(procDatanames);;
+            guiobj.imagingProcListBox2.Value = length(procDatanames)-(length(data_idx)-1):length(procDatanames);
             imagingProcListBox2ValueChanged(guiobj)
             
             guiobj.imagingRunProcButton.BackgroundColor = 'g';
