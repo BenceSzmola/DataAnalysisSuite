@@ -2322,12 +2322,46 @@ classdef DAS < handle
                 
                 % reset
                 guiobj = resetGuiData(guiobj,1);
-                fprintf(1,'Autopilot running - file #%d/%d - Done\n',guiobj.roboDet_idx, length(saveFnames))
+                progTxt = 'Autopilot running - file #%d/%d - Done\n';
+                fprintf(1,progTxt,guiobj.roboDet_idx, length(saveFnames))
+
+                if guiobj.roboDet_idx < length(saveFnames)
+                    stopFlag = false;
+                    contWaitBar = waitbar(0,sprintf([progTxt,'\nContinuing in 3...\n'],guiobj.roboDet_idx,length(saveFnames)),...
+                        'CreateCancelBtn',@ stopRoboDetExe);
+                    waitTime = 3;
+                    for waitCyc = 1:waitTime
+                        pause(1)
+                        if ishandle(contWaitBar)
+                            waitbar(waitCyc/waitTime,contWaitBar,...
+                                sprintf([progTxt,'\nContinuing in %d...\n'],guiobj.roboDet_idx,length(saveFnames),waitTime-waitCyc))
+                        else
+                            fprintf(1,'Autopilot execution was interrupted by user, %d/%d files done\n',guiobj.roboDet_idx,length(saveFnames))
+                            break
+                        end
+                    end
+                    if ishandle(contWaitBar)
+                        delete(contWaitBar)
+                    end
+                    if stopFlag 
+                        break
+                    end
+                end
+
             end
             
             operationDoneMsg('RoboDet is done!')
             
             guiobj.roboDet = false;
+
+            function stopRoboDetExe(h,~)
+                stopFlag = true;
+                if strcmp(h.Type,'figure')
+                    delete(h)
+                else
+                    delete(h.Parent)
+                end
+            end
         end
         
         %%
