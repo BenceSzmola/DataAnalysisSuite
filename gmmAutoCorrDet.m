@@ -253,8 +253,10 @@ if refVal
             peakVals{ch}(peaks2del) = [];
             detBorders{ch}(peaks2del,:) = [];
 
-            for p = 1:length(peaks2del)
-                refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) = refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) - 1;
+            if ~isempty(refValVictimsEval{ch})
+                for p = 1:length(peaks2del)
+                    refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) = refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) - 1;
+                end
             end
         end
     end
@@ -274,10 +276,12 @@ if refVal
             end
         else
             for ch = 1:numChans
-                peaks2del = refValVictimsEval{ch};
-                detPeaks{ch}(peaks2del) = [];
-                peakVals{ch}(peaks2del) = [];
-                detBorders{ch}(peaks2del,:) = [];
+                if ismember(chans(ch),refch)
+                    peaks2del = refValVictimsEval{ch};
+                    detPeaks{ch}(peaks2del) = [];
+                    peakVals{ch}(peaks2del) = [];
+                    detBorders{ch}(peaks2del,:) = [];
+                end
             end
         end
     end
