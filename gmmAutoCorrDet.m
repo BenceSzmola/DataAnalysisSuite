@@ -258,8 +258,9 @@ if refVal
             detBorders{ch}(peaks2del,:) = [];
 
             if ~isempty(refValVictimsEval{ch})
-                for p = 1:length(peaks2del)
-                    refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) = refValVictimsEval{ch}(refValVictimsEval{ch} > peaks2del(p)) - 1;
+                for ind = 1:length(refValVictimsEval{ch})
+                    decrBy = sum(refValVictimsEval{ch}(ind) > peaks2del);
+                    refValVictimsEval{ch}(ind) = refValVictimsEval{ch}(ind) - decrBy;
                 end
             end
         end
