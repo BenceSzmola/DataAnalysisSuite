@@ -248,6 +248,10 @@ if refVal
 
     if ~isempty(vertcat(refValVictims2Del{:}))
         for ch = 1:numChans
+            if ismember(chans(ch),refch)
+                continue
+            end
+
             peaks2del = refValVictims2Del{ch};
             detPeaks{ch}(peaks2del) = [];
             peakVals{ch}(peaks2del) = [];
@@ -277,11 +281,12 @@ if refVal
         else
             for ch = 1:numChans
                 if ismember(chans(ch),refch)
-                    peaks2del = refValVictimsEval{ch};
-                    detPeaks{ch}(peaks2del) = [];
-                    peakVals{ch}(peaks2del) = [];
-                    detBorders{ch}(peaks2del,:) = [];
+                    continue
                 end
+                peaks2del = refValVictimsEval{ch};
+                detPeaks{ch}(peaks2del) = [];
+                peakVals{ch}(peaks2del) = [];
+                detBorders{ch}(peaks2del,:) = [];
             end
         end
     end
