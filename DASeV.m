@@ -842,7 +842,7 @@ classdef DASeV < handle
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
-                axis(ax(i),'tight')
+                xlim(ax(i),[tWin(1),tWin(end)])
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
 
@@ -1028,7 +1028,7 @@ classdef DASeV < handle
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
-                axis(ax(i),'tight')
+                xlim(ax(i),[tWin(1),tWin(end)])
                 ylim(ax(i),axLims(i,:))
                 title(ax(i),axTitle)
 
@@ -1719,6 +1719,9 @@ classdef DASeV < handle
             dims = [1 35];
             definput = {num2str(gO.spectroFreqLims(1)), num2str(gO.spectroFreqLims(2))};
             answ = inputdlg(prompt,ttl,dims,definput);
+            if isempty(answ)
+                return
+            end
             fmin = round(str2double(answ{1}));
             fmax = round(str2double(answ{2}));
             
