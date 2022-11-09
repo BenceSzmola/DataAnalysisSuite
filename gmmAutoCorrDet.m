@@ -240,11 +240,13 @@ if refVal
         end
         for iv = 1:length(detPeaks{ch})
             winInds = max(1, detPeaks{ch}(iv) - refValWinHalfLen):min(dataLen, detPeaks{ch}(iv) + refValWinHalfLen);
-            r = corrcoef(dogged(ch,winInds),refDog(winInds));
-            if abs(r(2)) > .9
-                refValVictims2Del{ch} = [refValVictims2Del{ch}; iv];
-            elseif abs(r(2)) > .6
-                refValVictimsEval{ch} = [refValVictimsEval{ch}; iv];
+            if std(refDog(winInds)) / std(dogged(ch,winInds)) > .6
+                r = corrcoef(dogged(ch,winInds),refDog(winInds));
+                if abs(r(2)) > .9
+                    refValVictims2Del{ch} = [refValVictims2Del{ch}; iv];
+                elseif abs(r(2)) > .6
+                    refValVictimsEval{ch} = [refValVictimsEval{ch}; iv];
+                end
             end
         end
     end
