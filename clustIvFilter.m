@@ -210,6 +210,8 @@ for ivNum = 1:size(currClustIvs,1)
     end
 
     if s.debugPlots
+        fprintf('Done with this cluster segment, moving on...\n')
+        waitforbuttonpress
         delete([clustIvXLine1,clustIvXLine2])
     end
 

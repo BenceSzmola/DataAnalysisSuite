@@ -4209,7 +4209,7 @@ classdef DAS < handle
 
                     end
 
-                    [dets,detBorders,detParams,evComplexes,algSett] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal,guiobj.roboDet);
+                    [dets,detBorders,detParams,evComplexes,algSett] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal,showFigs,guiobj.roboDet);
                     w1 = algSett.goodBand(1);
                     w2 = algSett.goodBand(2);
 

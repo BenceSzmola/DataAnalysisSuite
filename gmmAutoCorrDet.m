@@ -1,4 +1,4 @@
-function [detPeaks,detBorders,detParams,evComplexes,s] = gmmAutoCorrDet(getSettMode,data,fs,tAxis,chans,refch,refData,refVal,autoPilot)
+function [detPeaks,detBorders,detParams,evComplexes,s] = gmmAutoCorrDet(getSettMode,data,fs,tAxis,chans,refch,refData,refVal,showFigs,autoPilot)
 
 switch getSettMode
     case 'gui'
@@ -16,6 +16,9 @@ s = inpGUI.convSett;
 clear inpGUI
 s.compNumSelMode  = s.compNumSelMode.list{s.compNumSelMode.sel};
 s.envThrCrossMode = s.envThrCrossMode.list{s.envThrCrossMode.sel};
+if nargin >= 9 && ~isempty(showFigs) && ~isnan(showFigs)
+    s.debugPlots = showFigs;
+end
 
 if size(data,1) > size(data,2)
     data = data';
@@ -84,16 +87,16 @@ for ch = 1:size(data,1)
 %     badIvs  = zeros(0,2);
     evInds = zeros(1,dataLen);
     for startInd = 1:s.winLen:dataLen
-        currInds      = startInd:min(dataLen, startInd + s.winLen - 1);
+        currInds     = startInd:min(dataLen, startInd + s.winLen - 1);
         
-        currTaxis     = tAxis(currInds);
-        currDoG       = dogged(ch,currInds);
-        currUpEnv     = upEnv(currInds);
-        currLowEnv    = lowEnv(currInds);
-        currIp        = iP(currInds);
-        currIpBad     = iPbad(currInds);
-        currInstE     = instE(ch,currInds);
-        currInstEbad  = instEbad(currInds);
+        currTaxis    = tAxis(currInds);
+        currDoG      = dogged(ch,currInds);
+        currUpEnv    = upEnv(currInds);
+        currLowEnv   = lowEnv(currInds);
+        currIp       = iP(currInds);
+        currIpBad    = iPbad(currInds);
+        currInstE    = instE(ch,currInds);
+        currInstEbad = instEbad(currInds);
         
         data2fit = [currUpEnv',currLowEnv',currIp',currIpBad',currInstE',currInstEbad'];
         [chosenGMM,clustInds,lowClust,gofVals,dropPercent] = runGMM(data2fit,s);
