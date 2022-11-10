@@ -1191,20 +1191,21 @@ classdef DAS < handle
             elseif ~forSpectro
                 plot(ax,tWin,dataWin)
                 hold(ax,'on')
-                xline(ax,tStamp,'Color','g','LineWidth',1);
+                
                 if ~isempty(detBorders)
-                    xline(ax,taxis(detBorders(1)),'--b','LineWidth',1);
-                    xline(ax,taxis(detBorders(2)),'--b','LineWidth',1);
+                    xline(ax,taxis(detBorders(1)),'--g','LineWidth',.75);
+                    xline(ax,taxis(detBorders(2)),'--g','LineWidth',.75);
                     hL = dataWin;
                     temp1 = find(tWin==taxis(detBorders(1)));
                     temp2 = find(tWin==taxis(detBorders(2)));
                     hL(1:temp1-1) = nan;
                     hL(temp2+1:end) = nan;
-                    plot(ax,tWin,hL,'-r','LineWidth',0.75)
+                    plot(ax,tWin,hL,'-r','LineWidth',.75)
+                else
+                    xline(ax,tStamp,'Color','g','LineWidth',.75);
                 end
+
                 hold(ax,'off')
-%                 ylim(ax,axLims)
-%                 axis(ax,'tight')
                 xlim(ax, [min(tWin), max(tWin)])
                 ylim(ax, axLims)
                 xlabel(ax,guiobj.xtitle)

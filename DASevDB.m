@@ -478,16 +478,18 @@ classdef DASevDB < handle
                 plot(ax(i),taxisWin,dataWin(i,:))
                 
                 hold(ax(i),'on')
-%                 xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
+                
                 if ~isempty(currEv.DetBorders) & ~gO.displayAvgDataWin
-                    xline(ax(i),taxisWin(currEv.DetBorders(1)),'--b','LineWidth',1);
-                    xline(ax(i),taxisWin(currEv.DetBorders(2)),'--b','LineWidth',1);
+                    xline(ax(i),taxisWin(currEv.DetBorders(1)),'--g','LineWidth',.75);
+                    xline(ax(i),taxisWin(currEv.DetBorders(2)),'--g','LineWidth',.75);
                     hL = dataWin(i,:);
                     temp1 = find(taxisWin==taxisWin(currEv.DetBorders(1)));
                     temp2 = find(taxisWin==taxisWin(currEv.DetBorders(2)));
                     hL(1:temp1-1) = nan;
                     hL(temp2+1:end) = nan;
-                    plot(ax(i),taxisWin,hL,'-r','LineWidth',0.75)
+                    plot(ax(i),taxisWin,hL,'-r','LineWidth',.75)
+                else
+%                     xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
                 end
                 hold(ax(i),'off')
                 

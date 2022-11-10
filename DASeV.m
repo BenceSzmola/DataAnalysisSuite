@@ -827,18 +827,25 @@ classdef DASeV < handle
                 hold(ax(i),'on')
 
                 for j = 1:length(tDetInds)
-                    xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
                     if ~isempty(currDetBorders)
-                        xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'--b','LineWidth',1);
-                        xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'--b','LineWidth',1);
+                        if ~gO.plotFull
+                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,1)),'--g','LineWidth',.75);
+                            xline(ax(i),gO.ephysTaxis(currDetBorders(j,2)),'--g','LineWidth',.75);
+                        else
+                            markerVal = max(data(i,currDetBorders(j,1):currDetBorders(j,2)))*1.25;
+                            plot(ax(i),tDetInds(j),markerVal,'g*','MarkerSize',10)
+                        end
                         hL = data(i,:);
                         temp1 = find(tWin==gO.ephysTaxis(currDetBorders(j,1)));
                         temp2 = find(tWin==gO.ephysTaxis(currDetBorders(j,2)));
                         hL(1:temp1-1) = nan;
                         hL(temp2+1:end) = nan;
-                        plot(ax(i),tWin,hL,'-r','LineWidth',0.75)
+                        plot(ax(i),tWin,hL,'-r','LineWidth',.75)
+                    else
+                        xline(ax(i),tDetInds(j),'Color','g','LineWidth',.75);
                     end
                 end
+
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
@@ -1012,19 +1019,27 @@ classdef DASeV < handle
             for i = 1:min(size(data))
                 plot(ax(i),tWin,data(i,:))
                 hold(ax(i),'on')
+
                 for j = 1:length(tDetInds)
-                    xline(ax(i),tDetInds(j),'Color','g','LineWidth',1);
                     if ~isempty(currDetBorders)
-                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,1)),'--b','LineWidth',1);
-                        xline(ax(i),gO.imagingTaxis(currDetBorders(j,2)),'--b','LineWidth',1);
+                        if ~gO.plotFull
+                            xline(ax(i),gO.imagingTaxis(currDetBorders(j,1)),'--g','LineWidth',.75);
+                            xline(ax(i),gO.imagingTaxis(currDetBorders(j,2)),'--g','LineWidth',.75);
+                        else
+                            markerVal = max(data(i,currDetBorders(j,1):currDetBorders(j,2)))*1.25;
+                            plot(ax(i),tDetInds(j),markerVal,'g*','MarkerSize',10)
+                        end
                         hL = data(i,:);
                         temp1 = find(tWin==gO.imagingTaxis(currDetBorders(j,1)));
                         temp2 = find(tWin==gO.imagingTaxis(currDetBorders(j,2)));
                         hL(1:temp1-1) = nan;
                         hL(temp2+1:end) = nan;
-                        plot(ax(i),tWin,hL,'-r','LineWidth',0.75)
+                        plot(ax(i),tWin,hL,'-r','LineWidth',.75)
+                    else
+                        xline(ax(i),tDetInds(j),'Color','g','LineWidth',.75);
                     end
                 end
+
                 hold(ax(i),'off')
                 xlabel(ax(i),gO.xLabel)
                 ylabel(ax(i),yLabels(i,:))
