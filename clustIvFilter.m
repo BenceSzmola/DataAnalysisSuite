@@ -77,7 +77,7 @@ for ivNum = 1:size(currClustIvs,1)
                     clustSubIvXLine2 = xline(eoiFigAx,currTaxis(currSegment(end)),'g-.','LineWidth',1);
                 end
     
-                if length(currSegment) >= s.clustIvLen(1)
+                if length(currSegment) >= s.envThrCrossMinLen
                     [r,lags] = xcorr(currDoG(currSegment),'coeff');
                     r        = r(floor(length(r)/2) + 1:end);
                     lags     = lags(floor(length(lags)/2) + 1:end);
@@ -198,14 +198,9 @@ for ivNum = 1:size(currClustIvs,1)
                  gof.rsquare > s.evFitRsqMin];
 
         if all(conds)
-%             niceIvs(end + 1,:) = currInds(currClustIv(ivsOI(highIvNum,:)));
             evInds(currInds(currHighIv)) = 1;
         elseif sum(conds) >= 2
-%             mehIvs(end + 1,:)  = currInds(currClustIv(ivsOI(highIvNum,:)));
             evInds(currInds(currHighIv)) = 2;
-%         elseif sum(conds) == 1
-% %             badIvs(end + 1,:)  = currInds(currClustIv(ivsOI(highIvNum,:)));
-%             evInds(currInds(currHighIv)) = 3;
         end
     end
 
