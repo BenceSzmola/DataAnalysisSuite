@@ -179,6 +179,21 @@ for ch = 1:size(data,1)
         mergedPeaks(iv) = maxInd + mergedIvs(iv,1) - 1;
     end
     
+    if ~isempty(mergedIvs)
+        upExtThr = chosenGMM.mu(lowClust,upEnvFeatInd) + sqrt(chosenGMM.Sigma(upEnvFeatInd,upEnvFeatInd,lowClust));
+        detDataModQ = upEnv;
+        detDataModQ(detDataModQ < upExtThr) = 0;
+        upIvs = extendEvents(mergedIvs,detDataModQ,upThr,upExtThr);
+    
+        lowExtThr = chosenGMM.mu(lowClust,lowEnvFeatInd) + sqrt(chosenGMM.Sigma(lowEnvFeatInd,lowEnvFeatInd,lowClust));
+        detDataModQ = lowEnv;
+        detDataModQ(detDataModQ < lowExtThr) = 0;
+        lowIvs = extendEvents(mergedIvs,detDataModQ,lowThr,lowExtThr);
+    
+        mergedIvs(:,1) = min([upIvs(:,1),lowIvs(:,1)],[],2);
+        mergedIvs(:,2) = max([upIvs(:,2),lowIvs(:,2)],[],2);
+    end
+
     detBorders{ch} = mergedIvs;
     detPeaks{ch}   = mergedPeaks;
     peaks2val{ch}  = ((size(niceIvs,1) + 1):length(mergedPeaks))';
