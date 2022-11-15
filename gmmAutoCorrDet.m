@@ -86,7 +86,9 @@ for ch = 1:size(data,1)
 %     mehIvs  = zeros(0,2);
 %     badIvs  = zeros(0,2);
     evInds = zeros(1,dataLen);
+    startOffset = 0;
     for startInd = 1:s.winLen:dataLen
+        startInd = startInd + startOffset;
         currInds     = startInd:min(dataLen, startInd + s.winLen - 1);
         
         currTaxis    = tAxis(currInds);
@@ -97,6 +99,31 @@ for ch = 1:size(data,1)
         currIpBad    = iPbad(currInds);
         currInstE    = instE(ch,currInds);
         currInstEbad = instEbad(currInds);
+
+        % check to ensure a signal isnt cut in half by the windowing
+        upEnvThr  = median(currUpEnv) + 2*std(currUpEnv);
+        lowEnvThr = median(currLowEnv) + 2*std(currLowEnv);
+        iPThr     = median(currIp) + 2*std(currIp);
+        instEThr  = median(currInstE) + 2*std(currInstE);
+        win2test  = max(1,length(currInds) - round(.05*fs)):length(currInds);
+        cond      = ( (length(find(currUpEnv(win2test) > upEnvThr)) / length(win2test)) > .5 ) ||...
+                    ( (length(find(currLowEnv(win2test) > lowEnvThr)) / length(win2test)) > .5 ) ||...
+                    ( (length(find(currIp(win2test) > iPThr)) / length(win2test)) > .5 ) ||...
+                    ( (length(find(currInstE(win2test) > instEThr)) / length(win2test)) > .5 );
+        if cond
+            fprintf('Stretching current window!\n')
+            startOffset = startOffset + round(.05*fs);
+            currInds     = startInd:min(dataLen, startInd + startOffset + s.winLen - 1);
+
+            currTaxis    = tAxis(currInds);
+            currDoG      = dogged(ch,currInds);
+            currUpEnv    = upEnv(currInds);
+            currLowEnv   = lowEnv(currInds);
+            currIp       = iP(currInds);
+            currIpBad    = iPbad(currInds);
+            currInstE    = instE(ch,currInds);
+            currInstEbad = instEbad(currInds);
+        end
         
         data2fit = [currUpEnv',currLowEnv',currIp',currIpBad',currInstE',currInstEbad'];
         [chosenGMM,clustInds,lowClust,gofVals,dropPercent] = runGMM(data2fit,s);
@@ -216,7 +243,7 @@ for ch = 1:size(data,1)
             patch(sp,tAxis(x),y,'r','FaceAlpha',.25,'EdgeColor','r')
         end
         hold(sp,'off')
-        title(sp,sprintf('Channel #%d',ch))
+        title(sp,sprintf('Channel #%d',chans(ch)))
     end
 end
 if s.debugPlots
