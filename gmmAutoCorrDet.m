@@ -88,8 +88,15 @@ for ch = 1:size(data,1)
     evInds = zeros(1,dataLen);
     startOffset = 0;
     for startInd = 1:s.winLen:dataLen
-        startInd = startInd + startOffset;
+        startInd     = min(dataLen,startInd + startOffset);
+        if startInd >= (dataLen - 1)
+            continue
+        end
         currInds     = startInd:min(dataLen, startInd + s.winLen - 1);
+        if (dataLen - currInds(end)) < s.winLen/2
+            currInds = startInd:dataLen;
+            startOffset = startOffset + (dataLen - currInds(end));
+        end
         
         currTaxis    = tAxis(currInds);
         currDoG      = dogged(ch,currInds);
@@ -101,18 +108,18 @@ for ch = 1:size(data,1)
         currInstEbad = instEbad(currInds);
 
         % check to ensure a signal isnt cut in half by the windowing
-        upEnvThr  = median(currUpEnv) + 2*std(currUpEnv);
-        lowEnvThr = median(currLowEnv) + 2*std(currLowEnv);
-        iPThr     = median(currIp) + 2*std(currIp);
-        instEThr  = median(currInstE) + 2*std(currInstE);
+        upEnvThr  = median(currUpEnv) + std(currUpEnv);
+        lowEnvThr = median(currLowEnv) - std(currLowEnv);
+        iPThr     = median(currIp) + std(currIp);
+        instEThr  = median(currInstE) + std(currInstE);
         win2test  = max(1,length(currInds) - round(.05*fs)):length(currInds);
         cond      = ( (length(find(currUpEnv(win2test) > upEnvThr)) / length(win2test)) > .5 ) ||...
-                    ( (length(find(currLowEnv(win2test) > lowEnvThr)) / length(win2test)) > .5 ) ||...
+                    ( (length(find(currLowEnv(win2test) < lowEnvThr)) / length(win2test)) > .5 ) ||...
                     ( (length(find(currIp(win2test) > iPThr)) / length(win2test)) > .5 ) ||...
                     ( (length(find(currInstE(win2test) > instEThr)) / length(win2test)) > .5 );
         if cond
             fprintf('Stretching current window!\n')
-            startOffset = startOffset + round(.05*fs);
+            startOffset = startOffset + round(.1*fs);
             currInds     = startInd:min(dataLen, startInd + startOffset + s.winLen - 1);
 
             currTaxis    = tAxis(currInds);
