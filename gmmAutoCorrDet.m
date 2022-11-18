@@ -94,8 +94,8 @@ for ch = 1:size(data,1)
         end
         currInds     = startInd:min(dataLen, startInd + s.winLen - 1);
         if (dataLen - currInds(end)) < s.winLen/2
-            currInds = startInd:dataLen;
             startOffset = startOffset + (dataLen - currInds(end));
+            currInds = startInd:dataLen;
         end
         
         currTaxis    = tAxis(currInds);
@@ -289,7 +289,7 @@ if refVal
         end
         for iv = 1:length(detPeaks{ch})
             winInds = max(1, detPeaks{ch}(iv) - refValWinHalfLen):min(dataLen, detPeaks{ch}(iv) + refValWinHalfLen);
-            if std(refDog(winInds)) / std(dogged(ch,winInds)) > .6
+            if std(refDog(winInds)) / std(dogged(ch,winInds)) > .5
                 r = corrcoef(dogged(ch,winInds),refDog(winInds));
                 if abs(r(2)) > .9
                     refValVictims2Del{ch} = [refValVictims2Del{ch}; iv];

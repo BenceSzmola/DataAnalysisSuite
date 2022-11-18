@@ -39,7 +39,8 @@ classdef detAlgSettingGUI < handle
                               'evFitRsqMin','Minimal rsquare value for event fitting',...
                               'evFitCycMin','Minimal cycle number for event fitting',...
                               'evFitT','Minimal decay time for event fitting',...
-                              'evFitTheta','Minimal and maximal theta for event fitting');
+                              'evFitTheta','Minimal and maximal theta for event fitting',...
+                              'maxNumFailedCrits','Minimum # of event criteria to pass (these will need to be confirmed)');
 
         %% UI components
         mainFig
@@ -238,6 +239,7 @@ classdef detAlgSettingGUI < handle
                     s.evFitCycMin          = 2;
                     s.evFitT               = [.008, .08];
                     s.evFitTheta           = [100, 200];
+                    s.maxNumFailedCrits    = 2;
 
             end
 

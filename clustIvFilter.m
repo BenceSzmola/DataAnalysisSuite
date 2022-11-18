@@ -58,7 +58,7 @@ for ivNum = 1:size(currClustIvs,1)
 
     elseif sum(conds) > 0
         belowThrIvs = computeAboveThrLengths([currUpEnv(currClustIv); currLowEnv(currClustIv)],...
-            [upThr,lowThr],["<",">"],s.clustGapMinLen,[],"|");
+            [upThr,lowThr],["<",">"],s.clustGapMinLen,[],"&");
         skipThis = true;
 
         if ~isempty(belowThrIvs)
@@ -199,7 +199,7 @@ for ivNum = 1:size(currClustIvs,1)
 
         if all(conds)
             evInds(currInds(currHighIv)) = 1;
-        elseif sum(conds) >= 2
+        elseif sum(~conds) <= s.maxNumFailedCrits
             evInds(currInds(currHighIv)) = 2;
         end
     end
