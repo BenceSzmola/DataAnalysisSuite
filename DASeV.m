@@ -2027,15 +2027,27 @@ classdef DASeV < handle
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
                     if ~isempty(gO.ephysDetInfo)
-                        if ~isempty(gO.ephysDetInfo.DetSettings) && isfield(gO.ephysDetInfo.DetSettings, 'RefCh')
-                            gO.ephysRefCh = numSelCharConverter(gO.ephysDetInfo(1).DetSettings.RefCh);
+                        if ~isempty(gO.ephysDetInfo.DetSettings) 
+                            if isfield(gO.ephysDetInfo.DetSettings, 'RefCh')
+                                gO.ephysRefCh = numSelCharConverter(gO.ephysDetInfo(1).DetSettings.RefCh);
+                            end
+                            if isfield(gO.ephysDetInfo.DetSettings, 'W1') && isfield(gO.ephysDetInfo.DetSettings, 'W2')
+                                w1 = gO.ephysDetInfo.DetSettings.W1;
+                                w2 = gO.ephysDetInfo.DetSettings.W2;
+                            else
+                                w1 = 150;
+                                w2 = 250;
+                            end
                         end
+                    else
+                        w1 = 150;
+                        w2 = 250;
                     end
 
                     gO.loaded(1) = 1;
 
-                    gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,150,250);
-                    gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,150,250);
+                    gO.ephysDoGGed = DoG(gO.ephysData,gO.ephysFs,w1,w2);
+                    gO.ephysInstPow = instPow(gO.ephysData,gO.ephysFs,w1,w2);
                     
                     dataPresent(1) = true;
                 else
