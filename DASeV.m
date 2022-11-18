@@ -1951,17 +1951,30 @@ classdef DASeV < handle
             end
 
             if strcmp([gO.selDir,'\',gO.selDirFiles{val}],gO.path2loadedSave)
-                eD = errordlg('File already loaded!');
-                pause(1)
-                if ishandle(eD)
-                    close(eD)
-                end
-                return
+%                 buttonEnabler(gO)
+%                 gO.tabgrp.SelectedTab = gO.tabgrp.Children(2);
+%                 tabChanged(gO)
+%                 return
+%                 eD = errordlg('File already loaded!');
+%                 pause(1)
+%                 if ishandle(eD)
+%                     close(eD)
+%                 end
+%                 return
             end
             
             if ~isempty(gO.selDirFiles)
                 fname = gO.selDirFiles{val};
                 fnameFull = [gO.selDir,'\',fname];
+
+                testload = matfile(fnameFull);
+                vars = whos(testload);
+                eSIind = ismember({vars.name},'ephysSaveInfo');
+                iSIind = ismember({vars.name},'imagingSaveInfo');
+                if ~vars(eSIind).bytes && ~vars(iSIind).bytes
+                    return
+                end
+
             else
                 eD = errordlg('No file selected!');
                 pause(1)
@@ -2588,6 +2601,10 @@ classdef DASeV < handle
         
         %%
         function delCurrEventButtonCB(gO,dTyp,delFullChan,currChan,detNum,inDelLoop)
+            if gO.plotFull
+                return
+            end
+
             if nargin < 6
                 inDelLoop = false;
             end
@@ -2940,6 +2957,10 @@ classdef DASeV < handle
         
         %%
         function delSelectedEventsButtonCB(gO)
+            if gO.plotFull
+                return
+            end
+
             confDel = questdlg('Delete selected events?');
             if ~strcmp(confDel, 'Yes')
                 return
