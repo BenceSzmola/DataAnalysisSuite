@@ -37,6 +37,16 @@ for ivNum = 1:size(currClustIvs,1)
         clustIvXLine2 = xline(eoiFigAx,currTaxis(currClustIv(end)),'r--','LineWidth',1);
     end
 
+    if isempty(find(currUpEnv(currClustIv) > upThr,1)) || isempty(find(currLowEnv(currClustIv) < lowThr,1))
+        if s.debugPlots
+            fprintf('No above threshold data in this interval, moving on...\n')
+            waitforbuttonpress
+            delete([clustIvXLine1,clustIvXLine2])
+        end
+
+        continue
+    end
+
     [r,lags] = xcorr(currDoG(currClustIv),'coeff');
     r        = r(floor(length(r)/2) + 1:end);
     lags     = lags(floor(length(lags)/2) + 1:end);
