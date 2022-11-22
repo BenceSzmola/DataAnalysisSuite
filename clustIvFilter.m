@@ -154,6 +154,15 @@ for ivNum = 1:size(currClustIvs,1)
         continue
     end
 
+    if ( trapz(currInstEbad(currClustIv)) / trapz(currInstE(currClustIv)) ) > .75
+        if s.debugPlots
+            fprintf(1,'Cluster interval has higher bad instE AUC, skip!\n')
+            waitforbuttonpress
+            delete([clustIvXLine1,clustIvXLine2])
+        end
+        continue
+    end
+
     ivsOI  = computeAboveThrLengths([currUpEnv(currClustIv); currLowEnv(currClustIv)],...
         [upThr,lowThr],[">","<"],s.envThrCrossMinLen,[],s.envThrCrossMode);
 

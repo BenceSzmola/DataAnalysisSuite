@@ -66,7 +66,7 @@ for i = 1:size(data,1)
 end
 selectedInds = find(selectedInds);
 
-if isempty(selectedInds)
+if length(selectedInds) < 2
     intervals = [];
     lens = [];
 
