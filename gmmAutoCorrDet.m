@@ -188,7 +188,7 @@ for ch = 1:size(data,1)
             for k = goodClusters
 
 %                 [niceIvsTemp,mehIvsTemp,badIvsTemp] = clustIvFilter(fs,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
-                evInds = clustIvFilter(fs,evInds,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currTaxis,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
+                evInds = clustIvFilter(fs,evInds,currInds,chosenGMM,lowClust,clustInds,k,currTaxis,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
 %                 niceIvs = [niceIvs; niceIvsTemp];
 %                 mehIvs  = [mehIvs; mehIvsTemp];
 %                 badIvs  = [badIvs; badIvsTemp];
