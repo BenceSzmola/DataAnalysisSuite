@@ -201,20 +201,21 @@ for ivNum = 1:size(currClustIvs,1)
         lags     = lags(floor(length(lags)/2) + 1:end);
         [decCosFit,gof,~,fit_theta,fit_time2base,fit_cycles2base] = decayingCosFit(lags,r,fs);
 
+        conds = [(fit_time2base > s.evFitT(1)) && (fit_time2base < s.evFitT(2)),...
+                 fit_cycles2base >= s.evFitCycMin,...
+                 (fit_theta >= s.evFitTheta(1)) && (fit_theta <= s.evFitTheta(2)),...
+                 gof.rsquare > s.evFitRsqMin];
+
         if s.debugPlots
             xcorrFig = figure('Name','Autocorrelation figure');
             plot(decCosFit,lags/fs,r)
+            title(sprintf('# failed conditions: %d',sum(~conds)))
 
             waitfor(xcorrFig)
 
             waitforbuttonpress
             delete([xl1, xl2])
         end
-
-        conds = [(fit_time2base > s.evFitT(1)) && (fit_time2base < s.evFitT(2)),...
-                 fit_cycles2base >= s.evFitCycMin,...
-                 (fit_theta >= s.evFitTheta(1)) && (fit_theta <= s.evFitTheta(2)),...
-                 gof.rsquare > s.evFitRsqMin];
 
         if all(conds)
             evInds(currInds(currHighIv)) = 1;
