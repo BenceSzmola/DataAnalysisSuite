@@ -165,7 +165,7 @@ classdef DASeV < handle
         keyboardPressDtyp = 1;
         spectroFreqLims = [1,1000];
         eventYlimMode = 'global';
-        eventYlimCustom_ephys = [-1000, 1000; -150, 150; -1, 20];
+        eventYlimCustom_ephys = [-1000, 1000; -150, 150; -1, 100];
         eventYlimCustom_imaging = [-5, 10; -5, 10];
         save2DbEphysSelection = cell(1,1);
         save2DbEphysParallelRoiSelection = false(1,1);
