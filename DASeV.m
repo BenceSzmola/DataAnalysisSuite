@@ -2685,6 +2685,10 @@ classdef DASeV < handle
                                     axButtPress(gO,dTyp)
                                     waitbar(0.66, wb, 'Overwriting DASsave file...')
                                     overwriteDASsave(gO,gO.simultMode,dTyp)
+                                    if ~gO.loaded(2) || (gO.loaded(2) && ~sum(~cellfun('isempty',gO.imagingDets)))
+                                        gO.tabgrp.SelectedTab = gO.tabgrp.Children(1);
+                                        tabChanged(gO)
+                                    end
                                     waitbar(1, wb, 'Done!')
                                     if ishandle(wb)
                                         close(wb)
@@ -2740,6 +2744,10 @@ classdef DASeV < handle
                                         axButtPress(gO,dTyp)
                                         waitbar(0.66, wb, 'Overwriting DASsave file...')
                                         overwriteDASsave(gO,gO.simultMode,dTyp)
+                                        if ~gO.loaded(2) || (gO.loaded(2) && ~sum(~cellfun('isempty',gO.imagingDets)))
+                                            gO.tabgrp.SelectedTab = gO.tabgrp.Children(1);
+                                            tabChanged(gO)
+                                        end
                                         waitbar(1, wb, 'Done!')
                                         if ishandle(wb)
                                             close(wb)
@@ -2801,6 +2809,10 @@ classdef DASeV < handle
                                     axButtPress(gO,dTyp)
                                     waitbar(0.66, wb, 'Overwriting DASsave file...')
                                     overwriteDASsave(gO,gO.simultMode,dTyp)
+                                    if ~gO.loaded(1) || (gO.loaded(1) && ~sum(~cellfun('isempty',gO.ephysDets)))
+                                        gO.tabgrp.SelectedTab = gO.tabgrp.Children(1);
+                                        tabChanged(gO)
+                                    end
                                     waitbar(1, wb, 'Done!')
                                     if ishandle(wb)
                                         close(wb)
@@ -2852,6 +2864,10 @@ classdef DASeV < handle
                                         axButtPress(gO,dTyp)
                                         waitbar(0.66, wb, 'Overwriting DASsave file...')
                                         overwriteDASsave(gO,gO.simultMode,dTyp)
+                                        if ~gO.loaded(1) || (gO.loaded(1) && ~sum(~cellfun('isempty',gO.ephysDets)))
+                                            gO.tabgrp.SelectedTab = gO.tabgrp.Children(1);
+                                            tabChanged(gO)
+                                        end
                                         waitbar(1, wb, 'Done!')
                                         if ishandle(wb)
                                             close(wb)
