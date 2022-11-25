@@ -59,7 +59,8 @@ for ivNum = 1:size(currClustIvs,1)
         xline(eoiFigSp3,currTaxis(currClustIv(end)),'r--','LineWidth',1);
     end
 
-    if isempty(find(currUpEnv(currClustIv) > upThr,1)) || isempty(find(currLowEnv(currClustIv) < lowThr,1))
+    if ( length(find(currUpEnv(currClustIv) > upThr)) < round(s.envThrCrossMinLen/2) ) &&...
+            ( length(find(currLowEnv(currClustIv) < lowThr)) < round(s.envThrCrossMinLen/2) )
         if s.debugPlots
             fprintf('No above threshold data in this interval, moving on...\n')
             waitforbuttonpress
