@@ -1905,6 +1905,7 @@ classdef DASeV < handle
             switch gO.tabgrp.SelectedTab
                 case gO.loadTab
                     uicontrol(gO.fileListBox)
+                    fileListSel(gO)
                     
                 case gO.viewerTab
                     gO.mainFig.CurrentObject = gO.plotPanel;
