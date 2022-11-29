@@ -1904,8 +1904,8 @@ classdef DASeV < handle
             
             switch gO.tabgrp.SelectedTab
                 case gO.loadTab
-                    uicontrol(gO.fileListBox)
                     fileListSel(gO)
+                    uicontrol(gO.fileListBox)
                     
                 case gO.viewerTab
                     gO.mainFig.CurrentObject = gO.plotPanel;
@@ -2430,9 +2430,9 @@ classdef DASeV < handle
                     currChan = 1;
                 end
 
-                if chanUpDwn ~= 0
-                    currDet = 1;
-                end
+%                 if chanUpDwn ~= 0
+%                     currDet = 1;
+%                 end
                 
                 [numDets,numChans] = extractDetStruct(gO,dTyp);
 
@@ -2442,10 +2442,12 @@ classdef DASeV < handle
                     case 1
                         if currChan < numChans
                             currChan = currChan + 1;
+                            currDet = 1;
                         end
                     case -1
                         if currChan > 1
                             currChan = currChan - 1;
+                            currDet = 1;
                         end
                 end
 
