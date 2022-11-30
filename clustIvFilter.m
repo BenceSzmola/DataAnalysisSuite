@@ -59,7 +59,7 @@ for ivNum = 1:size(currClustIvs,1)
         xline(eoiFigSp3,currTaxis(currClustIv(end)),'r--','LineWidth',1);
     end
 
-    if ( length(find(currUpEnv(currClustIv) > upThr)) < round(s.envThrCrossMinLen/2) ) &&...
+    if ( length(find(currUpEnv(currClustIv) > upThr)) < round(s.envThrCrossMinLen/2) ) ||...
             ( length(find(currLowEnv(currClustIv) < lowThr)) < round(s.envThrCrossMinLen/2) )
         if s.debugPlots
             fprintf('No above threshold data in this interval, moving on...\n')
@@ -202,8 +202,11 @@ for ivNum = 1:size(currClustIvs,1)
                         [upThr,lowThr],[">","<"],s.envThrCrossMinLen,[],s.envThrCrossMode);
     ivsOI_iP    = computeAboveThrLengths(currIp(currClustIv),iPThr,">",s.envThrCrossMinLen);
     ivsOI_instE = computeAboveThrLengths(currInstE(currClustIv),instEThr,">",s.envThrCrossMinLen);
-    ivsOI       = intervalUnify({ivsOI_env,ivsOI_iP,ivsOI_instE});
+    ivsOI       = intervalUnify({ivsOI_env,ivsOI_iP,ivsOI_instE},2);
 
+    if s.debugPlots && (size(ivsOI,1) == 0)
+        fprintf(1,'No potential event containing intervals found!\n')
+    end
     for highIvNum = 1:size(ivsOI,1)
         currHighIv = currClustIv(ivsOI(highIvNum,1):ivsOI(highIvNum,2));
 
