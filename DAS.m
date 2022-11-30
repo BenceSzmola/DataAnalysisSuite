@@ -1935,7 +1935,9 @@ classdef DAS < handle
 
 %                     critData = mean(instPow(data(refchrows,:),fs,150,250), 1);
 
-                    hilbi = hilbert(mean(data(refchrows,:), 1));
+                    w1 = str2double(guiobj.w1Edit.String);
+                    w2 = str2double(guiobj.w2Edit.String);
+                    hilbi = hilbert(mean(DoG(data(refchrows,:),fs,w1,w2), 1));
                     critData = abs(hilbi);
                     
                     inds2use = getBaselineInds(critData, 'EnvelopeProminence', round(0.1*fs));
@@ -1953,7 +1955,7 @@ classdef DAS < handle
                             hold on
                             plot(tempTaxis, tempData(ch,:), 'r');
                             hold off
-                            title(sprintf('Channel #%d - reference', refchrows(ch)))
+                            title(sprintf('Channel #%d - reference', chans(refchrows(ch))))
                         end
                         linkaxes(findobj(selIndFig, 'Type', 'axes'), 'x')
                     end
@@ -3721,7 +3723,9 @@ classdef DAS < handle
             guiobj.ephys_procdatanames = procDatanames;
             guiobj.ephysProcListBox2.String = procDatanames;
             guiobj.ephysProcListBox2.Value = length(procDatanames)-(length(data_idx)-1):length(procDatanames);
-            ephysProcListBox2ValueChanged(guiobj)
+            if nargin == 1
+                ephysProcListBox2ValueChanged(guiobj)
+            end
             
             guiobj.ephysRunProcButton.BackgroundColor = 'g';
         end
@@ -4210,7 +4214,7 @@ classdef DAS < handle
 
                     end
 
-                    [dets,detBorders,detParams,evComplexes,algSett] = gmmAutoCorrDet(settMode,data,fs,tAxis,chan,refch,refchData,refVal,showFigs,guiobj.roboDet);
+                    [dets,detBorders,detParams,evComplexes,algSett] = gmmAutoCorrDet(settMode,inds2use,data,fs,tAxis,chan,refch,refchData,refVal,showFigs,guiobj.roboDet);
                     w1 = algSett.goodBand(1);
                     w2 = algSett.goodBand(2);
 

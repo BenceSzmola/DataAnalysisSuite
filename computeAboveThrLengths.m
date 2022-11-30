@@ -45,6 +45,8 @@ for i = 1:size(data,1)
             selectedInds_temp = data(i,:) < thr(i,:);
         case "=="
             selectedInds_temp = data(i,:) == thr(i,:);
+        case "inds"
+            selectedInds_temp = data(i,:);
     end
 
     if i == 1
@@ -64,7 +66,9 @@ for i = 1:size(data,1)
 
     end
 end
-selectedInds = find(selectedInds);
+if thrMode ~= "inds"
+    selectedInds = find(selectedInds);
+end
 
 if length(selectedInds) < 2
     intervals = [];

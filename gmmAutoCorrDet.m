@@ -1,4 +1,4 @@
-function [detPeaks,detBorders,detParams,evComplexes,s] = gmmAutoCorrDet(getSettMode,data,fs,tAxis,chans,refch,refData,refVal,showFigs,autoPilot)
+function [detPeaks,detBorders,detParams,evComplexes,s] = gmmAutoCorrDet(getSettMode,inds2use,data,fs,tAxis,chans,refch,refData,refVal,showFigs,autoPilot)
 
 switch getSettMode
     case 'gui'
@@ -28,7 +28,7 @@ numChans = size(data,1);
 dataLen  = size(data,2);
 
 dogged = DoG(data,fs,s.goodBand(1),s.goodBand(2));
-instE  = zeros(numChans,dataLen); 
+instE  = zeros(numChans,dataLen);
 
 detBorders = cell(numChans,1);
 detPeaks   = cell(numChans,1);
@@ -41,6 +41,8 @@ lowEnvFeatInd = 2;
 if s.debugPlots
     resFig = figure('Name','Results figure','WindowState','minimized');
 end
+
+[inds2useIvs,~] = computeAboveThrLengths(inds2use,0,"inds");
 
 for ch = 1:size(data,1)
     if ismember(chans(ch),refch)
@@ -87,41 +89,19 @@ for ch = 1:size(data,1)
 %     badIvs  = zeros(0,2);
     evInds = zeros(1,dataLen);
     startOffset = 0;
-    for startInd = 1:s.winLen:dataLen
-        startInd     = min(dataLen,startInd + startOffset);
-        if startInd >= (dataLen - 1)
-            continue
-        end
-        currInds     = startInd:min(dataLen, startInd + s.winLen - 1);
-        if (dataLen - currInds(end)) < s.winLen/2
-            startOffset = startOffset + (dataLen - currInds(end));
-            currInds = startInd:dataLen;
-        end
-        
-        currTaxis    = tAxis(currInds);
-        currDoG      = dogged(ch,currInds);
-        currUpEnv    = upEnv(currInds);
-        currLowEnv   = lowEnv(currInds);
-        currIp       = iP(currInds);
-        currIpBad    = iPbad(currInds);
-        currInstE    = instE(ch,currInds);
-        currInstEbad = instEbad(currInds);
-
-        % check to ensure a signal isnt cut in half by the windowing
-        upEnvThr  = median(currUpEnv) + std(currUpEnv);
-        lowEnvThr = median(currLowEnv) - std(currLowEnv);
-        iPThr     = median(currIp) + std(currIp);
-        instEThr  = median(currInstE) + std(currInstE);
-        win2test  = max(1,length(currInds) - round(.05*fs)):length(currInds);
-        cond      = ( (length(find(currUpEnv(win2test) > upEnvThr)) / length(win2test)) > .5 ) ||...
-                    ( (length(find(currLowEnv(win2test) < lowEnvThr)) / length(win2test)) > .5 ) ||...
-                    ( (length(find(currIp(win2test) > iPThr)) / length(win2test)) > .5 ) ||...
-                    ( (length(find(currInstE(win2test) > instEThr)) / length(win2test)) > .5 );
-        if cond
-            fprintf('Stretching current window!\n')
-            startOffset = startOffset + round(.1*fs);
-            currInds     = startInd:min(dataLen, startInd + startOffset + s.winLen - 1);
-
+    for validIv = 1:size(inds2useIvs,1)
+        currIv = [inds2useIvs(validIv,1), inds2useIvs(validIv,2)];
+        for startInd = currIv(1):s.winLen:currIv(2)
+            startInd     = min(currIv(2),startInd + startOffset);
+            if startInd >= (currIv(2) - 1)
+                continue
+            end
+            currInds     = startInd:min(currIv(2), startInd + s.winLen - 1);
+            if (currIv(2) - currInds(end)) < s.winLen/2
+                startOffset = startOffset + (currIv(2) - currInds(end));
+                currInds = startInd:currIv(2);
+            end
+            
             currTaxis    = tAxis(currInds);
             currDoG      = dogged(ch,currInds);
             currUpEnv    = upEnv(currInds);
@@ -130,70 +110,95 @@ for ch = 1:size(data,1)
             currIpBad    = iPbad(currInds);
             currInstE    = instE(ch,currInds);
             currInstEbad = instEbad(currInds);
-        end
+    
+            % check to ensure a signal isnt cut in half by the windowing
+            upEnvThr  = median(currUpEnv) + std(currUpEnv);
+            lowEnvThr = median(currLowEnv) - std(currLowEnv);
+            iPThr     = median(currIp) + std(currIp);
+            instEThr  = median(currInstE) + std(currInstE);
+            win2test  = max(1,length(currInds) - round(.05*fs)):length(currInds);
+            cond      = ( (length(find(currUpEnv(win2test) > upEnvThr)) / length(win2test)) > .5 ) ||...
+                        ( (length(find(currLowEnv(win2test) < lowEnvThr)) / length(win2test)) > .5 ) ||...
+                        ( (length(find(currIp(win2test) > iPThr)) / length(win2test)) > .5 ) ||...
+                        ( (length(find(currInstE(win2test) > instEThr)) / length(win2test)) > .5 );
+            if cond
+                fprintf('Stretching current window!\n')
+                startOffset  = startOffset + round(.1*fs);
+                currInds     = startInd:min(currIv(2), startInd + startOffset + s.winLen - 1);
+    
+                currTaxis    = tAxis(currInds);
+                currDoG      = dogged(ch,currInds);
+                currUpEnv    = upEnv(currInds);
+                currLowEnv   = lowEnv(currInds);
+                currIp       = iP(currInds);
+                currIpBad    = iPbad(currInds);
+                currInstE    = instE(ch,currInds);
+                currInstEbad = instEbad(currInds);
+            end
+            
+            data2fit = [currUpEnv',currLowEnv',currIp',currIpBad',currInstE',currInstEbad'];
+            [chosenGMM,clustInds,lowClust,gofVals,dropPercent] = runGMM(data2fit,s);
+    
+            if s.debugPlots
+                figure(slideFig)
+            
+                sp1 = subplot(4,1,1,'Parent',slideFig);
+                for k = 1:chosenGMM.NumComponents
+                    segments = nan(size(currDoG));
+                    segments(clustInds==k) = currDoG(clustInds==k);
+                    plot(sp1,currTaxis,segments,'DisplayName',num2str(k))
+                    hold(sp1,'on')
+                end
+                legend(sp1)
+                hold(sp1,'off')
+                title(sp1,'DoG of current segment')
         
-        data2fit = [currUpEnv',currLowEnv',currIp',currIpBad',currInstE',currInstEbad'];
-        [chosenGMM,clustInds,lowClust,gofVals,dropPercent] = runGMM(data2fit,s);
-
-        if s.debugPlots
-            figure(slideFig)
+                sp2 = subplot(4,1,2,'Parent',slideFig);
+                for k = 1:chosenGMM.NumComponents
+                    segments = nan(size(currInstE));
+                    segments(clustInds==k) = currInstE(clustInds==k);
+                    plot(sp2,currTaxis,segments,'DisplayName',num2str(k))
+                    hold(sp2,'on')
+                end
+                legend(sp2)
+                hold(sp2,'off')
+                title(sp2,'CWT InstE (good freqs) of current segment')
         
-            sp1 = subplot(4,1,1,'Parent',slideFig);
-            for k = 1:chosenGMM.NumComponents
-                segments = nan(size(currDoG));
-                segments(clustInds==k) = currDoG(clustInds==k);
-                plot(sp1,currTaxis,segments,'DisplayName',num2str(k))
-                hold(sp1,'on')
-            end
-            legend(sp1)
-            hold(sp1,'off')
-            title(sp1,'DoG of current segment')
+                sp3 = subplot(4,1,3,'Parent',slideFig);
+                for k = 1:chosenGMM.NumComponents
+                    segments = nan(size(currInstEbad));
+                    segments(clustInds==k) = currInstEbad(clustInds==k);
+                    plot(sp3,currTaxis,segments,'DisplayName',num2str(k))
+                    hold(sp3,'on')
+                end
+                legend(sp3)
+                hold(sp3,'off')
+                title(sp3,'CWT InstE (bad freqs) of current segment')
+            
+                sp4 = subplot(4,1,4,'Parent',slideFig);
+                plot(sp4,gofVals,'o-')
+                title(sp4,sprintf('Best component num: %d, best drop=%.4f',chosenGMM.NumComponents,dropPercent))
     
-            sp2 = subplot(4,1,2,'Parent',slideFig);
-            for k = 1:chosenGMM.NumComponents
-                segments = nan(size(currInstE));
-                segments(clustInds==k) = currInstE(clustInds==k);
-                plot(sp2,currTaxis,segments,'DisplayName',num2str(k))
-                hold(sp2,'on')
+                waitforbuttonpress
             end
-            legend(sp2)
-            hold(sp2,'off')
-            title(sp2,'CWT InstE (good freqs) of current segment')
     
-            sp3 = subplot(4,1,3,'Parent',slideFig);
-            for k = 1:chosenGMM.NumComponents
-                segments = nan(size(currInstEbad));
-                segments(clustInds==k) = currInstEbad(clustInds==k);
-                plot(sp3,currTaxis,segments,'DisplayName',num2str(k))
-                hold(sp3,'on')
-            end
-            legend(sp3)
-            hold(sp3,'off')
-            title(sp3,'CWT InstE (bad freqs) of current segment')
+            if chosenGMM.NumComponents  > 1
+    
+                goodClusters = find(1:chosenGMM.NumComponents ~= lowClust);
         
-            sp4 = subplot(4,1,4,'Parent',slideFig);
-            plot(sp4,gofVals,'o-')
-            title(sp4,sprintf('Best component num: %d, best drop=%.4f',chosenGMM.NumComponents,dropPercent))
-
-            waitforbuttonpress
-        end
-
-        if chosenGMM.NumComponents  > 1
-
-            goodClusters = find(1:chosenGMM.NumComponents ~= lowClust);
+                upThr       = chosenGMM.mu(lowClust,upEnvFeatInd) + s.envThrSdMult*sqrt(chosenGMM.Sigma(upEnvFeatInd,upEnvFeatInd,lowClust));
+                lowThr      = chosenGMM.mu(lowClust,lowEnvFeatInd) - s.envThrSdMult*sqrt(chosenGMM.Sigma(lowEnvFeatInd,lowEnvFeatInd,lowClust));
+        
+                for k = goodClusters
     
-            upThr       = chosenGMM.mu(lowClust,upEnvFeatInd) + s.envThrSdMult*sqrt(chosenGMM.Sigma(upEnvFeatInd,upEnvFeatInd,lowClust));
-            lowThr      = chosenGMM.mu(lowClust,lowEnvFeatInd) - s.envThrSdMult*sqrt(chosenGMM.Sigma(lowEnvFeatInd,lowEnvFeatInd,lowClust));
+    %                 [niceIvsTemp,mehIvsTemp,badIvsTemp] = clustIvFilter(fs,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
+                    evInds = clustIvFilter(fs,evInds,currInds,chosenGMM,lowClust,clustInds,k,currTaxis,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
+    %                 niceIvs = [niceIvs; niceIvsTemp];
+    %                 mehIvs  = [mehIvs; mehIvsTemp];
+    %                 badIvs  = [badIvs; badIvsTemp];
+                end
     
-            for k = goodClusters
-
-%                 [niceIvsTemp,mehIvsTemp,badIvsTemp] = clustIvFilter(fs,currInds,chosenGMM,lowClust,clustInds,k,upThr,lowThr,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
-                evInds = clustIvFilter(fs,evInds,currInds,chosenGMM,lowClust,clustInds,k,currTaxis,currDoG,currUpEnv,currLowEnv,currIp,currInstE,currInstEbad,s);
-%                 niceIvs = [niceIvs; niceIvsTemp];
-%                 mehIvs  = [mehIvs; mehIvsTemp];
-%                 badIvs  = [badIvs; badIvsTemp];
             end
-
         end
     end
 
