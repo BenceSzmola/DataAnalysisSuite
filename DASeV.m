@@ -3665,12 +3665,14 @@ classdef DASeV < handle
                     errordlg('No events selected!')
                     return
                 end
+                
+                dir2save = uigetdir(cd,'Select database directory!');
 
-                DASloc = mfilename('fullpath');
-                if ~exist([DASloc(1:end-5),'DASeventDBdir\'],'dir')
-                    mkdir([DASloc(1:end-5),'DASeventDBdir\'])
+                if dir2save == 0
+                    return
                 end
-                dbFiles = dir([DASloc(1:end-5),'DASeventDBdir\','DASeventDB*.mat']);
+
+                dbFiles = dir([dir2save,'\','DASeventDB*.mat']);
 
                 dbFiles = {dbFiles.name};
                 dbFiles = ['Start a new database entry', dbFiles];
@@ -3688,12 +3690,11 @@ classdef DASeV < handle
                     if isempty(dbName)
                         return
                     else
-                        saveFname = [DASloc(1:end-5),'DASeventDBdir\','DASeventDB_',dbName{:},'.mat'];
+                        saveFname = [dir2save,'\','DASeventDB_',dbName{:},'.mat'];
                         saveStruct = [];
                     end
                 else
-                    dbName = dbFiles{ind}(12:end-4);
-                    saveFname = [DASloc(1:end-5),'DASeventDBdir\',dbFiles{ind}];
+                    saveFname = [dir2save,'\',dbFiles{ind}];
                     load(saveFname,'saveStruct')
 
                     % Checking whether the user chose a fitting db entry

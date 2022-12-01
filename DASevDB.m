@@ -27,6 +27,7 @@ classdef DASevDB < handle
         
         exportMenu
         exportCurrLoadedParamsMenu
+        exportCurrStatGraphMenu
         
         %% tabs
         tabgroup
@@ -40,6 +41,7 @@ classdef DASevDB < handle
         LBcontMenu
         LBcontMenuUpdate
         LBcontMenuDelete
+        selDirButton
         loadEntryButton
         
         %% infoPanel
@@ -120,6 +122,7 @@ classdef DASevDB < handle
     %% Initializing data stored in GUI
     properties (Access = private)
         loaded = [0, 0, 0];
+        selDBdir
         dbFileNames
         currEvent = 1;
         currParallelChan = 1;
@@ -131,7 +134,7 @@ classdef DASevDB < handle
         displayAvgDataWin = 0;
         spectroFreqLims = [1,1000];
         ylimMode = 'window';
-        ylimCustom_ephys = [-1000, 1000; -100, 100; -1, 20];
+        ylimCustom_ephys = [-1000, 1000; -150, 150; -1, 100];
         ylimCustom_imaging = [-5, 10; -5, 10];
         
         ephysTypeSelected = [true, false, false]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
@@ -188,29 +191,40 @@ classdef DASevDB < handle
     %% Helper functions
     methods (Access = private)
         %%
-        function getDBlist(gO,writeToGUI)
-            DASloc = mfilename('fullpath');
-            if ~exist([DASloc(1:end-7),'DASeventDBdir\'],'dir')
-                DBentryList = {'No DB entries! First create them in DASeV!'};
-                gO.entryListBox.Value = 1;
-                gO.loadEntryButton.Enable = 'off';
+        function getDBlist(gO,writeToGUI,refresh)
+            if nargin < 3 || ~refresh
+                dbDir = uigetdir(cd,'Select database directory!');
+
+                if dbDir == 0
+                    return
+                end
+                gO.selDBdir = dbDir;
             else
-                DBentryList = dir([DASloc(1:end-7),'DASeventDBdir\','DASeventDB*.mat']);
-                if isempty(DBentryList)
-                    DBentryList = {'No DB entries! First create them in DASeV!'};
-                    gO.entryListBox.Value = 1;
-                    gO.loadEntryButton.Enable = 'off';
-                else
-                    DBentryList = {DBentryList.name};
-                    gO.dbFileNames = DBentryList;
-                    gO.entryListBox.Value = 1;
-                    gO.loadEntryButton.Enable = 'on';
+                if refresh && isempty(gO.selDBdir)
+                    return
                 end
             end
+
+            DBentryList = dir([gO.selDBdir,'\','DASeventDB*.mat']);
+            if isempty(DBentryList)
+                DBentryList = {'No DB in directory!'};
+                gO.entryListBox.Value         = 1;
+                gO.db4StatListBox.Value       = 1;
+                gO.statGraphDataListbox.Value = 1;
+                gO.loadEntryButton.Enable     = 'off';
+            else
+                DBentryList = {DBentryList.name};
+                gO.dbFileNames = DBentryList;
+                gO.entryListBox.Value         = 1;
+                gO.db4StatListBox.Value       = 1;
+                gO.statGraphDataListbox.Value = 1;
+                gO.loadEntryButton.Enable     = 'on';
+            end
             
-            if writeToGUI == 1
+            if writeToGUI == 1 || writeToGUI == 0
                 gO.entryListBox.String = DBentryList;
-            elseif writeToGUI == 2
+            end
+            if writeToGUI == 2 || writeToGUI == 0
                 gO.db4StatListBox.String = DBentryList;
                 gO.statGraphDataListbox.String = DBentryList;
             end
@@ -861,13 +875,7 @@ classdef DASevDB < handle
         
         %%
         function tabChanged(gO,~,e)
-%             e.NewValue
-%             isempty(find(gO.loaded,1))
-%             if (e.NewValue == gO.tabgroup.Children(2)) & isempty(find(gO.loaded,1))
-%                 gO.tabgroup.SelectedTab = e.OldValue;
-%                 drawnow
-%                 warndlg('No file loaded!')
-%             end
+
         end
         
         %%
@@ -884,8 +892,7 @@ classdef DASevDB < handle
             gO.imagingParamTable.Visible = 'off';
             gO.sourceChanDetTable.Data = cell(2,2);
             
-            DASloc = mfilename('fullpath');
-            file2load = [DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname];
+            file2load = [gO.selDBdir,'\',gO.loadedEntryFname];
             load(file2load,'saveStruct');
             if isempty(saveStruct)
                 errordlg('Selected entry is empty!')
@@ -908,14 +915,7 @@ classdef DASevDB < handle
                 gO.parallelChanUpButton.Visible = 'on';
                 gO.showAvgParallelChanButton.Visible = 'on';
             end
-            
-%             temp = {'ephysTaxis';'ephysDataWin';'ephysParams';'imagingTaxis';...
-%                 'imagingDataWin';'imagingParams';'simultEphysTaxis';...
-%                 'simultEphysDataWin';'simultEphysParams';...
-%                 'simultImagingTaxis';'simultImagingDataWin';'simultImagingParams'};
-%             nameMatch = ismember(temp,string(fieldnames(saveStruct)))
 
-%             if isempty(find([saveStruct.simult],1)) && ...
             if ismember('ephysEvents',string(fieldnames(saveStruct)))
                 gO.numEvents = length(saveStruct);
                 gO.loaded(1) = 1;
@@ -923,7 +923,6 @@ classdef DASevDB < handle
                 gO.ephysParamTable.Visible = 'on';
             end
             
-%             if isempty(find([saveStruct.simult],1)) && ...
             if ismember('imagingEvents',string(fieldnames(saveStruct)))
                 
                 gO.numEvents = length(saveStruct);
@@ -931,15 +930,6 @@ classdef DASevDB < handle
                 gO.imagingEvents = [saveStruct.imagingEvents];
                 gO.imagingParamTable.Visible = 'on';
             end
-%             
-%             if ~isempty(find([saveStruct.simult],1))
-%                 gO.numEvents = length(saveStruct);
-%                 gO.loaded(1:2) = 1;
-%                 gO.ephysEvents = [saveStruct.ephysEvents];
-%                 gO.imagingEvents = [saveStruct.imagingEvents];
-%                 gO.ephysParamTable.Visible = 'on';
-%                 gO.imagingParamTable.Visible = 'on';
-%             end
             
             if ismember('runData',string(fieldnames(saveStruct)))
                 gO.loaded(3) = 1;
@@ -1136,7 +1126,6 @@ classdef DASevDB < handle
                 return
             end
             
-            DASloc = mfilename('fullpath');
             if ~delLoaded
                 sel = gO.entryListBox.Value;
 
@@ -1151,11 +1140,11 @@ classdef DASevDB < handle
                     end
                 end
 
-                delete([DASloc(1:end-7),'DASeventDBdir\',gO.entryListBox.String{sel}])
-                getDBlist(gO,1)
+                delete([gO.selDBdir,'\',gO.entryListBox.String{sel}])
+                getDBlist(gO,1,true)
             else
-                delete([DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname])
-                getDBlist(gO,1)
+                delete([gO.selDBdir,'\',gO.loadedEntryFname])
+                getDBlist(gO,1,true)
             end
         end
         
@@ -1206,8 +1195,7 @@ classdef DASevDB < handle
             
             smartplot(gO,0)
             
-            DASloc = mfilename('fullpath');
-            saveLoc = [DASloc(1:end-7),'DASeventDBdir\',gO.loadedEntryFname];
+            saveLoc = [gO.selDBdir,'\',gO.loadedEntryFname];
             save(saveLoc,'saveStruct')
         end
         
@@ -1249,6 +1237,13 @@ classdef DASevDB < handle
             DAS2Excel(forInfoTab,eParams,iParams,[name4excel,'_summary'])
         end
         
+        %%
+        function exportCurrStatGraphMenuSel(gO)
+            srcAx  = gO.axStatTab;
+            expFig = figure('Name','Exported graph','NumberTitle','off');
+            copyobj(srcAx,expFig);
+        end
+
         %%
         function statSelectPopMenuCB(gO,~,~)
             switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
@@ -1305,9 +1300,8 @@ classdef DASevDB < handle
             switch gO.statSelectPopMenu.String{gO.statSelectPopMenu.Value}
                 case 'One-sample t-Test'
                     fNames = gO.db4StatListBox.String(gO.db4StatListBox.Value);
-                    DASloc = mfilename('fullpath');
 
-                    file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{1}];
+                    file2load = [gO.selDBdir,'\',fNames{1}];
                     load(file2load,'saveStruct');
                     
                     if sum(ismember(fieldnames(saveStruct),'ephysEvents'))
@@ -1351,11 +1345,10 @@ classdef DASevDB < handle
         %%
         function statLaunchButtonPress(gO,~,~)
             fNames = gO.db4StatListBox.String(gO.db4StatListBox.Value);
-            DASloc = mfilename('fullpath');
             statEntries = cell(length(fNames),1);
             loaded4Stat = [0,0,0];
             for i = 1:length(fNames)
-                file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
+                file2load = [gO.selDBdir,'\',fNames{i}];
                 load(file2load,'saveStruct');
                 statEntries{i} = saveStruct;
             end
@@ -1589,7 +1582,6 @@ classdef DASevDB < handle
         %%
         function statGraphDataListboxCB(gO,~,~)
             fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
-            DASloc = mfilename('fullpath');
 
             eParamList = [];
             eSkip = false; % variable to signal when one of the selected group doesnt have the params
@@ -1597,7 +1589,7 @@ classdef DASevDB < handle
             iSkip = false;
             
             for i = 1:length(fNames)
-                file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
+                file2load = [gO.selDBdir,'\',fNames{i}];
                 load(file2load,'saveStruct');
                 
                 if ~eSkip && sum(ismember(fieldnames(saveStruct),'ephysEvents')) && ~isempty(saveStruct(1).ephysEvents.Params)
@@ -1674,14 +1666,13 @@ classdef DASevDB < handle
             
             fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
             fNames_trim = cell(size(fNames));
-            DASloc = mfilename('fullpath');
 
             paramMat = [];
             
             for i = 1:length(fNames)
                 fNames_trim{i} = fNames{i}(find(fNames{i}=='_',1)+1:find(fNames{i}=='.',1,'last')-1);
                 
-                file2load = [DASloc(1:end-7),'DASeventDBdir\',fNames{i}];
+                file2load = [gO.selDBdir,'\',fNames{i}];
                 load(file2load,'saveStruct');
                 
                 if (dTyp == 1) && sum(ismember(fieldnames(saveStruct),'ephysEvents'))
@@ -1734,7 +1725,13 @@ classdef DASevDB < handle
                     xlabel(gO.axStatTab,xTitle)
                     
                 case 'Boxplot'
+                    for col = 1:size(paramMat,2)
+                        scatter(gO.axStatTab,col-.05+rand(length(paramMat(:,col)),1)*.1,paramMat(:,col),...
+                                10,'k','MarkerEdgeAlpha',.5)
+                        hold(gO.axStatTab,'on')
+                    end
                     boxplot(gO.axStatTab,paramMat,fNames_trim,'LabelOrientation','inline')
+                    hold(gO.axStatTab,'off')
                     ylabel(gO.axStatTab,xTitle)
                     title(gO.axStatTab,[gO.ephysParamUnits{paramUnitInd,1},' distribution'])
                     
@@ -1815,6 +1812,9 @@ classdef DASevDB < handle
             gO.exportCurrLoadedParamsMenu = uimenu(gO.exportMenu,...
                 'Text','Export currently loaded event parameters --> Excel',...
                 'Callback',@(h,e) gO.exportCurrLoadedParamsMenuSel);
+            gO.exportCurrStatGraphMenu = uimenu(gO.exportMenu,...
+                'Text','Export currently displayed stat. graph to figure',...
+                'Callback',@(h,e) gO.exportCurrStatGraphMenuSel);
             
             %% tabs
             gO.tabgroup = uitabgroup(gO.mainFig,...
@@ -1840,10 +1840,15 @@ classdef DASevDB < handle
                 'String','',...
                 'UIContextMenu',gO.LBcontMenu);
             gO.LBcontMenuUpdate = uimenu(gO.LBcontMenu,'Text','Update list',...
-                'Callback',@(h,e) gO.getDBlist(1));
+                'Callback',@(h,e) gO.getDBlist(1,true));
             gO.LBcontMenuDelete = uimenu(gO.LBcontMenu,'Text','Delete selected entry',...
                 'Callback',@(h,e) gO.deleteEntry(0));
-            getDBlist(gO,1)           
+            gO.selDirButton = uicontrol(gO.loadEntryPanel,...
+                'Style','pushbutton',...
+                'Units','normalized',...
+                'Position',[0.25, 0.01, 0.24, 0.1],...
+                'String','Select dir',...
+                'Callback',@(h,e) gO.getDBlist(0,false));
             gO.loadEntryButton = uicontrol(gO.loadEntryPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -2017,7 +2022,6 @@ classdef DASevDB < handle
                 'String','',...
                 'Callback',@ gO.db4StatListBoxCB,...
                 'Enable','off');
-            getDBlist(gO,2)
             gO.statLaunchButton = uicontrol(gO.dataPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -2108,7 +2112,6 @@ classdef DASevDB < handle
                 'String','',...
                 'Callback',@ gO.statGraphDataListboxCB,...
                 'Enable','off');
-            getDBlist(gO,2)
             gO.statGraphTypePopMenu = uicontrol(gO.graphPanel,...
                 'Style','popupmenu',...
                 'Units','normalized',...
