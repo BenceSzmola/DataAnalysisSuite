@@ -37,9 +37,9 @@ function newBorders = extendEvents(detBorders,detDataModQ,thr,extThr)
             end
         else
             if extThr > thr
-                ind = detBorders(j,1)+ind;
+                ind = detBorders(j,1)+ind-1;
             else
-                ind = interV(1)+ind;
+                ind = interV(1)+ind-1;
             end
         end
         
