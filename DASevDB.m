@@ -136,6 +136,7 @@ classdef DASevDB < handle
         ylimMode = 'window';
         ylimCustom_ephys = [-1000, 1000; -150, 150; -1, 100];
         ylimCustom_imaging = [-5, 10; -5, 10];
+        statGraphPresent = false;
         
         ephysTypeSelected = [true, false, false]; %1==Raw; 2==Bandpass(DoG); 3==Power(InstPow)
         ephysEvents
@@ -402,8 +403,9 @@ classdef DASevDB < handle
                 forSpectro = false;
             end
             
-            type = gO.ephysTypeSelected;
+            type   = gO.ephysTypeSelected;
             currEv = gO.ephysEvents(gO.currEvent);
+            numEvs = length(gO.ephysEvents);
             
             axTag = cell(length(ax),1);
             for i = 1:length(ax)
@@ -511,7 +513,7 @@ classdef DASevDB < handle
                 if gO.parallelFromSaveStruct(gO.currEvent) == 1
                     title(ax(i),strcat(plotTitle(i)," - parallel"))
                 else
-                    title(ax(i),plotTitle(i))
+                    title(ax(i),sprintf('%s | #%d/%d',plotTitle(i),gO.currEvent,numEvs))
                 end
                 xlabel(ax(i),'Time [s]')
                 axis(ax(i),'tight')
@@ -536,9 +538,10 @@ classdef DASevDB < handle
         
         %%
         function imagingPlot(gO,ax)
-            type = gO.imagingTypeSelected;
+            type   = gO.imagingTypeSelected;
             currEv = gO.imagingEvents(gO.currEvent);
-            axTag = ax.Tag;
+            numEvs = length(gO.imagingEvents);
+            axTag  = ax.Tag;
             
             if gO.parallelFromSaveStruct(gO.currEvent) == 2
                 row2show = gO.currParallelChan;
@@ -602,7 +605,7 @@ classdef DASevDB < handle
             if gO.parallelFromSaveStruct(gO.currEvent) == 2
                 title(ax,strcat(plotTitle," - parallel"))
             else
-                title(ax,plotTitle)
+                title(ax,sprintf('%s | #%d/%d',plotTitle,gO.currEvent,numEvs))
             end
             xlabel(ax,'Time [s]')
             axis(ax,'tight')
@@ -862,15 +865,48 @@ classdef DASevDB < handle
                 return
             end
             
-            switch kD.Key
-                case 'rightarrow'
-                    upDwn = 1;
-                case 'leftarrow'
-                    upDwn = -1;
-                otherwise
-                    return
+            if gO.tabgroup.SelectedTab == gO.tabgroup.Children(1)
+                switch kD.Key
+                    case 'rightarrow'
+                        upDwn = 1;
+
+                    case 'leftarrow'
+                        upDwn = -1;
+
+                    case 'delete'
+                        deleteEventMenuSel(gO)
+
+                    case 'y'
+                        changeYlimModeMenuCB(gO)
+
+                    case 't'
+                        dtyp2change = questdlg('Which datatype to modify?','Change datatype','Ephys','Imaging','Running','Ephys');
+                        if isempty(dtyp2change)
+                            return
+                        end
+                        switch dtyp2change
+                            case 'Ephys'
+                                ephysTypeMenuSel(gO)
+
+                            case 'Imaging'
+                                imagingTypeMenuSel(gO)
+
+                            case 'Running'
+                                runTypeMenuSel(gO)
+
+                        end
+
+                    case 's'
+                        if (length(kD.Modifier) == 1) && strcmp(kD.Modifier{1}, 'alt')
+                            ephysPlot(gO,[],true)
+                        end
+
+                end
+
+                if strcmp(kD.Key,'rightarrow') || strcmp(kD.Key,'leftarrow')
+                    changeCurrEv(gO,upDwn)
+                end
             end
-            changeCurrEv(gO,upDwn)
         end
         
         %%
@@ -1239,9 +1275,15 @@ classdef DASevDB < handle
         
         %%
         function exportCurrStatGraphMenuSel(gO)
-            srcAx  = gO.axStatTab;
-            expFig = figure('Name','Exported graph','NumberTitle','off');
-            copyobj(srcAx,expFig);
+            if gO.statGraphPresent
+                statGraphPlotButtonPress(gO,true)
+            else
+                eD = errordlg('There is no statistics graph!');
+                pause(1)
+                if ishandle(eD)
+                    close(eD)
+                end
+            end
         end
 
         %%
@@ -1344,6 +1386,9 @@ classdef DASevDB < handle
         
         %%
         function statLaunchButtonPress(gO,~,~)
+            if isempty(gO.db4StatListBox.String)
+                return
+            end
             fNames = gO.db4StatListBox.String(gO.db4StatListBox.Value);
             statEntries = cell(length(fNames),1);
             loaded4Stat = [0,0,0];
@@ -1581,6 +1626,9 @@ classdef DASevDB < handle
         
         %%
         function statGraphDataListboxCB(gO,~,~)
+            if isempty(gO.statGraphDataListbox.String)
+                return
+            end
             fNames = gO.statGraphDataListbox.String(gO.statGraphDataListbox.Value);
 
             eParamList = [];
@@ -1630,9 +1678,12 @@ classdef DASevDB < handle
         end
         
         %%
-        function statGraphPlotButtonPress(gO,~,~)
+        function statGraphPlotButtonPress(gO,forExport)
             if gO.statGraphParamSelPopMenu.Value == 0
                 return
+            end
+            if nargin < 2 || isempty(forExport)
+                forExport = false;
             end
             
             plotTypeSel = gO.statGraphTypePopMenu.String{gO.statGraphTypePopMenu.Value};
@@ -1719,24 +1770,47 @@ classdef DASevDB < handle
                         
             switch plotTypeSel
                 case 'Histogram with fitted distribution'
-                    axes(gO.axStatTab)
-                    histfit(tempParamMat,[],'normal')
-                    title(gO.axStatTab,['Distribution from: ',paramSel])
-                    xlabel(gO.axStatTab,xTitle)
+                    if ~forExport
+%                         axes(gO.axStatTab)
+                        histfit(gO.axStatTab,tempParamMat,[],'normal')
+                        title(gO.axStatTab,['Distribution from: ',paramSel])
+                        xlabel(gO.axStatTab,xTitle)
+                    else
+                        expFig = figure('Name','Exported graph','NumberTitle','off');
+                        expAx  = axes(expFig);
+                        histfit(expAx,tempParamMat,[],'normal')
+                        title(expAx,['Distribution from: ',paramSel])
+                        xlabel(expAx,xTitle)
+                    end
                     
                 case 'Boxplot'
-                    for col = 1:size(paramMat,2)
-                        scatter(gO.axStatTab,col-.05+rand(length(paramMat(:,col)),1)*.1,paramMat(:,col),...
-                                10,'k','MarkerEdgeAlpha',.5)
-                        hold(gO.axStatTab,'on')
+                    if ~forExport
+                        for col = 1:size(paramMat,2)
+                            scatter(gO.axStatTab,col-.05+rand(length(paramMat(:,col)),1)*.1,paramMat(:,col),...
+                                    10,'k','MarkerEdgeAlpha',.5)
+                            hold(gO.axStatTab,'on')
+                        end
+                        boxplot(gO.axStatTab,paramMat,fNames_trim,'LabelOrientation','inline')
+                        hold(gO.axStatTab,'off')
+                        ylabel(gO.axStatTab,xTitle)
+                        title(gO.axStatTab,[gO.ephysParamUnits{paramUnitInd,1},' distribution'])
+                    
+                    else
+                        expFig = figure('Name','Exported graph','NumberTitle','off');
+                        expAx  = axes(expFig);
+                        for col = 1:size(paramMat,2)
+                            scatter(expAx,col-.05+rand(length(paramMat(:,col)),1)*.1,paramMat(:,col),...
+                                    10,'k','MarkerEdgeAlpha',.5)
+                            hold(expAx,'on')
+                        end
+                        boxplot(expAx,paramMat,fNames_trim,'LabelOrientation','inline')
+                        hold(expAx,'off')
+                        ylabel(expAx,xTitle)
+                        title(expAx,[gO.ephysParamUnits{paramUnitInd,1},' distribution'])
                     end
-                    boxplot(gO.axStatTab,paramMat,fNames_trim,'LabelOrientation','inline')
-                    hold(gO.axStatTab,'off')
-                    ylabel(gO.axStatTab,xTitle)
-                    title(gO.axStatTab,[gO.ephysParamUnits{paramUnitInd,1},' distribution'])
                     
             end
-            
+            gO.statGraphPresent = true;
             
         end
     end
@@ -2128,7 +2202,7 @@ classdef DASevDB < handle
                 'Units','normalized',...
                 'Position',[0.4, 0.82, 0.4, 0.05],...
                 'String','Create graph',...
-                'Callback',@ gO.statGraphPlotButtonPress);
+                'Callback',@(h,e) gO.statGraphPlotButtonPress);
             gO.axStatTab = axes(gO.graphPanel,'Position',[0.1,0.1,0.8,0.65],...
                 'Tag','axGroupStat');
                 
