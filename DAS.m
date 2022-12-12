@@ -463,7 +463,7 @@ classdef DAS < handle
                         if guiobj.ephysShowCurrIntervals
                             currIntervals = guiobj.ephys_prevIntervalSel;
                             redLine = guiobj.ephys_data(rawInds,:);
-                            redLine(currIntervals) = nan;
+                            redLine(:,currIntervals) = nan;
                             plot(ax,guiobj.ephys_taxis,redLine,'-r')
                         end
                     end
@@ -475,7 +475,7 @@ classdef DAS < handle
                         if guiobj.ephysShowCurrIntervals
                             currIntervals = guiobj.ephys_prevIntervalSel;
                             redLine = guiobj.ephys_procced(procInds,:);
-                            redLine(currIntervals) = nan;
+                            redLine(:,currIntervals) = nan;
                             plot(ax,guiobj.ephys_taxis,redLine,'-r')
                         end
                     end
@@ -495,7 +495,7 @@ classdef DAS < handle
                         if guiobj.ephysShowCurrIntervals
                             currIntervals = guiobj.ephys_prevIntervalSel;
                             redLine = guiobj.ephys_data(index,:);
-                            redLine(currIntervals) = nan;
+                            redLine(:,currIntervals) = nan;
                             plot(ax,guiobj.ephys_taxis,redLine,'-r')
                         end
                     elseif ax == guiobj.axesEphysProc2
@@ -508,7 +508,7 @@ classdef DAS < handle
                         if guiobj.ephysShowCurrIntervals
                             currIntervals = guiobj.ephys_prevIntervalSel;
                             redLine = guiobj.ephys_procced(procInds,:);
-                            redLine(currIntervals) = nan;
+                            redLine(:,currIntervals) = nan;
                             plot(ax,guiobj.ephys_taxis,redLine,'-r')
                         end
                     end
