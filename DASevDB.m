@@ -5,6 +5,7 @@ classdef DASevDB < handle
         
         %% menus
         optionsMenu
+        tAxDimChangeMenu
         showAvgParamsMenu
         displayAvgDataWinMenu
         changeYlimModeMenu
@@ -125,6 +126,7 @@ classdef DASevDB < handle
     %% Initializing data stored in GUI
     properties (Access = private)
         loaded = [0, 0, 0];
+        tAxDim = 1;
         selDBdir
         dbFileNames
         currEvent = 1;
@@ -421,6 +423,16 @@ classdef DASevDB < handle
                 row2show = 1;
             end
             
+            
+            if ~gO.displayAvgDataWin
+                taxisWin = currEv.Taxis;
+            else
+                taxisWin = gO.avgEphysEvents.Taxis;
+            end
+            if gO.tAxDim == 1e-3
+                taxisWin = taxisWin * 1000;
+            end
+
             if forSpectro
                 fs = round(1 / (currEv.Taxis(2) - currEv.Taxis(1)));
                 
@@ -474,12 +486,6 @@ classdef DASevDB < handle
                 yLabels(3) = "Power [\muV^2]";
             end
             
-            if ~gO.displayAvgDataWin
-                taxisWin = currEv.Taxis;
-            else
-                taxisWin = gO.avgEphysEvents.Taxis;
-            end
-            
             types2del = find(~type);
             yLabels(types2del) = [];
             dataWin(types2del,:) = [];
@@ -518,7 +524,11 @@ classdef DASevDB < handle
                 else
                     title(ax(i),sprintf('%s | #%d/%d',plotTitle(i),gO.currEvent,numEvs))
                 end
-                xlabel(ax(i),'Time [s]')
+                if gO.tAxDim == 1
+                    xlabel(ax(i),'Time [s]')
+                elseif gO.tAxDim == 1e-3
+                    xlabel(ax(i),'Time [ms]')
+                end
                 axis(ax(i),'tight')
                 ylim(ax(i),axLims(i,:))
                 ax(i).Tag = axTag{i};
@@ -580,6 +590,9 @@ classdef DASevDB < handle
             else
                 taxisWin = gO.avgImagingEvents.Taxis;
             end
+            if gO.tAxDim == 1e-3
+                taxisWin = taxisWin * 1000;
+            end
             
             if ~strcmp('custom', gO.ylimMode)
                 ylimModeInput = gO.ylimMode;
@@ -610,7 +623,11 @@ classdef DASevDB < handle
             else
                 title(ax,sprintf('%s | #%d/%d',plotTitle,gO.currEvent,numEvs))
             end
-            xlabel(ax,'Time [s]')
+            if gO.tAxDim == 1
+                xlabel(ax,'Time [s]')
+            elseif gO.tAxDim == 1e-3
+                xlabel(ax,'Time [ms]')
+            end
             axis(ax,'tight')
             ylim(ax, axLims)
             ax.Tag = axTag;
@@ -640,7 +657,11 @@ classdef DASevDB < handle
                 return
             end
             axTag = ax.Tag;
-            
+            taxisWin = currEv.Taxis;
+            if gO.tAxDim == 1e-3
+                taxisWin = taxisWin * 1000;
+            end
+
             if type(1)
                 dataWin = currEv.DataWin.Velocity;
                 yLabels = 'Velocity [cm/s]';
@@ -659,14 +680,18 @@ classdef DASevDB < handle
                 plotTitle = 'Activity state on treadmill';
             end
             
-            plot(ax,currEv.Taxis,dataWin)
+            plot(ax,taxisWin,dataWin)
             if gO.showLicks
                 lickInds = find(currEv.Licks);
                 for i = 1:length(lickInds) 
-                    xline(ax,currEv.Taxis(lickInds(i)),'g','LineWidth',1);
+                    xline(ax,taxisWin(lickInds(i)),'g','LineWidth',1);
                 end
             end
-            xlabel(ax,'Time [s]')
+            if gO.tAxDim == 1
+                xlabel(ax,'Time [s]')
+            elseif gO.tAxDim == 1e-3
+                xlabel(ax,'Time [ms]')
+            end
             ylabel(ax,yLabels)
             title(ax,plotTitle)
             axis(ax,'tight')
@@ -862,6 +887,20 @@ classdef DASevDB < handle
     
     %% Callback functions
     methods (Access = private)
+        
+        %%
+        function tAxDimChangeMenuSelected(gO)
+            if gO.tAxDim == 1
+                gO.tAxDim = 10^-3;
+
+            elseif gO.tAxDim == 10^-3
+                gO.tAxDim = 1;
+
+            end
+
+            smartplot(gO,false)
+        end
+        
         %%
         function keyboardPressFcn(gO,~,kD)
             if sum(gO.loaded) == 0
@@ -1886,6 +1925,9 @@ classdef DASevDB < handle
             %% menus
             gO.optionsMenu = uimenu(gO.mainFig,...
                 'Text','Options Menu');
+            gO.tAxDimChangeMenu = uimenu(gO.optionsMenu,...
+                'Text','Change time axis [s]/[ms]',...
+                'MenuSelectedFcn',@(h,e) gO.tAxDimChangeMenuSelected);
             gO.showAvgParamsMenu = uimenu(gO.optionsMenu,...
                 'Text','Show average parameters',...
                 'MenuSelectedFcn',@ gO.showAvgParamsMenuSel);

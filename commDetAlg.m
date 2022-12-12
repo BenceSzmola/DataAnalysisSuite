@@ -1,7 +1,7 @@
 function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,...
         refch,refCorrData,refDets,fs,thr,refVal,eventMinLen,extThr,autoPilot)
 
-% [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr)
+% [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corrData,refch,refCorrData,refDets,fs,thr,refVal,minLen,extThr,autoPilot)
 
     corrThr = 0.5;
 
@@ -9,6 +9,9 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         extThr = [];
     end
 
+    if nargin < 15
+        autoPilot = false;
+    end
     
     aboveThrMinLen = round(0.01 * fs);
     eventMinLen = round(eventMinLen * fs);

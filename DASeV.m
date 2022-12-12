@@ -5,6 +5,7 @@ classdef DASeV < handle
         
         %% menus
         optMenu
+        tAxDimChangeMenu
         plotFullMenu
         enableKbSlideMenu
         setKbSlideStepSizeMenu
@@ -153,6 +154,7 @@ classdef DASeV < handle
         selDirFiles
         path2loadedSave
         xLabel = 'Time [s]';
+        tAxDim = 1; % Determines whether the guiobj uses seconds or milliseconds
         loaded = [0,0,0,0]; % ephys-imaging-running-simultan (0-1)
         prevNumAx = 1;
         plotFull = 0;
@@ -1304,14 +1306,18 @@ classdef DASeV < handle
         
         %%
         function win = runWindowMacher(gO,tWin)
-            if (tWin(1) > gO.runTaxis(end)) || (tWin(end) < gO.runTaxis(1))
+            rTaxis = gO.runTaxis;
+            if gO.tAxDim == 1e-3
+                rTaxis = rTaxis / 1000;
+            end
+            if (tWin(1) > rTaxis(end)) || (tWin(end) < rTaxis(1))
                 win = [];
                 return
             end
             
-            temp = gO.runTaxis-tWin(1);
+            temp = rTaxis - tWin(1);
             [~,winStart] = min(abs(temp));
-            temp = gO.runTaxis-tWin(2);
+            temp = rTaxis - tWin(2);
             [~,winEnd] = min(abs(temp));
             win = winStart:winEnd;
         end
@@ -1324,7 +1330,11 @@ classdef DASeV < handle
                         case 1
                             ephysSaveData.RawData = gO.ephysData;
                             ephysSaveData.Fs = gO.ephysFs;
-                            ephysSaveData.TAxis = gO.ephysTaxis;
+                            if gO.tAxDim == 1e-3
+                                ephysSaveData.TAxis = gO.ephysTaxis / 1000;
+                            else
+                                ephysSaveData.TAxis = gO.ephysTaxis;
+                            end
                             ephysSaveData.YLabel = gO.ephysYlabel;
                             ephysSaveData.Dets = gO.ephysDets;
                             ephysSaveData.GlobalDets = gO.ephysGlobalDets;
@@ -1337,7 +1347,11 @@ classdef DASeV < handle
                         case 2
                             imagingSaveData.RawData = gO.imagingData;
                             imagingSaveData.Fs = gO.imagingFs;
-                            imagingSaveData.TAxis = gO.imagingTaxis;
+                            if gO.tAxDim == 1e-3
+                                imagingSaveData.TAxis = gO.imagingTaxis / 1000;
+                            else 
+                                imagingSaveData.TAxis = gO.imagingTaxis;
+                            end
                             imagingSaveData.YLabel = gO.imagingYlabel;
                             imagingSaveData.Dets = gO.imagingDets;
                             imagingSaveData.GlobalDets = gO.imagingGlobalDets;
@@ -1440,6 +1454,46 @@ classdef DASeV < handle
     
     %% Callback functions
     methods (Access = private)
+        
+        %%
+        function tAxDimChangeMenuSelected(gO)
+            if gO.tAxDim == 1
+                gO.xLabel = 'Time [ms]';
+                
+                gO.ephysTaxis = gO.ephysTaxis*10^3;
+                gO.imagingTaxis = gO.imagingTaxis*10^3;
+                gO.runTaxis = gO.runTaxis*10^3;
+                
+                gO.tAxDim = 10^-3;
+                tAxDimChanged = -1;
+
+            elseif gO.tAxDim == 10^-3
+                gO.xLabel = 'Time [s]';
+                
+                gO.ephysTaxis = gO.ephysTaxis/10^3;
+                gO.imagingTaxis = gO.imagingTaxis/10^3;
+                gO.runTaxis = gO.runTaxis/10^3;
+                
+                gO.tAxDim = 1;
+                tAxDimChanged = 1;
+            end
+            
+            tabAxes = findobj(gO.viewerTab,'Type','axes');
+            for axi = 1:length(tabAxes)
+                currAx = tabAxes(axi);
+                if ~isempty(findobj(currAx,'Type','line'))
+                    if strfind(currAx.XLabel.String,'Time')
+                        if tAxDimChanged == 1
+                            currAx.XLim = currAx.XLim / 1000;
+                        elseif tAxDimChanged == -1
+                            currAx.XLim = currAx.XLim * 1000;
+                        end
+                    end
+                end
+            end
+
+            smartplot(gO)
+        end
         
         %%
         function DASsaveAnalyserBestChSelModePopMenuCB(gO,~,~)
@@ -3424,6 +3478,19 @@ classdef DASeV < handle
                 newSaveStruct = [];
             end
             
+            eTaxis = gO.ephysTaxis;
+            if gO.tAxDim == 1e-3
+                eTaxis = eTaxis / 1000;
+            end
+            iTaxis = gO.imagingTaxis;
+            if gO.tAxDim == 1e-3
+                iTaxis = iTaxis / 1000;
+            end
+            rTaxis = gO.runTaxis;
+            if gO.tAxDim == 1e-3
+                rTaxis = rTaxis / 1000;
+            end
+
             if selected(1)
                 for i = 1:length(gO.save2DbEphysSelection)
                     if isempty(find(gO.save2DbEphysSelection{i},1))
@@ -3448,26 +3515,27 @@ classdef DASeV < handle
 
                             e_iAdj = find(gO.ephysDetInfo.AllChannel == gO.ephysDetInfo.DetChannel(i));
 
-                            tempStruct.ephysEvents.Taxis = gO.ephysTaxis(win);
-                            tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(e_iAdj,win);
-                            tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(e_iAdj,win);
+                            eTaxisWin = eTaxis(win);
+
+                            tempStruct.ephysEvents.Taxis         = eTaxisWin;
+                            tempStruct.ephysEvents.DataWin.Raw   = gO.ephysData(e_iAdj,win);
+                            tempStruct.ephysEvents.DataWin.BP    = gO.ephysDoGGed(e_iAdj,win);
                             tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(e_iAdj,win);
-                            tempStruct.ephysEvents.DetBorders = relBorders;
-                            tempStruct.ephysEvents.Params = gO.ephysDetParams{i}(j);
-                            tempStruct.ephysEvents.DetSettings = gO.ephysDetInfo.DetSettings;
-                            tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(i);
-                            tempStruct.ephysEvents.DetNum = j;
+                            tempStruct.ephysEvents.DetBorders    = relBorders;
+                            tempStruct.ephysEvents.Params        = gO.ephysDetParams{i}(j);
+                            tempStruct.ephysEvents.DetSettings   = gO.ephysDetInfo.DetSettings;
+                            tempStruct.ephysEvents.ChanNum       = gO.ephysDetInfo.DetChannel(i);
+                            tempStruct.ephysEvents.DetNum        = j;
 
                             if gO.save2DbEphys_wPar_CheckBox.Value
                                 tempStruct.parallel = 2;
 
-                                refWin = gO.ephysTaxis(win);
-                                [~,startInd] = min(abs(gO.imagingTaxis - refWin(1)));
-                                [~,stopInd] = min(abs(gO.imagingTaxis - refWin(end)));
+                                [~,startInd] = min(abs(iTaxis - eTaxisWin(1)));
+                                [~,stopInd] = min(abs(iTaxis - eTaxisWin(end)));
                                 parWin = startInd:stopInd;
                                 rois2save = gO.save2DbEphysParallelRoiSelection;
 
-                                tempStruct.imagingEvents.Taxis = gO.imagingTaxis(parWin);
+                                tempStruct.imagingEvents.Taxis = iTaxis(parWin);
                                 tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(rois2save,parWin);
                                 tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(rois2save,parWin);
                                 tempStruct.imagingEvents.DetBorders = [];
@@ -3478,11 +3546,10 @@ classdef DASeV < handle
                             end
 
                             if gO.save2DbRunningChechBox.Value
-                                refWin = gO.ephysTaxis(win);
-                                runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                                runWin = runWindowMacher(gO,[eTaxisWin(1),eTaxisWin(end)]);
 
                                 if ~isempty(runWin)
-                                    tempStruct.runData.Taxis = gO.runTaxis(runWin);
+                                    tempStruct.runData.Taxis = rTaxis(runWin);
                                     tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
                                     tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
                                     tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
@@ -3527,46 +3594,46 @@ classdef DASeV < handle
 
                             i_iAdj = find(gO.imagingDetInfo.AllROI == gO.imagingDetInfo.DetROI(i));
 
-                            tempStruct.imagingEvents.Taxis = gO.imagingTaxis(win);
-                            tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(i_iAdj,win);
+                            iTaxisWin = iTaxis(win);
+
+                            tempStruct.imagingEvents.Taxis            = iTaxisWin;
+                            tempStruct.imagingEvents.DataWin.Raw      = gO.imagingData(i_iAdj,win);
                             tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(i_iAdj,win);
-                            tempStruct.imagingEvents.DetBorders = relBorders;
-                            tempStruct.imagingEvents.Params = gO.imagingDetParams{i}(j);
-                            tempStruct.imagingEvents.DetSettings = gO.imagingDetInfo.DetSettings;
-                            tempStruct.imagingEvents.ROINum = gO.imagingDetInfo.DetROI(i);
-                            tempStruct.imagingEvents.DetNum = j;
+                            tempStruct.imagingEvents.DetBorders       = relBorders;
+                            tempStruct.imagingEvents.Params           = gO.imagingDetParams{i}(j);
+                            tempStruct.imagingEvents.DetSettings      = gO.imagingDetInfo.DetSettings;
+                            tempStruct.imagingEvents.ROINum           = gO.imagingDetInfo.DetROI(i);
+                            tempStruct.imagingEvents.DetNum           = j;
 
                             if gO.save2DbImaging_wPar_CheckBox.Value
                                 tempStruct.parallel = 1;
 
-                                refWin = gO.imagingTaxis(win);
-                                [~,startInd] = min(abs(gO.ephysTaxis - refWin(1)));
-                                [~,stopInd] = min(abs(gO.ephysTaxis - refWin(end)));
+                                [~,startInd] = min(abs(eTaxis - iTaxisWin(1)));
+                                [~,stopInd] = min(abs(eTaxis - iTaxisWin(end)));
                                 parWin = startInd:stopInd;
                                 chans2save = gO.save2DbImagingParallelChanSelection;
 
-                                tempStruct.ephysEvents.Taxis = gO.ephysTaxis(parWin);
-                                tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(chans2save,parWin);
-                                tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(chans2save,parWin);
+                                tempStruct.ephysEvents.Taxis         = eTaxis(parWin);
+                                tempStruct.ephysEvents.DataWin.Raw   = gO.ephysData(chans2save,parWin);
+                                tempStruct.ephysEvents.DataWin.BP    = gO.ephysDoGGed(chans2save,parWin);
                                 tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(chans2save,parWin);
-                                tempStruct.ephysEvents.DetBorders = [];
-                                tempStruct.ephysEvents.Params = [];
-                                tempStruct.ephysEvents.DetSettings = [];
-                                tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.AllChannel(chans2save);
-                                tempStruct.ephysEvents.DetNum = [];
+                                tempStruct.ephysEvents.DetBorders    = [];
+                                tempStruct.ephysEvents.Params        = [];
+                                tempStruct.ephysEvents.DetSettings   = [];
+                                tempStruct.ephysEvents.ChanNum       = gO.ephysDetInfo.AllChannel(chans2save);
+                                tempStruct.ephysEvents.DetNum        = [];
                             end
 
                             if gO.save2DbRunningChechBox.Value
-                                refWin = gO.imagingTaxis(win);
-                                runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
+                                runWin = runWindowMacher(gO,[iTaxisWin(1),iTaxisWin(end)]);
                                 if ~isempty(runWin)
-                                    tempStruct.runData.Taxis = gO.runTaxis(runWin);
+                                    tempStruct.runData.Taxis            = rTaxis(runWin);
                                     tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
-                                    tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
-                                    tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
-                                    tempStruct.runData.Lap = gO.runLap(runWin);
-                                    tempStruct.runData.Licks = gO.runLicks(runWin);
-                                    tempStruct.runData.ActState = gO.runActState(runWin);
+                                    tempStruct.runData.DataWin.AbsPos   = gO.runAbsPos(runWin);
+                                    tempStruct.runData.DataWin.RelPos   = gO.runRelPos(runWin);
+                                    tempStruct.runData.Lap              = gO.runLap(runWin);
+                                    tempStruct.runData.Licks            = gO.runLicks(runWin);
+                                    tempStruct.runData.ActState         = gO.runActState(runWin);
                                 else
                                     tempStruct.runData = [];
                                 end
@@ -3596,8 +3663,6 @@ classdef DASeV < handle
                         temp.ROI = gO.imagingDetInfo.AllROI(currRow(3));
                         iParams = [iParams; temp];
                     else
-                        eTaxis = gO.ephysTaxis;
-                        iTaxis = gO.imagingTaxis;
 
                         if eTaxis(ephysWin(1)) > iTaxis(imagingWin(1))
                             ephysWin = find(eTaxis > iTaxis(imagingWin(1)), 1):ephysWin(end);
@@ -3615,7 +3680,7 @@ classdef DASeV < handle
                         tempStruct.simult = 1;
                         tempStruct.parallel = 0;
 
-                        tempStruct.ephysEvents.Taxis = gO.ephysTaxis(ephysWin);
+                        tempStruct.ephysEvents.Taxis = eTaxis(ephysWin);
                         tempStruct.ephysEvents.DataWin.Raw = gO.ephysData(currRow(1),ephysWin);
                         tempStruct.ephysEvents.DataWin.BP = gO.ephysDoGGed(currRow(1),ephysWin);
                         tempStruct.ephysEvents.DataWin.Power = gO.ephysInstPow(currRow(1),ephysWin);
@@ -3625,7 +3690,7 @@ classdef DASeV < handle
                         tempStruct.ephysEvents.ChanNum = gO.ephysDetInfo.DetChannel(e_iAdj);
                         tempStruct.ephysEvents.DetNum = currRow(2);
 
-                        tempStruct.imagingEvents.Taxis = gO.imagingTaxis(imagingWin);
+                        tempStruct.imagingEvents.Taxis = iTaxis(imagingWin);
                         tempStruct.imagingEvents.DataWin.Raw = gO.imagingData(currRow(3),imagingWin);
                         tempStruct.imagingEvents.DataWin.Smoothed = gO.imagingSmoothed(currRow(3),imagingWin);
                         tempStruct.imagingEvents.DetBorders = imagingRelBorders;
@@ -3635,10 +3700,10 @@ classdef DASeV < handle
                         tempStruct.imagingEvents.DetNum = currRow(4);
 
                         if gO.save2DbRunningChechBox.Value
-                            refWin = gO.ephysTaxis(ephysWin);
+                            refWin = eTaxis(ephysWin);
                             runWin = runWindowMacher(gO,[refWin(1),refWin(end)]);
                             if ~isempty(runWin)
-                                tempStruct.runData.Taxis = gO.runTaxis(runWin);
+                                tempStruct.runData.Taxis = rTaxis(runWin);
                                 tempStruct.runData.DataWin.Velocity = gO.runVeloc(runWin);
                                 tempStruct.runData.DataWin.AbsPos = gO.runAbsPos(runWin);
                                 tempStruct.runData.DataWin.RelPos = gO.runRelPos(runWin);
@@ -3789,6 +3854,9 @@ classdef DASeV < handle
             %% Menus
             gO.optMenu = uimenu(gO.mainFig,...
                 'Text','Options');
+            gO.tAxDimChangeMenu = uimenu(gO.optMenu,...
+                'Text','Change time axis [s]/[ms]',...
+                'MenuSelectedFcn',@(h,e) gO.tAxDimChangeMenuSelected);
             gO.plotFullMenu = uimenu(gO.optMenu,...
                 'Text','Plot full data / Plot individual detections',...
                 'MenuSelectedFcn',@ gO.plotFullMenuSel,...

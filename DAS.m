@@ -3987,6 +3987,9 @@ classdef DAS < handle
             
             fs = guiobj.ephys_fs;
             tAxis = guiobj.ephys_taxis;
+            if guiobj.timedim == 1e-3
+                tAxis = tAxis / 1000;
+            end
             showFigs = guiobj.showXtraDetFigs;
             refchInp = guiobj.ephysDetRefChanEdit.String;
             refch = numSelCharConverter(refchInp);
@@ -4356,7 +4359,7 @@ classdef DAS < handle
                 guiobj.ephys_detParams = {};
                 guiobj.ephys_detectionsInfo = [];
                 
-                dispErrorDlgResetStatus('No events found!')
+                dispErrorDlgResetStatus('No events found!',true)
                 eventDetPlotFcn(guiobj,1,0,1)
                 if nargin > 1
                     removeUIcompFocus(h)
@@ -4381,9 +4384,11 @@ classdef DAS < handle
                         ephysBorders = detBorders{i}(j,:);
                         
                         runTaxis = guiobj.run_taxis;
-                        ephysTaxis = guiobj.ephys_taxis;
-                        [~,runBorders(1)] = min(abs(runTaxis - ephysTaxis(ephysBorders(1))));
-                        [~,runBorders(2)] = min(abs(runTaxis - ephysTaxis(ephysBorders(2))));
+                        if guiobj.timedim == 1e-3
+                            runTaxis = runTaxis / 1000;
+                        end
+                        [~,runBorders(1)] = min(abs(runTaxis - tAxis(ephysBorders(1))));
+                        [~,runBorders(2)] = min(abs(runTaxis - tAxis(ephysBorders(2))));
                         
                         avgSpd = mean(guiobj.run_veloc(runBorders(1):runBorders(2)));
                         avgPos = mean(guiobj.run_relPos(runBorders(1):runBorders(2)));
@@ -4419,13 +4424,22 @@ classdef DAS < handle
             end
             
             %%
-            function dispErrorDlgResetStatus(errMsg)
+            function dispErrorDlgResetStatus(errMsg,emptyFlag)
+                if nargin < 2
+                    emptyFlag = false;
+                end
+
                 eD = errordlg(errMsg);
                 pause(1)
                 if ishandle(eD)
                     close(eD)
                 end
-                guiobj.ephysDetStatusLabel.String = '--IDLE--';
+                if emptyFlag
+                    statusTxt = {'--IDLE--';'No dets'};
+                else
+                    statusTxt = '--IDLE--';
+                end
+                guiobj.ephysDetStatusLabel.String = statusTxt;
                 guiobj.ephysDetStatusLabel.BackgroundColor = 'g';
             end
         end
@@ -4474,7 +4488,11 @@ classdef DAS < handle
             guiobj.imagingDetStatusLabel.BackgroundColor = 'r';
             drawnow
             
-            fs = guiobj.imaging_fs;
+            fs    = guiobj.imaging_fs;
+            tAxis = guiobj.imaging_taxis;
+            if guiobj.timedim == 1e-3
+                tAxis = tAxis / 1000;
+            end
             
             %%
             if ~guiobj.imagingDetUseProcDataCheckBox.Value
@@ -4553,12 +4571,12 @@ classdef DAS < handle
                         detinfo.DetSettings.WinLen = 3;
                     end
                     
-                    [dets,detBorders] = commDetAlg(guiobj.imaging_taxis,1:size(data,1),inds2use,data,detData,...
+                    [dets,detBorders] = commDetAlg(tAxis,1:size(data,1),inds2use,data,detData,...
                         [],0,[],[],fs,thr,0,minLen,extThr);
                     
                     for i = 1:size(data,1)
                         [dets{i}, detBorders{i}, detParams{i}, evComplexes{i}] = detParamMiner(2,dets{i},...
-                            detBorders{i},fs, data(i,:),detData(i,:),[],guiobj.imaging_taxis);
+                            detBorders{i},fs, data(i,:),detData(i,:),[],tAxis);
                         
                     end
 
@@ -4606,7 +4624,7 @@ classdef DAS < handle
                 guiobj.imaging_detBorders = {};
                 guiobj.imaging_detParams = {};
                 
-                dispErrorResetStatus('No events found!')
+                dispErrorResetStatus('No events found!',true)
                 eventDetPlotFcn(guiobj,2,0,1)
                 return
             end
@@ -4627,9 +4645,8 @@ classdef DAS < handle
                         imagingBorders = detBorders{i}(j,:);
                         
                         runTaxis = guiobj.run_taxis;
-                        imagingTaxis = guiobj.imaging_taxis;
-                        [~,runBorders(1)] = min(abs(runTaxis - imagingTaxis(imagingBorders(1))));
-                        [~,runBorders(2)] = min(abs(runTaxis - imagingTaxis(imagingBorders(2))));
+                        [~,runBorders(1)] = min(abs(runTaxis - tAxis(imagingBorders(1))));
+                        [~,runBorders(2)] = min(abs(runTaxis - tAxis(imagingBorders(2))));
                         
                         avgSpd = mean(guiobj.run_veloc(runBorders(1):runBorders(2)));
                         avgPos = mean(guiobj.run_relPos(runBorders(1):runBorders(2)));
@@ -4658,13 +4675,22 @@ classdef DAS < handle
             eventDetAxesButtFcn(guiobj,2,0,0)
             
             %%
-            function dispErrorResetStatus(errMsg)
+            function dispErrorResetStatus(errMsg,emptyFlag)
+                if nargin < 2
+                    emptyFlag = false;
+                end
+
                 eD = errordlg(errMsg);
                 pause(1)
                 if ishandle(eD)
                     close(eD)
                 end
-                guiobj.imagingDetStatusLabel.String = '--IDLE--';
+                if emptyFlag
+                    statusTxt = {'--IDLE--';'No dets'};
+                else
+                    statusTxt = '--IDLE--';
+                end
+                guiobj.imagingDetStatusLabel.String = statusTxt;
                 guiobj.imagingDetStatusLabel.BackgroundColor = 'g';
             end
         end
@@ -4688,12 +4714,18 @@ classdef DAS < handle
             drawnow
             
             ephys_tAx = guiobj.ephys_taxis;
+            if guiobj.timedim == 1e-3
+                ephys_tAx = ephys_tAx / 1000;
+            end
             ephysDetParams = guiobj.ephys_detParams;
             for i = 1:length(ephysDetParams)
                 [ephysDetParams{i}.NumSimultEvents] = deal(0);
             end
             
             imaging_tAx = guiobj.imaging_taxis;
+            if guiobj.timedim == 1e-3
+                imaging_tAx = imaging_tAx / 1000;
+            end
             imDetParams = guiobj.imaging_detParams;
             for i = 1:length(imDetParams)
                 [imDetParams{i}.NumSimultEvents] = deal(0);
@@ -4751,7 +4783,7 @@ classdef DAS < handle
                     end
                     
                     if isempty(simultDets)
-                        dispErrorResetStatus('No simultaneous events found!')
+                        dispErrorResetStatus('No simultaneous events found!',true)
                         return
                     end
                     
@@ -4765,7 +4797,7 @@ classdef DAS < handle
             
             %%
             if isempty(simultDets)
-                dispErrorResetStatus('No simultaneous events found!')
+                dispErrorResetStatus('No simultaneous events found!',true)
                 return
             end
             
@@ -4786,13 +4818,22 @@ classdef DAS < handle
             guiobj.simultDetStatusLabel.BackgroundColor = 'g';
             
             %%
-            function dispErrorResetStatus(errMsg)
+            function dispErrorResetStatus(errMsg,emptyFlag)
+                if nargin < 2
+                    emptyFlag = false;
+                end
+
                 eD = errordlg(errMsg);
                 pause(1)
                 if ishandle(eD)
                     close(eD)
                 end
-                guiobj.simultDetStatusLabel.String = '--IDLE--';
+                if emptyFlag
+                    statusTxt = {'--IDLE--';'No dets'};
+                else
+                    statusTxt = '--IDLE--';
+                end
+                guiobj.simultDetStatusLabel.String = statusTxt;
                 guiobj.simultDetStatusLabel.BackgroundColor = 'g';
             end
         end
@@ -5354,7 +5395,11 @@ classdef DAS < handle
                 
                 waitbar(0.33, wb, 'Saving ephys...')
                 
-                ephysSaveData.TAxis = guiobj.ephys_taxis;
+                if guiobj.timedim == 1e-3
+                    ephysSaveData.TAxis = guiobj.ephys_taxis / 1000;
+                else
+                    ephysSaveData.TAxis = guiobj.ephys_taxis;
+                end
                 ephysSaveData.YLabel = guiobj.ephys_ylabel;
                 ephysSaveData.Fs = guiobj.ephys_fs;
                 ephysSaveData.Dets = guiobj.ephys_detections;
@@ -5407,7 +5452,11 @@ classdef DAS < handle
 
                 waitbar(0.66, wb, 'Saving imaging...')
                 
-                imagingSaveData.TAxis = guiobj.imaging_taxis;
+                if guiobj.timedim == 1e-3
+                    imagingSaveData.TAxis = guiobj.imaging_taxis / 1000;
+                else
+                    imagingSaveData.TAxis = guiobj.imaging_taxis;
+                end
                 imagingSaveData.YLabel = guiobj.imaging_ylabel;
                 imagingSaveData.Fs = guiobj.imaging_fs;
                 imagingSaveData.RawData = guiobj.imaging_data;
@@ -5485,7 +5534,11 @@ classdef DAS < handle
                 if strcmp(saveRun,'Yes')
                     waitbar(0.95, wb, 'Saving running...')
                     
-                    runData.taxis = guiobj.run_taxis;
+                    if guiobj.timedim == 1e-3
+                        runData.taxis = guiobj.run_taxis / 1000;
+                    else
+                        runData.taxis = guiobj.run_taxis;
+                    end
                     runData.veloc = guiobj.run_veloc;
                     runData.absPos = guiobj.run_absPos;
                     runData.relPos = guiobj.run_relPos;
@@ -5543,16 +5596,16 @@ classdef DAS < handle
             
             if ~isempty(find(list(detTypeToSave) == "Electrophysiology",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1))
-                guiobj.ephysDetStatusLabel.String = sprintf('%s\nSaved',guiobj.ephysDetStatusLabel.String);
+                guiobj.ephysDetStatusLabel.String = {'--IDLE--';'Dets saved'};
             end
             if ~isempty(find(list(detTypeToSave) == "Imaging",1))...
                     || ~isempty(find(list(detTypeToSave) == "Simultaneous",1))
-                guiobj.imagingDetStatusLabel.String = sprintf('%s\nSaved',guiobj.ephysDetStatusLabel.String);
+                guiobj.imagingDetStatusLabel.String = {'--IDLE--';'Dets saved'};
             end
             if ~isempty(find(list(detTypeToSave) == "Simultaneous",1))
-                guiobj.ephysDetStatusLabel.String = sprintf('%s\nSaved',guiobj.ephysDetStatusLabel.String);
-                guiobj.imagingDetStatusLabel.String = sprintf('%s\nSaved',guiobj.imagingDetStatusLabel.String);
-                guiobj.simultDetStatusLabel.String = sprintf('%s\nSaved',guiobj.simultDetStatusLabel.String);
+                guiobj.ephysDetStatusLabel.String = {'--IDLE--';'Dets saved'};
+                guiobj.imagingDetStatusLabel.String = {'--IDLE--';'Dets saved'};
+                guiobj.simultDetStatusLabel.String = {'--IDLE--';'Dets saved'};
             end
         end
         
