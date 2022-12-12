@@ -2863,36 +2863,42 @@ classdef DAS < handle
                 guiobj.xtitle = 'Time [ms]';
                 
                 guiobj.ephys_taxis = guiobj.ephys_taxis*10^3;
-                
                 guiobj.imaging_taxis = guiobj.imaging_taxis*10^3;
-                
                 guiobj.run_taxis = guiobj.run_taxis*10^3;
                 
                 guiobj.timedim = 10^-3;
+                tAxDimChanged = -1;
+
             elseif guiobj.timedim == 10^-3
                 guiobj.xtitle = 'Time [s]';
                 
                 guiobj.ephys_taxis = guiobj.ephys_taxis/10^3;
-                
                 guiobj.imaging_taxis = guiobj.imaging_taxis/10^3;
-
                 guiobj.run_taxis = guiobj.run_taxis/10^3;
                 
                 guiobj.timedim = 1;
+                tAxDimChanged = 1;
             end
             
-%             if guiobj.datatyp(3)
-%                 runposplot(guiobj)
-%                 runvelocplot(guiobj)
-%             end
-%             if strcmp(guiobj.Dataselection1Panel.Visible,'on')
-%                 DatasetListBoxValueChanged(guiobj,event);
-%             elseif strcmp(guiobj.Dataselection2Panel.Visible,'on')           
-%                 EphysListBoxValueChanged(guiobj,event);
-%                 ImagingListBoxValueChanged(guiobj,event);
-%             end
+            for tabi = guiobj.tabs.Children
+                tabAxes = findobj(tabi,'Type','axes');
+                for axi = 1:length(tabAxes)
+                    currAx = tabAxes(axi);
+                    if ~isempty(findobj(currAx,'Type','line'))
+                        if strfind(currAx.XLabel.String,'Time')
+                            if tAxDimChanged == 1
+                                currAx.XLim = currAx.XLim / 1000;
+                            elseif tAxDimChanged == -1
+                                currAx.XLim = currAx.XLim * 1000;
+                            end
+                        end
+                    end
+                end
+            end
 
             smartplot(guiobj)
+            eventDetAxesButtFcn(guiobj,1)
+            eventDetAxesButtFcn(guiobj,2)
         end
         
         %%
