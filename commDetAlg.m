@@ -13,8 +13,9 @@ function [dets,detBorders] = commDetAlg(taxis,chan,inds2use,rawData,detData,corr
         autoPilot = false;
     end
     
-    aboveThrMinLen = round(0.01 * fs);
+%     aboveThrMinLen = round(0.01 * fs);
     eventMinLen = round(eventMinLen * fs);
+    aboveThrMinLen = min(round(0.01 * fs), eventMinLen);
 
     if size(rawData,1) > size(rawData,2)
         rawData = rawData';
