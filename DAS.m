@@ -5548,7 +5548,7 @@ classdef DAS < handle
             end
             
             if guiobj.roboDet
-                comments = '';
+                comments = 'roboDet';
             else
                 comments = inputdlg('Enter comment on detection:','Comments',...
                     [10,100]);

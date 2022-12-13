@@ -463,12 +463,12 @@ classdef DASeV < handle
                     detInfo = gO.simultDetInfo;
 
                      switch gO.simultFocusTyp % this stores from which datatype we are approaching
-                         case 1
+                        case 1
                             chanFocus = detInfo.EphysChannels(gO.simultEphysCurrDetRow);
-                            detStructFocus = detStruct(detStruct(:,1)==chanFocus,:);
+                            detStructFocus = detStruct(detStruct(:,1) == chanFocus,:);
                         case 2
                             chanFocus = detInfo.ROIs(gO.simultImagingCurrDetRow);
-                            detStructFocus = detStruct(detStruct(:,3)==chanFocus,:);
+                            detStructFocus = detStruct(detStruct(:,3) == chanFocus,:);
 
                     end
                     
@@ -479,28 +479,28 @@ classdef DASeV < handle
                                 currDet = gO.simultEphysCurrDetNum;
                             end
                             
-                            if gO.simultFocusTyp==1
+                            if gO.simultFocusTyp == 1
                                 chan = chanFocus;
                                 numChans = length(unique(detStruct(:,1)));
-                            elseif gO.simultFocusTyp==2
-                                temp = unique(detStructFocus(detStructFocus(:,3)==chanFocus,4));
+                            elseif gO.simultFocusTyp == 2
+                                temp = unique(detStructFocus(detStructFocus(:,3) == chanFocus,4));
                                 temp = temp(gO.simultImagingCurrDetNum);
-                                detStructFocus = detStructFocus(detStructFocus(:,4)==temp,:);
+                                detStructFocus = detStructFocus(detStructFocus(:,4) == temp,:);
                                 chan = unique(detStructFocus(:,1));
                                 chan = chan(currChan);
                                 numChans = length(unique(detStructFocus(:,1)));
                             end
-                            numDets = length(unique(detStructFocus(detStructFocus(:,1)==chan,2)));
-                            numDetsOg = length(unique(detStruct(detStruct(:,1)==chan,2)));
+                            numDets = length(unique(detStructFocus(detStructFocus(:,1) == chan,2)));
+                            numDetsOg = length(unique(detStruct(detStruct(:,1) == chan,2)));
                                                         
                             if nargout == 2
                                 return
                             end
                             
-                            currChanEvents = unique(detStructFocus(detStructFocus(:,1)==chan,2));
+                            currChanEvents = unique(detStructFocus(detStructFocus(:,1) == chan,2));
                             
                             nonSimDetInfo = gO.ephysDetInfo;
-                            nonSimDetRow = find(nonSimDetInfo.DetChannel==chan);
+                            nonSimDetRow = find(nonSimDetInfo.DetChannel == chan);
                             chanOgNum = chan;
                             
                             detMat = gO.ephysDets{nonSimDetRow};
@@ -533,28 +533,28 @@ classdef DASeV < handle
                                 currDet = gO.simultImagingCurrDetNum;
                             end
                             
-                            if gO.simultFocusTyp==2
+                            if gO.simultFocusTyp == 2
                                 chan = chanFocus;
                                 numChans = length(unique(detStruct(:,3)));
-                            elseif gO.simultFocusTyp==1
-                                temp = unique(detStructFocus(detStructFocus(:,1)==chanFocus,2));
+                            elseif gO.simultFocusTyp == 1
+                                temp = unique(detStructFocus(detStructFocus(:,1) == chanFocus,2));
                                 temp = temp(gO.simultEphysCurrDetNum);
-                                detStructFocus = detStructFocus(detStructFocus(:,2)==temp,:);
+                                detStructFocus = detStructFocus(detStructFocus(:,2) == temp,:);
                                 chan = unique(detStructFocus(:,3));
                                 chan = chan(currChan);
                                 numChans = length(unique(detStructFocus(:,3)));
                             end
-                            numDets = length(unique(detStructFocus(detStructFocus(:,3)==chan,4)));
-                            numDetsOg = length(unique(detStruct(detStruct(:,3)==chan,4)));
+                            numDets = length(unique(detStructFocus(detStructFocus(:,3) == chan,4)));
+                            numDetsOg = length(unique(detStruct(detStruct(:,3) == chan,4)));
 
                             if nargout == 2
                                 return
                             end
                             
-                            currChanEvents = unique(detStructFocus(detStructFocus(:,3)==chan,4));
+                            currChanEvents = unique(detStructFocus(detStructFocus(:,3) == chan,4));
                             
                             nonSimDetInfo = gO.imagingDetInfo;
-                            nonSimDetRow = find(nonSimDetInfo.DetROI==chan);
+                            nonSimDetRow = find(nonSimDetInfo.DetROI == chan);
                             chanOgNum = chan;
                             
                             detMat = gO.imagingDets{nonSimDetRow};
@@ -565,7 +565,7 @@ classdef DASeV < handle
                                 detIdx = detIdx(detNum);
                             end
                             
-                            chanNum = nonSimDetRow;
+                            chanNum = find(nonSimDetInfo.AllROI == chan);
                             
                             if nargout == 6
                                 return
@@ -1273,35 +1273,23 @@ classdef DASeV < handle
             
             if ~isempty(detBorders) & (length(detBorders) >= chanNum) & (~isempty(detBorders{chanNum}))
                 detBorders = detBorders{chanNum}(detNum,:);
-                if (detBorders(1)-winLen) > 1
-                    winStart = detBorders(1)-winLen;
-                else
-                    winStart = 1;
-                end
 
-                if (detBorders(2)+winLen) <= lenData
-                    winEnd = detBorders(2)+winLen;
-                else
-                    winEnd = lenData;
-                end
-                relBorders = detBorders-winStart+1;
+                winStart = max(1, detBorders(1) - winLen);
+                winEnd = min(lenData, detBorders(2) + winLen);
+
+                relBorders = detBorders - winStart + 1;
             else
                 dets = detCell{chanNum};
                 detInd = dets(detNum);
-            
-                if (detInd-winLen) > 1
-                    winStart = detInd-winLen;
-                else
-                    winStart = 1;
-                end
-                if (detInd+winLen) <= lenData
-                    winEnd = detInd+winLen;
-                else
-                    winEnd = lenData;
-                end
+                
+                winStart = max(1, detInd - winLen);
+                winEnd = min(lenData, detInd + winLen);
+
                 relBorders = [];
             end
+
             win = winStart:winEnd;
+            
         end
         
         %%
@@ -3656,24 +3644,30 @@ classdef DASeV < handle
                     
                     if save2Excel
                         temp = gO.ephysDetParams{e_iAdj}(currRow(2));
-                        temp.Channel = gO.ephysDetInfo.AllChannel(currRow(1));
+                        temp.Channel = gO.ephysDetInfo.DetChannel(e_iAdj);
                         eParams = [eParams; temp];
                         
                         temp = gO.imagingDetParams{i_iAdj}(currRow(4));
-                        temp.ROI = gO.imagingDetInfo.AllROI(currRow(3));
+                        temp.ROI = gO.imagingDetInfo.DetROI(i_iAdj);
                         iParams = [iParams; temp];
                     else
 
                         if eTaxis(ephysWin(1)) > iTaxis(imagingWin(1))
+                            oldStart = ephysWin(1);
                             ephysWin = find(eTaxis > iTaxis(imagingWin(1)), 1):ephysWin(end);
+                            startDiff = oldStart - ephysWin(1);
+                            ephysRelBorders = ephysRelBorders + startDiff;
                         elseif eTaxis(ephysWin(1)) < iTaxis(imagingWin(1))
+                            oldStart = imagingWin(1);
                             imagingWin = find(iTaxis > eTaxis(ephysWin(1)), 1):imagingWin(end);
+                            startDiff = oldStart - imagingWin(1);
+                            imagingRelBorders = imagingRelBorders + startDiff;
                         end
 
                         if eTaxis(ephysWin(end)) < iTaxis(imagingWin(end))
                             ephysWin = ephysWin(1):find(eTaxis > iTaxis(imagingWin(end)), 1);
                         elseif eTaxis(ephysWin(end)) > iTaxis(imagingWin(end))
-                            ephysWin = imagingWin(1):find(iTaxis > eTaxis(ephysWin(end)), 1);
+                            imagingWin = imagingWin(1):find(iTaxis > eTaxis(ephysWin(end)), 1);
                         end
 
                         tempStruct.source = string(gO.path2loadedSave);
@@ -3793,17 +3787,26 @@ classdef DASeV < handle
                     if saveStruct(1).parallel ~= 0
                         if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox.Value) ||...
                                 ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox.Value)
-                            errordlg(['The entry you chose contains different type of parallel events',...
+                            errordlg(['The entry you chose contains different type of parallel events!',...
                                 ' Choose another, or create a new one!'])
                             return
                         end
                     end
+
+                    % control running data saving
+                    if ~isfield(saveStruct(1),'runData') && gO.save2DbRunningChechBox.Value
+                        errordlg(['The entry you chose contains running data as well!',...
+                                ' Choose another, or create a new one!'])
+                        return
+                    end
+
                 end
 
                 if ~isempty(newSaveStruct)
                     try
                         saveStruct = [saveStruct; newSaveStruct];
                     catch
+                        disp('Unexpected format in file!')
                         saveStruct = [saveStruct, newSaveStruct'];
                     end
 
