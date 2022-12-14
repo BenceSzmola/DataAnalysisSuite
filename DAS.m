@@ -2687,6 +2687,13 @@ classdef DAS < handle
         
         %%
         function importImagingFromVar(guiobj)
+            % with this function imaging data can be imported from the base
+            % matlab workspace. You only need to get your data in array
+            % form to the workspace, from there this script can import it.
+            % In addition to the data itself a time axis is also needed.
+            % Sampling rate and ROI names can optionally also be imported
+            % from the workspace, but for them there are other solutions.
+
             if ~isempty(guiobj.imaging_data)
                 quest = 'GUI will be reset, have you saved everything you wanted?';
                 title = 'GUI reset';
