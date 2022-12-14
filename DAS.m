@@ -227,6 +227,9 @@ classdef DAS < handle
         imagingDetChSelPopMenu
         imagingDetUseProcDataCheckBox
         
+        imagingImportDetPanel
+        imagingImportDetInfoText
+
         imagingMeanSdDetPanel
         imagingMeanSdDetSdmultLabel
         imagingMeanSdDetSdmultEdit
@@ -2715,6 +2718,14 @@ classdef DAS < handle
             
             % Finding data variables
             wsDataVarinds = strcmp({wsvars.class},'double');
+            if ~any(wsDataVarinds)
+                eD = errordlg('No suitable data found!');
+                pause(1.5)
+                if ishandle(eD)
+                    close(eD)
+                end
+                return
+            end
             wsDataVar = wsvars(wsDataVarinds);
             wsDataVarNames = {wsDataVar.name};
 
@@ -2735,9 +2746,6 @@ classdef DAS < handle
                 return
             end
 
-            guiobj.imaging_data = wsData;
-            clear wsData
-
             % getting the time axis and sampling rate
 
             % Ask user to select which data variable has the time axis
@@ -2753,13 +2761,11 @@ classdef DAS < handle
                 if ishandle(eD)
                     close(eD)
                 end
-                guiobj.imaging_data = [];
                 return
+
             elseif size(wsTaxis,1) > size(wsTaxis,2)
                 wsTaxis = wsTaxis';
             end
-            guiobj.imaging_taxis = wsTaxis;
-            clear wsTaxis
 
             % sampling rate
             fsInput = questdlg('How should sampling rate be determined?','Sampling rate',...
@@ -2788,7 +2794,7 @@ classdef DAS < handle
                     end
 
                 case 'Compute from time axis'
-                    fs = 1 / mean(diff(guiobj.imaging_taxis));
+                    fs = 1 / mean(diff(wsTaxis));
 
                 otherwise
                     fs = [];
@@ -2796,16 +2802,11 @@ classdef DAS < handle
             end
 
             if isempty(fs) || isnan(fs)
-                guiobj.imaging_data  = [];
-                guiobj.imaging_taxis = [];
-
                 return
             end
-            guiobj.imaging_fs = fs;
 
             % getting the y axis label for the data
             yAxLabel = inputdlg('What should be the y axis label? (for greek: \Delta)','Y axis label',[1, 40],{'\DeltaF/F'});
-            guiobj.imaging_ylabel = yAxLabel;
 
             % get names for the rois
             roiNameMode = questdlg('What should the ROIs be called?','ROI names',...
@@ -2816,33 +2817,41 @@ classdef DAS < handle
             if strcmp(roiNameMode,'Select from workspace')
                 % Finding name variables
                 wsNameVarinds = cellfun(@(x) ismember(x,{'string','cell'}), {wsvars.class});
-                wsNameVar = wsvars(wsNameVarinds);
-                wsNameVarNames = {wsNameVar.name};
-
-
-                [idx,tf] = listdlg('PromptString','Select which variable contains the names:',...
-                    'ListString',wsNameVarNames,'ListSize',[250,150],'SelectionMode','single');
-                if ~tf
-                    return
-                end
-                dataNames = evalin('base',wsNameVar(idx).name);
-                
-                if length(dataNames) ~= size(guiobj.imaging_data, 1)
+                if ~any(wsNameVarinds)
                     roiNameMode = 'Number them';
-                    eD = errordlg('Length of selected variable does not match loaded data! ROIs will get simple numbering.');
+                    eD = errordlg('No suitable data found! ROIs will get simple numbering.');
                     pause(1.5)
                     if ishandle(eD)
                         close(eD)
                     end
-                    
                 else
-                    if strcmp(wsNameVar(idx).class,'string')
-                        dataNames = num2cell(dataNames);
+                    wsNameVar = wsvars(wsNameVarinds);
+                    wsNameVarNames = {wsNameVar.name};
+    
+                    [idx,tf] = listdlg('PromptString','Select which variable contains the names:',...
+                        'ListString',wsNameVarNames,'ListSize',[250,150],'SelectionMode','single');
+                    if ~tf
+                        return
+                    end
+                    dataNames = evalin('base',wsNameVar(idx).name);
+                    
+                    if length(dataNames) ~= size(wsData, 1)
+                        roiNameMode = 'Number them';
+                        eD = errordlg('Length of selected variable does not match loaded data! ROIs will get simple numbering.');
+                        pause(1.5)
+                        if ishandle(eD)
+                            close(eD)
+                        end
+                        
+                    else
+                        if strcmp(wsNameVar(idx).class,'string')
+                            dataNames = num2cell(dataNames);
+                        end
                     end
                 end
             end
             if strcmp(roiNameMode,'Number them')
-                dataNames = cellfun(@(x) ['ROI #',num2str(x)], num2cell( (1:size(guiobj.imaging_data,1))' ), 'UniformOutput', false);
+                dataNames = cellfun(@(x) ['ROI #',num2str(x)], num2cell( (1:size(wsData,1))' ), 'UniformOutput', false);
             end
 
             % storing the datanames, inserting them into the listboxes
@@ -2852,6 +2861,12 @@ classdef DAS < handle
                 guiobj.DatasetListBox.String = dataNames;
             end
 
+            guiobj.imaging_data   = wsData;
+            guiobj.imaging_taxis  = wsTaxis;
+            guiobj.imaging_fs     = fs;
+            guiobj.imaging_ylabel = yAxLabel;
+
+            setXlims(guiobj)
         end
         
         %%
@@ -4534,14 +4549,27 @@ classdef DAS < handle
             dettype = guiobj.imagingDetPopMenu.Value;
             dettype = guiobj.imagingDetPopMenu.String{dettype};
             
+            if strcmp(dettype,'Import detections')
+                guiobj.imagingDetRunButt.String = 'Import detections';
+            else
+                guiobj.imagingDetRunButt.String = 'Run imaging detection';
+            end
+
             switch dettype
+                case 'Import detections'
+                    guiobj.imagingImportDetPanel.Visible = 'on';
+                    guiobj.imagingMeanSdDetPanel.Visible = 'off';
+                    guiobj.imagingMlSpDetPanel.Visible = 'off';
                 case 'Mean+SD'
+                    guiobj.imagingImportDetPanel.Visible = 'off';
                     guiobj.imagingMeanSdDetPanel.Visible = 'on';
                     guiobj.imagingMlSpDetPanel.Visible = 'off';
                 case 'MLspike based'
+                    guiobj.imagingImportDetPanel.Visible = 'off';
                     guiobj.imagingMlSpDetPanel.Visible = 'on';
                     guiobj.imagingMeanSdDetPanel.Visible = 'off';
                 otherwise
+                    guiobj.imagingImportDetPanel.Visible = 'off';
                     guiobj.imagingMeanSdDetPanel.Visible = 'off';
                     guiobj.imagingMlSpDetPanel.Visible = 'off';
                 
@@ -4600,7 +4628,7 @@ classdef DAS < handle
             end
             
             %% check whether running data based detection was requested
-            if guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
+            if ~strcmp(dettype,'Import detections') && guiobj.datatyp(3) && guiobj.useRunData4DetsCheckBox.Value
                 inds2use = convertRunInds4Dets(guiobj,2);
                 
                 detinfo.DetSettings.SpeedRange = ['[',guiobj.speedRange4DetsEdit1.String,' , '...
@@ -4624,6 +4652,79 @@ classdef DAS < handle
             detParams = cell(min(size(data)),1);
             evComplexes = cell(min(size(data)),1);
             switch dettype
+                case 'Import detections'
+                    % Getting variables from base workspace
+                    wsvars = evalin('base','whos');
+                    
+                    % Finding data variables
+                    wsDataVarinds = strcmp({wsvars.class},'cell');
+                    if ~any(wsDataVarinds)
+                        dispErrorResetStatus('No suitable data found!')
+                        return
+                    end
+                    wsDataVar = wsvars(wsDataVarinds);
+                    wsDataVarNames = {wsDataVar.name};
+        
+                    % Ask user to select which data variable to import
+                    [idx,tf] = listdlg('PromptString','Select detection variable:',...
+                        'ListString',wsDataVarNames,'ListSize',[250,150],'SelectionMode','single');
+                    if ~tf
+                        dispErrorResetStatus('Cancelled')
+                        return
+                    end
+                    dets = evalin('base',wsDataVar(idx).name);
+
+                    [idx,tf] = listdlg('PromptString','Select detection borders variable:',...
+                        'ListString',wsDataVarNames,'ListSize',[250,150],'SelectionMode','single');
+                    if ~tf
+                        dispErrorResetStatus('Cancelled')
+                        return
+                    end
+                    detBorders = evalin('base',wsDataVar(idx).name);
+
+                    detTypeName = inputdlg('What detection type was this?','DetType');
+                    if isempty(detTypeName)
+                        dispErrorResetStatus('Cancelled')
+                        return
+                    end
+                    detinfo.DetType = detTypeName{1};
+
+                    setStructPresent = questdlg('Do you have a settings struct?','Settings struct');
+                    if strcmp(setStructPresent,'Yes')
+                        % Finding data variables
+                        wsStructVarinds = strcmp({wsvars.class},'struct');
+                        if ~any(wsStructVarinds)
+                            dispErrorResetStatus('No structs found!')
+                            return
+                        end
+                        wsStructVar = wsvars(wsStructVarinds);
+                        wsStructVarNames = {wsStructVar.name};
+            
+                        % Ask user to select which data variable to import
+                        [idx,tf] = listdlg('PromptString','Select detection settings variable:',...
+                            'ListString',wsStructVarNames,'ListSize',[250,150],'SelectionMode','single');
+                        if ~tf
+                            dispErrorResetStatus('Cancelled')
+                            return
+                        end
+                        detSettingStruct = evalin('base',wsStructVar(idx).name);
+
+                        fields = fieldnames(detSettingStruct);
+                        for i = 1:length(fields)
+                            detinfo.DetSettings.(fields{i}) = detSettingStruct.(fields{i});
+                        end
+
+                    elseif strcmp(setStructPresent,'Cancel') || isempty(setStructPresent)
+                        dispErrorResetStatus('Cancelled')
+                        return
+
+                    end
+
+                    for i = 1:size(data,1)
+                        [dets{i}, detBorders{i}, detParams{i}, evComplexes{i}] = detParamMiner(2,dets{i},...
+                            detBorders{i},fs, data(i,:),data(i,:),[],tAxis);
+                    end
+
                 case 'Mean+SD'
                     %%
                     sdmult = str2double(guiobj.imagingMeanSdDetSdmultEdit.String);
@@ -7276,7 +7377,7 @@ classdef DAS < handle
                 'Style','popupmenu',...
                 'Units','normalized',...
                 'Position',[0.01, 0.58, 0.1, 0.05],...
-                'String',{'--Imaging detection methods--','Mean+SD','MLspike based'},...
+                'String',{'--Imaging detection methods--','Import detections','Mean+SD','MLspike based'},...
                 'Callback',@(h,e) guiobj.imagingDetPopMenuSelected);
             guiobj.imagingDetUseProcDataCheckBox = uicontrol(guiobj.eventDetTab,...
                 'Style','checkbox',...
@@ -7284,6 +7385,25 @@ classdef DAS < handle
                 'Position',[0.01, 0.5, 0.1, 0.05],...
                 'String','Use processed data');
             
+            guiobj.imagingImportDetPanel = uipanel(guiobj.eventDetTab,...
+                'Position',[0.12, 0.33, 0.2, 0.3],...
+                'Title','Import imaging detections from workspace',...
+                'Visible','off');
+            guiobj.imagingImportDetInfoText = uicontrol(guiobj.imagingImportDetPanel,...
+                'Style','text',...
+                'Units','normalized',...
+                'Position',[0,0,1,1],...
+                'Max',2,...
+                'String',{'Format to follow:'; 'Detection indices: cell array, size=(#allROIs,1)';...
+                    'Each cell should have a 1 dimensional array with the indices';...
+                    'ROIs with no detections are simply empty cells';...
+                    'Indices are the index of the peak value on the time axis'; '';...
+                    'Detection borders: cell array, size=(#allROIs,1)';...
+                    'Each cell should be a n-by-2 array, where 1st element is start 2nd is end'; '';...
+                    'Optionally a struct can be added with the detection settings.';...
+                    'Each field of the struct should be a setting.';...
+                    'e.g.: exampStruct.setting1 = 7, exampStruct.setting2 = ''asdsa'''});
+
             guiobj.imagingMeanSdDetPanel = uipanel(guiobj.eventDetTab,...
                 'Position',[0.12, 0.33, 0.2, 0.3],...
                 'Title','Settings for mean+sd based detection',...
