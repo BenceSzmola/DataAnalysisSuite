@@ -59,6 +59,7 @@ classdef DAS < handle
         importPanel
         ImportRHDButton
         ImportgorobjButton
+        ImportImagingWSButton
         ImportruncsvButton
         importSettingsButton
         Dataselection1Panel
@@ -1519,7 +1520,7 @@ classdef DAS < handle
         end
         
         %%
-        function guiobj = resetGuiData(guiobj,rhdORgor)
+        function guiobj = resetGuiData(guiobj,rhdORgorORvar)
 
             roboDet_prev = guiobj.roboDet;
             roboDet_fnames_prev = guiobj.roboDet_fnames;
@@ -1565,7 +1566,7 @@ classdef DAS < handle
             mbox = msgbox('Resetting GUI please wait...');
             
             guiobj = DAS;
-            toRun = [0,0,0,0,0,0];
+            toRun = zeros(1,7);
             
             guiobj.mainfig.Position = figLastPos;
             guiobj.mainfig.WindowState = figLastState;
@@ -1612,16 +1613,20 @@ classdef DAS < handle
             if dtyp(1) == 1
                 guiobj.ephysCheckBox.Value = 1;
                 toRun(1) = 1;
-                if rhdORgor == 1
+                if rhdORgorORvar == 1
                     toRun(4) = 1;
-                elseif rhdORgor == 2
+                elseif rhdORgorORvar == 2
                     toRun(5) = 1;
                 end
             end
             if dtyp(2) == 1
                 guiobj.imagingCheckBox.Value = 1;
                 toRun(2) = 1;
-                toRun(5) = 1;
+                if rhdORgorORvar == 2
+                    toRun(5) = 1;
+                elseif rhdORgorORvar == 3
+                    toRun(7) = 1;
+                end
             end
             if dtyp(3) == 1
                 guiobj.runCheckBox.Value = 1;
@@ -1645,8 +1650,11 @@ classdef DAS < handle
                 if toRun(5)
                     ImportgorobjButtonPushed(guiobj)
                 end
-                if toRun (6)
+                if toRun(6)
                     ImportruncsvButtonPushed(guiobj)
+                end
+                if toRun(7)
+                    importImagingFromVar(guiobj)
                 end
 
                 if showXtraFigs
@@ -2678,97 +2686,165 @@ classdef DAS < handle
         end
         
         %%
-        function ImportMatButtionPushed(guiobj)
-            [filename,path] = uigetfile('*.mat');
-            if filename == 0
-                figure(guiobj.mainfig)
+        function importImagingFromVar(guiobj)
+            if ~isempty(guiobj.imaging_data)
+                quest = 'GUI will be reset, have you saved everything you wanted?';
+                title = 'GUI reset';
+                btn1 = 'Yes, reset GUI';
+                btn2 = 'No, don''t reset';
+                btn3 = 'Import without resetting';
+                defbtn = btn1;
+                clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
+                if strcmp(clrGUI,btn1)
+                    resetGuiData(guiobj,3)
+                    return
+                elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
+                    return
+                end
+            end
+
+            % Getting variables from base workspace
+            wsvars = evalin('base','whos');
+            
+            % Finding data variables
+            wsDataVarinds = strcmp({wsvars.class},'double');
+            wsDataVar = wsvars(wsDataVarinds);
+            wsDataVarNames = {wsDataVar.name};
+
+            % Ask user to select which data variable to import
+            [idx,tf] = listdlg('PromptString','Select which variable to import:',...
+                'ListString',wsDataVarNames,'ListSize',[250,150],'SelectionMode','single');
+            if ~tf
                 return
             end
+            wsData = evalin('base',wsDataVar(idx).name);
             
-            varName = who('-file',[path,filename]);
-            data = getfield(load([path,filename]),varName{1})';
-            XaxisInfo = getfield(load([path,filename]),varName{2})';
-                        
-            if length(find(diff(cellfun('size',data,2)))) ~= 1
-                groupBounds = find(diff(cellfun('size',data,2)));
-                dataGroupList = cell(length(groupBounds)+1,1);
-                for i = 1:length(groupBounds)
-                    if i == 1
-                        dataGroupList{i} = ['Rows ',num2str(1),' - ',num2str(groupBounds(1))];
-                    else
-                        dataGroupList{i} = ['Rows ',num2str(groupBounds(i-1)+1),' - ',num2str(groupBounds(i))];
-                    end
+            % check orientation of data (channels, datapoints)
+            conf = questdlg('Which are the rois?','Data array orientation',...
+                'Rows','Columns','Rows');
+            if strcmp(conf,'Columns')
+                wsData = wsData';
+            elseif ~strcmp(conf,'Rows')
+                return
+            end
+
+            guiobj.imaging_data = wsData;
+            clear wsData
+
+            % getting the time axis and sampling rate
+
+            % Ask user to select which data variable has the time axis
+            [idx,tf] = listdlg('PromptString','Select time axis variable to import:',...
+                'ListString',wsDataVarNames,'ListSize',[250,150],'SelectionMode','single');
+            if ~tf
+                return
+            end
+            wsTaxis = evalin('base',wsDataVar(idx).name);
+            if all(size(wsTaxis) > 1)
+                eD = errordlg('Multichannel time axis is not accepted!');
+                pause(1.5)
+                if ishandle(eD)
+                    close(eD)
                 end
-                dataGroupList{end} = ['Rows ',num2str(groupBounds(end)+1),' - ',num2str(length(data))];
-                
-                [selRow,tf] = listdlg('ListString',dataGroupList,'PromptString','Select which rows to load!',...
-                    'SelectionMode','single');
+                guiobj.imaging_data = [];
+                return
+            elseif size(wsTaxis,1) > size(wsTaxis,2)
+                wsTaxis = wsTaxis';
+            end
+            guiobj.imaging_taxis = wsTaxis;
+            clear wsTaxis
+
+            % sampling rate
+            fsInput = questdlg('How should sampling rate be determined?','Sampling rate',...
+                'Manual input','Select variable','Compute from time axis','Manual input');
+            switch fsInput
+                case 'Manual input'
+                    fs = inputdlg('Enter sampling rate in [Hz]:','Sampling rate input');
+                    fs = str2double(fs{1});
+
+                case 'Select variable'
+                    [idx,tf] = listdlg('PromptString','Select sampling rate variable to import:',...
+                        'ListString',wsDataVarNames,'ListSize',[250,150],'SelectionMode','single');
+                    if ~tf
+                        fs = [];
+                    else
+                        fs = evalin('base',wsDataVar(idx).name);
+                        if length(fs) > 1
+                            eD = errordlg('Sampling rate should be 1 number');
+                            pause(1.5)
+                            if ishandle(eD)
+                                close(eD)
+                            end
+    
+                            fs = [];
+                        end
+                    end
+
+                case 'Compute from time axis'
+                    fs = 1 / mean(diff(guiobj.imaging_taxis));
+
+                otherwise
+                    fs = [];
+
+            end
+
+            if isempty(fs) || isnan(fs)
+                guiobj.imaging_data  = [];
+                guiobj.imaging_taxis = [];
+
+                return
+            end
+            guiobj.imaging_fs = fs;
+
+            % getting the y axis label for the data
+            yAxLabel = inputdlg('What should be the y axis label? (for greek: \Delta)','Y axis label',[1, 40],{'\DeltaF/F'});
+            guiobj.imaging_ylabel = yAxLabel;
+
+            % get names for the rois
+            roiNameMode = questdlg('What should the ROIs be called?','ROI names',...
+                'Select from workspace','Number them','Select from workspace');
+            if isempty(roiNameMode)
+                return
+            end
+            if strcmp(roiNameMode,'Select from workspace')
+                % Finding name variables
+                wsNameVarinds = cellfun(@(x) ismember(x,{'string','cell'}), {wsvars.class});
+                wsNameVar = wsvars(wsNameVarinds);
+                wsNameVarNames = {wsNameVar.name};
+
+
+                [idx,tf] = listdlg('PromptString','Select which variable contains the names:',...
+                    'ListString',wsNameVarNames,'ListSize',[250,150],'SelectionMode','single');
                 if ~tf
                     return
                 end
+                dataNames = evalin('base',wsNameVar(idx).name);
                 
-                if selRow == 1
-                    datanames = cell(1,groupBounds(1));
-                    for i = 1:groupBounds(1)
-                        datanames{i} = ['Row ',num2str(i)];
+                if length(dataNames) ~= size(guiobj.imaging_data, 1)
+                    roiNameMode = 'Number them';
+                    eD = errordlg('Length of selected variable does not match loaded data! ROIs will get simple numbering.');
+                    pause(1.5)
+                    if ishandle(eD)
+                        close(eD)
                     end
                     
-                    data = cell2mat(data(1:groupBounds(selRow)));
-                    taxis = cell2mat(XaxisInfo(1));
-                elseif selRow == (length(groupBounds)+1)
-                    datanames = cell(1,length(data)-groupBounds(end));
-                    for i = 1:(length(data)-groupBounds(end))
-                        datanames{i} = ['Row ',num2str(i+groupBounds(end))];
-                    end
-                    
-                    data = cell2mat(data(groupBounds(end)+1:end));
-                    taxis = cell2mat(XaxisInfo(groupBounds(end)+1));
                 else
-                    datanames = cell(1,groupBounds(selRow)-groupBounds(selRow-1));
-                    for i = 1:(groupBounds(selRow)-groupBounds(selRow-1))
-                        datanames{i} = ['Row ',num2str(i+groupBounds(selRow-1))];
+                    if strcmp(wsNameVar(idx).class,'string')
+                        dataNames = num2cell(dataNames);
                     end
-                    
-                    data = cell2mat(data(groupBounds(selRow-1)+1:groupBounds(selRow)));
-                    taxis = cell2mat(XaxisInfo(groupBounds(selRow-1)+1));
                 end
-                
-                
-            else
-                datanames = cell(1,length(data));
-                for i = 1:length(data)
-                    datanames{i} = ['Row ',num2str(i)];
-                end
-                data = cell2mat(data);
-                taxis = XaxisInfo{1};
             end
-            
-%             size(data)
-%             if size(data,1) > size(data,2)
-%                 data = data';
-%             end
-
-            taxis = taxis/1000;
-            
-            upsampMult = 3;
-            temp = zeros(size(data,1),size(data,2)*upsampMult);
-            taxisOG = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(data));
-            taxisInterp = linspace(taxis(1),length(data)*taxis(2)+taxis(1),length(taxisOG)*upsampMult);
-            for i = 1:size(data,1)
-                temp(i,:) = spline(taxisOG,data(i,:),taxisInterp);
+            if strcmp(roiNameMode,'Number them')
+                dataNames = cellfun(@(x) ['ROI #',num2str(x)], num2cell( (1:size(guiobj.imaging_data,1))' ), 'UniformOutput', false);
             end
-            data = temp;
-            clear temp
 
-            guiobj.imaging_data = data;
-            guiobj.imaging_fs = (1/taxis(2))*upsampMult;
-            
-            guiobj.imaging_taxis = taxisInterp;
-            
-            guiobj.imaging_datanames = datanames;
-            guiobj.ImagingListBox.String = datanames;
-            
-            setXlims(guiobj)
+            % storing the datanames, inserting them into the listboxes
+            guiobj.imaging_datanames = dataNames;
+            guiobj.ImagingListBox.String = dataNames;
+            if sum(guiobj.datatyp) == 1 || (sum(guiobj.datatyp)==2 && guiobj.datatyp(3)==1)
+                guiobj.DatasetListBox.String = dataNames;
+            end
+
         end
         
         %%
@@ -3123,8 +3199,10 @@ classdef DAS < handle
             % Import buttons
             if value 
                 guiobj.ImportgorobjButton.Enable = 'on';
+                guiobj.ImportImagingWSButton.Enable = 'on';
             elseif ~value && ~guiobj.ephysCheckBox.Value
                 guiobj.ImportgorobjButton.Enable = 'off';
+                guiobj.ImportImagingWSButton.Enable = 'off';
             end
             
             % Plot panel switching
@@ -5663,10 +5741,6 @@ classdef DAS < handle
                         
                 end
                 
-            else % MATbol importáláshoz
-                if strcmp(kD.Key,'m')
-                    ImportMatButtionPushed(guiobj)
-                end
             end
         end
         
@@ -6380,7 +6454,7 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.ImportRHDButtonPushed,...
                 'Enable','off',...
                 'Units','normalized',...
-                'Position',[0, 0.3, 0.3, 0.3],...
+                'Position',[0, 0.5, 0.3, 0.3],...
                 'String','Import RHD');
 
             % Create ImportgorobjButton
@@ -6389,8 +6463,17 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.ImportgorobjButtonPushed,...
                 'Enable','off',...
                 'Units','normalized',...
-                'Position',[0.35, 0.3, 0.3, 0.3],...
+                'Position',[0.175, 0.1, 0.3, 0.3],...
                 'String','Import gorobj');
+
+            % Create ImportImagingWSButton
+            guiobj.ImportImagingWSButton = uicontrol(guiobj.importPanel,...
+                'Style','pushbutton',...
+                'Callback',@(h,e) guiobj.importImagingFromVar,...
+                'Enable','off',...
+                'Units','normalized',...
+                'Position',[0.35, 0.5, 0.3, 0.3],...
+                'String','Import imaging from workspace');
 
             % Create ImportruncsvButton
             guiobj.ImportruncsvButton = uicontrol(guiobj.importPanel,...
@@ -6398,7 +6481,7 @@ classdef DAS < handle
                 'Callback',@(h,e) guiobj.ImportruncsvButtonPushed,...
                 'Enable','off',...
                 'Units','normalized',...
-                'Position',[0.7, 0.3, 0.3, 0.3],...
+                'Position',[0.7, 0.5, 0.3, 0.3],...
                 'String','Import run csv');
             
             guiobj.importSettingsButton = uicontrol(guiobj.importPanel,...
