@@ -41,6 +41,10 @@ classdef DAS < handle
         SaveDetsMenu
         OpenDASeVMenu
         
+        helpMenu
+        openDAShelpMenu
+        openEphysDethelpMenu
+        
         tabs
         maintab
         ephysProcTab
@@ -2520,6 +2524,16 @@ classdef DAS < handle
         %%
         function showRHDinfoMenuCB(guiobj)
             showRHDinfo(guiobj.path2rhd, guiobj.rhdFname)
+        end
+        
+        %%
+        function openDAShelpMenuCB(~)
+            open DASpacket_documentation.pdf
+        end
+        
+        %%
+        function openEphysDethelpMenuCB(~)
+            open EphysDetection_documentation.pdf
         end
         
         %% Button pushed function: ImportRHDButton
@@ -6695,6 +6709,14 @@ classdef DAS < handle
                 'Text','Open DASeV',...
                 'MenuSelectedFcn','DASeV');
             
+            guiobj.helpMenu = uimenu(guiobj.mainfig,...
+                'Text','Help');
+            guiobj.openDAShelpMenu = uimenu(guiobj.helpMenu,...
+                'Text','Open DAS packet documentation',...
+                'MenuSelectedFcn',@(h,e) guiobj.openDAShelpMenuCB);
+            guiobj.openEphysDethelpMenu = uimenu(guiobj.helpMenu,...
+                'Text','Open ephys detection documentation',...
+                'MenuSelectedFcn',@(h,e) guiobj.openEphysDethelpMenuCB);
 
             % Create tabgroup
             guiobj.tabs = uitabgroup(guiobj.mainfig,...
