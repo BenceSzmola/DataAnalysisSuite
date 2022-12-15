@@ -336,8 +336,6 @@ classdef DAS < handle
         ephys_detectionsInfo
         ephys_detParams 
         ephys_detMarkerSelection
-        ephys_detRunsNum = 0;               % Number of detection runs
-        ephys_currDetRun                       % Detection run currently active in detection tab
         ephys_dettypes = ["CWT based"; "Adaptive threshold"; "DoG+InstPow"];
         ephys_taxis                         % Time axis for electrophysiology data
         ephys_fs                            % Sampling frequency of electrophysiology data
@@ -361,8 +359,6 @@ classdef DAS < handle
         imaging_detParams
         imaging_detectionsInfo
         imaging_detMarkerSelection
-        imaging_detRunsNum = 0;             % Number of detection runs
-        imaging_currDetRun
         imaging_dettypes = ["Mean+SD"];
         imaging_taxis                       % Time axis for imaging data
         imaging_fs                          % Sampling frequency of imaging data
@@ -385,8 +381,6 @@ classdef DAS < handle
         
         simult_detections
         simult_detectionsInfo
-        simult_detParams
-        simult_detRunsNum = 0;
         simult_detMarkerSelection
         
         eventDet1CurrIdx = 1;               % # in the dets array
@@ -1524,154 +1518,297 @@ classdef DAS < handle
         
         %%
         function guiobj = resetGuiData(guiobj,rhdORgorORvar)
-
-            roboDet_prev = guiobj.roboDet;
-            roboDet_fnames_prev = guiobj.roboDet_fnames;
-            roboDet_idx_prev = guiobj.roboDet_idx;
-            roboDet_path_prev = guiobj.roboDet_path;
-            roboDet_detSavePath_prev = guiobj.roboDet_detSavePath;
-            roboDet_selChans_prev = guiobj.roboDet_selChans;
-            roboDet_refChans_prev = guiobj.roboDet_refChans;
-            
-            dtyp = guiobj.datatyp;
-            
-            showXtraFigs = guiobj.showXtraDetFigs;
-            
-            evDetYlimMode = guiobj.evDetTabYlimMode;
-            evDetYlimModeMenuText = guiobj.evDetTabYlimModeMenu.Text;
-            ephysCustomYlim = guiobj.eventYlimCustom_ephys;
-            imagingCustomYlim = guiobj.eventYlimCustom_imaging;
-            
-            doImportUpSamp = guiobj.importUpSamp;
-            doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
-            doImportEphysDownSamp = guiobj.doEphysDownSamp;
-            doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
-            
-            autoImportRhd = guiobj.autoLoadNextRHD;
-            
-            figLastPos = guiobj.mainfig.Position;
-            figLastState = guiobj.mainfig.WindowState;
-            
-            evDetTabEphysDTyp = guiobj.eventDet1DataType;
-            evDetTabImagingDTyp = guiobj.eventDet2DataType;
-            
-            ephysProcSel = guiobj.ephysProcPopMenu.Value;
-            ephysArtSuppSel = guiobj.ephysArtSuppTypePopMenu.Value;
-            imagingProcSel = guiobj.imagingProcPopMenu.Value;
-            imagingFiltSel = guiobj.imagingFilterTypePopMenu.Value;
-            
-            ephysDetSel = guiobj.ephysDetPopMenu.Value;
-            imagingDetSel = guiobj.imagingDetPopMenu.Value;
-            
-            close(guiobj.mainfig)
-            delete(guiobj)
-            
-            mbox = msgbox('Resetting GUI please wait...');
-            
-            guiobj = DAS;
-            toRun = zeros(1,7);
-            
-            guiobj.mainfig.Position = figLastPos;
-            guiobj.mainfig.WindowState = figLastState;
-            
-            guiobj.roboDet = roboDet_prev;
-            guiobj.roboDet_fnames = roboDet_fnames_prev;
-            guiobj.roboDet_idx = roboDet_idx_prev;
-            guiobj.roboDet_path = roboDet_path_prev;
-            guiobj.roboDet_detSavePath = roboDet_detSavePath_prev;
-            guiobj.roboDet_selChans = roboDet_selChans_prev;
-            guiobj.roboDet_refChans = roboDet_refChans_prev;
-            
-            guiobj.evDetTabYlimMode = evDetYlimMode;
-            guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
-            guiobj.eventYlimCustom_ephys = ephysCustomYlim;
-            guiobj.eventYlimCustom_imaging = imagingCustomYlim;
-            
-            guiobj.importUpSamp = doImportUpSamp;
-            guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
-            guiobj.doEphysDownSamp = doImportEphysDownSamp;
-            guiobj.doEphysDownSamp_targetFs = doImportEphysDownSamp_targetFs;
-            
-            guiobj.autoLoadNextRHD = autoImportRhd;
-            
-            guiobj.eventDet1DataType = evDetTabEphysDTyp;
-            guiobj.eventDet2DataType = evDetTabImagingDTyp;
-            
-            guiobj.ephysProcPopMenu.Value = ephysProcSel;
-            ephysProcPopMenuSelected(guiobj)
-            guiobj.ephysArtSuppTypePopMenu.Value = ephysArtSuppSel;
-            ephysArtSuppTypePopMenuCB(guiobj)
-            
-            guiobj.imagingProcPopMenu.Value = imagingProcSel;
-            imagingProcPopMenuSelected(guiobj)
-            guiobj.imagingFilterTypePopMenu.Value = imagingFiltSel;
-            imagingFilterTypePopMenuSelected(guiobj)
-            
-            guiobj.ephysDetPopMenu.Value = ephysDetSel;
-            ephysDetPopMenuSelected(guiobj)
-            
-            guiobj.imagingDetPopMenu.Value = imagingDetSel;
-            imagingDetPopMenuSelected(guiobj)
-            
-            if dtyp(1) == 1
-                guiobj.ephysCheckBox.Value = 1;
-                toRun(1) = 1;
-                if rhdORgorORvar == 1
-                    toRun(4) = 1;
-                elseif rhdORgorORvar == 2
-                    toRun(5) = 1;
-                end
-            end
-            if dtyp(2) == 1
-                guiobj.imagingCheckBox.Value = 1;
-                toRun(2) = 1;
-                if rhdORgorORvar == 2
-                    toRun(5) = 1;
-                elseif rhdORgorORvar == 3
-                    toRun(7) = 1;
-                end
-            end
-            if dtyp(3) == 1
-                guiobj.runCheckBox.Value = 1;
-                toRun(3) = 1;
-                toRun(6) = 1;
-            end
-            
-            if toRun(1)
-                ephysCheckBoxValueChanged(guiobj)
-            end
-            if toRun(2)
-                imagingCheckBoxValueChanged(guiobj)
-            end
-            if toRun(3)
-                runCheckBoxValueChanged(guiobj)
-            end
-            if ~guiobj.roboDet
-                if toRun(4)
-                    ImportRHDButtonPushed(guiobj)
-                end
-                if toRun(5)
-                    ImportgorobjButtonPushed(guiobj)
-                end
-                if toRun(6)
-                    ImportruncsvButtonPushed(guiobj)
-                end
-                if toRun(7)
-                    importImagingFromVar(guiobj)
-                end
-
-                if showXtraFigs
-                    showXtraDetFigsMenuSel(guiobj)                
-                end
-            end
-                        
-            delete(mbox)
-            
-            if nargout == 0
-                clear guiobj
-            end
+% 
+%             roboDet_prev = guiobj.roboDet;
+%             roboDet_fnames_prev = guiobj.roboDet_fnames;
+%             roboDet_idx_prev = guiobj.roboDet_idx;
+%             roboDet_path_prev = guiobj.roboDet_path;
+%             roboDet_detSavePath_prev = guiobj.roboDet_detSavePath;
+%             roboDet_selChans_prev = guiobj.roboDet_selChans;
+%             roboDet_refChans_prev = guiobj.roboDet_refChans;
+%             
+%             dtyp = guiobj.datatyp;
+%             
+%             showXtraFigs = guiobj.showXtraDetFigs;
+%             
+%             evDetYlimMode = guiobj.evDetTabYlimMode;
+%             evDetYlimModeMenuText = guiobj.evDetTabYlimModeMenu.Text;
+%             ephysCustomYlim = guiobj.eventYlimCustom_ephys;
+%             imagingCustomYlim = guiobj.eventYlimCustom_imaging;
+%             
+%             doImportUpSamp = guiobj.importUpSamp;
+%             doImportUpSamp_targetFs = guiobj.importUpSamp_targetFs;
+%             doImportEphysDownSamp = guiobj.doEphysDownSamp;
+%             doImportEphysDownSamp_targetFs = guiobj.doEphysDownSamp_targetFs;
+%             
+%             autoImportRhd = guiobj.autoLoadNextRHD;
+%             
+%             figLastPos = guiobj.mainfig.Position;
+%             figLastState = guiobj.mainfig.WindowState;
+%             
+%             evDetTabEphysDTyp = guiobj.eventDet1DataType;
+%             evDetTabImagingDTyp = guiobj.eventDet2DataType;
+%             
+%             ephysProcSel = guiobj.ephysProcPopMenu.Value;
+%             ephysArtSuppSel = guiobj.ephysArtSuppTypePopMenu.Value;
+%             imagingProcSel = guiobj.imagingProcPopMenu.Value;
+%             imagingFiltSel = guiobj.imagingFilterTypePopMenu.Value;
+%             
+%             ephysDetSel = guiobj.ephysDetPopMenu.Value;
+%             imagingDetSel = guiobj.imagingDetPopMenu.Value;
+%             
+%             close(guiobj.mainfig)
+%             delete(guiobj)
+%             
+%             mbox = msgbox('Resetting GUI please wait...');
+%             
+%             guiobj = DAS;
+%             toRun = zeros(1,7);
+%             
+%             guiobj.mainfig.Position = figLastPos;
+%             guiobj.mainfig.WindowState = figLastState;
+%             
+%             guiobj.roboDet = roboDet_prev;
+%             guiobj.roboDet_fnames = roboDet_fnames_prev;
+%             guiobj.roboDet_idx = roboDet_idx_prev;
+%             guiobj.roboDet_path = roboDet_path_prev;
+%             guiobj.roboDet_detSavePath = roboDet_detSavePath_prev;
+%             guiobj.roboDet_selChans = roboDet_selChans_prev;
+%             guiobj.roboDet_refChans = roboDet_refChans_prev;
+%             
+%             guiobj.evDetTabYlimMode = evDetYlimMode;
+%             guiobj.evDetTabYlimModeMenu.Text = evDetYlimModeMenuText;
+%             guiobj.eventYlimCustom_ephys = ephysCustomYlim;
+%             guiobj.eventYlimCustom_imaging = imagingCustomYlim;
+%             
+%             guiobj.importUpSamp = doImportUpSamp;
+%             guiobj.importUpSamp_targetFs = doImportUpSamp_targetFs;
+%             guiobj.doEphysDownSamp = doImportEphysDownSamp;
+%             guiobj.doEphysDownSamp_targetFs = doImportEphysDownSamp_targetFs;
+%             
+%             guiobj.autoLoadNextRHD = autoImportRhd;
+%             
+%             guiobj.eventDet1DataType = evDetTabEphysDTyp;
+%             guiobj.eventDet2DataType = evDetTabImagingDTyp;
+%             
+%             guiobj.ephysProcPopMenu.Value = ephysProcSel;
+%             ephysProcPopMenuSelected(guiobj)
+%             guiobj.ephysArtSuppTypePopMenu.Value = ephysArtSuppSel;
+%             ephysArtSuppTypePopMenuCB(guiobj)
+%             
+%             guiobj.imagingProcPopMenu.Value = imagingProcSel;
+%             imagingProcPopMenuSelected(guiobj)
+%             guiobj.imagingFilterTypePopMenu.Value = imagingFiltSel;
+%             imagingFilterTypePopMenuSelected(guiobj)
+%             
+%             guiobj.ephysDetPopMenu.Value = ephysDetSel;
+%             ephysDetPopMenuSelected(guiobj)
+%             
+%             guiobj.imagingDetPopMenu.Value = imagingDetSel;
+%             imagingDetPopMenuSelected(guiobj)
+%             
+%             if dtyp(1) == 1
+%                 guiobj.ephysCheckBox.Value = 1;
+%                 toRun(1) = 1;
+%                 if rhdORgorORvar == 1
+%                     toRun(4) = 1;
+%                 elseif rhdORgorORvar == 2
+%                     toRun(5) = 1;
+%                 end
+%             end
+%             if dtyp(2) == 1
+%                 guiobj.imagingCheckBox.Value = 1;
+%                 toRun(2) = 1;
+%                 if rhdORgorORvar == 2
+%                     toRun(5) = 1;
+%                 elseif rhdORgorORvar == 3
+%                     toRun(7) = 1;
+%                 end
+%             end
+%             if dtyp(3) == 1
+%                 guiobj.runCheckBox.Value = 1;
+%                 toRun(3) = 1;
+%                 toRun(6) = 1;
+%             end
+%             
+%             if toRun(1)
+%                 ephysCheckBoxValueChanged(guiobj)
+%             end
+%             if toRun(2)
+%                 imagingCheckBoxValueChanged(guiobj)
+%             end
+%             if toRun(3)
+%                 runCheckBoxValueChanged(guiobj)
+%             end
+%             if ~guiobj.roboDet
+%                 if toRun(4)
+%                     ImportRHDButtonPushed(guiobj)
+%                 end
+%                 if toRun(5)
+%                     ImportgorobjButtonPushed(guiobj)
+%                 end
+%                 if toRun(6)
+%                     ImportruncsvButtonPushed(guiobj)
+%                 end
+%                 if toRun(7)
+%                     importImagingFromVar(guiobj)
+%                 end
+% 
+%                 if showXtraFigs
+%                     showXtraDetFigsMenuSel(guiobj)                
+%                 end
+%             end
+%                         
+%             delete(mbox)
+%             
+%             if nargout == 0
+%                 clear guiobj
+%             end
         end
         
+        %%
+        function clearGUIdata(guiobj,data2clear)
+
+            if data2clear(1) && data2clear(2)
+                cla(guiobj.axes11,'reset');
+
+                guiobj.DatasetListBox.Value        = 1;
+                guiobj.DatasetListBox.String       = {};
+            end
+
+            if data2clear(1)
+                guiobj.ephysShowCurrIntervals          = false;
+                guiobj.rhdName                         = [];
+                guiobj.path2rhd                        = [];
+                guiobj.rhdFname                        = [];
+                guiobj.ephys_data                      = [];
+                guiobj.ephys_downSampd                 = false;
+                guiobj.ephys_dogged                    = [];
+                guiobj.ephys_instPowed                 = [];
+                guiobj.ephys_procced                   = [];
+                guiobj.ephys_proccedInfo               = struct('Channel',{},'ProcDetails',{});
+                guiobj.ephys_artSupp4Det               = 0;
+                guiobj.ephys_artSuppedData4DetListInds = [];
+                guiobj.ephys_prevIntervalSel           = [];
+                guiobj.ephys_detections                = {};
+                guiobj.ephys_globalDets                = [];
+                guiobj.ephys_eventComplexes            = {};
+                guiobj.ephys_detBorders                = {};
+                guiobj.ephys_detectionsInfo            = [];
+                guiobj.ephys_detParams                 = {};
+                guiobj.ephys_detMarkerSelection        = [];
+                guiobj.ephys_taxis                     = [];
+                guiobj.ephys_fs                        = [];
+                guiobj.ephys_select                    = [];
+                guiobj.ephys_datanames                 = {};
+                guiobj.ephys_procdatanames             = {};
+
+                guiobj.eventDet1CurrIdx                = 1;
+                guiobj.eventDet1CurrDet                = 1;
+                guiobj.eventDet1CurrChan               = 1;
+                guiobj.eventDet1DataType               = 1;
+
+                guiobj.EphysListBox.Value              = 1;
+                guiobj.EphysListBox.String             = {};
+                guiobj.ephysProcListBox.Value          = 1;
+                guiobj.ephysProcListBox.String         = {};
+                guiobj.ephysProcListBox2.Value         = 1;
+                guiobj.ephysProcListBox2.String        = {};
+                guiobj.ephysDetParamsTable.Data        = '';
+                if guiobj.datatyp(1) && ~guiobj.datatyp(2)
+                    cla(guiobj.axes11,'reset');
+
+                    guiobj.DatasetListBox.Value        = 1;
+                    guiobj.DatasetListBox.String       = {};
+                end
+
+                cla(guiobj.axes21,'reset');
+                cla(guiobj.axes31,'reset');
+                cla(guiobj.axesEphysProc1,'reset');
+                cla(guiobj.axesEphysProc2,'reset');
+                cla(guiobj.axesEventDet1,'reset');
+            end
+
+            if data2clear(2)
+                guiobj.imaging_data                      = [];
+                guiobj.imaging_upSampd                   = false;
+                guiobj.imaging_smoothed                  = [];
+                guiobj.imaging_procced                   = [];
+                guiobj.imaging_proccedInfo               = struct('ROI',{},'ProcDetails',{});
+                guiobj.imaging_artSupp4Det               = 0;
+                guiobj.imaging_artSuppedData4DetListInds = [];
+                guiobj.imaging_detections                = {};
+                guiobj.imaging_globalDets                = [];
+                guiobj.imaging_eventComplexes            = {};
+                guiobj.imaging_detBorders                = {};
+                guiobj.imaging_detParams                 = {};
+                guiobj.imaging_detectionsInfo            = [];
+                guiobj.imaging_detMarkerSelection        = [];
+                guiobj.imaging_taxis                     = [];
+                guiobj.imaging_fs                        = [];
+                guiobj.imaging_select                    = [];
+                guiobj.imaging_datanames                 = {};
+                guiobj.imaging_procDatanames             = {};
+
+                guiobj.eventDet2CurrIdx                  = 1;
+                guiobj.eventDet2CurrDet                  = 1;
+                guiobj.eventDet2CurrRoi                  = 1;
+                guiobj.eventDet2DataType                 = 1;
+
+                guiobj.ImagingListBox.Value              = 1;
+                guiobj.ImagingListBox.String             = {};
+                guiobj.imagingProcListBox.Value          = 1;
+                guiobj.imagingProcListBox.String         = {};
+                guiobj.imagingProcListBox2.Value         = 1;
+                guiobj.imagingProcListBox2.String        = {};
+                guiobj.imagingDetParamsTable.Data        = '';
+                if guiobj.datatyp(2) && ~guiobj.datatyp(1)
+                    cla(guiobj.axes11,'reset');
+
+                    guiobj.DatasetListBox.Value          = 1;
+                    guiobj.DatasetListBox.String         = {};
+                end
+
+                cla(guiobj.axes22,'reset');
+                cla(guiobj.axes32,'reset');
+                cla(guiobj.axesImagingProc1,'reset');
+                cla(guiobj.axesImagingProc2,'reset');
+                cla(guiobj.axesEventDet2,'reset');
+            end
+
+            if data2clear(1) || data2clear(2)
+                guiobj.evDetTabSimultMode        = 0;
+
+                guiobj.simult_detections         = [];
+                guiobj.simult_detectionsInfo     = [];
+                guiobj.simult_detMarkerSelection = [];
+
+                guiobj.eventDetSim1CurrDet       = 1;
+                guiobj.eventDetSim1CurrChan      = 1;
+                guiobj.eventDetSim2CurrDet       = 1;
+                guiobj.eventDetSim2CurrRoi       = 1;
+            end
+
+            if data2clear(3)
+                guiobj.run_absPos = [];
+                guiobj.run_lap    = [];
+                guiobj.run_relPos = [];
+                guiobj.run_veloc  = [];
+                guiobj.run_licks  = [];
+                guiobj.run_taxis  = [];
+                guiobj.run_fs     = [];
+
+                cla(guiobj.axesPos1,'reset');
+                cla(guiobj.axesPos2,'reset');
+                cla(guiobj.axesPos3,'reset');
+                cla(guiobj.axesVeloc1,'reset');
+                cla(guiobj.axesVeloc2,'reset');
+                cla(guiobj.axesVeloc3,'reset');
+            end
+
+            setXlims(guiobj)
+        end
+
         %%
         function importSettingsUpdate(guiobj,h,~)
             runUpSamp = findobj(h,'String','Run upsampling after GOR import');
@@ -2183,7 +2320,8 @@ classdef DAS < handle
             end
             
             guiobj.roboDet = true;
-            guiobj = resetGuiData(guiobj,1);
+%             guiobj = resetGuiData(guiobj,1);
+            clearGUIdata(guiobj,[true,false,false])
             
             btn1 = 'Directory';
             btn2 = 'Files';
@@ -2335,7 +2473,8 @@ classdef DAS < handle
                 saveDets(guiobj)
                 
                 % reset
-                guiobj = resetGuiData(guiobj,1);
+%                 guiobj = resetGuiData(guiobj,1);
+                clearGUIdata(guiobj,[true,false,false])
                 progTxt = 'Autopilot running - file #%d/%d - Done\n';
                 fprintf(1,progTxt,guiobj.roboDet_idx, length(saveFnames))
 
@@ -2387,13 +2526,12 @@ classdef DAS < handle
         function ImportRHDButtonPushed(guiobj)
 
             if ~isempty(guiobj.ephys_data)
-                quest = 'GUI will be reset, have you saved everything you wanted?';
-                title = 'GUI reset';
-                btn1 = 'Yes, reset GUI';
-                btn2 = 'No, don''t reset';
-                btn3 = 'Import without resetting';
+                quest = 'Currently loaded ephys data will be cleared, have you saved everything you wanted?';
+                title = 'Ephys data reset';
+                btn1 = 'Yes, clear data';
+                btn2 = 'Cancel';
                 defbtn = btn1;
-                clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
+                clrGUI = questdlg(quest,title,btn1,btn2,defbtn);
                 
                 if strcmp(clrGUI,btn1)
                     rhdsInCd = dir([guiobj.path2rhd, '*.rhd']);
@@ -2412,8 +2550,9 @@ classdef DAS < handle
                         guiobj.autoLoadNextRHD = {};
                     end
                     
-                    resetGuiData(guiobj,1)
-                    return
+%                     resetGuiData(guiobj,1)
+%                     return
+                    clearGUIdata(guiobj,[true,false,false])
                     
                 elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
                     return
@@ -2492,22 +2631,58 @@ classdef DAS < handle
 
         %% Button pushed function: ImportgorobjButton
         function ImportgorobjButtonPushed(guiobj)
-            
-            if ~isempty(guiobj.ephys_data) | ~isempty(guiobj.imaging_data)
-                quest = 'GUI will be reset, have you saved everything you wanted?';
-                title = 'GUI reset';
-                btn1 = 'Yes, reset GUI';
-                btn2 = 'No, don''t reset';
-                btn3 = 'Import without resetting';
-                defbtn = btn1;
-                clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
+            quest = 'What data types does the gorobj have?';
+            title = 'gorobj data type';
+            btn1  = 'Ephys';
+            btn2  = 'Imaging';
+            btn3  = 'Both';
+            defbtn = btn1;
+            gorDataTyp = questdlg(quest,title,btn1,btn2,btn3,defbtn);
+
+            ask4reset = true;
+            if strcmp(gorDataTyp,btn1) && ~isempty(guiobj.ephys_data)
+                quest      = 'Currently loaded ephys data will be cleared, have you saved everything you wanted?';
+                title      = 'Ephys data reset';
+                dtyp2clear = [true,false,false];
+
+            elseif strcmp(gorDataTyp,btn2) && ~isempty(guiobj.imaging_data)
+                quest      = 'Currently loaded imaging data will be cleared, have you saved everything you wanted?';
+                title      = 'Imaging data reset';
+                dtyp2clear = [false,true,false];
+
+            elseif strcmp(gorDataTyp,btn3) && (~isempty(guiobj.ephys_data) || ~isempty(guiobj.imaging_data))
+                if ~isempty(guiobj.ephys_data) && ~isempty(guiobj.imaging_data)
+                    quest      = 'Currently loaded ephys & imaging data will be cleared, have you saved everything you wanted?';
+                    title      = 'Ephys & Imaging data reset';
+                    dtyp2clear = [true,true,false];
+
+                elseif ~isempty(guiobj.ephys_data)
+                    quest      = 'Currently loaded ephys data will be cleared, have you saved everything you wanted?';
+                    title      = 'Ephys data reset';
+                    dtyp2clear = [true,false,false];
+
+                elseif ~isempty(guiobj.imaging_data)
+                    quest      = 'Currently loaded imaging data will be cleared, have you saved everything you wanted?';
+                    title      = 'Imaging data reset';
+                    dtyp2clear = [false,true,false];
+
+                end
+
+            else
+                ask4reset = false;
+                
+            end
+
+            if ask4reset
+                btn1       = 'Yes, clear data';
+                btn2       = 'Cancel';
+                defbtn     = btn1;
+                clrGUI = questdlg(quest,title,btn1,btn2,defbtn);
                 if strcmp(clrGUI,btn1)
-                    resetGuiData(guiobj,2)
-                    return
+                    clearGUIdata(guiobj,dtyp2clear)
                 elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
                     return
                 end
-%                 return
             end
             
             % Getting variables from base workspace
@@ -2558,11 +2733,26 @@ classdef DAS < handle
                 datanames{i} = get(wsgors(i),'name');
             end
             
-            if dtyp(1)
+            if ~isempty(find(dtyp == 1, 1))
                 guiobj.ephys_downSampd = false;
             end
-            if dtyp(2)
+            if ~isempty(find(dtyp == 2, 1))
                 guiobj.imaging_upSampd = false;
+            end
+            
+            if strcmp(gorDataTyp,'Ephys') && isempty(find(dtyp == 1, 1))
+                errordlg('Selected file does not include any electrophysiology data!')
+                return
+            end
+            
+            if strcmp(gorDataTyp,'Imaging') && isempty(find(dtyp == 2, 1))
+                errordlg('Selected file does not include any imaging data!')
+                return
+            end
+            
+            if strcmp(gorDataTyp,'Both') && (isempty(find(dtyp == 1, 1)) || isempty(find(dtyp == 2, 1)))
+                errordlg('Selected file does not include both datatypes!')
+                return
             end
             
             if (guiobj.datatyp(1) & ~guiobj.datatyp(2)) & isempty(find(dtyp==1,1))
@@ -2698,16 +2888,16 @@ classdef DAS < handle
             % from the workspace, but for them there are other solutions.
 
             if ~isempty(guiobj.imaging_data)
-                quest = 'GUI will be reset, have you saved everything you wanted?';
-                title = 'GUI reset';
-                btn1 = 'Yes, reset GUI';
-                btn2 = 'No, don''t reset';
-                btn3 = 'Import without resetting';
+                quest = 'Currently loaded imaging data will be deleted, have you saved everything you wanted?';
+                title = 'Imaging data reset';
+                btn1 = 'Yes, clear data';
+                btn2 = 'Cancel';
                 defbtn = btn1;
-                clrGUI = questdlg(quest,title,btn1,btn2,btn3,defbtn);
+                clrGUI = questdlg(quest,title,btn1,btn2,defbtn);
                 if strcmp(clrGUI,btn1)
-                    resetGuiData(guiobj,3)
-                    return
+%                     resetGuiData(guiobj,3)
+%                     return
+                    clearGUIdata(guiobj,[false,true,false])
                 elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
                     return
                 end
@@ -3135,6 +3325,22 @@ classdef DAS < handle
         
         %% Button pushed function: ImportruncsvButton
         function ImportruncsvButtonPushed(guiobj)
+            if ~isempty(guiobj.run_taxis)
+                quest = 'Currently loaded running data will be deleted, have you saved everything you wanted?';
+                title = 'Running data reset';
+                btn1 = 'Yes, clear data';
+                btn2 = 'Cancel';
+                defbtn = btn1;
+                clrGUI = questdlg(quest,title,btn1,btn2,defbtn);
+                if strcmp(clrGUI,btn1)
+%                     resetGuiData(guiobj,3)
+%                     return
+                    clearGUIdata(guiobj,[false,false,true])
+                elseif strcmp(clrGUI,btn2) | isempty(clrGUI)
+                    return
+                end
+            end
+
             % Reading the running data from the csv
             [filename,path] = uigetfile('*.csv');
             if filename == 0
