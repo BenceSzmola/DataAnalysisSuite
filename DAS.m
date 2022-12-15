@@ -2528,12 +2528,12 @@ classdef DAS < handle
         
         %%
         function openDAShelpMenuCB(~)
-            open DASpacket_documentation.pdf
+            open documentation\DASpacket_documentation.pdf
         end
         
         %%
         function openEphysDethelpMenuCB(~)
-            open EphysDetection_documentation.pdf
+            open documentation\EphysDetection_documentation.pdf
         end
         
         %% Button pushed function: ImportRHDButton
