@@ -1367,7 +1367,7 @@ classdef DASeV < handle
             
             obj2enable = [];
             if gO.loaded(1)
-                if sum(~cellfun('isempty', gO.ephysDets))
+                if ~isempty(gO.ephysDets) && sum(~cellfun('isempty', gO.ephysDets))
                     obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'ephys')];
                 else
                     obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'ephys(?!Dets)')];
@@ -1379,7 +1379,7 @@ classdef DASeV < handle
             end
             
             if gO.loaded(2)
-                if sum(~cellfun('isempty', gO.imagingDets))
+                if ~isempty(gO.imagingDets) && sum(~cellfun('isempty', gO.imagingDets))
                     obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'imaging')];
                 else
                     obj2enable = [obj2enable; findobj(allObjs, '-regexp', 'Tag', 'imaging(?!Dets)')];
@@ -2088,7 +2088,9 @@ classdef DASeV < handle
                         gO.ephysDetParams = cell(min(size(gO.ephysData)),1);
                     end
                     gO.ephysDetInfo = ephysSaveInfo;
-                    if ~isempty(gO.ephysDetInfo)
+                    w1 = 150;
+                    w2 = 250;
+                    if ~isempty(gO.ephysDetInfo) || ~isempty(gO.ephysDetInfo.DetType)
                         if ~isempty(gO.ephysDetInfo.DetSettings) 
                             if isfield(gO.ephysDetInfo.DetSettings, 'RefCh')
                                 gO.ephysRefCh = numSelCharConverter(gO.ephysDetInfo(1).DetSettings.RefCh);
@@ -2096,14 +2098,8 @@ classdef DASeV < handle
                             if isfield(gO.ephysDetInfo.DetSettings, 'W1') && isfield(gO.ephysDetInfo.DetSettings, 'W2')
                                 w1 = gO.ephysDetInfo.DetSettings.W1;
                                 w2 = gO.ephysDetInfo.DetSettings.W2;
-                            else
-                                w1 = 150;
-                                w2 = 250;
                             end
                         end
-                    else
-                        w1 = 150;
-                        w2 = 250;
                     end
 
                     gO.loaded(1) = 1;
@@ -2267,7 +2263,7 @@ classdef DASeV < handle
             if gO.loaded(1)
                 gO.save2DbEphysSelection = cell(length(gO.ephysDetBorders),1);
                 if gO.loaded(2)
-                    gO.save2DbEphysParallelRoiSelection = true(length(gO.imagingDetInfo.DetROI),1);
+                    gO.save2DbEphysParallelRoiSelection = true(length(gO.imagingDetInfo.AllROI),1);
                 end
                 for i = 1:length(gO.ephysDetBorders)
                     gO.save2DbEphysSelection{i} = false(size(gO.ephysDetBorders{i},1),1);
@@ -2626,7 +2622,7 @@ classdef DASeV < handle
                     end
                 case -1
                     if altCurrDetRow > 1
-                        altCurrDetRow = altCurrDetRow -1;
+                        altCurrDetRow = altCurrDetRow - 1;
                     end
             end
             

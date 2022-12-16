@@ -5830,7 +5830,7 @@ classdef DAS < handle
                 else
                     ephysData2Save = guiobj.ephys_procced(guiobj.ephys_artSuppedData4DetListInds,:);
                 end
-                if ~saveAllChans
+                if ~isempty(guiobj.ephys_detections) || ~saveAllChans
                     chans2Save = guiobj.ephys_detectionsInfo.DetChannel;
                     if guiobj.ephys_artSupp4Det ~= 0
                         temp = guiobj.ephys_proccedInfo(guiobj.ephys_artSuppedData4DetListInds);
@@ -5887,7 +5887,7 @@ classdef DAS < handle
                 else
                     imagingData2Save = guiobj.imaging_procced(guiobj.imaging_artSuppedData4DetListInds,:);
                 end
-                if ~saveAllChans
+                if ~isempty(guiobj.imaging_detections) || ~saveAllChans 
                     chans2Save = guiobj.imaging_detectionsInfo.DetROI;
                     if guiobj.imaging_artSupp4Det ~= 0
                         temp = guiobj.imaging_proccedInfo(guiobj.imaging_artSuppedData4DetListInds);
@@ -5945,11 +5945,11 @@ classdef DAS < handle
                     else
                         runData.taxis = guiobj.run_taxis;
                     end
-                    runData.veloc = guiobj.run_veloc;
+                    runData.veloc  = guiobj.run_veloc;
                     runData.absPos = guiobj.run_absPos;
                     runData.relPos = guiobj.run_relPos;
                     runData.lapNum = guiobj.run_lap;
-                    runData.licks = guiobj.run_licks;
+                    runData.licks  = guiobj.run_licks;
                 end
             end
             
