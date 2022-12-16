@@ -769,6 +769,8 @@ classdef DASeV < handle
                 axTitle = ['Electrophysiology channel #',num2str(chanOgNum),...
                     ' - parallel time window'];
                 tDetInds = [];
+
+                gO.ephysDetParamsTable.Data = '';
             end
             
             if forSpectro
@@ -1000,6 +1002,8 @@ classdef DASeV < handle
                 axTitle = ['Imaging ROI #',num2str(chanOgNum),...
                     ' - parallel time window'];
                 tDetInds = [];
+
+                gO.imagingDetParamsTable.Data = '';
             end
             
             yLabels = string(gO.imagingYlabel);
