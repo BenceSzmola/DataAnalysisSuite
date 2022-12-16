@@ -187,7 +187,8 @@ classdef DASevDB < handle
         %% Constructor function
         function gO = DASevDB
             createComponents(gO)
-%             
+            getDBlist(gO,0,true)
+
             if nargout == 0
                 clear gO
             end
@@ -1011,6 +1012,7 @@ classdef DASevDB < handle
             selInd = gO.entryListBox.Value;
             gO.loadedEntryFname = gO.dbFileNames{selInd};
             gO.currEvent = 1;
+            gO.currParallelChan = 1;
             gO.ephysEvents = [];
             gO.imagingEvents = [];
             gO.loaded = [0,0,0];
@@ -1269,10 +1271,10 @@ classdef DASevDB < handle
                 end
 
                 delete([gO.selDBdir,'\',gO.entryListBox.String{sel}])
-                getDBlist(gO,1,true)
+                getDBlist(gO,0,true)
             else
                 delete([gO.selDBdir,'\',gO.loadedEntryFname])
-                getDBlist(gO,1,true)
+                getDBlist(gO,0,true)
             end
         end
         
@@ -2014,7 +2016,6 @@ classdef DASevDB < handle
                 'Position',[0.01, 0.2, 0.98, 0.8],...
                 'String','',...
                 'UIContextMenu',gO.LBcontMenu);
-            getDBlist(gO,true,true)
             gO.LBcontMenuUpdate = uimenu(gO.LBcontMenu,'Text','Update list',...
                 'Callback',@(h,e) gO.getDBlist(1,true));
             gO.LBcontMenuDelete = uimenu(gO.LBcontMenu,'Text','Delete selected entry',...
