@@ -3793,8 +3793,7 @@ classdef DASeV < handle
 
                     % control parallel saving
                     if saveStruct(1).parallel ~= 0
-                        if ((saveStruct(1).parallel == 1) && gO.save2DbImaging_wPar_CheckBox.Value) ||...
-                                ((saveStruct(1).parallel == 2) && gO.save2DbEphys_wPar_CheckBox.Value)
+                        if saveStruct(1).parallel ~= newSaveStruct(1).parallel
                             errordlg(['The entry you chose contains different type of parallel events!',...
                                 ' Choose another, or create a new one!'])
                             return

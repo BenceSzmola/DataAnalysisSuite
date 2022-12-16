@@ -1041,6 +1041,14 @@ classdef DASevDB < handle
             gO.parallelChanUpButton.Visible = 'off';
             gO.showAvgParallelChanButton.Visible = 'off';
             if (unique(gO.parallelFromSaveStruct) == 1) || (unique(gO.parallelFromSaveStruct) == 2)
+                if unique(gO.parallelFromSaveStruct) == 1
+                    gO.parallelChanDwnButton.String = '<HTML>ParChan&darr';
+                    gO.parallelChanUpButton.String  = '<HTML>ParChan&uarr';
+                elseif unique(gO.parallelFromSaveStruct) == 2
+                    gO.parallelChanDwnButton.String = '<HTML>ParROI&darr';
+                    gO.parallelChanUpButton.String  = '<HTML>ParROI&uarr';
+                end
+
                 gO.parallelChanDwnButton.Visible = 'on';
                 gO.parallelChanUpButton.Visible = 'on';
                 gO.showAvgParallelChanButton.Visible = 'on';
