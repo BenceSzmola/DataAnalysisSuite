@@ -127,7 +127,7 @@ classdef DASevDB < handle
     properties (Access = private)
         loaded = [0, 0, 0];
         tAxDim = 1;
-        selDBdir
+        selDBdir = cd;
         dbFileNames
         currEvent = 1;
         currParallelChan = 1;
@@ -1038,7 +1038,7 @@ classdef DASevDB < handle
             gO.parallelChanDwnButton.Visible = 'off';
             gO.parallelChanUpButton.Visible = 'off';
             gO.showAvgParallelChanButton.Visible = 'off';
-            if unique(gO.parallelFromSaveStruct) == 1
+            if (unique(gO.parallelFromSaveStruct) == 1) || (unique(gO.parallelFromSaveStruct) == 2)
                 gO.parallelChanDwnButton.Visible = 'on';
                 gO.parallelChanUpButton.Visible = 'on';
                 gO.showAvgParallelChanButton.Visible = 'on';
@@ -2014,6 +2014,7 @@ classdef DASevDB < handle
                 'Position',[0.01, 0.2, 0.98, 0.8],...
                 'String','',...
                 'UIContextMenu',gO.LBcontMenu);
+            getDBlist(gO,true,true)
             gO.LBcontMenuUpdate = uimenu(gO.LBcontMenu,'Text','Update list',...
                 'Callback',@(h,e) gO.getDBlist(1,true));
             gO.LBcontMenuDelete = uimenu(gO.LBcontMenu,'Text','Delete selected entry',...

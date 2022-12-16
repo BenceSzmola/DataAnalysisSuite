@@ -2044,6 +2044,8 @@ classdef DASeV < handle
             dataPresent = false(2,1); % indicates whether there has been data loaded
             
             gO.parallelMode = 0;
+            gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
+            gO.parallelModeMenu.ForegroundColor = 'r';
             
             gO.ephysCurrDetNum = 1;
             gO.ephysCurrDetRow = 1;
