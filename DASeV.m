@@ -759,8 +759,8 @@ classdef DASeV < handle
             elseif gO.parallelMode == 1
                 chanNum = gO.ephysParallDetRow;
                 chanOgNum = gO.ephysDetInfo.AllChannel(chanNum);
-                [~,~,imagingChanNum,~,~,imagingDetNum,~,~,~] = extractDetStruct(gO,2);
-                [imagingWinIdx,~] = windowMacher(gO,2,imagingChanNum,imagingDetNum,0.25);
+                [~,~,~,~,~,imagingDetNum] = extractDetStruct(gO,2);
+                [imagingWinIdx,~] = windowMacher(gO,2,gO.imagingCurrDetRow,imagingDetNum,0.25);
                 imagingTWinIdx = gO.imagingTaxis(imagingWinIdx);
                 [~,winStart] = min(abs(gO.ephysTaxis-imagingTWinIdx(1)));
                 [~,winEnd] = min(abs(gO.ephysTaxis-imagingTWinIdx(end)));
@@ -990,8 +990,8 @@ classdef DASeV < handle
             elseif gO.parallelMode == 2
                 chanNum = gO.imagingParallDetRow;
                 chanOgNum = gO.imagingDetInfo.AllROI(chanNum);
-                [~,~,ephysChanNum,~,~,ephysDetNum,~,~,~] = extractDetStruct(gO,1);
-                [ephysWinIdx,~] = windowMacher(gO,1,ephysChanNum,ephysDetNum,0.25);
+                [~,~,~,~,~,ephysDetNum] = extractDetStruct(gO,1);
+                [ephysWinIdx,~] = windowMacher(gO,1,gO.ephysCurrDetRow,ephysDetNum,0.25);
                 ephysTWinIdx = gO.ephysTaxis(ephysWinIdx);
                 [~,winStart] = min(abs(gO.imagingTaxis-ephysTWinIdx(1)));
                 [~,winEnd] = min(abs(gO.imagingTaxis-ephysTWinIdx(end)));
@@ -1416,9 +1416,13 @@ classdef DASeV < handle
                 if gO.parallelMode
                     obj2enable = union(obj2enable, findobj(otherObjs, 'Tag', '_parallel'));
                     if gO.parallelMode == 1
-                        obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'parallel(?!Imaging)|parallelEphys');
+%                         obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'parallel(?!Imaging)|parallelEphys');
+                        obj2enable = setdiff(obj2enable, findobj(obj2enable, '-regexp', 'Tag', 'parallelImaging'));
+                        obj2enable = setdiff(obj2enable, findobj(obj2enable, '-regexp', 'Tag', 'ephysDets'));
                     elseif gO.parallelMode == 2
-                        obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'parallel(?!Ephys)|parallelImaging');
+%                         obj2enable = findobj(obj2enable, '-regexp', 'Tag', 'parallel(?!Ephys)|parallelImaging');
+                        obj2enable = setdiff(obj2enable, findobj(obj2enable, '-regexp', 'Tag', 'parallelEphys'));
+                        obj2enable = setdiff(obj2enable, findobj(obj2enable, '-regexp', 'Tag', 'imagingDets'));
                     end
                 end
                 obj2enable = union(obj2enable, findobj(otherObjs, '-regexp', 'Tag', 'parallelSwitch'));
@@ -1718,9 +1722,11 @@ classdef DASeV < handle
                 else
                     gO.parallelMode = 0;
                 end
+
+                buttonEnabler(gO)
             end
             
-            buttonEnabler(gO)
+%             buttonEnabler(gO)
             
             if gO.parallelMode == 0
                 gO.parallelModeMenu.Text = 'Parallel mode --OFF--';
@@ -4191,14 +4197,14 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.4, 0.89, 0.35, 0.15],...
                 'String','w/Parallel imaging',...
-                'Tag', '_ephysDets_imaging');
+                'Tag', '_ephysDets_parallelImaging');
             gO.save2DbEphys_wPar_RoiSelect = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.76, 0.89, 0.23, 0.1],...
                 'String','Parallel ROIs',...
                 'Callback',@(h,e) gO.save2DbParallelChanSelect(2),...
-                'Tag', '_ephysDets_imaging');
+                'Tag', '_ephysDets_parallelImaging');
             gO.save2DbEphysClrSelButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
@@ -4232,14 +4238,14 @@ classdef DASeV < handle
                 'Units','normalized',...
                 'Position',[0.4, 0.65, 0.35, 0.1],...
                 'String','w/Parallel ephys',...
-                'Tag', '_imagingDets_ephys');
+                'Tag', '_imagingDets_parallelEphys');
             gO.save2DbImaging_wPar_ChanSelect = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
                 'Position',[0.76, 0.65, 0.23, 0.1],...
                 'String','Parallel Chans',...
                 'Callback',@(h,e) gO.save2DbParallelChanSelect(1),...
-                'Tag', '_imagingDets_ephys');
+                'Tag', '_imagingDets_parallelEphys');
             gO.save2DbImagingClrSelButton = uicontrol(gO.save2DbPanel,...
                 'Style','pushbutton',...
                 'Units','normalized',...
