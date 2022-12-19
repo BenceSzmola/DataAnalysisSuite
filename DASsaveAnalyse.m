@@ -80,7 +80,7 @@ for i = 1:numSaves
         load([path,saveFnames{i}], 'ephysSaveData', 'ephysSaveInfo', 'imagingSaveData', 'simultSaveData')
     end
             
-    if ~isempty(ephysSaveData)
+    if ~isempty(ephysSaveData) && ~isempty(ephysSaveInfo)
         hasEphys(i) = true;
         tLen = ephysSaveData.TAxis(end) - ephysSaveData.TAxis(1);
         numDets = cellfun(@ length, ephysSaveData.Dets);
@@ -150,7 +150,7 @@ for i = 1:numSaves
         ephysSaveInfo.DetChannel = [];
     end
     
-    if ~isempty(imagingSaveData)
+    if ~isempty(imagingSaveData) && ~isempty(imagingSaveInfo)
         hasImaging(i) = true;
         
         tempImagingCell{i,1} = saveFnames{i};
