@@ -101,10 +101,10 @@ if ~foundPeaks
 end
 
 if plotFFTs
-    faxisOG = faxisOG(:,any(faxisOG));
-    psdOG   = psdOG(:,any(psdOG));
-    faxisCl = faxisCl(:,any(faxisCl));
-    psdCl   = psdCl(:,any(psdCl));
+    faxisOG = faxisOG(:,any(faxisOG,1));
+    psdOG   = psdOG(:,any(psdOG,1));
+    faxisCl = faxisCl(:,any(faxisCl,1));
+    psdCl   = psdCl(:,any(psdCl,1));
 
     
     for ch = 1:size(data, 1)

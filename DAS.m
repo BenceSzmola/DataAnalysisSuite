@@ -3442,8 +3442,10 @@ classdef DAS < handle
             if value 
                 guiobj.ImportgorobjButton.Enable = 'on';
                 guiobj.ImportImagingWSButton.Enable = 'on';
-            elseif ~value && ~guiobj.ephysCheckBox.Value
-                guiobj.ImportgorobjButton.Enable = 'off';
+            elseif ~value
+                if ~guiobj.ephysCheckBox.Value
+                    guiobj.ImportgorobjButton.Enable = 'off';
+                end
                 guiobj.ImportImagingWSButton.Enable = 'off';
             end
             
