@@ -4005,6 +4005,7 @@ classdef DAS < handle
                             if selNewIntervals
                                 inds2use = discardIntervals4Dets(guiobj,1,data,[newProcInfo.Channel]);
                                 guiobj.ephys_prevIntervalSel = inds2use;
+                                guiobj.ephysShowCurrIntervalsButton.Enable = 'on';
                             else
                                 inds2use = guiobj.ephys_prevIntervalSel;
                             end
