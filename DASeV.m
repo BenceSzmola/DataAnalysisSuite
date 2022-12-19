@@ -63,7 +63,6 @@ classdef DASeV < handle
         
         globalEventAnalyserButton
         
-        
         fileInfoPanel
         fnameLabel
         fnameTxt
