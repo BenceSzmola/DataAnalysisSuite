@@ -817,24 +817,30 @@ classdef DAS < handle
             else
                 rTaxis = [guiobj.run_taxis(1),guiobj.run_taxis(end)];
             end
-            [~,minInd] = min([eTaxis(1),iTaxis(1),rTaxis(1)]);
-            [~,maxInd] = max([eTaxis(2),iTaxis(2),rTaxis(2)]);
-            xlimits = [0,0];
-            switch minInd
-                case 1
-                    xlimits(1) = eTaxis(1);
-                case 2
-                    xlimits(1) = iTaxis(1);
-                case 3
-                    xlimits(1) = rTaxis(1);
-            end
-            switch maxInd
-                case 1
-                    xlimits(2) = eTaxis(2);
-                case 2
-                    xlimits(2) = iTaxis(2);
-                case 3
-                    xlimits(2) = rTaxis(2);
+            
+            if ~any(eTaxis) && ~any(iTaxis) && ~any(rTaxis)
+                xlimits = [0,1];
+                
+            else
+                [~,minInd] = min([eTaxis(1),iTaxis(1),rTaxis(1)]);
+                [~,maxInd] = max([eTaxis(2),iTaxis(2),rTaxis(2)]);
+                xlimits = [0,1];
+                switch minInd
+                    case 1
+                        xlimits(1) = eTaxis(1);
+                    case 2
+                        xlimits(1) = iTaxis(1);
+                    case 3
+                        xlimits(1) = rTaxis(1);
+                end
+                switch maxInd
+                    case 1
+                        xlimits(2) = eTaxis(2);
+                    case 2
+                        xlimits(2) = iTaxis(2);
+                    case 3
+                        xlimits(2) = rTaxis(2);
+                end
             end
             switch sum(guiobj.datatyp)
                 case 1
@@ -5106,7 +5112,7 @@ classdef DAS < handle
         
         %%
         function simultDetRun(guiobj)
-            if ~sum(~cellfun('isempty',guiobj.ephys_detections)) || ~sum(~cellfun('isempty',guiobj.imaging_detections))
+            if isempty(guiobj.ephys_detections) || ~sum(~cellfun('isempty',guiobj.ephys_detections)) || isempty(guiobj.imaging_detections) ~sum(~cellfun('isempty',guiobj.imaging_detections))
                 errordlg('Both electrophysiology and imaging detections are needed!')
                 return
             end
