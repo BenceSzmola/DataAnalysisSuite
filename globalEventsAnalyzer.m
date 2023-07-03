@@ -76,13 +76,15 @@ for i = 1:numSaves
             tStamps = zeros(length(notNanCols), 1);
             for col = 1:length(notNanCols)
                 currCol = notNanCols(col);
-                tStamps(col) = ephysSaveData.Dets{currCol}(globDets(gEv,currCol));
+%                 tStamps(col) = ephysSaveData.Dets{currCol}(globDets(gEv,currCol));
                 if ~isempty(ephysSaveData.DetParams)
+                    temp = [ephysSaveData.DetParams{currCol}.RawAmplitudePeakT];
+                    tStamps(col) = temp(globDets(gEv,currCol));
                     params(col) = ephysSaveData.DetParams{currCol}(globDets(gEv,currCol));
                 end
             end
             
-            tStamps = tAxis(tStamps);
+%             tStamps = tAxis(tStamps);
             tStamps = tStamps - max(tStamps);
             tStamps = tStamps * 1000;
             tempCell2(gEv,1:length(tStamps)) = num2cell(tStamps);
